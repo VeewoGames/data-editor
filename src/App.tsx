@@ -52,6 +52,7 @@ import { findTitleField, getRecordTitle } from "./model/titleField";
 import type { BacklinkGridColumn } from "./model/backlinkGrid";
 import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, RealFieldType, RelationConfig } from "./model/viewConfig";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
+import { normalizeFileOrder } from "./file-order.mjs";
 import {
   removeMultiSelectOptionFromRows,
   removeSingleSelectOptionFromRows,
@@ -60,8 +61,10 @@ import {
 } from "./multiselect-config.mjs";
 import {
   emptyLocalViewState,
+  readLocalFileOrder,
   readCollectionViewState,
   readLocalViewState,
+  writeLocalFileOrder,
   writeLocalViewState,
 } from "./view-state-storage.mjs";
 
@@ -143,6 +146,12 @@ export function App() {
   const dirty = dataDirty || viewConfigDirty;
   const statusText = status || flashStatus;
   const selectedCollectionKey = selectedPath ? buildCollectionKey(selectedPath, collectionPath) : null;
+  const orderedFiles = useMemo(() => {
+    const savedOrder = selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage);
+    const order = normalizeFileOrder(files, savedOrder);
+    const byPath = new Map(files.map((file) => [file.path, file]));
+    return order.map((path) => byPath.get(path)).filter((file): file is DataFile => Boolean(file));
+  }, [files, selectedViewProfileName, selectedViewProfile.fileOrder, viewRevision]);
 
   useEffect(() => { modelRef.current = model; }, [model]);
   useEffect(() => { selectedPathRef.current = selectedPath; }, [selectedPath]);
@@ -215,15 +224,26 @@ export function App() {
   async function reloadProjectWorkspace(projectId: string, options: { resetProfile?: boolean } = {}) {
     resetWorkspaceState(options);
     try {
-      const [nextFiles, nextConfig, nextProfiles] = await Promise.all([
+      const profileNameForInitialOrder = options.resetProfile ? null : selectedViewProfileNameRef.current;
+      const [nextFiles, nextConfig, nextProfiles, nextProfile] = await Promise.all([
         listFiles(projectId),
         loadViewConfig(projectId),
         listViewProfiles(projectId),
+        profileNameForInitialOrder ? loadViewProfile(profileNameForInitialOrder, projectId) : Promise.resolve(null),
       ]);
       setFiles(nextFiles);
       setViewConfig(nextConfig);
       setViewProfiles(nextProfiles);
-      if (nextFiles[0]) await openDocumentAt(nextFiles[0].path, "$", undefined, false, projectId);
+      if (profileNameForInitialOrder && nextProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
+        setSelectedViewProfile(nextProfile);
+        selectedViewProfileRef.current = nextProfile;
+        setSidebarWidth(clampSidebarWidth(nextProfile.sidebarWidth ?? defaultSidebarWidth));
+      }
+      const savedOrder = profileNameForInitialOrder
+        ? (nextProfile?.fileOrder ?? selectedViewProfileRef.current.fileOrder)
+        : readLocalFileOrder(window.localStorage);
+      const initialFileOrder = normalizeFileOrder(nextFiles, savedOrder);
+      if (initialFileOrder[0]) await openDocumentAt(initialFileOrder[0], "$", undefined, false, projectId);
       loadedProjectIdRef.current = projectId;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -809,6 +829,7 @@ export function App() {
     setSelectedViewProfile((current) => {
       const next: UserViewProfile = {
         sidebarWidth: current.sidebarWidth,
+        fileOrder: [...current.fileOrder],
         collections: Object.fromEntries(Object.entries(current.collections).map(([key, value]) => [
           key,
           {
@@ -845,6 +866,15 @@ export function App() {
       state: next,
       localStorage: window.localStorage,
     });
+    bump((value) => value + 1);
+  }
+
+  function handleReorderFiles(fileOrder: string[]) {
+    const nextOrder = normalizeFileOrder(files, fileOrder);
+    if (mutateSelectedViewProfile((draft) => {
+      draft.fileOrder = nextOrder;
+    })) return;
+    writeLocalFileOrder(window.localStorage, nextOrder);
     bump((value) => value + 1);
   }
 
@@ -1158,7 +1188,10 @@ export function App() {
       widths: { ...activeSnapshot.widths },
       order: [...activeSnapshot.order],
       detailOrder: [...activeSnapshot.detailOrder],
-    }, activeSnapshot.sidebarWidth ?? sidebarWidth);
+    }, activeSnapshot.sidebarWidth ?? sidebarWidth, normalizeFileOrder(
+      files,
+      selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage),
+    ));
     try {
       await saveViewProfile(name, profile, activeProjectId);
       setViewProfiles((current) => current.includes(name) ? current : [...current, name].sort((left, right) => left.localeCompare(right, undefined, { numeric: true })));
@@ -1592,12 +1625,13 @@ export function App() {
         <Sidebar
           projects={projects}
           activeProjectId={activeProjectId}
-          files={files}
+          files={orderedFiles}
           selectedPath={selectedPath}
           collections={[]}
           selectedCollection="$"
           metadata={[]}
           onSelectFile={openFile}
+          onReorderFiles={handleReorderFiles}
           onSelectCollection={setCollectionPath}
           onSelectProject={selectProject}
           onOpenProjectSettings={() => setProjectSettingsOpen(true)}
@@ -1621,13 +1655,14 @@ export function App() {
       <Sidebar
         projects={projects}
         activeProjectId={activeProjectId}
-        files={files}
+        files={orderedFiles}
         selectedPath={selectedPath}
         collections={model.collections}
         selectedCollection={collectionPath}
         candidateCollections={candidateCollections}
         metadata={model.metadata ?? []}
         onSelectFile={openFile}
+        onReorderFiles={handleReorderFiles}
         onSelectCollection={(path) => { setCollectionPath(path); setSelectedRowIndex(0); setDetailOpen(false); }}
         onSelectProject={selectProject}
         onOpenProjectSettings={() => setProjectSettingsOpen(true)}
@@ -2432,7 +2467,7 @@ function cloneDataRoot<T>(value: T): T {
 }
 
 function emptyUserViewProfile(): UserViewProfile {
-  return { sidebarWidth: null, collections: {} };
+  return { sidebarWidth: null, fileOrder: [], collections: {} };
 }
 
 function emptyProjectViewConfig(): ViewConfig {
@@ -2501,10 +2536,11 @@ function ensureCollectionView(profile: UserViewProfile, path: string, collection
   return profile.collections[key];
 }
 
-function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number): UserViewProfile {
-  if (!path) return { sidebarWidth, collections: {} };
+function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number, fileOrder: string[]): UserViewProfile {
+  if (!path) return { sidebarWidth, fileOrder: [...fileOrder], collections: {} };
   return {
     sidebarWidth,
+    fileOrder: [...fileOrder],
     collections: {
       [collectionConfigKey(path, collectionPath)]: {
         hidden: [...fieldConfig.hidden],

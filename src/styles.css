@@ -213,6 +213,20 @@ select {
   background: #efeeeb;
 }
 
+.sidebar-file-item {
+  cursor: grab;
+  user-select: none;
+}
+
+.sidebar-file-item:active,
+.sidebar-file-item.is-dragging {
+  cursor: grabbing;
+}
+
+.sidebar-file-item.is-dragging {
+  opacity: 0.66;
+}
+
 .sidebar-item span,
 .metadata-row span {
   overflow: hidden;

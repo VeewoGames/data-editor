@@ -33,6 +33,7 @@ test("saveViewProfile writes normalized profile file", async () => {
   try {
     const result = await saveViewProfile(root, "lans", {
       sidebarWidth: 311.8,
+      fileOrder: ["data/skills.json", "data/runes.json", "data/skills.json", " "],
       collections: {
         "data/runes.json::$": {
           hidden: ["description"],
@@ -47,6 +48,7 @@ test("saveViewProfile writes normalized profile file", async () => {
     const stored = JSON.parse(await readFile(path.join(root, result.path), "utf8"));
     assert.deepEqual(stored, {
       sidebarWidth: 312,
+      fileOrder: ["data/skills.json", "data/runes.json"],
       collections: {
         "data/runes.json::$": {
           hidden: ["description"],
@@ -74,6 +76,7 @@ test("loadViewProfile de-duplicates repeated order fields", async () => {
     await mkdir(profileDir, { recursive: true });
     await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
       sidebarWidth: null,
+      fileOrder: ["data/status_effects.json", "data/runes.json", "data/status_effects.json"],
       collections: {
         "data/status_effects.json:$": {
           hidden: [],
@@ -85,6 +88,7 @@ test("loadViewProfile de-duplicates repeated order fields", async () => {
       },
     }, null, 2));
     const profile = await loadViewProfile(root, "lans");
+    assert.deepEqual(profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
     assert.deepEqual(profile.collections["data/status_effects.json:$"].order, ["effects", "dot", "buildup"]);
     assert.deepEqual(profile.collections["data/status_effects.json:$"].detailOrder, ["effect_name", "description"]);
   } finally {

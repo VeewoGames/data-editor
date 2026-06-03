@@ -36,6 +36,7 @@ export async function saveViewProfile(projectContextOrRoot, name, profile) {
 export function emptyViewProfile() {
   return {
     sidebarWidth: null,
+    fileOrder: [],
     collections: {},
   };
 }
@@ -65,6 +66,7 @@ function normalizeViewProfile(value) {
   }
   return {
     sidebarWidth: Number.isFinite(value.sidebarWidth) ? Math.round(value.sidebarWidth) : null,
+    fileOrder: normalizeStringArray(value.fileOrder),
     collections,
   };
 }

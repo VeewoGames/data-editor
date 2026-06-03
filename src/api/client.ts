@@ -67,6 +67,7 @@ export type ViewConfig = {
 };
 export type UserViewProfile = {
   sidebarWidth: number | null;
+  fileOrder: string[];
   collections: Record<string, {
     hidden: string[];
     wrapped: string[];

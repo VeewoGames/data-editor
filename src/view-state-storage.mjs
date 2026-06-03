@@ -28,6 +28,7 @@ function orderStorageKey(path, collectionPath) {
 }
 
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
+const fileOrderStorageKey = "data-editor:__file-order";
 
 export function cloneCollectionViewState(state) {
   return {
@@ -82,6 +83,19 @@ export function readLocalViewState({ path, collectionPath, localStorage }) {
   return state;
 }
 
+export function readLocalFileOrder(localStorage) {
+  return normalizeStringArray((localStorage.getItem(fileOrderStorageKey) ?? "").split(","));
+}
+
+export function writeLocalFileOrder(localStorage, fileOrder) {
+  const normalized = normalizeStringArray(fileOrder);
+  if (normalized.length) {
+    localStorage.setItem(fileOrderStorageKey, normalized.join(","));
+  } else {
+    localStorage.removeItem(fileOrderStorageKey);
+  }
+}
+
 export function writeLocalViewState({ path, collectionPath, state, localStorage }) {
   const prefix = `data-editor:${path}:${collectionPath}:`;
   for (let i = localStorage.length - 1; i >= 0; i -= 1) {
@@ -107,10 +121,25 @@ export function writeLocalViewState({ path, collectionPath, state, localStorage 
   }
 }
 
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const result = [];
+  for (const item of value) {
+    if (typeof item !== "string" || !item.trim()) continue;
+    const normalized = item.trim();
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
 export function resetCollectionViewState({ mode, path, collectionPath, profile, localState }) {
   if (mode === "profile") {
     const nextProfile = {
       sidebarWidth: null,
+      fileOrder: [...(profile?.fileOrder ?? [])],
       collections: { ...(profile?.collections ?? {}) },
     };
     delete nextProfile.collections[collectionConfigKey(path, collectionPath)];

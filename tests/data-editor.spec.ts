@@ -87,6 +87,32 @@ async function dragColumnHeader(page: Page, sourceField: string, targetField: st
   await page.mouse.up();
 }
 
+async function getSidebarFileOrder(page: Page) {
+  return page.locator(".sidebar-section").first().locator(".sidebar-file-item").evaluateAll((items) => (
+    items.map((item) => item.getAttribute("title")).filter((title): title is string => Boolean(title))
+  ));
+}
+
+async function dragSidebarFile(page: Page, sourcePath: string, targetPath: string, placement: "before" | "after" = "before") {
+  const sourceLocator = page.locator(`.sidebar-file-item[title="${sourcePath}"]`);
+  const targetLocator = page.locator(`.sidebar-file-item[title="${targetPath}"]`);
+  await sourceLocator.scrollIntoViewIfNeeded();
+  await targetLocator.scrollIntoViewIfNeeded();
+  const source = await sourceLocator.boundingBox();
+  const target = await targetLocator.boundingBox();
+  expect(source).not.toBeNull();
+  expect(target).not.toBeNull();
+  const startX = source!.x + source!.width / 2;
+  const startY = source!.y + source!.height / 2;
+  const targetY = placement === "before" ? target!.y + target!.height * 0.25 : target!.y + target!.height * 0.75;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX, startY + 8, { steps: 3 });
+  await expect(sourceLocator).toHaveClass(/is-dragging/);
+  await page.mouse.move(target!.x + target!.width / 2, targetY, { steps: 8 });
+  await page.mouse.up();
+}
+
 test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page }) => {
   const realRunesBefore = await readFile(fixtureRunesPath, "utf8");
 
@@ -408,6 +434,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   const sidebarLabels = await page.locator(".sidebar-section").first().locator(".sidebar-item span").evaluateAll((items) => items.slice(0, 3).map((item) => item.textContent));
   expect(sidebarLabels.every((label) => label && !label.includes("data/"))).toBe(true);
+
   const sidebarBefore = await page.locator(".sidebar").boundingBox();
   const sidebarHandle = await page.locator(".sidebar-resize-handle").boundingBox();
   await page.mouse.move(sidebarHandle!.x + sidebarHandle!.width / 2, sidebarHandle!.y + sidebarHandle!.height / 2);
@@ -787,6 +814,83 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   const realRunesAfter = await readFile(fixtureRunesPath, "utf8");
   expect(realRunesAfter).toBe(realRunesBefore);
 });
+
+test("file list order can be dragged and persists after reload", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
+  await expect(page.locator('.sidebar-file-item[title="data/status_effects.json"]')).toBeVisible();
+
+  await dragSidebarFile(page, "data/status_effects.json", "data/runes.json", "before");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:__file-order"))).toContain("data/status_effects.json,data/runes.json");
+
+  let fileOrderAfterDrag = await getSidebarFileOrder(page);
+  expect(fileOrderAfterDrag.indexOf("data/status_effects.json")).toBeLessThan(fileOrderAfterDrag.indexOf("data/runes.json"));
+
+  await page.reload();
+  await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
+  fileOrderAfterDrag = await getSidebarFileOrder(page);
+  expect(fileOrderAfterDrag.indexOf("data/status_effects.json")).toBeLessThan(fileOrderAfterDrag.indexOf("data/runes.json"));
+});
+
+test("profile file order controls initial open and ignores stale local file order", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    localStorage.setItem("data-editor:__file-order", "data/runes.json,data/status_effects.json");
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "file_order_profile",
+        profile: {
+          sidebarWidth: null,
+          fileOrder: ["data/status_effects.json", "data/runes.json"],
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "file_order_profile");
+  });
+
+  await page.reload();
+  await expect(page.locator('.sidebar-file-item[title="data/status_effects.json"]')).toBeVisible();
+  const profileFileOrder = await getSidebarFileOrder(page);
+  expect(profileFileOrder.indexOf("data/status_effects.json")).toBeLessThan(profileFileOrder.indexOf("data/runes.json"));
+  await expect(page.locator(".toolbar strong")).toContainText("data/status_effects.json");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:__file-order"))).toBe("data/runes.json,data/status_effects.json");
+});
+
+test("profile file order drag persists to profile JSON", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "file_order_drag_profile",
+        profile: {
+          sidebarWidth: null,
+          fileOrder: [],
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "file_order_drag_profile");
+  });
+
+  await page.reload();
+  await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
+  await dragSidebarFile(page, "data/status_effects.json", "data/runes.json", "before");
+
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/file_order_drag_profile.json"), "utf8");
+    const profile = JSON.parse(text);
+    return profile.fileOrder?.join(",");
+  }).toContain("data/status_effects.json,data/runes.json");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:__file-order"))).toBe(null);
+});
+
 test("add field dialog type select is clickable", async ({ page }) => {
   await page.goto("/");
   await page.locator('button[title="Add field"]').click();

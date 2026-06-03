@@ -5,7 +5,9 @@ import {
   emptyCollectionViewState,
   readLocalViewState,
   readCollectionViewState,
+  readLocalFileOrder,
   resetCollectionViewState,
+  writeLocalFileOrder,
   writeLocalViewState,
 } from "../src/view-state-storage.mjs";
 
@@ -77,6 +79,7 @@ test("profile reset removes only target collection and clears profile sidebar wi
     collectionPath: "$",
     profile: {
       sidebarWidth: 320,
+      fileOrder: ["data/status_effects.json", "data/runes.json"],
       collections: {
         "data/runes.json:$": {
           hidden: ["description"],
@@ -94,6 +97,7 @@ test("profile reset removes only target collection and clears profile sidebar wi
   assert.equal(next.profile.collections["data/runes.json:$"], undefined);
   assert.ok(next.profile.collections["data/status_effects.json:$"]);
   assert.equal(next.profile.sidebarWidth, null);
+  assert.deepEqual(next.profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
 });
 
 test("profile mode uses empty state when profile collection has no saved values", () => {
@@ -183,6 +187,37 @@ test("writeLocalViewState overwrites only localStorage keys for the current coll
   assert.equal(storage.getItem("data-editor:data/runes.json:$:__order"), "rune_name,description");
   assert.equal(storage.getItem("data-editor:sidebar-width"), "260");
   assert.equal(storage.getItem("data-editor:data/other.json:$:name:hidden"), "1");
+});
+
+test("readLocalFileOrder reads top-level file order independently of collection state", () => {
+  const storage = createMemoryStorage({
+    "data-editor:__file-order": "data/c.json,data/a.json",
+    "data-editor:data/runes.json:$:__order": "description,rune_name",
+  });
+
+  assert.deepEqual(readLocalFileOrder(storage), ["data/c.json", "data/a.json"]);
+});
+
+test("writeLocalFileOrder stores top-level file order without touching collection state", () => {
+  const storage = createMemoryStorage({
+    "data-editor:__file-order": "data/old.json",
+    "data-editor:data/runes.json:$:__order": "description,rune_name",
+  });
+
+  writeLocalFileOrder(storage, ["data/b.json", "data/a.json"]);
+
+  assert.equal(storage.getItem("data-editor:__file-order"), "data/b.json,data/a.json");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:__order"), "description,rune_name");
+});
+
+test("writeLocalFileOrder removes top-level file order when empty", () => {
+  const storage = createMemoryStorage({
+    "data-editor:__file-order": "data/old.json",
+  });
+
+  writeLocalFileOrder(storage, []);
+
+  assert.equal(storage.getItem("data-editor:__file-order"), null);
 });
 
 test("local reset returns an empty local view state", () => {
