@@ -10,7 +10,7 @@ import {
   saveRecoveryBridgeState,
 } from "./src/runtime-state.mjs";
 import { getMainServiceStatus, startMainService, stopMainService } from "./service-lifecycle.mjs";
-import { createProjectContext } from "./src/project-context.mjs";
+import { runtimeHome } from "./src/project-registry.mjs";
 
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -52,6 +52,7 @@ if (isMainModule) {
     await saveRecoveryBridgeState(options.runtimeTarget, {
       pid: process.pid,
       toolRoot: options.toolRoot,
+      registryHome: options.registryHome,
       projectRoot: options.projectRoot,
       port: options.port,
       servicePort: options.servicePort,
@@ -64,6 +65,8 @@ if (isMainModule) {
         options.toolRoot,
         "--project",
         options.projectRoot,
+        "--registry-home",
+        options.registryHome,
         "--port",
         String(options.port),
         "--service-port",
@@ -137,6 +140,7 @@ async function startServiceThroughController() {
     {
       toolRoot: options.toolRoot,
       projectRoot: options.projectRoot,
+      registryHome: options.registryHome,
       runtimeTarget: options.runtimeTarget,
       runtimeDir: options.runtimeDir,
       logsDir: options.logsDir,
@@ -253,6 +257,7 @@ function parseArgs(argv) {
   const parsed = {
     toolRoot: scriptRoot,
     projectRoot: path.resolve(scriptRoot, "../.."),
+    registryHome: runtimeHome().projectRoot,
     port: 8791,
     servicePort: 8787,
     serviceMode: "static",
@@ -265,6 +270,7 @@ function parseArgs(argv) {
     if (token === "--tool-root") parsed.toolRoot = path.resolve(argv[++index]);
     else if (token === "--project") parsed.projectRoot = path.resolve(argv[++index]);
     else if (token === "--root") parsed.projectRoot = path.resolve(argv[++index]);
+    else if (token === "--registry-home") parsed.registryHome = path.resolve(argv[++index]);
     else if (token === "--port") parsed.port = Number(argv[++index]);
     else if (token === "--service-port") parsed.servicePort = Number(argv[++index]);
     else if (token === "--service-mode") parsed.serviceMode = argv[++index] === "dev" ? "dev" : "static";
@@ -272,12 +278,7 @@ function parseArgs(argv) {
     else if (token === "--runtime-dir") parsed.runtimeDir = argv[++index];
     else if (token === "--logs-dir") parsed.logsDir = argv[++index];
   }
-  parsed.runtimeTarget = createProjectContext({
-    projectRoot: parsed.projectRoot,
-    adapterId: parsed.adapterId,
-    runtimeDir: parsed.runtimeDir,
-    logsDir: parsed.logsDir,
-  });
+  parsed.runtimeTarget = runtimeHome({ home: parsed.registryHome });
   return parsed;
 }
 

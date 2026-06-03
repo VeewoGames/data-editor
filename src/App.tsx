@@ -5,7 +5,10 @@ import * as Select from "@radix-ui/react-select";
 import {
   checkEditorHealth,
   checkRecoveryBridgeHealth,
+  activateProject,
+  createProject,
   listFiles,
+  listProjects,
   listViewProfiles,
   loadDocument,
   loadViewConfig,
@@ -18,8 +21,10 @@ import {
   shutdownServer,
   saveViewConfig,
   saveViewProfile,
+  updateProject,
   type DataFile,
   type PendingDocumentSave,
+  type ProjectDefinition,
   type SaveDocumentsResult,
   type UserViewProfile,
   type ViewConfig,
@@ -65,6 +70,9 @@ const defaultRecoveryBridgePort = 8791;
 
 export function App() {
   const [files, setFiles] = useState<DataFile[]>([]);
+  const [projects, setProjects] = useState<ProjectDefinition[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [model, setModel] = useState<DocumentModel | null>(null);
   const [collectionPath, setCollectionPath] = useState("$");
@@ -131,6 +139,7 @@ export function App() {
   const profileSaveTimerRef = useRef<number | null>(null);
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
   const profileSaveResolveRef = useRef<(() => void) | null>(null);
+  const loadedProjectIdRef = useRef<string | null>(null);
   const dirty = dataDirty || viewConfigDirty;
   const statusText = status || flashStatus;
   const selectedCollectionKey = selectedPath ? buildCollectionKey(selectedPath, collectionPath) : null;
@@ -156,25 +165,19 @@ export function App() {
   }, [viewConfig.primaryKeys, selectedCollectionKey]);
 
   useEffect(() => {
-    listFiles()
-      .then((nextFiles) => {
-        setFiles(nextFiles);
-        if (nextFiles[0]) void openFile(nextFiles[0].path);
+    listProjects()
+      .then((registry) => {
+        setProjects(registry.projects);
+        setActiveProjectId(registry.activeProjectId);
       })
       .catch((error) => setStatus(error.message));
   }, []);
 
   useEffect(() => {
-    loadViewConfig()
-      .then((config) => setViewConfig(config))
-      .catch((error) => setStatus(error.message));
-  }, []);
-
-  useEffect(() => {
-    listViewProfiles()
-      .then((profiles) => setViewProfiles(profiles))
-      .catch((error) => setStatus(error.message));
-  }, []);
+    if (!activeProjectId) return;
+    const resetProfile = loadedProjectIdRef.current !== null && loadedProjectIdRef.current !== activeProjectId;
+    void reloadProjectWorkspace(activeProjectId, { resetProfile });
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (!selectedViewProfileName) {
@@ -183,14 +186,14 @@ export function App() {
       return;
     }
     localStorage.setItem(selectedViewProfileStorageKey, selectedViewProfileName);
-    loadViewProfile(selectedViewProfileName)
+    loadViewProfile(selectedViewProfileName, activeProjectId)
       .then((profile) => {
         setSelectedViewProfile(profile);
         setSidebarWidth(clampSidebarWidth(profile.sidebarWidth ?? defaultSidebarWidth));
         bump((value) => value + 1);
       })
       .catch((error) => setStatus(error.message));
-  }, [selectedViewProfileName]);
+  }, [selectedViewProfileName, activeProjectId]);
 
   useEffect(() => {
     if (!selectedViewProfileName) return;
@@ -208,6 +211,101 @@ export function App() {
       if (profileSaveTimerRef.current != null) window.clearTimeout(profileSaveTimerRef.current);
     };
   }, [selectedViewProfile, selectedViewProfileName]);
+
+  async function reloadProjectWorkspace(projectId: string, options: { resetProfile?: boolean } = {}) {
+    resetWorkspaceState(options);
+    try {
+      const [nextFiles, nextConfig, nextProfiles] = await Promise.all([
+        listFiles(projectId),
+        loadViewConfig(projectId),
+        listViewProfiles(projectId),
+      ]);
+      setFiles(nextFiles);
+      setViewConfig(nextConfig);
+      setViewProfiles(nextProfiles);
+      if (nextFiles[0]) await openDocumentAt(nextFiles[0].path, "$", undefined, false, projectId);
+      loadedProjectIdRef.current = projectId;
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  function resetWorkspaceState(options: { resetProfile?: boolean } = {}) {
+    openRequestRef.current += 1;
+    relationIndexRequestRef.current += 1;
+    setFiles([]);
+    setSelectedPath(null);
+    setModel(null);
+    savedDocumentRootRef.current = null;
+    setCollectionPath("$");
+    setSelectedRowIndex(null);
+    setDetailOpen(false);
+    setQuery("");
+    setSort(null);
+    setDataDirty(false);
+    dataDirtyRef.current = false;
+    setViewConfigDirty(false);
+    viewConfigDirtyRef.current = false;
+    if (options.resetProfile) {
+      setSelectedViewProfileName(null);
+      selectedViewProfileNameRef.current = null;
+      setSelectedViewProfile(emptyUserViewProfile());
+      selectedViewProfileRef.current = emptyUserViewProfile();
+    }
+    setRelationIndexes({});
+    setRelationOptions({});
+    setRelationBacklinks([]);
+    setBacklinkColumns([]);
+    setBacklinkValuesByRowIndex({});
+    setPrimaryKeyImpacts({});
+    setPrimaryKeySyncPlan(null);
+    setPrimaryKeySyncDialogOpen(false);
+    setPrimaryKeySyncResult(null);
+    primaryKeySyncSnapshotRef.current = null;
+    setRelationConfigField(null);
+    setPendingDeleteRow(null);
+    setPendingDeleteField(null);
+    setAddFieldOpen(false);
+    setDismissedCandidateKeys([]);
+    setPrimaryKeyCandidateDialogOpen(false);
+  }
+
+  async function selectProject(projectId: string) {
+    if (projectId === activeProjectId) return;
+    if (dirty && !window.confirm("当前项目有未保存改动。放弃改动并切换项目？")) return;
+    try {
+      await flushPendingProfileSave();
+      await activateProject(projectId);
+      setActiveProjectId(projectId);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function saveProjectSettings(project: ProjectDefinition) {
+    try {
+      const result = await updateProject(project) as { registry?: { projects: ProjectDefinition[]; activeProjectId: string | null } };
+      const registry = result.registry ?? await listProjects();
+      setProjects(registry.projects);
+      setActiveProjectId(registry.activeProjectId);
+      if (registry.activeProjectId) await reloadProjectWorkspace(registry.activeProjectId);
+      setProjectSettingsOpen(false);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function createProjectFromSettings(input: { name: string; root: string }) {
+    try {
+      await createProject({ name: input.name, root: input.root, adapter: "nocturnel" });
+      const registry = await listProjects();
+      setProjects(registry.projects);
+      setActiveProjectId(registry.activeProjectId);
+      setProjectSettingsOpen(false);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }
 
   useEffect(() => {
     function onPageHide() {
@@ -287,7 +385,7 @@ export function App() {
   }, [serviceLifecycleState]);
 
   async function openFile(path: string) {
-    await openDocumentAt(path);
+    await openDocumentAt(path, undefined, undefined, false, activeProjectId);
   }
 
   async function probeEditorHealth() {
@@ -387,7 +485,7 @@ export function App() {
     return flow;
   }
 
-  async function openDocumentAt(path: string, targetCollection?: string, targetRowIndex?: number, openDetailPanel = false) {
+  async function openDocumentAt(path: string, targetCollection?: string, targetRowIndex?: number, openDetailPanel = false, projectId = activeProjectId) {
     const requestId = openRequestRef.current + 1;
     openRequestRef.current = requestId;
     selectedPathRef.current = path;
@@ -399,7 +497,7 @@ export function App() {
     setSelectedRowIndex(null);
     setDetailOpen(false);
     setStatus(`Loading ${path}...`);
-    const documentModel = await loadDocument(path);
+    const documentModel = await loadDocument(path, projectId);
     if (requestId !== openRequestRef.current) return;
     const nextCollection = targetCollection ?? documentModel.collections[0]?.path ?? "$";
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
@@ -462,7 +560,7 @@ export function App() {
     const documentsByPath: Record<string, DocumentModel> = {};
     await Promise.all(sourceFiles.map(async (path) => {
       try {
-        documentsByPath[path] = path === selectedPath && model ? model : await loadDocument(path);
+        documentsByPath[path] = path === selectedPath && model ? model : await loadDocument(path, activeProjectId);
       } catch {
         // Missing source files are surfaced by buildPrimaryKeySyncPlan blocking issues.
       }
@@ -525,7 +623,7 @@ export function App() {
     const documentsByPath: Record<string, DocumentModel> = {};
     await Promise.all(sourceFiles.map(async (path) => {
       try {
-        documentsByPath[path] = path === selectedPath ? model : await loadDocument(path);
+        documentsByPath[path] = path === selectedPath ? model : await loadDocument(path, activeProjectId);
       } catch {
         // Ignore missing source documents and leave their backlink columns empty.
       }
@@ -543,7 +641,7 @@ export function App() {
 
   async function handleOpenRelationTarget(config: RelationConfig, value: string | number) {
     try {
-      const targetDocument = await loadDocument(config.targetFile);
+      const targetDocument = await loadDocument(config.targetFile, activeProjectId);
       const targetRows = getRows(targetDocument, config.targetCollection) as DataRecord[];
       const target = findTargetRecord(targetRows, config.targetKey, value);
       if (!target) {
@@ -567,7 +665,7 @@ export function App() {
     const optionsByKey: Record<string, RelationOption[]> = {};
     for (const [relationKey, target] of Object.entries(config.relations)) {
       try {
-        const reference = await loadDocument(target.targetFile);
+        const reference = await loadDocument(target.targetFile, activeProjectId);
         const referenceRows = getRows(reference, target.targetCollection) as DataRecord[];
         indexes[relationKey] = buildRelationIndex(referenceRows, target.targetKey);
         optionsByKey[relationKey] = buildRelationOptions(referenceRows, target.targetKey, target.titleFields);
@@ -756,7 +854,7 @@ export function App() {
       profileSaveTimerRef.current = null;
     }
     try {
-      await saveViewProfile(name, profile);
+      await saveViewProfile(name, profile, activeProjectId);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
       throw error;
@@ -836,7 +934,7 @@ export function App() {
     setSaving(true);
     setStatus("");
     try {
-      await saveViewConfig(next);
+      await saveViewConfig(next, activeProjectId);
       setViewConfigDirty(false);
       viewConfigDirtyRef.current = false;
       setStatus("已保存项目视图配置");
@@ -1062,7 +1160,7 @@ export function App() {
       detailOrder: [...activeSnapshot.detailOrder],
     }, activeSnapshot.sidebarWidth ?? sidebarWidth);
     try {
-      await saveViewProfile(name, profile);
+      await saveViewProfile(name, profile, activeProjectId);
       setViewProfiles((current) => current.includes(name) ? current : [...current, name].sort((left, right) => left.localeCompare(right, undefined, { numeric: true })));
       setSelectedViewProfileName(name);
       setSelectedViewProfile(profile);
@@ -1226,7 +1324,7 @@ export function App() {
     const sourceRoots = new Map<string, unknown>();
     for (const sourceFile of plan.sourceFiles) {
       if (sourceFile === currentPath) continue;
-      const documentModel = await loadDocument(sourceFile);
+      const documentModel = await loadDocument(sourceFile, activeProjectId);
       sourceRoots.set(sourceFile, cloneDataRoot(documentModel.root));
     }
     for (const rewrite of plan.rewrites) {
@@ -1268,7 +1366,7 @@ export function App() {
     setSaving(true);
     setStatus("");
     try {
-      const result = await saveDocument(selectedPath, model.root);
+      const result = await saveDocument(selectedPath, model.root, activeProjectId);
       savedDocumentRootRef.current = cloneDataRoot(model.root);
       setDataDirty(false);
       setStatus(`已保存，备份：${result.backupPath}`);
@@ -1310,11 +1408,11 @@ export function App() {
     try {
       let backupPath = "";
       if (currentDataDirty && currentModel && currentSelectedPath) {
-        const result = await saveDocument(currentSelectedPath, currentModel.root);
+        const result = await saveDocument(currentSelectedPath, currentModel.root, activeProjectId);
         backupPath = result.backupPath;
         savedDocumentRootRef.current = cloneDataRoot(currentModel.root);
       }
-      if (currentViewConfigDirty) await saveViewConfig(currentViewConfig);
+      if (currentViewConfigDirty) await saveViewConfig(currentViewConfig, activeProjectId);
       dataDirtyRef.current = false;
       viewConfigDirtyRef.current = false;
       setDataDirty(false);
@@ -1334,13 +1432,13 @@ export function App() {
     setSaving(true);
     setStatus("");
     try {
-      const result = await saveDocuments(snapshot.pendingSaves);
+      const result = await saveDocuments(snapshot.pendingSaves, activeProjectId);
       setPrimaryKeySyncResult(result);
       if (!result.ok) {
         setStatus(formatPrimaryKeySyncSaveResult(result));
         return;
       }
-      if (viewConfigDirtyRef.current) await saveViewConfig(viewConfigRef.current);
+      if (viewConfigDirtyRef.current) await saveViewConfig(viewConfigRef.current, activeProjectId);
       savedDocumentRootRef.current = cloneDataRoot(snapshot.pendingSaves[0]?.root ?? null);
       dataDirtyRef.current = false;
       viewConfigDirtyRef.current = false;
@@ -1491,9 +1589,29 @@ export function App() {
   if (!model) {
     return (
       <main className="app-frame" style={appFrameStyle}>
-        <Sidebar files={files} selectedPath={selectedPath} collections={[]} selectedCollection="$" metadata={[]} onSelectFile={openFile} onSelectCollection={setCollectionPath} />
+        <Sidebar
+          projects={projects}
+          activeProjectId={activeProjectId}
+          files={files}
+          selectedPath={selectedPath}
+          collections={[]}
+          selectedCollection="$"
+          metadata={[]}
+          onSelectFile={openFile}
+          onSelectCollection={setCollectionPath}
+          onSelectProject={selectProject}
+          onOpenProjectSettings={() => setProjectSettingsOpen(true)}
+        />
         <div className="sidebar-resize-handle" onPointerDown={beginSidebarResize} aria-label="调整左侧栏宽度" role="separator" />
         <section className="empty-state">{status || "Loading..."}</section>
+        <ProjectSettingsDialog
+          open={projectSettingsOpen}
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onOpenChange={setProjectSettingsOpen}
+          onSaveProject={saveProjectSettings}
+          onCreateProject={createProjectFromSettings}
+        />
       </main>
     );
   }
@@ -1501,6 +1619,8 @@ export function App() {
   return (
     <main className="app-frame" style={appFrameStyle}>
       <Sidebar
+        projects={projects}
+        activeProjectId={activeProjectId}
         files={files}
         selectedPath={selectedPath}
         collections={model.collections}
@@ -1509,6 +1629,8 @@ export function App() {
         metadata={model.metadata ?? []}
         onSelectFile={openFile}
         onSelectCollection={(path) => { setCollectionPath(path); setSelectedRowIndex(0); setDetailOpen(false); }}
+        onSelectProject={selectProject}
+        onOpenProjectSettings={() => setProjectSettingsOpen(true)}
       />
       <div className="sidebar-resize-handle" onPointerDown={beginSidebarResize} aria-label="调整左侧栏宽度" role="separator" />
       <section className="workspace">
@@ -1678,6 +1800,14 @@ export function App() {
         onOpenChange={setPrimaryKeySyncDialogOpen}
         onConfirm={confirmPrimaryKeySyncSave}
       />
+      <ProjectSettingsDialog
+        open={projectSettingsOpen}
+        projects={projects}
+        activeProjectId={activeProjectId}
+        onOpenChange={setProjectSettingsOpen}
+        onSaveProject={saveProjectSettings}
+        onCreateProject={createProjectFromSettings}
+      />
     </main>
   );
 }
@@ -1760,6 +1890,128 @@ function CreateProfileDialog(props: {
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function ProjectSettingsDialog(props: {
+  open: boolean;
+  projects: ProjectDefinition[];
+  activeProjectId: string | null;
+  onOpenChange: (open: boolean) => void;
+  onSaveProject: (project: ProjectDefinition) => void;
+  onCreateProject: (input: { name: string; root: string }) => void;
+}) {
+  const activeProject = props.projects.find((project) => project.id === props.activeProjectId) ?? null;
+  const [name, setName] = useState("");
+  const [root, setRoot] = useState("");
+  const [sourcesText, setSourcesText] = useState("");
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectRoot, setNewProjectRoot] = useState("");
+
+  useEffect(() => {
+    if (!activeProject) {
+      setName("");
+      setRoot("");
+      setSourcesText("");
+      return;
+    }
+    setName(activeProject.name);
+    setRoot(activeProject.root);
+    setSourcesText(activeProject.dataSources.map((source) => `${source.id}|${source.label}|${source.kind}|${source.path}`).join("\n"));
+  }, [activeProject]);
+
+  function saveCurrentProject() {
+    if (!activeProject) return;
+    props.onSaveProject({
+      ...activeProject,
+      name,
+      root,
+      dataSources: parseDataSources(sourcesText),
+    });
+  }
+
+  function createNextProject() {
+    props.onCreateProject({
+      name: newProjectName.trim() || "Project",
+      root: newProjectRoot.trim(),
+    });
+    setNewProjectName("");
+    setNewProjectRoot("");
+  }
+
+  return (
+    <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="dialog-overlay" />
+        <Dialog.Content className="dialog-content project-settings-dialog">
+          <Dialog.Title>Project Settings</Dialog.Title>
+          {activeProject ? (
+            <div className="project-settings">
+              <label className="dialog-field">
+                <span>Name</span>
+                <input value={name} onChange={(event) => setName(event.target.value)} />
+              </label>
+              <label className="dialog-field">
+                <span>Root</span>
+                <input value={root} onChange={(event) => setRoot(event.target.value)} />
+              </label>
+              <label className="dialog-field">
+                <span>Data Sources</span>
+                <textarea
+                  rows={Math.max(3, activeProject.dataSources.length + 1)}
+                  value={sourcesText}
+                  onChange={(event) => setSourcesText(event.target.value)}
+                />
+              </label>
+              <div className="sidebar-label">Data Sources</div>
+              <div className="project-source-list">
+                {parseDataSources(sourcesText).map((source) => (
+                  <div className="project-source-row" key={source.id}>
+                    <strong>{source.label}</strong>
+                    <small>{source.kind}: {source.path}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p>No active project.</p>
+          )}
+          <div className="project-settings-create">
+            <label className="dialog-field">
+              <span>New Project Name</span>
+              <input value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} />
+            </label>
+            <label className="dialog-field">
+              <span>New Project Root</span>
+              <input value={newProjectRoot} onChange={(event) => setNewProjectRoot(event.target.value)} />
+            </label>
+          </div>
+          <div className="dialog-actions">
+            <Dialog.Close className="primary-button">Close</Dialog.Close>
+            <button className="ghost-button" disabled={!newProjectRoot.trim()} onClick={createNextProject} type="button">Add Project</button>
+            <button className="primary-button" disabled={!activeProject} onClick={saveCurrentProject} type="button">Save Project</button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function parseDataSources(text: string) {
+  const sources = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [id, label, kind, ...pathParts] = line.split("|");
+      return {
+        id: (id ?? "").trim(),
+        label: (label ?? id ?? "").trim(),
+        kind: kind?.trim() === "absolute" ? "absolute" as const : "relative" as const,
+        path: pathParts.join("|").trim(),
+      };
+    })
+    .filter((source) => source.id && source.path);
+  return sources.length ? sources : [{ id: "data", label: "Data", kind: "relative" as const, path: "data" }];
 }
 
 function ConfirmDialog(props: {

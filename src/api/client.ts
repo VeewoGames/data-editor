@@ -9,7 +9,26 @@ export type RecoverableRequestEventDetail = {
   message?: string;
 };
 
-export type DataFile = { path: string; size: number; modifiedAt: string };
+export type DataFile = { path: string; displayPath?: string; dataSourceId?: string; dataSourceLabel?: string; size: number; modifiedAt: string };
+export type DataSourceDefinition = {
+  id: string;
+  label: string;
+  path: string;
+  kind: "relative" | "absolute";
+};
+export type ProjectDefinition = {
+  id: string;
+  name: string;
+  root: string;
+  adapter: string;
+  dataSources: DataSourceDefinition[];
+  filePolicy: { includeExtensions: string[] };
+};
+export type ProjectRegistry = {
+  version: number;
+  activeProjectId: string | null;
+  projects: ProjectDefinition[];
+};
 export type PendingDocumentSave = { path: string; root: unknown };
 export type SaveDocumentsResult = {
   ok: boolean;
@@ -57,51 +76,87 @@ export type UserViewProfile = {
   }>;
 };
 
-export async function listFiles(): Promise<DataFile[]> {
-  return fetchJson("/api/files");
+export async function listProjects(): Promise<ProjectRegistry> {
+  return fetchJson("/api/projects");
 }
 
-export async function loadDocument(path: string) {
-  return fetchJson(`/api/document?path=${encodeURIComponent(path)}`);
+export async function createProject(project: Partial<ProjectDefinition> & { root: string }) {
+  return fetchJson("/api/projects", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(project),
+  });
 }
 
-export async function saveDocument(path: string, root: unknown) {
+export async function updateProject(project: Partial<ProjectDefinition> & { id: string }) {
+  return fetchJson("/api/project-update", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(project),
+  });
+}
+
+export async function deleteProject(projectId: string) {
+  return fetchJson("/api/project-delete", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId }),
+  });
+}
+
+export async function activateProject(projectId: string) {
+  return fetchJson("/api/project-activate", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId }),
+  });
+}
+
+export async function listFiles(projectId?: string | null): Promise<DataFile[]> {
+  return fetchJson(withProjectId("/api/files", projectId));
+}
+
+export async function loadDocument(path: string, projectId?: string | null) {
+  return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
+}
+
+export async function saveDocument(path: string, root: unknown, projectId?: string | null) {
   return fetchJson("/api/save", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ path, root }),
+    body: JSON.stringify({ projectId, path, root }),
   });
 }
 
-export async function saveDocuments(items: PendingDocumentSave[]): Promise<SaveDocumentsResult> {
-  return saveDocumentsWith(items, saveDocument);
+export async function saveDocuments(items: PendingDocumentSave[], projectId?: string | null): Promise<SaveDocumentsResult> {
+  return saveDocumentsWith(items, (path: string, root: unknown) => saveDocument(path, root, projectId));
 }
 
-export async function loadViewConfig(): Promise<ViewConfig> {
-  return fetchJson("/api/view-config");
+export async function loadViewConfig(projectId?: string | null): Promise<ViewConfig> {
+  return fetchJson(withProjectId("/api/view-config", projectId));
 }
 
-export async function saveViewConfig(config: ViewConfig) {
+export async function saveViewConfig(config: ViewConfig, projectId?: string | null) {
   return fetchJson("/api/view-config", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(config),
+    body: JSON.stringify({ projectId, config }),
   });
 }
 
-export async function listViewProfiles(): Promise<string[]> {
-  return fetchJson("/api/view-profiles");
+export async function listViewProfiles(projectId?: string | null): Promise<string[]> {
+  return fetchJson(withProjectId("/api/view-profiles", projectId));
 }
 
-export async function loadViewProfile(name: string): Promise<UserViewProfile> {
-  return fetchJson(`/api/view-profile?name=${encodeURIComponent(name)}`);
+export async function loadViewProfile(name: string, projectId?: string | null): Promise<UserViewProfile> {
+  return fetchJson(withProjectId(`/api/view-profile?name=${encodeURIComponent(name)}`, projectId));
 }
 
-export async function saveViewProfile(name: string, profile: UserViewProfile) {
+export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null) {
   return fetchJson("/api/view-profile", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, profile }),
+    body: JSON.stringify({ projectId, name, profile }),
   });
 }
 
@@ -194,4 +249,10 @@ async function fetchJson(url: string, options?: RequestInit, fetchOptions: Fetch
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
   return data;
+}
+
+function withProjectId(url: string, projectId?: string | null) {
+  if (!projectId) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}projectId=${encodeURIComponent(projectId)}`;
 }

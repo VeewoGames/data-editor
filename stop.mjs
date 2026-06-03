@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { createProjectContext } from "./src/project-context.mjs";
+import { runtimeHome } from "./src/project-registry.mjs";
 import {
   clearControllerState,
   clearRecoveryBridgeState,
@@ -248,8 +249,11 @@ export function matchesServiceIdentity(processInfo, state) {
   const parsed = parseCommandLine(processInfo.commandLine ?? "");
   if (!parsed.scriptPath) return false;
   if (path.basename(parsed.scriptPath) !== identity.scriptName) return false;
-  if (!identity.projectRoot) return false;
-  if (parsed.rootValue !== identity.projectRoot) return false;
+  if (identity.registryHome) {
+    if (parsed.registryHomeValue !== identity.registryHome) return false;
+  } else {
+    if (!identity.projectRoot || parsed.rootValue !== identity.projectRoot) return false;
+  }
   if (identity.port !== null && parsed.portValue !== String(identity.port)) return false;
   return true;
 }
@@ -258,12 +262,16 @@ export function buildExpectedIdentity(state) {
   const mode = normalizeMode(state.mode);
   const scriptName = mode === "dev" ? "dev.mjs" : "server.mjs";
   const projectRoot = state.projectRoot ? normalizeText(path.resolve(String(state.projectRoot))) : "";
+  const registryHome = state.registryHome ? normalizeText(path.resolve(String(state.registryHome))) : "";
   const port = Number.isInteger(Number(state.port)) && Number(state.port) > 0 ? Number(state.port) : null;
-  return { mode, scriptName, projectRoot, port };
+  return registryHome
+    ? { mode, scriptName, projectRoot, registryHome, port }
+    : { mode, scriptName, projectRoot, port };
 }
 
 export function buildExpectedRecoveryBridgeIdentity(state) {
   const projectRoot = state.projectRoot ? normalizeText(path.resolve(String(state.projectRoot))) : "";
+  const registryHome = state.registryHome ? normalizeText(path.resolve(String(state.registryHome))) : "";
   const toolRoot = state.toolRoot ? normalizeText(path.resolve(String(state.toolRoot))) : "";
   const port = Number.isInteger(Number(state.port)) && Number(state.port) > 0 ? Number(state.port) : null;
   const servicePort =
@@ -272,6 +280,7 @@ export function buildExpectedRecoveryBridgeIdentity(state) {
   return {
     scriptName: "recovery-bridge.mjs",
     projectRoot,
+    registryHome,
     toolRoot,
     port,
     servicePort,
@@ -290,7 +299,11 @@ export function matchesRecoveryBridgeIdentity(processInfo, state) {
   const parsed = parseCommandLine(processInfo.commandLine ?? "");
   if (!parsed.scriptPath) return false;
   if (path.basename(parsed.scriptPath) !== identity.scriptName) return false;
-  if (!identity.projectRoot || parsed.rootValue !== identity.projectRoot) return false;
+  if (identity.registryHome) {
+    if (parsed.registryHomeValue !== identity.registryHome) return false;
+  } else {
+    if (!identity.projectRoot || parsed.rootValue !== identity.projectRoot) return false;
+  }
   if (!identity.toolRoot || parsed.toolRootValue !== identity.toolRoot) return false;
   if (identity.port !== null && parsed.portValue !== String(identity.port)) return false;
   if (identity.servicePort !== null && parsed.servicePortValue !== String(identity.servicePort)) return false;
@@ -406,6 +419,7 @@ function parseCommandLine(commandLine) {
   return {
     scriptPath,
     rootValue: readOptionValue(normalizedTokens, "--project") || readOptionValue(normalizedTokens, "--root"),
+    registryHomeValue: readOptionValue(normalizedTokens, "--registry-home"),
     portValue: readOptionValue(normalizedTokens, "--port"),
     toolRootValue: readOptionValue(normalizedTokens, "--tool-root"),
     servicePortValue: readOptionValue(normalizedTokens, "--service-port"),
@@ -441,10 +455,11 @@ function parseArgs(argv) {
   const projectRoot = resolveProjectRoot(argv);
   const runtimeDir = readRawOptionValue(argv, "--runtime-dir") || undefined;
   const logsDir = readRawOptionValue(argv, "--logs-dir") || undefined;
+  const registryHome = readRawOptionValue(argv, "--registry-home") || undefined;
   return {
     toolRoot: resolveToolRoot(argv),
     projectRoot,
-    runtimeTarget: createProjectContext({ projectRoot, runtimeDir, logsDir }),
+    runtimeTarget: registryHome ? runtimeHome({ home: registryHome }) : createProjectContext({ projectRoot, runtimeDir, logsDir }),
     serviceOnly: argv.includes("--service-only"),
   };
 }

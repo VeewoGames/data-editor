@@ -28,6 +28,30 @@ test("listDataFiles returns json and csv under data", async () => {
   }
 });
 
+test("listDataFiles returns virtual paths from multiple data sources", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
+  const external = await mkdtemp(path.join(tmpdir(), "data-editor-external-"));
+  try {
+    await mkdir(path.join(root, "data"));
+    await mkdir(path.join(external, "nested"));
+    await writeFile(path.join(root, "data", "a.json"), "[]");
+    await writeFile(path.join(external, "nested", "b.csv"), "id\n1\n");
+    const files = await listDataFiles({
+      projectRoot: root,
+      dataSources: [
+        { id: "data", label: "Data", path: "data", kind: "relative" },
+        { id: "balance", label: "Balance", path: external, kind: "absolute" },
+      ],
+    });
+
+    assert.deepEqual(files.map((f) => f.path).sort(), ["balance/nested/b.csv", "data/a.json"]);
+    assert.equal(files.find((f) => f.path === "balance/nested/b.csv").dataSourceLabel, "Balance");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(external, { recursive: true, force: true });
+  }
+});
+
 test("readTextFile rejects large preview files", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
   try {
@@ -50,5 +74,28 @@ test("writeTextFileWithBackup writes backups under project context backupsDir", 
     assert.equal(await readFile(path.join(root, result.backupPath), "utf8"), "[1]");
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("writeTextFileWithBackup writes backups for absolute data sources under project backups", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
+  const external = await mkdtemp(path.join(tmpdir(), "data-editor-external-"));
+  try {
+    await writeFile(path.join(external, "a.json"), "[1]");
+    const context = {
+      projectRoot: root,
+      dataSources: [
+        { id: "balance", label: "Balance", path: external, kind: "absolute" },
+      ],
+    };
+    const result = await writeTextFileWithBackup(context, "balance/a.json", "[2]");
+
+    assert.match(result.backupPath, /^\.data-editor\/backups\/balance__a\.json\./);
+    assert.equal(await readFile(path.join(external, "a.json"), "utf8"), "[2]");
+    assert.equal(await readFile(path.join(root, result.backupPath), "utf8"), "[1]");
+    await assert.rejects(() => readTextFile(context, "balance/../outside.json"), /outside data source root|allowlist/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(external, { recursive: true, force: true });
   }
 });

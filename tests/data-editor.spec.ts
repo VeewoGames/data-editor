@@ -1336,3 +1336,48 @@ test("refresh build asks for confirmation when unsaved changes would be lost", a
   await expect(page.locator(".status-text")).toHaveCount(0);
   expect(rebuildCalls).toBe(0);
 });
+
+test("project settings opens from the empty workspace state", async ({ page }) => {
+  const registry = {
+    version: 1,
+    activeProjectId: "empty-project",
+    projects: [{
+      id: "empty-project",
+      name: "Empty Project",
+      root: "C:\\Code\\EmptyProject",
+      adapter: "nocturnel",
+      dataSources: [{ id: "data", label: "Data", kind: "relative", path: "data" }],
+    }],
+  };
+  const viewConfig = {
+    fields: {},
+    primaryKeys: {},
+    backlinks: {},
+    relations: {},
+    relationsVersion: 1,
+  };
+  await page.route("**/api/projects", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(registry) });
+  });
+  await page.route("**/api/files?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+  await page.route("**/api/view-config?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(viewConfig) });
+  });
+  await page.route("**/api/view-profiles?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+
+  await page.goto("/");
+  await expect(page.locator(".project-switcher-trigger")).toContainText("Empty Project");
+  await page.locator(".project-switcher-trigger").click();
+  await expect(page.locator(".project-switcher-menu")).toBeVisible();
+  await expect(page.locator(".project-switcher-menu-label")).toHaveText("浏览器本地");
+  await expect(page.getByRole("menuitemradio", { name: "Empty Project" })).toHaveAttribute("aria-checked", "true");
+  await page.locator(".project-switcher-trigger").click();
+  await expect(page.locator(".project-switcher-menu")).toHaveCount(0);
+  await page.getByRole("button", { name: "Project settings" }).click();
+  await expect(page.getByRole("dialog", { name: "Project Settings" })).toBeVisible();
+  await expect(page.locator(".project-settings-dialog textarea")).toContainText("data|Data|relative|data");
+});

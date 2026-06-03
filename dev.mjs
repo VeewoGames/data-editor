@@ -24,6 +24,8 @@ const runtimeDirArgIndex = process.argv.indexOf("--runtime-dir");
 const runtimeDir = runtimeDirArgIndex >= 0 ? process.argv[runtimeDirArgIndex + 1] : ".data-editor/runtime";
 const logsDirArgIndex = process.argv.indexOf("--logs-dir");
 const logsDir = logsDirArgIndex >= 0 ? process.argv[logsDirArgIndex + 1] : ".data-editor/logs";
+const registryHomeArgIndex = process.argv.indexOf("--registry-home");
+const registryHome = registryHomeArgIndex >= 0 ? process.argv[registryHomeArgIndex + 1] : null;
 const runtimeToolRootArgIndex = process.argv.indexOf("--tool-root");
 const runtimeToolRoot = runtimeToolRootArgIndex >= 0 ? process.argv[runtimeToolRootArgIndex + 1] : toolRoot;
 const background = isBackgroundDevProcess(process.env);
@@ -43,6 +45,7 @@ const api = spawn(
     String(bridgePort),
     "--adapter",
     adapterId,
+    ...(registryHome ? ["--registry-home", registryHome] : []),
     "--runtime-dir",
     runtimeDir,
     "--logs-dir",

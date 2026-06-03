@@ -1,8 +1,12 @@
+import { useEffect, useRef, useState } from "react";
 import { icons } from "./icons";
 import type { DataFile } from "../api/client";
+import type { ProjectDefinition } from "../api/client";
 import type { CollectionInfo } from "../model/documentModel";
 
 type SidebarProps = {
+  projects?: ProjectDefinition[];
+  activeProjectId?: string | null;
   files: DataFile[];
   selectedPath: string | null;
   collections: CollectionInfo[];
@@ -11,12 +15,71 @@ type SidebarProps = {
   metadata: { key: string; summary: string }[];
   onSelectFile: (path: string) => void;
   onSelectCollection: (path: string) => void;
+  onSelectProject?: (projectId: string) => void;
+  onOpenProjectSettings?: () => void;
 };
 
 export function Sidebar(props: SidebarProps) {
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement | null>(null);
+  const activeProject = props.projects?.find((project) => project.id === props.activeProjectId) ?? props.projects?.[0] ?? null;
+
+  useEffect(() => {
+    if (!projectMenuOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!switcherRef.current?.contains(event.target as Node)) setProjectMenuOpen(false);
+    }
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [projectMenuOpen]);
+
   return (
     <aside className="sidebar">
-      <div className="sidebar-title">Data Editor</div>
+      <div className="sidebar-title">
+        {props.projects?.length ? (
+          <div className="project-switcher" ref={switcherRef}>
+            <button
+              aria-expanded={projectMenuOpen}
+              aria-haspopup="menu"
+              className="project-switcher-trigger"
+              onClick={() => setProjectMenuOpen((open) => !open)}
+              type="button"
+            >
+              <span>{activeProject?.name ?? "Data Editor"}</span>
+              <span className="project-switcher-caret" aria-hidden="true">▼</span>
+            </button>
+            <button
+              aria-label="Project settings"
+              className="project-switcher-add"
+              onClick={props.onOpenProjectSettings}
+              title="Project settings"
+              type="button"
+            >
+              +
+            </button>
+            {projectMenuOpen ? (
+              <div className="project-switcher-menu" role="menu">
+                <div className="project-switcher-menu-label">浏览器本地</div>
+                {props.projects.map((project) => (
+                  <button
+                    className={`project-switcher-option ${project.id === props.activeProjectId ? "selected" : ""}`}
+                    key={project.id}
+                    onClick={() => {
+                      setProjectMenuOpen(false);
+                      props.onSelectProject?.(project.id);
+                    }}
+                    role="menuitemradio"
+                    aria-checked={project.id === props.activeProjectId}
+                    type="button"
+                  >
+                    {project.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : "Data Editor"}
+      </div>
       <div className="sidebar-section">
         <div className="sidebar-label">Files</div>
         <div className="sidebar-list">
@@ -31,7 +94,7 @@ export function Sidebar(props: SidebarProps) {
                 title={file.path}
               >
                 <Icon size={16} />
-                <span>{fileName}</span>
+                <span>{file.displayPath ?? fileName}</span>
               </button>
             );
           })}

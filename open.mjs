@@ -8,7 +8,7 @@ import {
   clearRecoveryBridgeState,
   loadRecoveryBridgeState,
 } from "./src/runtime-state.mjs";
-import { createProjectContext } from "./src/project-context.mjs";
+import { runtimeHome } from "./src/project-registry.mjs";
 import { inspectProcess, matchesRecoveryBridgeIdentity } from "./stop.mjs";
 
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -66,7 +66,7 @@ export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
           Number(state.servicePort) === requested.port &&
           String(state.serviceMode ?? "static") === requested.mode &&
           String(state.adapterId ?? "nocturnel") === requested.adapterId &&
-          path.resolve(String(state.projectRoot ?? "")) === requested.projectRoot;
+          path.resolve(String(state.registryHome ?? "")) === requested.registryHome;
         if (sameConfig) {
           await waitForBridgeReadyImpl(requested.bridgePort);
           return { message: `Recovery bridge is running at http://127.0.0.1:${requested.bridgePort}/` };
@@ -98,6 +98,8 @@ export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
       requested.mode,
       "--adapter",
       requested.adapterId,
+      "--registry-home",
+      requested.registryHome,
       "--runtime-dir",
       requested.runtimeDir,
       "--logs-dir",
@@ -183,17 +185,14 @@ async function waitForBridgeReady(port, timeoutMs = 5000) {
 
 function normalizeOptions(options) {
   const projectRoot = path.resolve(options.projectRoot);
+  const registryHome = options.registryHome ? path.resolve(options.registryHome) : undefined;
   return {
     toolRoot: path.resolve(options.toolRoot),
     projectRoot,
     runtimeDir: options.runtimeDir ?? ".data-editor/runtime",
     logsDir: options.logsDir ?? ".data-editor/logs",
-    runtimeTarget: options.runtimeTarget ?? createProjectContext({
-      projectRoot,
-      adapterId: options.adapterId,
-      runtimeDir: options.runtimeDir,
-      logsDir: options.logsDir,
-    }),
+    registryHome: registryHome ?? runtimeHome().projectRoot,
+    runtimeTarget: options.runtimeTarget ?? runtimeHome({ home: registryHome }),
     adapterId: options.adapterId ?? "nocturnel",
     port: Number(options.port ?? 8787),
     mode: options.mode === "dev" ? "dev" : "static",
@@ -214,6 +213,7 @@ function parseArgs(argv) {
     port,
     bridgePort: Number(readOption(argv, "--bridge-port") ?? 8791),
     mode: selectedMode,
+    registryHome: readOption(argv, "--registry-home") ?? undefined,
     runtimeDir: readOption(argv, "--runtime-dir") ?? undefined,
     logsDir: readOption(argv, "--logs-dir") ?? undefined,
   };

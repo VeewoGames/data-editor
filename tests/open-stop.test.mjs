@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,7 @@ import { EventEmitter } from "node:events";
 import { promisify } from "node:util";
 import { loadControllerState, loadServiceState, saveServiceState } from "../src/runtime-state.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
+import { runtimeHome } from "../src/project-registry.mjs";
 import { openService } from "../open.mjs";
 import { startMainService } from "../service-lifecycle.mjs";
 import { postControllerStopRequest, runBuildCommand } from "../server.mjs";
@@ -91,19 +92,13 @@ function runOpen(toolRoot, extraArgs = []) {
 
 function runtimeArgs(toolRoot) {
   return [
-    "--runtime-dir",
-    runtimeDirFor(toolRoot),
-    "--logs-dir",
-    logsDirFor(toolRoot),
+    "--registry-home",
+    toolRoot,
   ];
 }
 
 function runtimeTargetFor(toolRoot) {
-  return createProjectContext({
-    projectRoot,
-    runtimeDir: runtimeDirFor(toolRoot),
-    logsDir: logsDirFor(toolRoot),
-  });
+  return runtimeHome({ home: toolRoot });
 }
 
 function runtimeDirFor(toolRoot) {
@@ -596,6 +591,7 @@ test("startMainService starts exactly one main service and records runtime state
   const result = await startMainService({
     toolRoot,
     projectRoot,
+    registryHome: toolRoot,
     runtimeTarget,
     runtimeDir: runtimeDirFor(toolRoot),
     logsDir: logsDirFor(toolRoot),
@@ -1036,6 +1032,7 @@ test("openService surfaces controller startup failures without writing service s
 
 test("startMainService launches the dev parent in background mode", async (t) => {
   const toolRoot = await makeToolRoot(t);
+  const runtimeTarget = runtimeTargetFor(toolRoot);
   const port = await findAvailablePort();
   const bridgePort = await findAvailablePortExcluding([port, port + 1]);
   const calls = [];
@@ -1051,7 +1048,7 @@ test("startMainService launches the dev parent in background mode", async (t) =>
   child.stderr.destroy = () => {};
 
   await startMainService(
-    { toolRoot, projectRoot, port, mode: "dev", bridgePort },
+    { toolRoot, projectRoot, port, mode: "dev", bridgePort, runtimeTarget, registryHome: toolRoot },
     {
       spawnImpl: (...args) => {
         calls.push(args);
@@ -1171,7 +1168,11 @@ test("build helper runs npm run build from the tool root and surfaces stderr on 
 
 test("missing static assets return 404 without crashing the static server", async (t) => {
   const port = await findAvailablePort();
-  const child = spawnDataEditorServer(port, ["--static", "dist"]);
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-static-home-"));
+  t.after(async () => {
+    await rm(registryHome, { recursive: true, force: true });
+  });
+  const child = spawnDataEditorServer(port, ["--registry-home", registryHome, "--static", "dist"]);
   t.after(() => {
     try {
       child.kill();
@@ -1185,6 +1186,33 @@ test("missing static assets return 404 without crashing the static server", asyn
 
   const healthResponse = await getJson(port, "/api/health");
   assert.equal(healthResponse.statusCode, 200, JSON.stringify(healthResponse.body));
+});
+
+test("server registers project and lists files by projectId", async (t) => {
+  const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-api-project-"));
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-api-home-"));
+  t.after(async () => {
+    await rm(project, { recursive: true, force: true });
+    await rm(registryHome, { recursive: true, force: true });
+  });
+  await mkdir(path.join(project, "data"));
+  await writeFile(path.join(project, "data", "api.json"), "[]");
+  const port = await findAvailablePort();
+  const child = spawnDataEditorServer(port, ["--project", project, "--registry-home", registryHome, "--static", "dist"]);
+  t.after(async () => {
+    try {
+      child.kill();
+    } catch {}
+    await waitForExit(child).catch(() => {});
+  });
+
+  await waitForHttpOk(port);
+  const projects = await waitForJsonOk(port, "/api/projects");
+  assert.equal(projects.projects.length, 1);
+  assert.equal(projects.activeProjectId, projects.projects[0].id);
+
+  const files = await waitForJsonOk(port, `/api/files?projectId=${encodeURIComponent(projects.activeProjectId)}`);
+  assert.deepEqual(files.map((file) => file.path), ["data/api.json"]);
 });
 
 test("POST /api/shutdown returns success and stops the static service through the formal stop flow", async (t) => {

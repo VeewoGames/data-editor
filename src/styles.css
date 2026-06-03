@@ -75,6 +75,108 @@ select {
   margin: 4px 4px 16px;
 }
 
+.project-switcher {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+  position: relative;
+}
+
+.project-switcher-trigger,
+.project-switcher-add {
+  background: #fff;
+  border: 1px solid #dedbd6;
+  border-radius: 7px;
+  color: #37352f;
+  height: 30px;
+}
+
+.project-switcher-trigger {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 400;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0 8px 0 10px;
+  text-align: left;
+}
+
+.project-switcher-trigger:hover,
+.project-switcher-add:hover {
+  background: #f7f6f3;
+}
+
+.project-switcher-trigger span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-switcher-caret {
+  color: #2f3437;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  margin-left: 6px;
+}
+
+.project-switcher-add {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 30px;
+  font-size: 20px;
+  font-weight: 300;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 0 1px;
+}
+
+.project-switcher-menu {
+  background: #fff;
+  border: 1px solid #dedbd6;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 15, 15, 0.12), 0 2px 6px rgba(15, 15, 15, 0.08);
+  display: grid;
+  gap: 3px;
+  left: 0;
+  min-width: 0;
+  padding: 10px 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 5px);
+  z-index: 80;
+}
+
+.project-switcher-menu-label {
+  color: #8b8a86;
+  font-size: 13px;
+  font-weight: 400;
+  padding: 0 8px 4px;
+}
+
+.project-switcher-option {
+  background: transparent;
+  border: 0;
+  color: #37352f;
+  font-size: 13px;
+  font-weight: 400;
+  min-height: 28px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.project-switcher-option:hover,
+.project-switcher-option.selected {
+  background: #efeeeb;
+  color: #37352f;
+}
+
 .sidebar-section {
   margin-bottom: 18px;
 }
@@ -121,6 +223,43 @@ select {
 .sidebar-item small,
 .metadata-row small {
   color: #8b8a86;
+}
+
+.project-settings {
+  display: grid;
+  gap: 12px;
+}
+
+.project-settings textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.project-settings-create {
+  border-top: 1px solid #e4e2de;
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.project-source-list {
+  display: grid;
+  gap: 8px;
+}
+
+.project-source-row {
+  background: #fbfbfa;
+  border: 1px solid #e4e2de;
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+}
+
+.project-source-row small {
+  color: #787774;
+  word-break: break-all;
 }
 
 .sidebar-item-meta {

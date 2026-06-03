@@ -12,15 +12,11 @@ import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-p
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
+import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const projectRoot = path.resolve(args.project ?? args.root ?? process.cwd());
-const projectContext = createProjectContext({
-  projectRoot,
-  adapterId: args.adapter,
-  runtimeDir: args.runtimeDir,
-  logsDir: args.logsDir,
-});
+const registryOptions = args.registryHome ? { home: path.resolve(args.registryHome) } : {};
 const port = Number(args.port ?? 8787);
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const toolRoot = args.toolRoot ? path.resolve(args.toolRoot) : scriptRoot;
@@ -29,16 +25,23 @@ const staticRoot = args.static ? path.resolve(scriptRoot, args.static) : null;
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 const execFileAsync = promisify(execFile);
 let shuttingDown = false;
+let initialProjectPromise = null;
 
 const server = http.createServer(async (req, res) => {
   try {
+    await ensureInitialProject();
     const url = new URL(req.url, `http://${req.headers.host}`);
-    if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(projectContext));
+    if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
+    if (url.pathname === "/api/projects" && req.method === "POST") return handleCreateProject(req, res);
+    if (url.pathname === "/api/project-update" && req.method === "POST") return handleUpdateProject(req, res);
+    if (url.pathname === "/api/project-delete" && req.method === "POST") return handleDeleteProject(req, res);
+    if (url.pathname === "/api/project-activate" && req.method === "POST") return handleActivateProject(req, res);
+    if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/document") return handleDocument(url, res);
     if (url.pathname === "/api/save" && req.method === "POST") return handleSave(req, res);
-    if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(projectContext));
+    if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-config" && req.method === "POST") return handleSaveViewConfig(req, res);
-    if (url.pathname === "/api/view-profiles") return sendJson(res, await listViewProfiles(projectContext));
+    if (url.pathname === "/api/view-profiles") return sendJson(res, await listViewProfiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-profile" && req.method === "GET") return handleLoadViewProfile(url, res);
     if (url.pathname === "/api/view-profile" && req.method === "POST") return handleSaveViewProfile(req, res);
     if (url.pathname === "/api/health" && req.method === "GET") return sendJson(res, { ok: true, bridgePort });
@@ -52,15 +55,22 @@ const server = http.createServer(async (req, res) => {
 
 if (isMainModule) {
   registerRuntimeStateCleanup();
+  await ensureInitialProject();
   server.listen(port, "127.0.0.1", () => {
     console.log(`Data Editor running at http://127.0.0.1:${port}`);
     console.log(`Project root: ${projectRoot}`);
   });
 }
 
+function ensureInitialProject() {
+  initialProjectPromise ??= addOrActivateProject({ root: projectRoot, adapter: args.adapter ?? "nocturnel" }, registryOptions);
+  return initialProjectPromise;
+}
+
 async function handleDocument(url, res) {
   const relativePath = url.searchParams.get("path");
   if (!relativePath) throw new Error("Missing document path");
+  const projectContext = await projectContextForUrl(url);
   const text = await readTextFile(projectContext, relativePath);
   const ext = path.extname(relativePath).toLowerCase();
   const parsed = ext === ".csv" ? { data: parseCsv(text), format: "csv" } : parseJson(text);
@@ -70,6 +80,7 @@ async function handleDocument(url, res) {
 async function handleSave(req, res) {
   const body = await readJsonBody(req);
   if (!body.path) throw new Error("Missing save path");
+  const projectContext = await projectContextForId(body.projectId);
   const ext = path.extname(body.path).toLowerCase();
   if (![".json", ".csv"].includes(ext)) throw new Error(`Unsupported save extension: ${ext}`);
   const text = ext === ".csv" ? serializeCsv(body.root) : serializeJson(body.root);
@@ -79,21 +90,69 @@ async function handleSave(req, res) {
 
 async function handleSaveViewConfig(req, res) {
   const body = await readJsonBody(req);
-  const result = await saveViewConfig(projectContext, body);
+  const projectContext = await projectContextForId(body.projectId);
+  const config = body && typeof body === "object" && "config" in body ? body.config : body;
+  const result = await saveViewConfig(projectContext, config);
   sendJson(res, { ok: true, ...result });
 }
 
 async function handleLoadViewProfile(url, res) {
   const name = url.searchParams.get("name");
   if (!name) throw new Error("Missing view profile name");
-  sendJson(res, await loadViewProfile(projectContext, name));
+  sendJson(res, await loadViewProfile(await projectContextForUrl(url), name));
 }
 
 async function handleSaveViewProfile(req, res) {
   const body = await readJsonBody(req);
   if (!body.name) throw new Error("Missing view profile name");
+  const projectContext = await projectContextForId(body.projectId);
   const result = await saveViewProfile(projectContext, body.name, body.profile);
   sendJson(res, { ok: true, ...result });
+}
+
+async function handleCreateProject(req, res) {
+  const body = await readJsonBody(req);
+  const result = await addOrActivateProject(body, registryOptions);
+  sendJson(res, { ok: true, activeProjectId: result.registry.activeProjectId, project: result.project });
+}
+
+async function handleUpdateProject(req, res) {
+  const body = await readJsonBody(req);
+  if (!body.id) throw new Error("Missing project id");
+  const registry = await loadProjectRegistry(registryOptions);
+  const index = registry.projects.findIndex((project) => project.id === body.id);
+  if (index < 0) throw new Error(`Unknown project: ${body.id}`);
+  registry.projects[index] = {
+    ...registry.projects[index],
+    ...body,
+    root: body.root ?? registry.projects[index].root,
+    dataSources: body.dataSources ?? registry.projects[index].dataSources,
+    filePolicy: body.filePolicy ?? registry.projects[index].filePolicy,
+  };
+  const saved = await saveProjectRegistry(registry, registryOptions);
+  sendJson(res, { ok: true, registry: saved });
+}
+
+async function handleDeleteProject(req, res) {
+  const body = await readJsonBody(req);
+  if (!body.projectId) throw new Error("Missing project id");
+  const registry = await loadProjectRegistry(registryOptions);
+  const projects = registry.projects.filter((project) => project.id !== body.projectId);
+  if (projects.length === registry.projects.length) throw new Error(`Unknown project: ${body.projectId}`);
+  if (projects.length === 0) throw new Error("Cannot delete the last project.");
+  const activeProjectId = registry.activeProjectId === body.projectId ? projects[0].id : registry.activeProjectId;
+  const saved = await saveProjectRegistry({ ...registry, activeProjectId, projects }, registryOptions);
+  sendJson(res, { ok: true, registry: saved });
+}
+
+async function handleActivateProject(req, res) {
+  const body = await readJsonBody(req);
+  const projectId = body.projectId;
+  if (!projectId) throw new Error("Missing project id");
+  const registry = await loadProjectRegistry(registryOptions);
+  if (!registry.projects.some((project) => project.id === projectId)) throw new Error(`Unknown project: ${projectId}`);
+  const saved = await saveProjectRegistry({ ...registry, activeProjectId: projectId }, registryOptions);
+  sendJson(res, { ok: true, activeProjectId: saved.activeProjectId });
 }
 
 function handleShutdown(res) {
@@ -226,6 +285,7 @@ function parseArgs(argv) {
     else if (argv[i] === "--bridge-port") result.bridgePort = argv[++i];
     else if (argv[i] === "--runtime-dir") result.runtimeDir = argv[++i];
     else if (argv[i] === "--logs-dir") result.logsDir = argv[++i];
+    else if (argv[i] === "--registry-home") result.registryHome = argv[++i];
   }
   return result;
 }
@@ -250,7 +310,33 @@ async function shutdownServer(exitCode) {
   if (shuttingDown) return;
   shuttingDown = true;
   process.exitCode = exitCode;
-  await clearServiceStateIfOwned(projectContext, process.pid).catch(() => {});
+  await clearServiceStateIfOwned(runtimeTargetFromArgs(), process.pid).catch(() => {});
   await new Promise((resolve) => server.close(() => resolve()));
   process.exit(exitCode);
+}
+
+async function projectContextForUrl(url) {
+  return projectContextForId(url.searchParams.get("projectId"));
+}
+
+async function projectContextForId(projectId) {
+  const registry = await loadProjectRegistry(registryOptions);
+  const resolvedProjectId = typeof projectId === "string" && projectId.trim() ? projectId.trim() : registry.activeProjectId;
+  const project = registry.projects.find((candidate) => candidate.id === resolvedProjectId);
+  if (!project) throw new Error(resolvedProjectId ? `Unknown project: ${resolvedProjectId}` : "No active project is configured.");
+  return createProjectContext({
+    projectRoot: project.root,
+    adapterId: project.adapter,
+    dataSources: project.dataSources,
+    filePolicy: project.filePolicy,
+  });
+}
+
+function runtimeTargetFromArgs() {
+  return args.registryHome ? { projectRoot: path.resolve(args.registryHome), runtimeDir: "runtime", logsDir: "logs" } : createProjectContext({
+    projectRoot,
+    adapterId: args.adapter,
+    runtimeDir: args.runtimeDir,
+    logsDir: args.logsDir,
+  });
 }

@@ -1,8 +1,8 @@
 # Data Editor
 
-Data Editor 是一个独立的本地网页数据编辑器，用于编辑项目内的 JSON / CSV 数据文件。它不再要求自己放在业务项目的 `tools/data-editor` 目录下，而是通过 `--project` 指向需要编辑的数据项目。
+Data Editor 是一个独立的本地网页数据编辑器，用于编辑一个或多个本地项目中的 JSON / CSV 数据文件。它不再要求自己放在业务项目的 `tools/data-editor` 目录下，而是通过本机项目 registry 管理项目列表，并在 UI 中切换当前项目。
 
-当前版本是“独立可运行”的第一阶段：运行时、日志、备份和视图配置已经写入目标项目的 `.data-editor/` 目录；后续再继续拆分通用核心、项目适配器和发布包。
+当前版本支持多项目和自定义数据源：运行时状态与日志写入全局 Data Editor home，业务项目自己的视图配置和备份仍写入对应项目的 `.data-editor/` 目录。
 
 ## 安装
 
@@ -12,14 +12,16 @@ npm install
 npm run build
 ```
 
-## 打开项目
+## 打开和切换项目
 
-编辑 Nocturnel：
+首次编辑 Nocturnel：
 
 ```powershell
 cd C:\Code\data-editor
 npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
 ```
+
+这条命令会把 `C:\Code\Nocturnel` 注册到本机 registry，并设为当前 active project。后续可以在左侧 Sidebar 顶部的项目下拉框中切换项目，也可以点击旁边的设置按钮新增项目、修改项目根目录和自定义数据源。
 
 默认地址：
 
@@ -27,11 +29,18 @@ npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
 http://127.0.0.1:8787/
 ```
 
+如需自定义 registry、运行时状态和日志目录，设置 `DATA_EDITOR_HOME` 或传入 `--registry-home`：
+
+```powershell
+$env:DATA_EDITOR_HOME = "C:\Users\lans\.data-editor"
+npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
+```
+
 ## 关闭服务
 
 ```powershell
 cd C:\Code\data-editor
-npm run stop -- --project C:\Code\Nocturnel
+npm run stop
 ```
 
 ## 开发模式
@@ -43,19 +52,54 @@ cd C:\Code\data-editor
 npm run dev -- --project C:\Code\Nocturnel --adapter nocturnel
 ```
 
-## 项目侧配置
+## 配置与运行时位置
 
-目标项目中的配置和运行产物默认放在：
+本机项目 registry 默认放在：
+
+```text
+%APPDATA%\data-editor\projects.json
+```
+
+运行时状态和日志默认放在：
+
+```text
+%APPDATA%\data-editor\runtime\
+%APPDATA%\data-editor\logs\
+```
+
+目标项目中的业务配置和备份默认放在：
 
 ```text
 <project>/.data-editor/view-config.json
 <project>/.data-editor/view-configs/<profile>.json
 <project>/.data-editor/backups/
-<project>/.data-editor/runtime/
-<project>/.data-editor/logs/
 ```
 
 其中 `view-config.json` 适合团队共享，`view-configs/<profile>.json` 适合用户个人视图配置。
+
+## 自定义数据源
+
+每个项目至少有一个默认数据源：
+
+```text
+data|Data|relative|data
+```
+
+在项目设置对话框中，每行声明一个数据源，格式为：
+
+```text
+<id>|<label>|<kind>|<path>
+```
+
+示例：
+
+```text
+data|Data|relative|data
+balance|Balance|relative|configs/balance
+shared|Shared|absolute|D:\GameData\shared
+```
+
+文件列表中的路径会以数据源 id 作为前缀，例如 `balance/items.json`。保存时后端会重新解析该虚拟路径，并限制写入在已注册的数据源范围内。
 
 ## 示例
 

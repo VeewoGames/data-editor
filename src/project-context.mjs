@@ -9,6 +9,7 @@ export const defaultProjectViewProfilesDir = ".data-editor/view-configs";
 export const defaultBackupsDir = ".data-editor/backups";
 export const defaultRuntimeDir = ".data-editor/runtime";
 export const defaultLogsDir = ".data-editor/logs";
+export const defaultDataSourceId = "data";
 
 export function createProjectContext(input = {}) {
   if (typeof input === "string") {
@@ -26,6 +27,7 @@ export function createProjectContext(input = {}) {
     projectId,
     adapterId: input.adapterId ?? "nocturnel",
     dataRoot: input.dataRoot ?? "data",
+    dataSources: normalizeDataSources(input.dataSources, input.dataRoot ?? "data"),
     sharedViewConfigPath: input.sharedViewConfigPath ?? defaultSharedViewConfigPath,
     legacySharedViewConfigPath: input.legacySharedViewConfigPath ?? legacySharedViewConfigPath,
     userViewProfilesDir,
@@ -38,6 +40,23 @@ export function createProjectContext(input = {}) {
       includeExtensions: [".json", ".csv"],
     },
   };
+}
+
+export function normalizeDataSources(dataSources, dataRoot = "data") {
+  if (!Array.isArray(dataSources) || dataSources.length === 0) {
+    return [{
+      id: defaultDataSourceId,
+      label: "Data",
+      path: dataRoot,
+      kind: "relative",
+    }];
+  }
+  return dataSources.map((source) => ({
+    id: String(source?.id ?? "").trim(),
+    label: String(source?.label ?? source?.id ?? "").trim(),
+    path: String(source?.path ?? "").trim(),
+    kind: source?.kind === "absolute" ? "absolute" : "relative",
+  }));
 }
 
 export function resolveProjectPath(projectContextOrRoot, relativePath) {

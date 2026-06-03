@@ -11,7 +11,7 @@ import {
   runtimeLogsDir,
   saveServiceState,
 } from "./src/runtime-state.mjs";
-import { createProjectContext } from "./src/project-context.mjs";
+import { runtimeHome } from "./src/project-registry.mjs";
 import { inspectProcess, matchesServiceIdentity, terminateWindowsProcess } from "./stop.mjs";
 
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -176,6 +176,8 @@ async function spawnMainService(requested, deps) {
           String(requested.bridgePort),
           "--adapter",
           requested.adapterId,
+          "--registry-home",
+          requested.registryHome,
           "--runtime-dir",
           requested.runtimeDir,
           "--logs-dir",
@@ -195,6 +197,8 @@ async function spawnMainService(requested, deps) {
           String(requested.bridgePort),
           "--adapter",
           requested.adapterId,
+          "--registry-home",
+          requested.registryHome,
           "--runtime-dir",
           requested.runtimeDir,
           "--logs-dir",
@@ -227,6 +231,7 @@ async function spawnMainService(requested, deps) {
       apiPort: requested.mode === "dev" ? requested.port + 1 : null,
       mode: requested.mode,
       projectRoot: requested.projectRoot,
+      registryHome: requested.registryHome,
       adapterId: requested.adapterId,
     };
     await waitForServiceReadyImpl(child, expectedState);
@@ -235,6 +240,7 @@ async function spawnMainService(requested, deps) {
       port: requested.port,
       mode: requested.mode,
       projectRoot: requested.projectRoot,
+      registryHome: requested.registryHome,
       adapterId: requested.adapterId,
       command: [process.execPath, ...spawnArgs],
       startedAt: new Date().toISOString(),
@@ -309,17 +315,14 @@ async function cleanupSpawnedService(pid) {
 
 function normalizeMainServiceOptions(options) {
   const projectRoot = path.resolve(options.projectRoot);
+  const registryHome = options.registryHome ? path.resolve(options.registryHome) : undefined;
   return {
     toolRoot: path.resolve(options.toolRoot),
     projectRoot,
+    registryHome: registryHome ?? runtimeHome().projectRoot,
     runtimeDir: options.runtimeDir ?? ".data-editor/runtime",
     logsDir: options.logsDir ?? ".data-editor/logs",
-    runtimeTarget: options.runtimeTarget ?? createProjectContext({
-      projectRoot,
-      adapterId: options.adapterId,
-      runtimeDir: options.runtimeDir,
-      logsDir: options.logsDir,
-    }),
+    runtimeTarget: options.runtimeTarget ?? runtimeHome({ home: registryHome }),
     adapterId: options.adapterId ?? "nocturnel",
     port: Number(options.port ?? 8787),
     mode: options.mode === "dev" ? "dev" : "static",
