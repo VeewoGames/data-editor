@@ -1,0 +1,14 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+
+.data-editor/backups/
+.data-editor/runtime/
+.data-editor/logs/
+.data-editor/runtime-tests/
+.data-editor/log-tests/
+
+tests/.scratch/
+*.log
+.tmp-*

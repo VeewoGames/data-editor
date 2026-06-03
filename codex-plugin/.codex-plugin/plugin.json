@@ -1,0 +1,25 @@
+{
+  "name": "data-editor",
+  "version": "0.1.0",
+  "description": "Open and use the local data editor inside Codex, preferring direct in-app browser opening.",
+  "author": {
+    "name": "lans"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Data Editor",
+    "shortDescription": "Open the local JSON and CSV editor directly in Codex",
+    "longDescription": "Data Editor should prefer opening the local project data editor directly in the Codex in-app browser, only falling back to plain-text instructions when direct browser control is unavailable.",
+    "developerName": "lans",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Open the data editor directly in the Codex in-app browser.",
+      "Use Browser to open data-editor in Codex."
+    ]
+  }
+}

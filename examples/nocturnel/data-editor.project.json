@@ -1,0 +1,48 @@
+{
+  "id": "nocturnel",
+  "displayName": "Nocturnel",
+  "dataRoots": [
+    {
+      "id": "data",
+      "label": "Data",
+      "path": "data"
+    }
+  ],
+  "configPaths": {
+    "sharedViewConfig": ".data-editor/view-config.json",
+    "userViewProfilesDir": ".data-editor/view-configs",
+    "runtimeDir": ".data-editor/runtime",
+    "backupsDir": ".data-editor/backups",
+    "logsDir": ".data-editor/logs"
+  },
+  "filePolicy": {
+    "include": [
+      "data/**/*.json",
+      "data/**/*.csv"
+    ],
+    "exclude": [],
+    "writable": [
+      "data/**/*.json",
+      "data/**/*.csv"
+    ]
+  },
+  "titleFieldPolicy": {
+    "preferredNames": [
+      "name",
+      "display_name",
+      "title",
+      "skill_name",
+      "equipment_name"
+    ]
+  },
+  "primaryKeyPolicy": {
+    "candidateNames": [
+      "id",
+      "*_id"
+    ],
+    "configuredKeys": {}
+  },
+  "relationPolicy": {
+    "configSource": "sharedViewConfig"
+  }
+}
