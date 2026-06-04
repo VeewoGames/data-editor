@@ -16,7 +16,7 @@ export function BooleanFilterPopover({ filters, rule, onChangeFilters }: Boolean
     onChangeFilters(removeRule(filters, rule.id));
   }
 
-  const activeValue = rule.operator === "is_empty" ? "empty" : rule.value === false ? "false" : rule.value === true ? "true" : "";
+  const activeValue = rule.value === false ? "false" : rule.value === true ? "true" : "";
 
   return (
     <div className="filter-popover">
@@ -40,8 +40,8 @@ export function BooleanFilterPopover({ filters, rule, onChangeFilters }: Boolean
           已勾选
         </button>
         <button
-          className={activeValue === "empty" ? "filter-choice selected" : "filter-choice"}
-          onClick={() => updateRule({ id: rule.id, field: rule.field, operator: "is_empty" })}
+          className="filter-choice"
+          onClick={deleteRule}
           type="button"
         >
           清除

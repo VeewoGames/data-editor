@@ -68,6 +68,8 @@ test("App wires shared view filter bar draft changes through active view drafts"
   assert.match(appSource, /buildValueFilterOptions\(field, rows, fieldViewConfigs\[field\], fieldType\)/);
   assert.match(sortPopoverSource, /onChangeSorts\(nextSorts\)/);
   assert.match(sortPopoverSource, /sorts\.map/);
+  assert.match(booleanFilterSource, /onClick=\{deleteRule\}/);
+  assert.doesNotMatch(booleanFilterSource, /operator: "is_empty"/);
 
   for (const source of [filterBarSource, sortPopoverSource, multiSelectFilterSource, booleanFilterSource, textFilterSource]) {
     assert.doesNotMatch(source, /高级筛选|合并筛选|嵌套筛选|filter merge|advanced filter/i);
