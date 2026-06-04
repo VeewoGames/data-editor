@@ -1,11 +1,24 @@
 import { expect, test, type Page } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(process.cwd(), "..", "Nocturnel"));
 const fixtureRunesPath = path.join(fixtureProjectRoot, "data", "runes.json");
 
 test.setTimeout(60_000);
+
+type SharedViewConfig = {
+  id: string;
+  name: string;
+  type?: string;
+  query?: string;
+  filters?: { op?: string; rules?: Array<Record<string, unknown>> } | null;
+  sorts?: Array<{ id?: string; field?: string; direction?: string }>;
+};
+
+type SharedViewsConfig = {
+  collections: Record<string, { views: SharedViewConfig[]; defaultViewId: string | null }>;
+};
 
 async function configureRelation(page: Page, fieldName: string, options: {
   targetFile: string;
@@ -112,6 +125,247 @@ async function dragSidebarFile(page: Page, sourcePath: string, targetPath: strin
   await page.mouse.move(target!.x + target!.width / 2, targetY, { steps: 8 });
   await page.mouse.up();
 }
+
+async function getViewTabNames(page: Page) {
+  return page.locator(".view-tab").evaluateAll((tabs) => (
+    tabs.map((tab) => tab.textContent?.trim() ?? "").filter(Boolean)
+  ));
+}
+
+async function selectViewTab(page: Page, name: string) {
+  await page.locator(".view-tab").filter({ hasText: name }).first().click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText(name);
+  if (await page.locator(".view-tab-menu-content").count()) {
+    await page.locator(".view-tab-menu-item").filter({ hasText: "编辑视图" }).click();
+  }
+  await expect(page.locator(".view-tab-menu-content")).toHaveCount(0);
+}
+
+async function dragViewTab(page: Page, sourceName: string, targetName: string, placement: "before" | "after" = "before") {
+  const sourceLocator = page.locator(".view-tab").filter({ hasText: sourceName }).first();
+  const targetLocator = page.locator(".view-tab").filter({ hasText: targetName }).first();
+  const targetShell = page.locator(".view-tab-shell").filter({ has: targetLocator }).first();
+  const source = await sourceLocator.boundingBox();
+  const target = await targetShell.boundingBox();
+  expect(source).not.toBeNull();
+  expect(target).not.toBeNull();
+  const startX = source!.x + source!.width / 2;
+  const startY = source!.y + source!.height / 2;
+  const targetX = placement === "before" ? target!.x + target!.width * 0.08 : target!.x + target!.width * 0.92;
+  const targetY = target!.y + target!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 12, startY, { steps: 3 });
+  await expect(page.locator(".view-tab-shell.dragging .view-tab")).toContainText(sourceName);
+  await page.mouse.move(targetX, targetY, { steps: 10 });
+  await expect(targetShell).toHaveClass(new RegExp(`drop-${placement}`));
+  await page.mouse.up();
+}
+
+async function saveSharedViewForEveryone(page: Page, persisted: (config: SharedViewsConfig) => boolean | Promise<boolean>) {
+  const enabledSaveButtons = page.locator(".view-filter-actions .save-shared:not([disabled])");
+  await expect(enabledSaveButtons.first()).toBeVisible();
+  await enabledSaveButtons.first().evaluate((element) => (element as HTMLButtonElement).click());
+  await expect.poll(async () => persisted(await loadSharedViewsConfig(page))).toBe(true);
+}
+
+async function loadSharedViewsConfig(page: Page): Promise<SharedViewsConfig> {
+  return page.evaluate(async () => {
+    const response = await fetch("/api/shared-views");
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+}
+
+async function saveSharedViewsConfig(page: Page, config: unknown) {
+  await page.evaluate(async (nextConfig) => {
+    const response = await fetch("/api/shared-views", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ config: nextConfig }),
+    });
+    if (!response.ok) throw new Error(await response.text());
+  }, config);
+}
+
+async function snapshotLocalStorage(page: Page) {
+  return page.evaluate(() => {
+    const snapshot: Record<string, string> = {};
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key) snapshot[key] = localStorage.getItem(key) ?? "";
+    }
+    return snapshot;
+  });
+}
+
+async function restoreLocalStorage(page: Page, snapshot: Record<string, string>) {
+  await page.evaluate((nextSnapshot) => {
+    localStorage.clear();
+    for (const [key, value] of Object.entries(nextSnapshot)) {
+      localStorage.setItem(key, value);
+    }
+  }, snapshot);
+}
+
+async function bestEffortRestore(label: string, restore: () => Promise<void>) {
+  try {
+    await restore();
+  } catch (error) {
+    console.warn(`Failed to restore ${label}:`, error);
+  }
+}
+
+function getSharedView(config: SharedViewsConfig, collectionKey: string, viewId: string) {
+  return config.collections[collectionKey]?.views.find((view) => view.id === viewId);
+}
+
+function filterValues(view: SharedViewConfig | undefined, field: string) {
+  const rule = view?.filters?.rules?.find((candidate) => candidate.field === field);
+  const value = rule?.value;
+  return Array.isArray(value) ? value.map((item) => String(item)) : value == null || value === "" ? [] : [String(value)];
+}
+
+function hasSort(view: SharedViewConfig | undefined, field: string, direction: string) {
+  return Boolean(view?.sorts?.some((sort) => sort.field === field && sort.direction === direction));
+}
+
+test("shared view filter and sort drafts persist through save and reload", async ({ page }) => {
+  const collectionKey = "data/e2e_multiselect.json:$";
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalData = await readFile(dataPath, "utf8");
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    const initialTabs = await getViewTabNames(page);
+    expect(initialTabs.length).toBeGreaterThan(0);
+    await expect(page.locator(".view-tab-shell.active")).toHaveCount(1);
+    const defaultViewName = (await page.locator(".view-tab-shell.active .view-tab").textContent())?.trim();
+    expect(defaultViewName).toBeTruthy();
+
+    await page.locator(".view-tab-create").click();
+    await expect(page.locator(".view-tab")).toHaveCount(initialTabs.length + 1);
+    const createdViewName = (await getViewTabNames(page))[initialTabs.length]!;
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".view-tab").filter({ hasText: createdViewName })).toBeVisible();
+
+    const sharedViews = await loadSharedViewsConfig(page);
+    const createdView = sharedViews.collections[collectionKey].views.find((view) => view.name === createdViewName)!;
+    let activeViewName = "E2E attack";
+    createdView.name = activeViewName;
+    createdView.filters = {
+      op: "and",
+      rules: [],
+    };
+    createdView.sorts = [];
+    await saveSharedViewsConfig(page, sharedViews);
+    await page.evaluate(({ key, viewId }) => {
+      localStorage.setItem("data-editor:shared-view-drafts", JSON.stringify({
+        lastActiveViews: { [key]: viewId },
+        viewDrafts: {},
+        viewOrderDrafts: {},
+      }));
+    }, { key: collectionKey, viewId: createdView.id });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await selectViewTab(page, activeViewName);
+    await page.locator(".view-tab-shell.active .view-tab").click();
+    await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+    await page.locator(".view-tab-menu-item").filter({ hasText: "重命名" }).click();
+    await page.getByLabel("视图名称").fill("E2E renamed");
+    await page.locator(".view-tab-rename-form button[type='submit']").click();
+    activeViewName = "E2E renamed";
+    await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText(activeViewName);
+    await expect.poll(async () => getSharedView(await loadSharedViewsConfig(page), collectionKey, createdView.id)?.name).toBe(activeViewName);
+
+    await page.getByRole("button", { name: "+ 筛选" }).click();
+    await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+    await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toBeVisible();
+    await page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" }).click();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-checkbox-item").filter({ hasText: "attack" }).click();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" })).toBeVisible();
+    await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
+    await expect(page.locator(".view-tab-shell.dirty .view-tab")).toContainText(activeViewName);
+    await expect(page.locator(".dirty-pill")).toHaveCount(0);
+    await expect(page.locator(".view-filter-actions .save-shared")).toBeEnabled();
+    await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+    await expect(page.locator(".data-table tbody tr[data-row-index]").first()).toHaveAttribute("data-row-index", "1");
+
+    await page.locator(".filter-popover-content").press("Escape");
+    await page.locator('.column-trigger[title="name"]').click();
+    await expect(page.locator(".column-menu-popup")).toBeVisible();
+    await page.locator(".column-menu-popup .menu-item").nth(1).click();
+    await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
+    await saveSharedViewForEveryone(page, (config) => {
+      const savedView = getSharedView(config, collectionKey, createdView.id);
+      const values = filterValues(savedView, "features");
+      return values.includes("attack") && hasSort(savedView, "name", "desc");
+    });
+    await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(0);
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await selectViewTab(page, activeViewName);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" })).toBeVisible();
+    await expect(page.locator('.view-filter-chip.sort-chip[title="name desc"]')).toBeVisible();
+    await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+    await expect(page.locator(".data-table tbody tr[data-row-index]").first()).toHaveAttribute("data-row-index", "1");
+
+    await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+    const nameInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "name" }).locator(".detail-input").first();
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill("Filtered original row edited");
+    await page.locator(".toolbar .primary-button").click();
+    await expect.poll(async () => {
+      const text = await readFile(dataPath, "utf8");
+      const rows = JSON.parse(text) as Array<{ name: string }>;
+      return rows.map((row) => row.name).join("|");
+    }).toBe("Multi Select|Filtered original row edited");
+
+    await page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" }).click();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-action-trigger").click();
+    await expect(page.locator(".filter-action-menu")).toBeVisible();
+    await page.locator(".filter-action-menu .menu-item.danger").evaluate((element) => (element as HTMLButtonElement).click());
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)")).toHaveCount(0);
+    await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
+    await saveSharedViewForEveryone(page, (config) => {
+      const savedView = getSharedView(config, collectionKey, createdView.id);
+      return Boolean(savedView && (savedView.filters?.rules ?? []).length === 0 && hasSort(savedView, "name", "desc"));
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await selectViewTab(page, activeViewName);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)")).toHaveCount(0);
+
+    await dragViewTab(page, activeViewName, defaultViewName!, "before");
+    await expect.poll(async () => (await getViewTabNames(page))[0]).toBe(activeViewName);
+    await expect(page.locator(".view-order-dirty")).toBeVisible();
+    await saveSharedViewForEveryone(page, (config) => config.collections[collectionKey]?.views[0]?.id === createdView.id);
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect.poll(async () => (await getViewTabNames(page))[0]).toBe(activeViewName);
+  } finally {
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
 
 test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page }) => {
   const realRunesBefore = await readFile(fixtureRunesPath, "utf8");

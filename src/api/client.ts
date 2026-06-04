@@ -68,6 +68,9 @@ export type ViewConfig = {
 export type UserViewProfile = {
   sidebarWidth: number | null;
   fileOrder: string[];
+  lastActiveViews: Record<string, string>;
+  viewDrafts: Record<string, Record<string, Partial<CollectionView>>>;
+  viewOrderDrafts: Record<string, string[]>;
   collections: Record<string, {
     hidden: string[];
     wrapped: string[];
@@ -75,6 +78,27 @@ export type UserViewProfile = {
     detailOrder: string[];
     widths: Record<string, number>;
   }>;
+};
+export type FilterOperator = "is" | "is_not" | "contains" | "does_not_contain" | "is_empty" | "is_not_empty";
+export type FilterRule = { id: string; field: string; operator: FilterOperator; value?: unknown };
+export type FilterGroup = { op: "and"; rules: FilterRule[] };
+export type SortRule = { id: string; field: string; direction: "asc" | "desc" };
+export type CollectionView = {
+  id: string;
+  name: string;
+  type: "table";
+  query: string;
+  filters: FilterGroup;
+  sorts: SortRule[];
+  hidden: string[];
+  wrapped: string[];
+  order: string[];
+  detailOrder: string[];
+  widths: Record<string, number>;
+};
+export type SharedViewsConfig = {
+  version: 1;
+  collections: Record<string, { views: CollectionView[]; defaultViewId: string | null }>;
 };
 
 export async function listProjects(): Promise<ProjectRegistry> {
@@ -139,6 +163,18 @@ export async function loadViewConfig(projectId?: string | null): Promise<ViewCon
 
 export async function saveViewConfig(config: ViewConfig, projectId?: string | null) {
   return fetchJson("/api/view-config", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId, config }),
+  });
+}
+
+export async function loadSharedViews(projectId?: string | null): Promise<SharedViewsConfig> {
+  return fetchJson(withProjectId("/api/shared-views", projectId));
+}
+
+export async function saveSharedViews(config: SharedViewsConfig, projectId?: string | null) {
+  return fetchJson("/api/shared-views", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ projectId, config }),

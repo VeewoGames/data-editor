@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Data Editor View Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f7f5;
+      --panel: #fff;
+      --line: #e7e3dc;
+      --line-strong: #d8d3cb;
+      --text: #24211d;
+      --muted: #8a8178;
+      --chip-blue: #dff1ff;
+      --chip-gray: #eeece8;
+      --blue: #2383e2;
+      --warn: #d98324;
+      --save: #f8e2d3;
+      --save-text: #d66a20;
+      --shadow: 0 18px 45px rgba(27, 24, 20, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0;
+    }
+    button, input {
+      color: inherit;
+      font: inherit;
+    }
+    button { cursor: pointer; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .view-tabs {
+      height: 88px;
+      padding: 20px 28px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .view-tab {
+      position: relative;
+      height: 54px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 26px;
+      background: transparent;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+    }
+    .view-tab.active {
+      background: #eeece8;
+      color: var(--text);
+    }
+    .view-tab.dirty::after,
+    .chip.dirty::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--warn);
+      box-shadow: 0 0 0 2px var(--panel);
+    }
+    .view-tab.dirty::after {
+      top: 12px;
+      right: 10px;
+    }
+    .tab-spacer,
+    .bar-spacer { flex: 1; }
+    .toolbar-icon {
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #7a776f;
+      display: inline-grid;
+      place-items: center;
+    }
+    .toolbar-icon.active { color: var(--blue); }
+    .new-button {
+      height: 48px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--blue);
+      color: white;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 650;
+    }
+
+    .filter-bar {
+      min-height: 86px;
+      padding: 20px 28px;
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+    .divider {
+      height: 32px;
+      width: 1px;
+      background: var(--line);
+      margin: 0 8px;
+    }
+    .chip {
+      position: relative;
+      height: 40px;
+      border: 0;
+      border-radius: 18px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 360px;
+    }
+    .chip.blue {
+      background: var(--chip-blue);
+      color: var(--blue);
+    }
+    .chip.gray {
+      background: var(--chip-gray);
+      color: #78736d;
+    }
+    .chip.dirty::after {
+      top: -4px;
+      right: -2px;
+    }
+    .chip-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      font-weight: 700;
+    }
+    .chip-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    .add-filter {
+      height: 40px;
+      border: 0;
+      background: transparent;
+      color: #8a8178;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+    }
+    .reset {
+      border: 0;
+      background: transparent;
+      color: #8a8178;
+      font-size: 18px;
+      padding: 8px 12px;
+    }
+    .save-all {
+      height: 46px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--save);
+      color: var(--save-text);
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 650;
+    }
+    .save-all:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .content { padding: 24px 28px; }
+    .table-shell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      padding: 12px 14px;
+      text-align: left;
+      height: 46px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    th {
+      color: #6d675f;
+      background: #fbfaf8;
+      font-weight: 600;
+    }
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 5px;
+      padding: 1px 8px 2px;
+      margin: 2px 5px 2px 0;
+      font-size: 15px;
+      line-height: 20px;
+    }
+    .tag.green { background: #d7eadf; color: #2f6e43; }
+    .tag.red { background: #f5d9d7; color: #7f3832; }
+    .tag.gray { background: #ededeb; color: #56524d; }
+    .tag.pink { background: #f3d7e5; color: #7a3459; }
+    .tag.yellow { background: #f3e5b8; color: #705d1f; }
+    .tag.blue { background: #d4e9f8; color: #245e8d; }
+    .tag.orange { background: #f4dfcd; color: #7c4a24; }
+    .tag.purple { background: #e8d8f2; color: #634078; }
+    .tag .x {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      opacity: 0.55;
+      padding: 0 0 0 6px;
+      height: 18px;
+    }
+
+    .popover {
+      position: fixed;
+      top: 148px;
+      left: 28px;
+      width: 410px;
+      max-height: calc(100vh - 170px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: 14px;
+      display: none;
+      z-index: 20;
+      overflow: hidden;
+    }
+    .popover.open { display: block; }
+    .pop-header {
+      height: 48px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #8a8178;
+      border-bottom: 1px solid #f0ede8;
+    }
+    .operator-pill {
+      border: 0;
+      border-radius: 14px;
+      background: #efeeeb;
+      padding: 2px 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pop-menu-button {
+      margin-left: auto;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #9b948c;
+      font-weight: 700;
+    }
+    .selected-values {
+      min-height: 88px;
+      margin: 10px 16px 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: flex;
+      align-content: flex-start;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .clear-selected {
+      margin-left: auto;
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 999px;
+      background: #aaa39b;
+      color: #fff;
+      display: inline-grid;
+      place-items: center;
+    }
+    .option-list {
+      max-height: 560px;
+      overflow: auto;
+      padding: 8px 16px 14px;
+      scrollbar-color: #c9c4bc transparent;
+    }
+    .option-row {
+      height: 48px;
+      border-radius: 8px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .option-row:hover,
+    .menu-row:hover { background: #f1f0ed; }
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border: 1px solid #d0ccc5;
+      border-radius: 5px;
+      background: #fff;
+      display: inline-grid;
+      place-items: center;
+      color: #fff;
+      flex: 0 0 auto;
+    }
+    .checkbox.checked {
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+
+    .boolean-menu,
+    .operator-menu {
+      padding: 8px;
+    }
+    .menu-row {
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 20px;
+      text-align: left;
+    }
+    .menu-row.danger-row {
+      color: #e5484d;
+      justify-content: flex-start;
+      gap: 18px;
+    }
+    .menu-separator {
+      height: 1px;
+      background: var(--line);
+      margin: 8px -8px;
+    }
+
+    .text-popover {
+      padding-bottom: 14px;
+    }
+    .text-input {
+      margin: 10px 16px 0;
+      height: 42px;
+      width: calc(100% - 32px);
+      border: 2px solid var(--blue);
+      border-radius: 8px;
+      padding: 0 10px;
+      outline: 0;
+      font-size: 20px;
+      box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.12);
+    }
+
+    .sort-popover {
+      width: 480px;
+      padding: 14px;
+    }
+    .sort-rule {
+      display: grid;
+      grid-template-columns: 28px 116px 112px 1fr 36px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .drag-dots {
+      color: #a19b93;
+      line-height: 12px;
+      font-size: 20px;
+      text-align: center;
+    }
+    .sort-field,
+    .sort-direction {
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 18px;
+    }
+    .sort-close {
+      border: 0;
+      background: transparent;
+      color: #8a8178;
+      font-size: 28px;
+      height: 36px;
+    }
+    .sort-action {
+      height: 42px;
+      border: 0;
+      background: transparent;
+      color: #8a8178;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      width: 100%;
+      border-radius: 8px;
+      padding: 0 8px;
+    }
+    .sort-action:hover { background: #f1f0ed; }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      background: #22201d;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+      z-index: 30;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="view-tabs" aria-label="共享视图">
+      <button class="view-tab" data-view="all" type="button">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>
+        全部
+      </button>
+      <button class="view-tab" data-view="build" type="button">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>
+        构筑
+      </button>
+      <button class="view-tab" data-view="empty-id" type="button">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>
+        空ID
+      </button>
+      <button class="view-tab active dirty" data-view="damage" type="button">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>
+        伤害类型
+      </button>
+      <div class="tab-spacer"></div>
+      <button class="toolbar-icon active" type="button" title="筛选">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h14M4 12h10M4 18h6"/></svg>
+      </button>
+      <button class="toolbar-icon active" type="button" title="排序">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17V5M7 5 3 9M7 5l4 4M17 7v12M17 19l-4-4M17 19l4-4"/></svg>
+      </button>
+      <button class="toolbar-icon" type="button" title="搜索">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+      </button>
+      <button class="new-button" id="newView" type="button">新建 <span>⌄</span></button>
+    </nav>
+
+    <section class="filter-bar" aria-label="当前视图条件">
+      <button class="chip blue dirty" data-popover="sort" type="button">
+        <span class="chip-icon">↑</span><span class="chip-label">id</span><span>⌄</span>
+      </button>
+      <div class="divider"></div>
+      <button class="chip blue" data-popover="boolean" type="button">
+        <span class="chip-icon">◆</span><span class="chip-label">is_tag: 已勾选</span><span>⌄</span>
+      </button>
+      <button class="chip blue dirty" data-popover="multi" type="button">
+        <span class="chip-icon">☷</span><span class="chip-label">#kw_tags: 伤害类型, 控制效...</span><span>⌄</span>
+      </button>
+      <button class="chip gray" data-popover="text" type="button">
+        <span class="chip-icon">≡</span><span class="chip-label">#description_en</span><span>⌄</span>
+      </button>
+      <button class="add-filter" id="addFilter" type="button"><span>+</span> 筛选</button>
+      <div class="bar-spacer"></div>
+      <button class="reset" id="resetDraft" type="button">重置</button>
+      <button class="save-all" id="saveAll" type="button">为所有人保存 <span>⌄</span></button>
+    </section>
+
+    <main class="content">
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 120px;">id</th>
+              <th style="width: 180px;">name</th>
+              <th style="width: 140px;">is_tag</th>
+              <th>kw_tags</th>
+              <th>description_en</th>
+              <th style="width: 150px;">damage_type</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <section class="popover" id="multiPopover" aria-label="编辑多选筛选">
+    <div class="pop-header">
+      <span>#kw_tags</span>
+      <button class="operator-pill" data-popover="operator" type="button">包含 <span>⌄</span></button>
+      <button class="pop-menu-button" data-filter-menu="multi" type="button">•••</button>
+    </div>
+    <div class="selected-values" id="selectedTags"></div>
+    <div class="option-list" id="tagOptions"></div>
+  </section>
+
+  <section class="popover" id="booleanPopover" aria-label="编辑勾选筛选">
+    <div class="pop-header">
+      <span>is_tag</span>
+      <button class="operator-pill" type="button">是 <span>⌄</span></button>
+      <button class="pop-menu-button" data-filter-menu="boolean" type="button">•••</button>
+    </div>
+    <div class="boolean-menu">
+      <button class="menu-row" data-bool="false" type="button"><span>未勾选</span><span></span></button>
+      <button class="menu-row" data-bool="true" type="button"><span>已勾选</span><span>✓</span></button>
+      <div class="menu-separator"></div>
+      <button class="menu-row" data-bool="clear" type="button"><span>清除</span></button>
+    </div>
+  </section>
+
+  <section class="popover text-popover" id="textPopover" aria-label="编辑文本筛选">
+    <div class="pop-header">
+      <span>#description_en</span>
+      <button class="operator-pill" type="button">包含 <span>⌄</span></button>
+      <button class="pop-menu-button" data-filter-menu="text" type="button">•••</button>
+    </div>
+    <input class="text-input" id="descriptionInput" placeholder="输入一个值..." />
+  </section>
+
+  <section class="popover operator-menu" id="operatorPopover" aria-label="选择筛选条件">
+    <button class="menu-row" data-operator="包含" type="button">包含</button>
+    <button class="menu-row" data-operator="不包含" type="button">不包含</button>
+    <button class="menu-row" data-operator="为空白" type="button">为空白</button>
+    <button class="menu-row" data-operator="不为空白" type="button">不为空白</button>
+  </section>
+
+  <section class="popover operator-menu" id="filterMenuPopover" aria-label="筛选操作">
+    <button class="menu-row danger-row" id="deleteActiveFilter" type="button">
+      <span>删除筛选</span>
+      <span>⌫</span>
+    </button>
+  </section>
+
+  <section class="popover sort-popover" id="sortPopover" aria-label="编辑排序">
+    <div class="sort-rule">
+      <div class="drag-dots">⋮⋮</div>
+      <button class="sort-field" type="button"><strong>#</strong> id <span>⌄</span></button>
+      <button class="sort-direction" id="sortDirection" type="button">升序 <span>⌄</span></button>
+      <div></div>
+      <button class="sort-close" id="closeSort" type="button">×</button>
+    </div>
+    <button class="sort-action" id="addSort" type="button"><span>＋</span> 添加排序</button>
+    <button class="sort-action" id="deleteSort" type="button"><span>🗑</span> 删除排序</button>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const views = {
+      all: { name: "全部", dirty: false },
+      build: { name: "构筑", dirty: false },
+      "empty-id": { name: "空ID", dirty: false },
+      damage: { name: "伤害类型", dirty: true },
+    };
+    const tags = [
+      ["buff", "green"],
+      ["debuff", "red"],
+      ["异常状态", "gray"],
+      ["控制效果", "pink"],
+      ["伤害类型", "yellow"],
+      ["实体", "gray"],
+      ["行动类型", "gray"],
+      ["机制", "yellow"],
+      ["伤害", "green"],
+      ["生存", "blue"],
+      ["资源", "blue"],
+      ["技能", "orange"],
+      ["元素", "purple"],
+      ["物品", "gray"],
+      ["武器", "purple"],
+      ["核心", "red"],
+      ["基础", "gray"],
+    ];
+    const selected = new Set(["控制效果", "伤害类型"]);
+    const data = [
+      { id: "kw_fire", name: "Fire", is_tag: "已勾选", kw_tags: ["伤害类型", "元素"], description: "Fire damage keyword", damage_type: "fire" },
+      { id: "kw_stun", name: "Stun", is_tag: "已勾选", kw_tags: ["控制效果"], description: "Stops target actions", damage_type: "" },
+      { id: "kw_bleed", name: "Bleed", is_tag: "已勾选", kw_tags: ["伤害类型", "持续效果"], description: "Damage over time", damage_type: "physical" },
+      { id: "", name: "Missing ID", is_tag: "未勾选", kw_tags: ["待整理"], description: "Needs cleanup", damage_type: "" },
+    ];
+
+    const rows = document.getElementById("rows");
+    const toast = document.getElementById("toast");
+    let activeView = "damage";
+    let viewCounter = 1;
+    let activeFilterMenuTarget = null;
+
+    function renderRows() {
+      rows.innerHTML = "";
+      const activeRows = activeView === "empty-id"
+        ? data.filter((row) => !row.id)
+        : activeView === "damage"
+          ? data.filter((row) => row.kw_tags.some((tag) => selected.has(tag)))
+          : data;
+      for (const row of activeRows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.id || "<span style='color:#b24132'>空</span>"}</td>
+          <td>${row.name}</td>
+          <td>${row.is_tag}</td>
+          <td>${row.kw_tags.map((tag) => renderTag(tag)).join("")}</td>
+          <td>${row.description}</td>
+          <td>${row.damage_type || "-"}</td>
+        `;
+        rows.appendChild(tr);
+      }
+    }
+
+    function renderTag(label, withClose = false) {
+      const color = tags.find(([name]) => name === label)?.[1] || "gray";
+      return `<span class="tag ${color}">${label}${withClose ? `<button class="x" data-remove-tag="${label}" type="button">×</button>` : ""}</span>`;
+    }
+
+    function renderTabs() {
+      document.querySelectorAll(".view-tab").forEach((button) => {
+        const viewId = button.dataset.view;
+        button.classList.toggle("active", viewId === activeView);
+        button.classList.toggle("dirty", Boolean(views[viewId]?.dirty));
+      });
+      document.getElementById("saveAll").disabled = !views[activeView]?.dirty;
+    }
+
+    function renderMultiSelect() {
+      const selectedTags = document.getElementById("selectedTags");
+      selectedTags.innerHTML = [...selected].map((tag) => renderTag(tag, true)).join("") + `<button class="clear-selected" id="clearTags" type="button">×</button>`;
+      document.querySelectorAll("[data-remove-tag]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          selected.delete(button.dataset.removeTag);
+          markDirty();
+          renderMultiSelect();
+          renderRows();
+        });
+      });
+      document.getElementById("clearTags").addEventListener("click", () => {
+        selected.clear();
+        markDirty();
+        renderMultiSelect();
+        renderRows();
+      });
+
+      const tagOptions = document.getElementById("tagOptions");
+      tagOptions.innerHTML = tags.map(([label, color]) => `
+        <button class="option-row" data-tag="${label}" type="button">
+          <span class="checkbox ${selected.has(label) ? "checked" : ""}">${selected.has(label) ? "✓" : ""}</span>
+          <span class="tag ${color}">${label}</span>
+        </button>
+      `).join("");
+      document.querySelectorAll("[data-tag]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const tag = button.dataset.tag;
+          if (selected.has(tag)) selected.delete(tag); else selected.add(tag);
+          markDirty();
+          renderMultiSelect();
+          renderRows();
+        });
+      });
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 1600);
+    }
+
+    function markDirty() {
+      views[activeView].dirty = true;
+      document.querySelector("[data-popover='multi']").classList.add("dirty");
+      document.querySelector("[data-popover='sort']").classList.add("dirty");
+      renderTabs();
+    }
+
+    function closePopovers() {
+      document.querySelectorAll(".popover").forEach((popover) => popover.classList.remove("open"));
+    }
+
+    function openPopover(name, anchor) {
+      closePopovers();
+      const popover = document.getElementById(`${name}Popover`);
+      const rect = anchor.getBoundingClientRect();
+      popover.style.left = `${Math.max(6, Math.min(rect.left, window.innerWidth - popover.offsetWidth - 12))}px`;
+      popover.style.top = `${rect.bottom + 8}px`;
+      popover.classList.add("open");
+      if (name === "multi") renderMultiSelect();
+      if (name === "text") document.getElementById("descriptionInput").focus();
+    }
+
+    function openFilterMenu(name, anchor) {
+      activeFilterMenuTarget = name;
+      const popover = document.getElementById("filterMenuPopover");
+      const rect = anchor.getBoundingClientRect();
+      popover.style.left = `${Math.max(6, Math.min(rect.right + 6, window.innerWidth - popover.offsetWidth - 12))}px`;
+      popover.style.top = `${rect.top}px`;
+      popover.classList.add("open");
+    }
+
+    document.querySelectorAll(".view-tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeView = button.dataset.view;
+        closePopovers();
+        renderTabs();
+        renderRows();
+        showToast(`切换到共享视图：${views[activeView].name}`);
+      });
+    });
+
+    document.querySelectorAll("[data-popover]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        const target = button.dataset.popover;
+        if (target === "operator") {
+          const rect = button.getBoundingClientRect();
+          const op = document.getElementById("operatorPopover");
+          op.style.left = `${rect.left}px`;
+          op.style.top = `${rect.bottom + 6}px`;
+          op.classList.add("open");
+          event.stopPropagation();
+          return;
+        }
+        openPopover(target, button);
+      });
+    });
+
+    document.querySelectorAll("[data-filter-menu]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openFilterMenu(button.dataset.filterMenu, button);
+      });
+    });
+
+    document.getElementById("deleteActiveFilter").addEventListener("click", () => {
+      if (!activeFilterMenuTarget) return;
+      const chip = document.querySelector(`[data-popover="${activeFilterMenuTarget}"]`);
+      if (chip) chip.style.display = "none";
+      markDirty();
+      closePopovers();
+      showToast("筛选已删除，本地 draft 待保存");
+    });
+
+    document.querySelectorAll("[data-operator]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelector("#multiPopover .operator-pill").innerHTML = `${button.dataset.operator} <span>⌄</span>`;
+        document.getElementById("operatorPopover").classList.remove("open");
+        markDirty();
+        showToast("筛选条件已进入本地 draft");
+      });
+    });
+
+    document.querySelectorAll("[data-bool]").forEach((button) => {
+      button.addEventListener("click", () => {
+        markDirty();
+        closePopovers();
+        const label = button.dataset.bool === "false" ? "未勾选" : button.dataset.bool === "clear" ? "已清除" : "已勾选";
+        document.querySelector("[data-popover='boolean'] .chip-label").textContent = button.dataset.bool === "clear" ? "is_tag" : `is_tag: ${label}`;
+        showToast("勾选筛选已进入本地 draft");
+      });
+    });
+
+    document.getElementById("descriptionInput").addEventListener("input", () => {
+      markDirty();
+      const value = document.getElementById("descriptionInput").value.trim();
+      document.querySelector("[data-popover='text'] .chip-label").textContent = value ? `#description_en: ${value}` : "#description_en";
+    });
+
+    document.getElementById("sortDirection").addEventListener("click", () => {
+      const current = document.getElementById("sortDirection").textContent.includes("升序");
+      document.getElementById("sortDirection").innerHTML = `${current ? "降序" : "升序"} <span>⌄</span>`;
+      document.querySelector("[data-popover='sort'] .chip-icon").textContent = current ? "↓" : "↑";
+      markDirty();
+    });
+    document.getElementById("closeSort").addEventListener("click", closePopovers);
+    document.getElementById("addSort").addEventListener("click", () => {
+      markDirty();
+      showToast("添加排序入口，后续接多字段排序");
+    });
+    document.getElementById("deleteSort").addEventListener("click", () => {
+      markDirty();
+      closePopovers();
+      showToast("排序已删除，本地 draft 待保存");
+    });
+
+    document.getElementById("addFilter").addEventListener("click", () => {
+      openPopover("multi", document.querySelector("[data-popover='multi']"));
+      showToast("第一版默认新增多选筛选");
+    });
+
+    document.getElementById("resetDraft").addEventListener("click", () => {
+      views[activeView].dirty = false;
+      document.querySelectorAll(".chip").forEach((chip) => chip.classList.remove("dirty"));
+      closePopovers();
+      renderTabs();
+      showToast("已丢弃当前视图的本地 draft");
+    });
+
+    document.getElementById("saveAll").addEventListener("click", () => {
+      views[activeView].dirty = false;
+      document.querySelectorAll(".chip").forEach((chip) => chip.classList.remove("dirty"));
+      closePopovers();
+      renderTabs();
+      showToast("已覆盖团队共享视图");
+    });
+
+    document.getElementById("newView").addEventListener("click", () => {
+      const id = `new-${viewCounter++}`;
+      views[id] = { name: `新视图 ${viewCounter - 1}`, dirty: false };
+      const tab = document.createElement("button");
+      tab.className = "view-tab";
+      tab.dataset.view = id;
+      tab.type = "button";
+      tab.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>${views[id].name}`;
+      tab.addEventListener("click", () => {
+        activeView = id;
+        closePopovers();
+        renderTabs();
+        renderRows();
+        showToast(`切换到共享视图：${views[id].name}`);
+      });
+      document.querySelector(".tab-spacer").before(tab);
+      activeView = id;
+      closePopovers();
+      renderTabs();
+      renderRows();
+      showToast("新建共享视图，所有人可见");
+    });
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest(".popover") || event.target.closest("[data-popover]")) return;
+      closePopovers();
+    });
+
+    renderTabs();
+    renderRows();
+  </script>
+</body>
+</html>

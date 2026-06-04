@@ -1,6 +1,7 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
+import { normalizeSharedViewDraftState } from "./shared-views.mjs";
 
 export async function listViewProfiles(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
@@ -37,6 +38,9 @@ export function emptyViewProfile() {
   return {
     sidebarWidth: null,
     fileOrder: [],
+    lastActiveViews: {},
+    viewDrafts: {},
+    viewOrderDrafts: {},
     collections: {},
   };
 }
@@ -64,9 +68,13 @@ function normalizeViewProfile(value) {
       };
     }
   }
+  const sharedDrafts = normalizeSharedViewDraftState(value);
   return {
     sidebarWidth: Number.isFinite(value.sidebarWidth) ? Math.round(value.sidebarWidth) : null,
     fileOrder: normalizeStringArray(value.fileOrder),
+    lastActiveViews: sharedDrafts.lastActiveViews,
+    viewDrafts: sharedDrafts.viewDrafts,
+    viewOrderDrafts: sharedDrafts.viewOrderDrafts,
     collections,
   };
 }

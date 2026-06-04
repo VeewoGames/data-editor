@@ -1,3 +1,8 @@
+import {
+  emptySharedViewDraftState,
+  normalizeSharedViewDraftState,
+} from "./view/shared-view-normalize.mjs";
+
 export function emptyCollectionViewState() {
   return {
     hidden: [],
@@ -29,6 +34,7 @@ function orderStorageKey(path, collectionPath) {
 
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
 const fileOrderStorageKey = "data-editor:__file-order";
+const sharedViewDraftsStorageKey = "data-editor:shared-view-drafts";
 
 export function cloneCollectionViewState(state) {
   return {
@@ -96,6 +102,33 @@ export function writeLocalFileOrder(localStorage, fileOrder) {
   }
 }
 
+export function emptyLocalSharedViewDrafts() {
+  return emptySharedViewDraftState();
+}
+
+export function readLocalSharedViewDrafts(localStorage) {
+  const rawValue = localStorage.getItem(sharedViewDraftsStorageKey);
+  if (!rawValue) return emptyLocalSharedViewDrafts();
+  try {
+    return normalizeSharedViewDraftState(JSON.parse(rawValue));
+  } catch {
+    return emptyLocalSharedViewDrafts();
+  }
+}
+
+export function writeLocalSharedViewDrafts(localStorage, value) {
+  const normalized = normalizeSharedViewDraftState(value);
+  if (
+    Object.keys(normalized.lastActiveViews).length === 0
+    && Object.keys(normalized.viewDrafts).length === 0
+    && Object.keys(normalized.viewOrderDrafts).length === 0
+  ) {
+    localStorage.removeItem(sharedViewDraftsStorageKey);
+    return;
+  }
+  localStorage.setItem(sharedViewDraftsStorageKey, JSON.stringify(normalized));
+}
+
 export function writeLocalViewState({ path, collectionPath, state, localStorage }) {
   const prefix = `data-editor:${path}:${collectionPath}:`;
   for (let i = localStorage.length - 1; i >= 0; i -= 1) {
@@ -140,6 +173,9 @@ export function resetCollectionViewState({ mode, path, collectionPath, profile, 
     const nextProfile = {
       sidebarWidth: null,
       fileOrder: [...(profile?.fileOrder ?? [])],
+      lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
+      viewDrafts: { ...(profile?.viewDrafts ?? {}) },
+      viewOrderDrafts: { ...(profile?.viewOrderDrafts ?? {}) },
       collections: { ...(profile?.collections ?? {}) },
     };
     delete nextProfile.collections[collectionConfigKey(path, collectionPath)];

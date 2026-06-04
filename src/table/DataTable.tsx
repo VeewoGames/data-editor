@@ -60,7 +60,6 @@ type DataTableProps = {
   relationOptions: Record<string, RelationOption[]>;
   relationConfigs: Record<string, RelationConfig>;
   revision: number;
-  query: string;
   sort: { field: string; direction: "asc" | "desc" } | null;
   issues: Record<string, ValidationIssue | null>;
   titleField: string | null;
@@ -146,7 +145,6 @@ function DataTableComponent(props: DataTableProps) {
   );
   const visibleFields = columnDragState?.order ?? baseVisibleFields;
   const hasWrappedField = useMemo(() => visibleFields.some((field) => props.fieldConfig.wrapped.has(field)), [visibleFields, props.fieldConfig.wrapped]);
-  const sortedData = useMemo(() => applySort(rows, props.sort), [rows, props.sort]);
   const fieldOptions = useMemo(() => {
     const options: Record<string, MultiSelectFieldOptionConfig> = {};
     for (const fieldName of visibleFields) {
@@ -207,19 +205,19 @@ function DataTableComponent(props: DataTableProps) {
     }
     return configs;
   }, [props.collectionPath, props.relationConfigs, props.sourcePath, visibleFields]);
-  const windowSize = hasWrappedField ? sortedData.length : Math.ceil(viewportHeight / compactRowHeight) + rowOverscan * 2;
+  const windowSize = hasWrappedField ? rows.length : Math.ceil(viewportHeight / compactRowHeight) + rowOverscan * 2;
   const rawWindowStart = Math.max(0, Math.floor(scrollTop / compactRowHeight) - rowOverscan);
-  const maxWindowStart = Math.max(0, sortedData.length - windowSize);
+  const maxWindowStart = Math.max(0, rows.length - windowSize);
   const windowStart = hasWrappedField ? 0 : Math.min(rawWindowStart, maxWindowStart);
-  const windowEnd = Math.min(sortedData.length, windowStart + windowSize);
-  const data = useMemo(() => sortedData.slice(windowStart, windowEnd), [sortedData, windowStart, windowEnd]);
+  const windowEnd = Math.min(rows.length, windowStart + windowSize);
+  const data = useMemo(() => rows.slice(windowStart, windowEnd), [rows, windowStart, windowEnd]);
   const topSpacerHeight = hasWrappedField ? 0 : windowStart * compactRowHeight;
-  const bottomSpacerHeight = hasWrappedField ? 0 : Math.max(0, (sortedData.length - windowEnd) * compactRowHeight);
+  const bottomSpacerHeight = hasWrappedField ? 0 : Math.max(0, (rows.length - windowEnd) * compactRowHeight);
   const tableColumnCount = visibleFields.length + 2;
   const tableWidth = useMemo(() => {
     return rowActionColumnWidth + addColumnWidth + visibleFields.reduce((total, fieldName) => total + getColumnWidth(fieldName), 0);
   }, [visibleFields, props.fieldConfig.widths]);
-  const tableData = useMemo(() => data.map((row, index) => ({ ...row, __rowIndex: typeof row.__rowIndex === "number" ? row.__rowIndex : rows.indexOf(row) >= 0 ? rows.indexOf(row) : index })), [data, rows]);
+  const tableData = useMemo(() => data.map((row, index) => ({ ...row, __rowIndex: Number(row.__rowIndex ?? windowStart + index) })), [data, windowStart]);
   const columns = useMemo<ColumnDef<DataRecord>[]>(() => visibleFields.map((fieldName) => ({
     id: fieldName,
     accessorFn: (row) => row[fieldName],
@@ -260,12 +258,13 @@ function DataTableComponent(props: DataTableProps) {
     },
     cell: (ctx) => {
       const value = ctx.getValue();
-      const rowIndex = ctx.row.original.__rowIndex as number;
+      const rowIndex = ctx.row.index;
+      const originalRowIndex = Number(ctx.row.original.__rowIndex ?? rowIndex);
       const backlinkColumn = props.backlinkColumns.find((column) => column.fieldName === fieldName);
       if (backlinkColumn) {
         return (
           <BacklinkCellViewer
-            items={props.backlinkValuesByRowIndex[rowIndex]?.[fieldName] ?? []}
+            items={props.backlinkValuesByRowIndex[originalRowIndex]?.[fieldName] ?? []}
             status={backlinkColumn.status}
             message={backlinkColumn.message}
             wrapped={props.fieldConfig.wrapped.has(fieldName)}
@@ -275,7 +274,7 @@ function DataTableComponent(props: DataTableProps) {
       }
       if (nestedFieldSet.has(fieldName)) {
         return (
-          <button className="nested-summary" onClick={() => props.onSelectRow(rowIndex)}>
+          <button className="nested-summary" onClick={() => props.onSelectRow(originalRowIndex)}>
             {summarizeNestedValue(value)}
           </button>
         );
@@ -287,7 +286,7 @@ function DataTableComponent(props: DataTableProps) {
         return (
           <div className={`title-cell ${props.fieldConfig.wrapped.has(fieldName) ? "cell-wrap" : ""}`}>
             <span>{value == null ? "" : String(value)}</span>
-            <button className="title-open-button" onClick={(event) => { event.stopPropagation(); props.onOpenDetail(rowIndex); }} title="Open detail">
+            <button className="title-open-button" onClick={(event) => { event.stopPropagation(); props.onOpenDetail(originalRowIndex); }} title="Open detail">
               <icons.openDetail size={16} />
             </button>
           </div>
@@ -295,7 +294,7 @@ function DataTableComponent(props: DataTableProps) {
       }
       return (
         <CellRenderer
-          cellId={`${rowIndex}:${fieldName}`}
+          cellId={`${originalRowIndex}:${fieldName}`}
           value={value}
           displayType={displayType}
           wrapped={props.fieldConfig.wrapped.has(fieldName)}
@@ -305,8 +304,8 @@ function DataTableComponent(props: DataTableProps) {
           relationConfigured={Boolean(relationConfigByField[fieldName])}
           relationMode={relationConfigByField[fieldName]?.mode}
           onOpenRelationTarget={relationConfigByField[fieldName] ? (value) => props.onOpenRelationTarget(relationConfigByField[fieldName]!, value) : undefined}
-          issue={props.issues[`${rowIndex}:${fieldName}`]}
-          onEdit={(next) => props.onEditCell(rowIndex, fieldName, next)}
+          issue={props.issues[`${originalRowIndex}:${fieldName}`]}
+          onEdit={(next) => props.onEditCell(originalRowIndex, fieldName, next)}
           onRenameMultiSelectOption={(previousValue, nextValue) => props.onRenameMultiSelectOption(fieldName, previousValue, nextValue)}
           onDeleteMultiSelectOption={(optionValue) => props.onDeleteMultiSelectOption(fieldName, optionValue)}
           onSetMultiSelectOptionColor={(optionValue, color) => props.onSetMultiSelectOptionColor(fieldName, optionValue, color)}
@@ -523,15 +522,16 @@ function DataTableComponent(props: DataTableProps) {
           <tbody>
             {topSpacerHeight > 0 ? <tr className="virtual-spacer-row"><td colSpan={tableColumnCount} style={{ height: topSpacerHeight }} /></tr> : null}
             {table.getRowModel().rows.map((row) => {
-              const rowIndex = row.original.__rowIndex as number;
+              const rowIndex = row.index;
+              const originalRowIndex = Number(row.original.__rowIndex ?? rowIndex);
               return (
                 <tr
                   key={row.id}
-                  data-row-index={rowIndex}
-                  onClick={(event) => selectRow(event, rowIndex)}
+                  data-row-index={originalRowIndex}
+                  onClick={(event) => selectRow(event, originalRowIndex)}
                 >
                   <td className="row-action-cell">
-                    <button className="icon-button danger" onClick={(event) => { event.stopPropagation(); props.onDeleteRow(rowIndex); }} title="Delete row">
+                    <button className="icon-button danger" onClick={(event) => { event.stopPropagation(); props.onDeleteRow(originalRowIndex); }} title="Delete row">
                       <icons.delete size={14} />
                     </button>
                   </td>
@@ -576,7 +576,6 @@ export const DataTable = memo(DataTableComponent, (previous, next) => {
   return previous.revision === next.revision &&
     previous.sourcePath === next.sourcePath &&
     previous.collectionPath === next.collectionPath &&
-    previous.query === next.query &&
     previous.titleField === next.titleField &&
     sameBacklinkColumns(previous.backlinkColumns, next.backlinkColumns) &&
     sameBacklinkValues(previous.backlinkValuesByRowIndex, next.backlinkValuesByRowIndex) &&
@@ -735,14 +734,4 @@ function getFieldRole(
       relationsVersion: 0,
     },
   }) as ResolvedFieldRole;
-}
-
-function applySort(rows: DataRecord[], sort: { field: string; direction: "asc" | "desc" } | null) {
-  if (!sort) return rows;
-  return [...rows].sort((a, b) => {
-    const left = String(a[sort.field] ?? "");
-    const right = String(b[sort.field] ?? "");
-    const result = left.localeCompare(right, undefined, { numeric: true });
-    return sort.direction === "asc" ? result : -result;
-  });
 }

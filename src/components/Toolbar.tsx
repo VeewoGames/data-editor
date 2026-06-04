@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as Select from "@radix-ui/react-select";
 import { icons } from "./icons";
+import { ExpandableSearch } from "./ExpandableSearch";
 
 type ToolbarProps = {
   currentPath: string | null;
@@ -50,10 +51,7 @@ export function Toolbar(props: ToolbarProps) {
         <strong>{props.currentPath ?? "No file selected"}</strong>
         <span>{props.collectionPath}</span>
       </div>
-      <label className="search-box">
-        <icons.search size={16} />
-        <input value={props.query} onChange={(event) => props.onQueryChange(event.target.value)} placeholder="Search" />
-      </label>
+      <ExpandableSearch className="search-box" value={props.query} onChange={props.onQueryChange} placeholder="Search" />
       <div className="toolbar-profile-picker">
         <Select.Root value={props.selectedViewProfileName ?? "__local__"} onValueChange={props.onSelectViewProfile}>
           <Select.Trigger className="select-trigger toolbar-profile-select-trigger" aria-label="View profile">

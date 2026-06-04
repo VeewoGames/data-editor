@@ -10,6 +10,7 @@ import { buildDocumentModel } from "./src/document-model.mjs";
 import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFileWithBackup } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
+import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
@@ -41,6 +42,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/save" && req.method === "POST") return handleSave(req, res);
     if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-config" && req.method === "POST") return handleSaveViewConfig(req, res);
+    if (url.pathname === "/api/shared-views" && req.method === "GET") return sendJson(res, await loadSharedViews(await projectContextForUrl(url)));
+    if (url.pathname === "/api/shared-views" && req.method === "POST") return handleSaveSharedViews(req, res);
     if (url.pathname === "/api/view-profiles") return sendJson(res, await listViewProfiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-profile" && req.method === "GET") return handleLoadViewProfile(url, res);
     if (url.pathname === "/api/view-profile" && req.method === "POST") return handleSaveViewProfile(req, res);
@@ -93,6 +96,14 @@ async function handleSaveViewConfig(req, res) {
   const projectContext = await projectContextForId(body.projectId);
   const config = body && typeof body === "object" && "config" in body ? body.config : body;
   const result = await saveViewConfig(projectContext, config);
+  sendJson(res, { ok: true, ...result });
+}
+
+async function handleSaveSharedViews(req, res) {
+  const body = await readJsonBody(req);
+  const projectContext = await projectContextForId(body.projectId);
+  const config = body && typeof body === "object" && "config" in body ? body.config : body;
+  const result = await saveSharedViews(projectContext, config);
   sendJson(res, { ok: true, ...result });
 }
 

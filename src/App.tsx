@@ -12,12 +12,14 @@ import {
   listViewProfiles,
   loadDocument,
   loadViewConfig,
+  loadSharedViews,
   loadViewProfile,
   recoverableRequestEventName,
   reopenEditor,
   rebuildFrontend,
   saveDocument,
   saveDocuments,
+  saveSharedViews,
   shutdownServer,
   saveViewConfig,
   saveViewProfile,
@@ -26,11 +28,16 @@ import {
   type PendingDocumentSave,
   type ProjectDefinition,
   type SaveDocumentsResult,
+  type CollectionView,
+  type SharedViewsConfig,
+  type SortRule,
   type UserViewProfile,
   type ViewConfig,
 } from "./api/client";
 import { Sidebar } from "./components/Sidebar";
 import { Toolbar } from "./components/Toolbar";
+import { ViewTabs } from "./components/ViewTabs";
+import { ViewFilterBar } from "./components/ViewFilterBar";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
 import { DataTable, type FieldConfig } from "./table/DataTable";
@@ -50,7 +57,7 @@ import { deriveBacklinkConfigs, getPrimaryKeyField, syncBacklinksWithRelations }
 import { analyzePrimaryKeyCandidates, buildCollectionKey, type FilteredPrimaryKeyCandidate, type PrimaryKeyCandidate, type PrimaryKeyCandidateAnalysis } from "./model/primaryKeyCandidate";
 import { findTitleField, getRecordTitle } from "./model/titleField";
 import type { BacklinkGridColumn } from "./model/backlinkGrid";
-import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, RealFieldType, RelationConfig } from "./model/viewConfig";
+import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RealFieldType, RelationConfig } from "./model/viewConfig";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
 import { normalizeFileOrder } from "./file-order.mjs";
 import {
@@ -63,12 +70,32 @@ import {
   emptyLocalViewState,
   readLocalFileOrder,
   readCollectionViewState,
+  readLocalSharedViewDrafts,
   readLocalViewState,
   writeLocalFileOrder,
+  writeLocalSharedViewDrafts,
   writeLocalViewState,
 } from "./view-state-storage.mjs";
+import { applyViewFilters } from "./view/filtering.mjs";
+import { applyViewSorts, updateHeaderSorts } from "./view/sorting.mjs";
+import {
+  applyViewOrderDraft,
+  collectionConfigKey,
+  createSharedViewConfig,
+  deleteSharedViewConfig,
+  draftSharedViewOrder,
+  hasViewDraft,
+  mergeSharedViewWithDraft,
+  renameSharedViewConfig,
+  resetActiveSharedViewDraft,
+  resolveActiveView,
+  resolveCollectionViews,
+  resolveDefaultViewId,
+  saveSharedViewDraftsToConfig,
+} from "./view/view-state.mjs";
 
 type ServiceLifecycleState = "running" | "closed" | "recovering" | "disconnected" | "recoveredPendingReload" | "bridgeUnavailable";
+type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts">;
 const defaultRecoveryBridgePort = 8791;
 
 export function App() {
@@ -80,9 +107,9 @@ export function App() {
   const [model, setModel] = useState<DocumentModel | null>(null);
   const [collectionPath, setCollectionPath] = useState("$");
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
-  const [query, setQuery] = useState("");
   const [dataDirty, setDataDirty] = useState(false);
   const [viewConfigDirty, setViewConfigDirty] = useState(false);
+  const [viewDraftDirty, setViewDraftDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
@@ -90,7 +117,6 @@ export function App() {
   const [disconnectMessage, setDisconnectMessage] = useState("");
   const [flashStatus, setFlashStatus] = useState(() => consumeTransientStatus());
   const [status, setStatus] = useState("");
-  const [sort, setSort] = useState<{ field: string; direction: "asc" | "desc" } | null>(null);
   const [relationIndexes, setRelationIndexes] = useState<Record<string, Set<string> | null>>({});
   const [relationOptions, setRelationOptions] = useState<Record<string, RelationOption[]>>({});
   const [relationBacklinks, setRelationBacklinks] = useState<RelationBacklink[]>([]);
@@ -107,8 +133,11 @@ export function App() {
   const [pendingDeleteRow, setPendingDeleteRow] = useState<number | null>(null);
   const [pendingDeleteField, setPendingDeleteField] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [filterBarVisible, setFilterBarVisible] = useState(true);
   const [viewRevision, bump] = useState(0);
   const [viewConfig, setViewConfig] = useState<ViewConfig>(emptyProjectViewConfig());
+  const [sharedViewsConfig, setSharedViewsConfig] = useState<SharedViewsConfig>(emptySharedViewsConfig());
+  const [localSharedViewDrafts, setLocalSharedViewDrafts] = useState<SharedViewDraftState>(() => readLocalSharedViewDrafts(window.localStorage));
   const [viewProfiles, setViewProfiles] = useState<string[]>([]);
   const [selectedViewProfileName, setSelectedViewProfileName] = useState<string | null>(() => localStorage.getItem(selectedViewProfileStorageKey));
   const [selectedViewProfile, setSelectedViewProfile] = useState<UserViewProfile>(emptyUserViewProfile());
@@ -143,9 +172,12 @@ export function App() {
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
   const profileSaveResolveRef = useRef<(() => void) | null>(null);
   const loadedProjectIdRef = useRef<string | null>(null);
-  const dirty = dataDirty || viewConfigDirty;
+  const viewDraftDirtyRef = useRef(false);
+  const toolbarDirty = dataDirty || viewConfigDirty;
+  const globalDirty = toolbarDirty || viewDraftDirty;
   const statusText = status || flashStatus;
   const selectedCollectionKey = selectedPath ? buildCollectionKey(selectedPath, collectionPath) : null;
+  const activeCollectionKey = selectedPath ? collectionConfigKey(selectedPath, collectionPath) : null;
   const orderedFiles = useMemo(() => {
     const savedOrder = selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage);
     const order = normalizeFileOrder(files, savedOrder);
@@ -158,6 +190,7 @@ export function App() {
   useEffect(() => { dataDirtyRef.current = dataDirty; }, [dataDirty]);
   useEffect(() => { viewConfigRef.current = viewConfig; }, [viewConfig]);
   useEffect(() => { viewConfigDirtyRef.current = viewConfigDirty; }, [viewConfigDirty]);
+  useEffect(() => { viewDraftDirtyRef.current = viewDraftDirty; }, [viewDraftDirty]);
   useEffect(() => { selectedViewProfileNameRef.current = selectedViewProfileName; }, [selectedViewProfileName]);
   useEffect(() => { selectedViewProfileRef.current = selectedViewProfile; }, [selectedViewProfile]);
   useEffect(() => { bridgePortRef.current = bridgePort; }, [bridgePort]);
@@ -225,14 +258,17 @@ export function App() {
     resetWorkspaceState(options);
     try {
       const profileNameForInitialOrder = options.resetProfile ? null : selectedViewProfileNameRef.current;
-      const [nextFiles, nextConfig, nextProfiles, nextProfile] = await Promise.all([
+      const [nextFiles, nextConfig, nextSharedViewsConfig, nextProfiles, nextProfile] = await Promise.all([
         listFiles(projectId),
         loadViewConfig(projectId),
+        loadSharedViews(projectId),
         listViewProfiles(projectId),
         profileNameForInitialOrder ? loadViewProfile(profileNameForInitialOrder, projectId) : Promise.resolve(null),
       ]);
       setFiles(nextFiles);
       setViewConfig(nextConfig);
+      setSharedViewsConfig(nextSharedViewsConfig);
+      setLocalSharedViewDrafts(readLocalSharedViewDrafts(window.localStorage));
       setViewProfiles(nextProfiles);
       if (profileNameForInitialOrder && nextProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
         setSelectedViewProfile(nextProfile);
@@ -243,7 +279,7 @@ export function App() {
         ? (nextProfile?.fileOrder ?? selectedViewProfileRef.current.fileOrder)
         : readLocalFileOrder(window.localStorage);
       const initialFileOrder = normalizeFileOrder(nextFiles, savedOrder);
-      if (initialFileOrder[0]) await openDocumentAt(initialFileOrder[0], "$", undefined, false, projectId);
+      if (initialFileOrder[0]) await openDocumentAt(initialFileOrder[0], undefined, undefined, false, projectId);
       loadedProjectIdRef.current = projectId;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -260,14 +296,15 @@ export function App() {
     setCollectionPath("$");
     setSelectedRowIndex(null);
     setDetailOpen(false);
-    setQuery("");
-    setSort(null);
     setDataDirty(false);
     dataDirtyRef.current = false;
     setViewConfigDirty(false);
     viewConfigDirtyRef.current = false;
+    setViewDraftDirty(false);
     setViewConfig(emptyProjectViewConfig());
     viewConfigRef.current = emptyProjectViewConfig();
+    setSharedViewsConfig(emptySharedViewsConfig());
+    setLocalSharedViewDrafts(readLocalSharedViewDrafts(window.localStorage));
     setViewProfiles([]);
     if (options.resetProfile) {
       setSelectedViewProfileName(null);
@@ -295,7 +332,7 @@ export function App() {
 
   async function selectProject(projectId: string) {
     if (projectId === activeProjectId) return;
-    if (dirty && !window.confirm("当前项目有未保存改动。放弃改动并切换项目？")) return;
+    if (globalDirty && !window.confirm("当前项目有未保存改动。放弃改动并切换项目？")) return;
     try {
       await flushPendingProfileSave();
       await activateProject(projectId);
@@ -457,7 +494,7 @@ export function App() {
   }
 
   function hasUnsavedChanges() {
-    return dataDirtyRef.current || viewConfigDirtyRef.current;
+    return dataDirtyRef.current || viewConfigDirtyRef.current || viewDraftDirtyRef.current;
   }
 
   async function confirmUnexpectedDisconnect(initialMessage: string) {
@@ -522,7 +559,7 @@ export function App() {
     setStatus(`Loading ${path}...`);
     const documentModel = await loadDocument(path, projectId);
     if (requestId !== openRequestRef.current) return;
-    const nextCollection = targetCollection ?? documentModel.collections[0]?.path ?? "$";
+    const nextCollection = resolveDocumentCollection(documentModel, targetCollection);
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
     modelRef.current = documentModel;
     savedDocumentRootRef.current = cloneDataRoot(documentModel.root);
@@ -533,7 +570,6 @@ export function App() {
     setDataDirty(false);
     dataDirtyRef.current = false;
     setStatus("");
-    setSort(null);
   }
 
   async function loadMaintenanceInfo() {
@@ -749,21 +785,54 @@ export function App() {
       && activePrimaryKeyCandidates.length
       && !dismissedCandidateKeys.includes(selectedCollectionKey),
   );
-  const filteredRows = useMemo(() => {
-    const indexed = rows.map((row, index) => {
-      const copy = { ...row };
-      Object.defineProperty(copy, "__rowIndex", { value: index, enumerable: false });
-      return copy;
-    });
-    if (!query.trim()) return indexed;
-    const needle = query.toLowerCase();
-    return indexed.filter((row) => Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(needle)));
-  }, [rows, query]);
+  const draftSource = selectedViewProfileName ? selectedViewProfile : localSharedViewDrafts;
+  const collectionSharedViews = useMemo(
+    () => activeCollectionKey ? resolveCollectionViews(sharedViewsConfig, activeCollectionKey) : [],
+    [sharedViewsConfig, activeCollectionKey],
+  );
+  const orderedCollectionViews = useMemo(
+    () => activeCollectionKey
+      ? applyViewOrderDraft(collectionSharedViews, draftSource.viewOrderDrafts?.[activeCollectionKey])
+      : collectionSharedViews,
+    [collectionSharedViews, draftSource, activeCollectionKey],
+  );
+  const activeSharedView = useMemo(
+    () => activeCollectionKey
+      ? resolveActiveView(
+        orderedCollectionViews,
+        draftSource.lastActiveViews?.[activeCollectionKey],
+        resolveDefaultViewId(sharedViewsConfig, activeCollectionKey),
+      )
+      : null,
+    [orderedCollectionViews, draftSource, sharedViewsConfig, activeCollectionKey],
+  );
+  const activeView = useMemo(
+    () => activeCollectionKey && activeSharedView
+      ? mergeSharedViewWithDraft(activeSharedView, draftSource.viewDrafts?.[activeCollectionKey]?.[activeSharedView.id]) as CollectionView
+      : null,
+    [activeCollectionKey, activeSharedView, draftSource],
+  );
+  const activeViewHasFilters = Boolean(activeView?.filters?.rules?.length);
+  const viewRows = useMemo(() => {
+    const filtered = applyViewFilters(rows, activeView?.query ?? "", activeView?.filters ?? { op: "and", rules: [] });
+    return applyViewSorts(filtered, activeView?.sorts ?? []);
+  }, [rows, activeView]);
+  const activeViewSort = activeView?.sorts?.[0] ?? null;
+  const dirtyViewIds = useMemo(() => {
+    if (!activeCollectionKey) return new Set<string>();
+    return new Set(Object.keys(draftSource.viewDrafts?.[activeCollectionKey] ?? {}));
+  }, [draftSource, activeCollectionKey]);
+  const activeViewDirty = Boolean(
+    activeCollectionKey
+    && activeSharedView
+    && draftSource.viewDrafts?.[activeCollectionKey]?.[activeSharedView.id],
+  );
+  const viewOrderDirty = Boolean(activeCollectionKey && draftSource.viewOrderDrafts?.[activeCollectionKey]?.length);
   const selectedRow = selectedRowIndex == null ? null : rows[selectedRowIndex] ?? null;
   useEffect(() => {
     void loadMaintenanceInfo();
   }, [selectedPath, collectionPath, selectedRowIndex, selectedRow, viewConfig.relations, viewRevision]);
-  const viewModel = useMemo(() => model ? ({ ...model, root: replaceRowsForView(model, collectionPath, filteredRows) } as DocumentModel) : null, [model, collectionPath, filteredRows]);
+  const viewModel = useMemo(() => model ? ({ ...model, root: replaceRowsForView(model, collectionPath, viewRows) } as DocumentModel) : null, [model, collectionPath, viewRows]);
   const fieldConfig = useMemo(
     () => buildFieldConfig(
       selectedPath,
@@ -783,6 +852,38 @@ export function App() {
   const fieldViewConfigs = useMemo(
     () => model ? buildFieldViewConfigs(selectedPath, collectionPath, model, viewConfig) : {},
     [selectedPath, collectionPath, model, viewConfig],
+  );
+  const viewFilterFieldTypes = useMemo(
+    () => Object.fromEntries(allFields.map((field) => [
+      field,
+      selectedPath && viewConfig.relations[buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [field] })]
+        ? "Relation"
+        : inferViewFilterFieldType(field, rows, fieldConfig.displayTypes),
+    ])) as Record<string, FieldDisplayType>,
+    [allFields, rows, fieldConfig.displayTypes, selectedPath, collectionPath, viewConfig.relations],
+  );
+  const viewFilterOptions = useMemo(
+    () => {
+      const options: Record<string, MultiSelectOptionView[]> = {};
+      if (!selectedPath) return options;
+      for (const field of allFields) {
+        const relationKey = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [field] });
+        if (viewConfig.relations[relationKey]) {
+          options[field] = (relationOptions[relationKey] ?? []).map((option) => ({
+            value: option.value,
+            label: option.label,
+            color: null,
+          }));
+          continue;
+        }
+        const fieldType = viewFilterFieldTypes[field];
+        if (fieldType === "Multi-select" || fieldType === "Select") {
+          options[field] = buildValueFilterOptions(field, rows, fieldViewConfigs[field], fieldType);
+        }
+      }
+      return options;
+    },
+    [allFields, selectedPath, collectionPath, viewConfig.relations, relationOptions, viewFilterFieldTypes, rows, fieldViewConfigs],
   );
   const hiddenFields = useMemo(() => allFields.filter((field) => fieldConfig.hidden.has(field)), [allFields, fieldConfig.hidden]);
   const titleField = useMemo(
@@ -833,6 +934,9 @@ export function App() {
       const next: UserViewProfile = {
         sidebarWidth: current.sidebarWidth,
         fileOrder: [...current.fileOrder],
+        lastActiveViews: { ...current.lastActiveViews },
+        viewDrafts: { ...current.viewDrafts },
+        viewOrderDrafts: { ...current.viewOrderDrafts },
         collections: Object.fromEntries(Object.entries(current.collections).map(([key, value]) => [
           key,
           {
@@ -869,6 +973,45 @@ export function App() {
       state: next,
       localStorage: window.localStorage,
     });
+    bump((value) => value + 1);
+  }
+
+  function updateActiveViewDraft(patch: Partial<CollectionView>) {
+    if (saving) return;
+    if (!activeCollectionKey || !activeSharedView) return;
+    const viewId = activeSharedView.id;
+    if (mutateSelectedViewProfile((draft) => {
+      draft.viewDrafts = { ...draft.viewDrafts };
+      draft.viewDrafts[activeCollectionKey] = {
+        ...(draft.viewDrafts[activeCollectionKey] ?? {}),
+        [viewId]: {
+          ...(draft.viewDrafts[activeCollectionKey]?.[viewId] ?? {}),
+          ...patch,
+        },
+      };
+    })) {
+      setViewDraftDirty(true);
+      return;
+    }
+    setLocalSharedViewDrafts((current) => {
+      const next = {
+        lastActiveViews: { ...current.lastActiveViews },
+        viewDrafts: {
+          ...current.viewDrafts,
+          [activeCollectionKey]: {
+            ...(current.viewDrafts[activeCollectionKey] ?? {}),
+            [viewId]: {
+              ...(current.viewDrafts[activeCollectionKey]?.[viewId] ?? {}),
+              ...patch,
+            },
+          },
+        },
+        viewOrderDrafts: { ...current.viewOrderDrafts },
+      };
+      writeLocalSharedViewDrafts(window.localStorage, next);
+      return next;
+    });
+    setViewDraftDirty(true);
     bump((value) => value + 1);
   }
 
@@ -1070,7 +1213,7 @@ export function App() {
   }
 
   function handleSort(fieldName: string, direction: "asc" | "desc" | null) {
-    setSort(direction ? { field: fieldName, direction } : null);
+    updateActiveViewDraft({ sorts: updateHeaderSorts(activeView?.sorts ?? [], fieldName, direction) as SortRule[] });
   }
 
   function handleRenameMultiSelectOption(fieldName: string, previousValue: string | number, nextValue: string) {
@@ -1331,6 +1474,13 @@ export function App() {
     if (mutateSelectedViewProfile((draft) => {
       draft.sidebarWidth = null;
       delete draft.collections[collectionConfigKey(selectedPath, collectionPath)];
+      if (activeCollectionKey && activeSharedView) {
+        const result = resetActiveSharedViewDraft(draft, activeCollectionKey, activeSharedView.id);
+        draft.lastActiveViews = result.draftState.lastActiveViews;
+        draft.viewDrafts = result.draftState.viewDrafts;
+        draft.viewOrderDrafts = result.draftState.viewOrderDrafts;
+        setViewDraftDirty(result.dirty);
+      }
       setSidebarWidth(defaultSidebarWidth);
     })) return;
     writeLocalViewState({
@@ -1339,8 +1489,188 @@ export function App() {
       state: emptyLocalViewState(),
       localStorage: window.localStorage,
     });
+    if (activeCollectionKey && activeSharedView) {
+      setLocalSharedViewDrafts((current) => {
+        const result = resetActiveSharedViewDraft(current, activeCollectionKey, activeSharedView.id);
+        writeLocalSharedViewDrafts(window.localStorage, result.draftState);
+        setViewDraftDirty(result.dirty);
+        return result.draftState;
+      });
+    }
     setSidebarWidth(readSidebarWidth());
     bump((value) => value + 1);
+  }
+
+  function updateSharedViewDraftState(next: SharedViewDraftState) {
+    if (mutateSelectedViewProfile((draft) => {
+      draft.lastActiveViews = next.lastActiveViews;
+      draft.viewDrafts = next.viewDrafts;
+      draft.viewOrderDrafts = next.viewOrderDrafts;
+    })) {
+      selectedViewProfileRef.current = {
+        ...selectedViewProfileRef.current,
+        lastActiveViews: next.lastActiveViews,
+        viewDrafts: next.viewDrafts,
+        viewOrderDrafts: next.viewOrderDrafts,
+      };
+      setViewDraftDirty(hasSharedDrafts(next));
+      return;
+    }
+    setLocalSharedViewDrafts(next);
+    writeLocalSharedViewDrafts(window.localStorage, next);
+    setViewDraftDirty(hasSharedDrafts(next));
+    bump((value) => value + 1);
+  }
+
+  function currentSharedViewDraftState(): SharedViewDraftState {
+    return selectedViewProfileName ? selectedViewProfileRef.current : localSharedViewDrafts;
+  }
+
+  function handleSelectSharedView(viewId: string) {
+    if (saving || !activeCollectionKey) return;
+    const current = currentSharedViewDraftState();
+    updateSharedViewDraftState({
+      lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: viewId },
+      viewDrafts: { ...current.viewDrafts },
+      viewOrderDrafts: { ...current.viewOrderDrafts },
+    });
+    setSelectedRowIndex(0);
+    setDetailOpen(false);
+  }
+
+  async function handleCreateSharedView() {
+    if (saving || !activeCollectionKey || !activeSharedView || !activeView) return;
+    setSaving(true);
+    setStatus("");
+    try {
+      const result = createSharedViewConfig(sharedViewsConfig, activeCollectionKey, activeSharedView.id, activeView);
+      const nextConfig = result.config as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      const current = currentSharedViewDraftState();
+      updateSharedViewDraftState({
+        lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
+        viewDrafts: { ...current.viewDrafts },
+        viewOrderDrafts: { ...current.viewOrderDrafts },
+      });
+      setStatus("已创建团队共享视图");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDuplicateSharedView(viewId: string) {
+    if (saving || !activeCollectionKey) return;
+    const sourceView = orderedCollectionViews.find((view: CollectionView) => view.id === viewId);
+    if (!sourceView) return;
+    const draft = draftSource.viewDrafts?.[activeCollectionKey]?.[viewId];
+    const snapshot = mergeSharedViewWithDraft(sourceView, draft) as CollectionView;
+    setSaving(true);
+    setStatus("");
+    try {
+      const result = createSharedViewConfig(sharedViewsConfig, activeCollectionKey, viewId, snapshot);
+      const nextConfig = result.config as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      const current = currentSharedViewDraftState();
+      updateSharedViewDraftState({
+        lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
+        viewDrafts: { ...current.viewDrafts },
+        viewOrderDrafts: { ...current.viewOrderDrafts },
+      });
+      setStatus("已创建团队共享视图副本");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRenameSharedView(viewId: string, name: string) {
+    if (saving || !activeCollectionKey) return;
+    setSaving(true);
+    setStatus("");
+    try {
+      const nextConfig = renameSharedViewConfig(sharedViewsConfig, activeCollectionKey, viewId, name) as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      setStatus("已重命名团队共享视图");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteSharedView(viewId: string) {
+    if (saving || !activeCollectionKey) return;
+    const current = currentSharedViewDraftState();
+    const result = deleteSharedViewConfig(sharedViewsConfig, current, activeCollectionKey, viewId);
+    if (!result.deleted) {
+      setStatus("至少需要保留一个团队共享视图");
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const nextConfig = result.config as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      updateSharedViewDraftState(result.draftState);
+      setSelectedRowIndex(0);
+      setDetailOpen(false);
+      setStatus("已删除团队共享视图");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleReorderSharedViews(viewIds: string[]) {
+    if (saving || !activeCollectionKey) return;
+    const next = draftSharedViewOrder(currentSharedViewDraftState(), activeCollectionKey, collectionSharedViews, viewIds);
+    updateSharedViewDraftState(next);
+  }
+
+  function handleResetSharedViewDraft() {
+    if (saving || !activeCollectionKey || !activeSharedView) return;
+    if (mutateSelectedViewProfile((draft) => {
+      const result = resetActiveSharedViewDraft(draft, activeCollectionKey, activeSharedView.id);
+      draft.lastActiveViews = result.draftState.lastActiveViews;
+      draft.viewDrafts = result.draftState.viewDrafts;
+      draft.viewOrderDrafts = result.draftState.viewOrderDrafts;
+      setViewDraftDirty(result.dirty);
+    })) return;
+    setLocalSharedViewDrafts((current) => {
+      const result = resetActiveSharedViewDraft(current, activeCollectionKey, activeSharedView.id);
+      writeLocalSharedViewDrafts(window.localStorage, result.draftState);
+      setViewDraftDirty(result.dirty);
+      return result.draftState;
+    });
+    bump((value) => value + 1);
+  }
+
+  async function handleSaveViewForEveryone() {
+    if (saving || !activeCollectionKey || !activeSharedView) return;
+    const current = currentSharedViewDraftState();
+    if (!hasViewDraft(current, activeCollectionKey, activeSharedView.id)) return;
+    setSaving(true);
+    setStatus("");
+    try {
+      const result = saveSharedViewDraftsToConfig(sharedViewsConfig, current, activeCollectionKey, activeSharedView.id);
+      const nextConfig = result.config as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      updateSharedViewDraftState(result.draftState);
+      setStatus("已保存当前团队共享视图");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function shouldInterceptPrimaryKeySync(currentDataDirty: boolean, force = false) {
@@ -1419,7 +1749,8 @@ export function App() {
     const currentDataDirty = dataDirtyRef.current;
     const currentViewConfig = viewConfigRef.current;
     const currentViewConfigDirty = viewConfigDirtyRef.current;
-    if ((!currentModel && !currentViewConfigDirty) || saving || closing || rebuilding) return;
+    const hasPersistableChanges = currentViewConfigDirty || Boolean(currentDataDirty && currentModel && currentSelectedPath);
+    if (!hasPersistableChanges || saving || closing || rebuilding) return;
     if (currentDataDirty && currentModel && currentSelectedPath && shouldInterceptPrimaryKeySync(currentDataDirty, forcePrimaryKeySync)) {
       if (primaryKeySyncPlan?.blockingIssues.length) {
         setStatus(formatPrimaryKeySyncBlockingIssues(primaryKeySyncPlan));
@@ -1449,6 +1780,7 @@ export function App() {
         savedDocumentRootRef.current = cloneDataRoot(currentModel.root);
       }
       if (currentViewConfigDirty) await saveViewConfig(currentViewConfig, activeProjectId);
+      await flushPendingProfileSave();
       dataDirtyRef.current = false;
       viewConfigDirtyRef.current = false;
       setDataDirty(false);
@@ -1475,6 +1807,7 @@ export function App() {
         return;
       }
       if (viewConfigDirtyRef.current) await saveViewConfig(viewConfigRef.current, activeProjectId);
+      await flushPendingProfileSave();
       savedDocumentRootRef.current = cloneDataRoot(snapshot.pendingSaves[0]?.root ?? null);
       dataDirtyRef.current = false;
       viewConfigDirtyRef.current = false;
@@ -1493,7 +1826,7 @@ export function App() {
 
   async function handleCloseServer() {
     if (closing || saving || rebuilding) return;
-    if (dirty && !window.confirm("有未保存更改，关闭服务会丢失这些更改。是否继续关闭？")) return;
+    if (globalDirty && !window.confirm("有未保存更改，关闭服务会丢失这些更改。是否继续关闭？")) return;
     setClosing(true);
     setStatus("");
     try {
@@ -1511,7 +1844,7 @@ export function App() {
 
   async function handleRefreshBuild() {
     if (rebuilding || closing || saving) return;
-    if (dirty && !window.confirm("有未保存更改，刷新构建会丢失这些更改。是否继续刷新构建？")) return;
+    if (globalDirty && !window.confirm("有未保存更改，刷新构建会丢失这些更改。是否继续刷新构建？")) return;
     setRebuilding(true);
     setStatus("");
     try {
@@ -1678,15 +2011,15 @@ export function App() {
           viewProfiles={viewProfiles}
           selectedViewProfileName={selectedViewProfileName}
           rowCount={rows.length}
-          visibleCount={Math.min(filteredRows.length, 500)}
-          query={query}
-          dirty={dirty}
+          visibleCount={viewRows.length}
+          query={activeView?.query ?? ""}
+          dirty={toolbarDirty}
           saving={saving}
           closing={closing}
           rebuilding={rebuilding}
           status={statusText}
           hiddenFields={hiddenFields}
-          onQueryChange={setQuery}
+          onQueryChange={(value) => updateActiveViewDraft({ query: value })}
           onSave={persistChanges}
           onRefreshBuild={handleRefreshBuild}
           onCloseServer={handleCloseServer}
@@ -1697,6 +2030,41 @@ export function App() {
           onUnhideAllFields={handleUnhideAllFields}
         />
         <div className="main-content">
+          <ViewTabs
+            views={orderedCollectionViews}
+            activeViewId={activeSharedView?.id ?? null}
+            dirtyViewIds={dirtyViewIds}
+            saving={saving}
+            filterBarVisible={filterBarVisible}
+            hasActiveFilters={activeViewHasFilters}
+            viewOrderDirty={viewOrderDirty}
+            searchQuery={activeView?.query ?? ""}
+            onSelectView={handleSelectSharedView}
+            onCreateView={handleCreateSharedView}
+            onRenameView={handleRenameSharedView}
+            onDeleteView={handleDeleteSharedView}
+            onDuplicateView={handleDuplicateSharedView}
+            onReorderViews={handleReorderSharedViews}
+            onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
+            onSearchQueryChange={(query) => updateActiveViewDraft({ query })}
+          />
+          {filterBarVisible ? (
+            <ViewFilterBar
+              view={activeView}
+              fields={allFields}
+              fieldConfig={fieldConfig}
+              fieldViewConfigs={fieldViewConfigs}
+              fieldTypes={viewFilterFieldTypes}
+              relationFilterOptions={viewFilterOptions}
+              dirty={activeViewDirty}
+              viewOrderDirty={viewOrderDirty}
+              saving={saving}
+              onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
+              onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
+              onResetView={handleResetSharedViewDraft}
+              onSaveForEveryone={() => void handleSaveViewForEveryone()}
+            />
+          ) : null}
           {showPrimaryKeyCandidateBanner && selectedPath ? (
             <PrimaryKeyCandidateBanner
               filePath={selectedPath}
@@ -1717,8 +2085,7 @@ export function App() {
             relationOptions={relationOptions}
             relationConfigs={viewConfig.relations}
             revision={viewRevision}
-            query={query}
-            sort={sort}
+            sort={activeViewSort}
             issues={issues}
             titleField={titleField}
             onSelectRow={selectRow}
@@ -2238,7 +2605,7 @@ function PrimaryKeySyncDialog(props: {
             </>
           ) : null}
           <div className="dialog-actions">
-            <Dialog.Close className="ghost-button">??</Dialog.Close>
+            <Dialog.Close className="ghost-button">取消</Dialog.Close>
             <button className="primary-button" disabled={!canConfirm || props.saving} onClick={props.onConfirm}>
               {props.saving ? "保存中..." : "确认同步"}
             </button>
@@ -2434,6 +2801,43 @@ function defaultEmptyValue(displayType?: FieldDisplayType) {
   return "";
 }
 
+function resolveDocumentCollection(model: DocumentModel, targetCollection?: string) {
+  if (targetCollection && model.collections.some((collection) => collection.path === targetCollection)) return targetCollection;
+  return model.collections[0]?.path ?? "$";
+}
+
+function inferViewFilterFieldType(fieldName: string, rows: DataRecord[], displayTypes: Record<string, FieldDisplayType>): FieldDisplayType {
+  if (displayTypes[fieldName]) return displayTypes[fieldName];
+  const sample = rows.find((row) => row[fieldName] !== undefined && row[fieldName] !== null)?.[fieldName]
+    ?? rows.find((row) => row[fieldName] !== undefined)?.[fieldName];
+  return defaultTypeFor(sample);
+}
+
+function buildValueFilterOptions(
+  fieldName: string,
+  rows: DataRecord[],
+  fieldConfig: FieldViewConfig | undefined,
+  fieldType: FieldDisplayType,
+): MultiSelectOptionView[] {
+  const options = new Map<string, MultiSelectOptionView>();
+  const configuredOptions = fieldType === "Select" ? fieldConfig?.selectOptions : fieldConfig?.multiSelectOptions;
+  for (const [value, option] of Object.entries(configuredOptions ?? {})) {
+    options.set(value, { value, label: option.label, color: option.color });
+  }
+  for (const row of rows) {
+    for (const value of valuesFromFilterSource(row[fieldName])) {
+      if (!options.has(value)) options.set(value, { value, label: value, color: null });
+    }
+  }
+  return [...options.values()];
+}
+
+function valuesFromFilterSource(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean);
+  if (value == null || value === "") return [];
+  return [String(value)];
+}
+
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
 const selectedViewProfileStorageKey = "data-editor:selected-view-profile";
 const transientStatusStorageKey = "data-editor:transient-status";
@@ -2470,7 +2874,26 @@ function cloneDataRoot<T>(value: T): T {
 }
 
 function emptyUserViewProfile(): UserViewProfile {
-  return { sidebarWidth: null, fileOrder: [], collections: {} };
+  return {
+    sidebarWidth: null,
+    fileOrder: [],
+    lastActiveViews: {},
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    collections: {},
+  };
+}
+
+function emptySharedViewsConfig(): SharedViewsConfig {
+  return {
+    version: 1,
+    collections: {},
+  };
+}
+
+function hasSharedDrafts(draftState: SharedViewDraftState) {
+  return Object.values(draftState.viewDrafts).some((views) => Object.keys(views).length > 0)
+    || Object.values(draftState.viewOrderDrafts).some((order) => order.length > 0);
 }
 
 function emptyProjectViewConfig(): ViewConfig {
@@ -2529,10 +2952,6 @@ function parseConfigKey(value: string) {
   return { file, collection, field };
 }
 
-function collectionConfigKey(path: string, collectionPath: string) {
-  return `${path}:${collectionPath}`;
-}
-
 function ensureCollectionView(profile: UserViewProfile, path: string, collectionPath: string) {
   const key = collectionConfigKey(path, collectionPath);
   profile.collections[key] ??= { hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} };
@@ -2540,10 +2959,22 @@ function ensureCollectionView(profile: UserViewProfile, path: string, collection
 }
 
 function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number, fileOrder: string[]): UserViewProfile {
-  if (!path) return { sidebarWidth, fileOrder: [...fileOrder], collections: {} };
+  if (!path) {
+    return {
+      sidebarWidth,
+      fileOrder: [...fileOrder],
+      lastActiveViews: {},
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      collections: {},
+    };
+  }
   return {
     sidebarWidth,
     fileOrder: [...fileOrder],
+    lastActiveViews: {},
+    viewDrafts: {},
+    viewOrderDrafts: {},
     collections: {
       [collectionConfigKey(path, collectionPath)]: {
         hidden: [...fieldConfig.hidden],

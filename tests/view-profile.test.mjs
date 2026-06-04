@@ -34,6 +34,44 @@ test("saveViewProfile writes normalized profile file", async () => {
     const result = await saveViewProfile(root, "lans", {
       sidebarWidth: 311.8,
       fileOrder: ["data/skills.json", "data/runes.json", "data/skills.json", " "],
+      lastActiveViews: {
+        "data/runes.json::$": " view-1 ",
+        "data/empty.json::$": "",
+        "data/bad.json::$": 1,
+      },
+      viewDrafts: {
+        " data/runes.json::$ ": {
+          " view-1 ": {
+            id: "ignored-id",
+            name: "Ignored",
+            type: "table",
+            query: " fire ",
+            filters: {
+              op: "or",
+              rules: [
+                { id: " rule-1 ", field: " element ", operator: "contains", value: "fire" },
+                { id: "bad", field: "element", operator: "bad_operator" },
+              ],
+            },
+            hidden: [" description ", "description"],
+            order: ["rune_name", " description "],
+          },
+          empty: {
+            id: "ignored-empty",
+            name: "Ignored Empty",
+            type: "table",
+          },
+        },
+        "data/empty.json::$": {
+          empty: {
+            id: "ignored-empty",
+          },
+        },
+      },
+      viewOrderDrafts: {
+        " data/runes.json::$ ": [" view-2 ", "view-1", "view-2", " "],
+        "data/empty.json::$": [" "],
+      },
       collections: {
         "data/runes.json::$": {
           hidden: ["description"],
@@ -49,6 +87,27 @@ test("saveViewProfile writes normalized profile file", async () => {
     assert.deepEqual(stored, {
       sidebarWidth: 312,
       fileOrder: ["data/skills.json", "data/runes.json"],
+      lastActiveViews: {
+        "data/runes.json::$": "view-1",
+      },
+      viewDrafts: {
+        "data/runes.json::$": {
+          "view-1": {
+            query: "fire",
+            filters: {
+              op: "and",
+              rules: [
+                { id: "rule-1", field: "element", operator: "contains", value: "fire" },
+              ],
+            },
+            hidden: ["description"],
+            order: ["rune_name", "description"],
+          },
+        },
+      },
+      viewOrderDrafts: {
+        "data/runes.json::$": ["view-2", "view-1"],
+      },
       collections: {
         "data/runes.json::$": {
           hidden: ["description"],

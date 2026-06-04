@@ -2,12 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   emptyLocalViewState,
+  emptyLocalSharedViewDrafts,
   emptyCollectionViewState,
   readLocalViewState,
+  readLocalSharedViewDrafts,
   readCollectionViewState,
   readLocalFileOrder,
   resetCollectionViewState,
   writeLocalFileOrder,
+  writeLocalSharedViewDrafts,
   writeLocalViewState,
 } from "../src/view-state-storage.mjs";
 
@@ -218,6 +221,150 @@ test("writeLocalFileOrder removes top-level file order when empty", () => {
   writeLocalFileOrder(storage, []);
 
   assert.equal(storage.getItem("data-editor:__file-order"), null);
+});
+
+test("local shared view drafts are stored independently from collection view state", () => {
+  const storage = createMemoryStorage({
+    "data-editor:shared-view-drafts": JSON.stringify({
+      lastActiveViews: {
+        "data/runes.json:$": " view-1 ",
+        "data/empty.json:$": "",
+      },
+      viewDrafts: {
+        " data/runes.json:$ ": {
+          " view-1 ": {
+            id: "ignored-id",
+            name: "Ignored",
+            type: "table",
+            query: " fire ",
+            filters: {
+              op: "or",
+              rules: [
+                { id: " rule-1 ", field: " element ", operator: "contains", value: "fire" },
+              ],
+            },
+          },
+        },
+      },
+      viewOrderDrafts: {
+        " data/runes.json:$ ": [" view-2 ", "view-1", "view-2", " "],
+      },
+    }),
+    "data-editor:data/runes.json:$:__order": "description,rune_name",
+  });
+
+  assert.deepEqual(readLocalSharedViewDrafts(storage), {
+    lastActiveViews: {
+      "data/runes.json:$": "view-1",
+      },
+      viewDrafts: {
+        "data/runes.json:$": {
+          "view-1": {
+            query: "fire",
+            filters: {
+            op: "and",
+            rules: [
+              { id: "rule-1", field: "element", operator: "contains", value: "fire" },
+            ],
+          },
+        },
+      },
+    },
+    viewOrderDrafts: {
+      "data/runes.json:$": ["view-2", "view-1"],
+    },
+  });
+
+  writeLocalSharedViewDrafts(storage, {
+    lastActiveViews: {
+      " data/runes.json:$ ": " view-2 ",
+    },
+    viewDrafts: {
+      " data/runes.json:$ ": {
+        " view-2 ": {
+          query: " ice ",
+        },
+      },
+    },
+    viewOrderDrafts: {
+      " data/runes.json:$ ": ["view-2", "view-1", "view-2"],
+    },
+  });
+
+  assert.deepEqual(JSON.parse(storage.getItem("data-editor:shared-view-drafts")), {
+    lastActiveViews: {
+      "data/runes.json:$": "view-2",
+    },
+    viewDrafts: {
+      "data/runes.json:$": {
+        "view-2": {
+          query: "ice",
+        },
+      },
+    },
+    viewOrderDrafts: {
+      "data/runes.json:$": ["view-2", "view-1"],
+    },
+  });
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:__order"), "description,rune_name");
+});
+
+test("writeLocalSharedViewDrafts removes storage when all shared drafts are empty", () => {
+  const storage = createMemoryStorage({
+    "data-editor:shared-view-drafts": JSON.stringify({ lastActiveViews: { "data/runes.json:$": "view-1" } }),
+  });
+
+  writeLocalSharedViewDrafts(storage, {
+    lastActiveViews: {},
+    viewDrafts: {
+      "data/runes.json:$": {
+        "view-1": {
+          id: "ignored-id",
+          name: "Ignored",
+          type: "table",
+        },
+      },
+    },
+    viewOrderDrafts: {
+      "data/runes.json:$": [],
+    },
+  });
+
+  assert.equal(storage.getItem("data-editor:shared-view-drafts"), null);
+});
+
+test("local shared view drafts drop invalid non-empty draft fields", () => {
+  const storage = createMemoryStorage();
+
+  writeLocalSharedViewDrafts(storage, {
+    viewDrafts: {
+      "data/runes.json:$": {
+        "view-1": {
+          filters: {
+            op: "or",
+            rules: [
+              { id: "bad", field: "element", operator: "starts_with" },
+            ],
+          },
+          sorts: [
+            { id: "bad", field: "power", direction: "down" },
+          ],
+          hidden: "icon",
+          widths: { tiny: 0.4, bad: "88" },
+        },
+      },
+    },
+  });
+
+  assert.equal(storage.getItem("data-editor:shared-view-drafts"), null);
+});
+
+test("readLocalSharedViewDrafts returns empty drafts for malformed JSON", () => {
+  const storage = createMemoryStorage({
+    "data-editor:shared-view-drafts": "{bad json",
+  });
+
+  assert.deepEqual(readLocalSharedViewDrafts(storage), emptyLocalSharedViewDrafts());
 });
 
 test("local reset returns an empty local view state", () => {
