@@ -28,6 +28,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const stopScriptPath = path.join(repoRoot, "stop.mjs");
 const openScriptPath = path.join(repoRoot, "open.mjs");
 const serverScriptPath = path.join(repoRoot, "server.mjs");
+const serviceFinalizeScriptPath = path.join(repoRoot, "scripts", "service-finalize.mjs");
 const projectRoot = path.resolve(repoRoot, "../..");
 const execFileAsync = promisify(execFile);
 
@@ -71,6 +72,28 @@ function runStop(toolRoot) {
 function runOpen(toolRoot, extraArgs = []) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [openScriptPath, "--tool-root", toolRoot, ...runtimeArgs(toolRoot), ...extraArgs], {
+      cwd: repoRoot,
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      resolve({ code, signal, stdout, stderr });
+    });
+  });
+}
+
+function runServiceFinalize(extraArgs = []) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [serviceFinalizeScriptPath, ...extraArgs], {
       cwd: repoRoot,
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
@@ -742,6 +765,56 @@ test("recovery bridge can reopen the main service after it stops unexpectedly", 
   await waitForHttpDown(bridgePort);
 });
 
+test("service finalize recovers the main service through the recovery bridge", async (t) => {
+  const toolRoot = await makeToolRoot(t);
+  const runtimeTarget = runtimeTargetFor(toolRoot);
+  const port = await findAvailablePort();
+  const bridgePort = await findAvailablePortExcluding([port, port + 1]);
+
+  const result = await runOpen(toolRoot, [
+    "--root",
+    projectRoot,
+    "--port",
+    String(port),
+    "--bridge-port",
+    String(bridgePort),
+  ]);
+  assert.equal(result.code, 0, `stdout=${result.stdout}\nstderr=${result.stderr}`);
+
+  const state = await loadServiceState(runtimeTarget);
+  assert.ok(state);
+  await waitForHttpOk(port);
+  await waitForJsonOk(bridgePort, "/health");
+
+  process.kill(state.pid, "SIGTERM");
+  await waitForHttpDown(port);
+  await waitForPidExit(state.pid);
+  await waitForServiceStateClear(runtimeTarget);
+
+  const finalize = await runServiceFinalize([
+    "--recover",
+    "--json",
+    "--registry-home",
+    toolRoot,
+    "--main-port",
+    String(port),
+    "--bridge-port",
+    String(bridgePort),
+  ]);
+  assert.equal(finalize.code, 0, `stdout=${finalize.stdout}\nstderr=${finalize.stderr}`);
+  const body = JSON.parse(finalize.stdout);
+  assert.equal(body.main.status, "recovered");
+  assert.equal(body.bridge.status, "healthy");
+
+  await waitForHttpOk(port);
+  const listeners = await listListeningPids(port);
+  if (listeners) assert.equal([...new Set(listeners)].length, 1);
+
+  const stopResult = await runStop(toolRoot);
+  assert.equal(stopResult.code, 0, stopResult.stderr || stopResult.stdout);
+  await waitForHttpDown(bridgePort);
+});
+
 test("controller serializes concurrent reopen requests and starts only one main service", async (t) => {
   const toolRoot = await makeToolRoot(t);
   const runtimeTarget = runtimeTargetFor(toolRoot);
@@ -1129,6 +1202,28 @@ test("inspectWindowsProcess hides the transient powershell window on Windows", a
         "-Command",
         '$p = Get-CimInstance Win32_Process -Filter "ProcessId = 12345"; if (-not $p) { exit 0 }; $p | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress',
       ],
+      {
+        windowsHide: true,
+      },
+    ],
+  ]);
+});
+
+test("terminateWindowsProcess hides the transient taskkill window on Windows", async () => {
+  if (process.platform !== "win32") return;
+
+  const calls = [];
+  await terminateWindowsProcess(12345, {
+    execFileImpl: async (...args) => {
+      calls.push(args);
+      return { stdout: "" };
+    },
+  });
+
+  assert.deepEqual(calls, [
+    [
+      "taskkill.exe",
+      ["/PID", "12345", "/T", "/F"],
       {
         windowsHide: true,
       },

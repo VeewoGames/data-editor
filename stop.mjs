@@ -360,7 +360,7 @@ export async function terminateWindowsProcess(
   { execFileImpl = execFileAsync, inspectProcessImpl = inspectProcess } = {},
 ) {
   try {
-    await execFileImpl("taskkill.exe", ["/PID", String(pid), "/T", "/F"]);
+    await execFileImpl("taskkill.exe", ["/PID", String(pid), "/T", "/F"], { windowsHide: true });
   } catch (error) {
     if (!(await inspectProcessImpl(pid))) {
       return;

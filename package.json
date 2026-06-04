@@ -9,6 +9,8 @@
     "dev": "node dev.mjs",
     "open": "node open.mjs",
     "stop": "node stop.mjs",
+    "service:status": "node scripts/service-finalize.mjs --status",
+    "service:finalize": "node scripts/service-finalize.mjs --cleanup --recover",
     "build": "vite build",
     "start": "node server.mjs --project . --port 8787 --static dist",
     "typecheck": "tsc --noEmit",
