@@ -266,6 +266,9 @@ export function App() {
     dataDirtyRef.current = false;
     setViewConfigDirty(false);
     viewConfigDirtyRef.current = false;
+    setViewConfig(emptyProjectViewConfig());
+    viewConfigRef.current = emptyProjectViewConfig();
+    setViewProfiles([]);
     if (options.resetProfile) {
       setSelectedViewProfileName(null);
       selectedViewProfileNameRef.current = null;
