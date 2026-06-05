@@ -67,6 +67,7 @@ export type ViewConfig = {
 };
 export type UserViewProfile = {
   sidebarWidth: number | null;
+  detailPanelWidth: number | null;
   fileOrder: string[];
   lastActiveViews: Record<string, string>;
   viewDrafts: Record<string, Record<string, Partial<CollectionView>>>;

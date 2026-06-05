@@ -22,9 +22,11 @@ test("profile mode ignores legacy localStorage width hidden and order fallback",
     order: ["description", "rune_name"],
     detailOrder: ["description"],
     sidebarWidth: 444,
+    detailPanelWidth: 488,
   };
   const profile = {
     sidebarWidth: 260,
+    detailPanelWidth: 420,
     collections: {
       "data/runes.json:$": {
         hidden: [],
@@ -51,6 +53,7 @@ test("profile mode ignores legacy localStorage width hidden and order fallback",
     detailOrder: ["rune_name", "description"],
     widths: { description: 180 },
     sidebarWidth: 260,
+    detailPanelWidth: 420,
   });
 });
 
@@ -66,6 +69,7 @@ test("local mode reads only local state", () => {
       order: ["description", "rune_name"],
       detailOrder: [],
       sidebarWidth: 350,
+      detailPanelWidth: 430,
     },
     profile: null,
   });
@@ -73,6 +77,7 @@ test("local mode reads only local state", () => {
   assert.equal(state.widths.description, 300);
   assert.deepEqual(state.hidden, ["description"]);
   assert.equal(state.sidebarWidth, 350);
+  assert.equal(state.detailPanelWidth, 430);
 });
 
 test("profile reset removes only target collection and clears profile sidebar width", () => {
@@ -82,6 +87,7 @@ test("profile reset removes only target collection and clears profile sidebar wi
     collectionPath: "$",
     profile: {
       sidebarWidth: 320,
+      detailPanelWidth: 410,
       fileOrder: ["data/status_effects.json", "data/runes.json"],
       collections: {
         "data/runes.json:$": {
@@ -100,6 +106,7 @@ test("profile reset removes only target collection and clears profile sidebar wi
   assert.equal(next.profile.collections["data/runes.json:$"], undefined);
   assert.ok(next.profile.collections["data/status_effects.json:$"]);
   assert.equal(next.profile.sidebarWidth, null);
+  assert.equal(next.profile.detailPanelWidth, null);
   assert.deepEqual(next.profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
 });
 
@@ -115,9 +122,11 @@ test("profile mode uses empty state when profile collection has no saved values"
       order: ["description"],
       detailOrder: ["description"],
       sidebarWidth: 400,
+      detailPanelWidth: 490,
     },
     profile: {
       sidebarWidth: null,
+      detailPanelWidth: 405,
       collections: {
         "data/runes.json:$": {
           hidden: [],
@@ -134,6 +143,7 @@ test("profile mode uses empty state when profile collection has no saved values"
   assert.deepEqual(state.hidden, []);
   assert.deepEqual(state.order, []);
   assert.equal(state.sidebarWidth, null);
+  assert.equal(state.detailPanelWidth, 405);
 });
 
 test("readLocalViewState reads only localStorage keys for the current collection", () => {
@@ -143,6 +153,7 @@ test("readLocalViewState reads only localStorage keys for the current collection
     "data-editor:data/runes.json:$:description:width": "280",
     "data-editor:data/runes.json:$:__order": "description,rune_name",
     "data-editor:sidebar-width": "333",
+    "data-editor:detail-panel-width": "444",
     "data-editor:data/other.json:$:name:hidden": "1",
   });
 
@@ -157,6 +168,7 @@ test("readLocalViewState reads only localStorage keys for the current collection
   assert.deepEqual(state.order, ["description", "rune_name"]);
   assert.deepEqual(state.widths, { description: 280 });
   assert.equal(state.sidebarWidth, 333);
+  assert.equal(state.detailPanelWidth, 444);
 });
 
 test("writeLocalViewState overwrites only localStorage keys for the current collection", () => {
@@ -166,6 +178,7 @@ test("writeLocalViewState overwrites only localStorage keys for the current coll
     "data-editor:data/runes.json:$:old:width": "210",
     "data-editor:data/runes.json:$:__order": "old",
     "data-editor:sidebar-width": "300",
+    "data-editor:detail-panel-width": "450",
     "data-editor:data/other.json:$:name:hidden": "1",
   });
 
@@ -179,6 +192,7 @@ test("writeLocalViewState overwrites only localStorage keys for the current coll
       detailOrder: [],
       widths: { description: 180 },
       sidebarWidth: 260,
+      detailPanelWidth: 410,
     },
     localStorage: storage,
   });
@@ -189,6 +203,7 @@ test("writeLocalViewState overwrites only localStorage keys for the current coll
   assert.equal(storage.getItem("data-editor:data/runes.json:$:description:width"), "180");
   assert.equal(storage.getItem("data-editor:data/runes.json:$:__order"), "rune_name,description");
   assert.equal(storage.getItem("data-editor:sidebar-width"), "260");
+  assert.equal(storage.getItem("data-editor:detail-panel-width"), "410");
   assert.equal(storage.getItem("data-editor:data/other.json:$:name:hidden"), "1");
 });
 
@@ -380,6 +395,7 @@ test("local reset returns an empty local view state", () => {
       detailOrder: ["description"],
       widths: { description: 180 },
       sidebarWidth: 300,
+      detailPanelWidth: 420,
     },
   });
 

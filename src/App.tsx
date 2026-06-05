@@ -167,6 +167,7 @@ export function App() {
   const disconnectConfirmTimerRef = useRef<number | null>(null);
   const manualClosedRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => readSidebarWidth());
+  const [detailPanelWidth, setDetailPanelWidth] = useState(() => readDetailPanelWidth());
   const primaryKeySyncSnapshotRef = useRef<{ plan: PrimaryKeySyncPlan; pendingSaves: PendingDocumentSave[] } | null>(null);
   const profileSaveTimerRef = useRef<number | null>(null);
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
@@ -225,6 +226,8 @@ export function App() {
     if (!selectedViewProfileName) {
       setSelectedViewProfile(emptyUserViewProfile());
       localStorage.removeItem(selectedViewProfileStorageKey);
+      setSidebarWidth(readSidebarWidth());
+      setDetailPanelWidth(readDetailPanelWidth());
       return;
     }
     localStorage.setItem(selectedViewProfileStorageKey, selectedViewProfileName);
@@ -232,6 +235,7 @@ export function App() {
       .then((profile) => {
         setSelectedViewProfile(profile);
         setSidebarWidth(clampSidebarWidth(profile.sidebarWidth ?? defaultSidebarWidth));
+        setDetailPanelWidth(clampDetailPanelWidth(profile.detailPanelWidth ?? defaultDetailPanelWidth));
         bump((value) => value + 1);
       })
       .catch((error) => setStatus(error.message));
@@ -274,6 +278,7 @@ export function App() {
         setSelectedViewProfile(nextProfile);
         selectedViewProfileRef.current = nextProfile;
         setSidebarWidth(clampSidebarWidth(nextProfile.sidebarWidth ?? defaultSidebarWidth));
+        setDetailPanelWidth(clampDetailPanelWidth(nextProfile.detailPanelWidth ?? defaultDetailPanelWidth));
       }
       const savedOrder = profileNameForInitialOrder
         ? (nextProfile?.fileOrder ?? selectedViewProfileRef.current.fileOrder)
@@ -933,6 +938,7 @@ export function App() {
     setSelectedViewProfile((current) => {
       const next: UserViewProfile = {
         sidebarWidth: current.sidebarWidth,
+        detailPanelWidth: current.detailPanelWidth,
         fileOrder: [...current.fileOrder],
         lastActiveViews: { ...current.lastActiveViews },
         viewDrafts: { ...current.viewDrafts },
@@ -1334,7 +1340,7 @@ export function App() {
       widths: { ...activeSnapshot.widths },
       order: [...activeSnapshot.order],
       detailOrder: [...activeSnapshot.detailOrder],
-    }, activeSnapshot.sidebarWidth ?? sidebarWidth, normalizeFileOrder(
+    }, activeSnapshot.sidebarWidth ?? sidebarWidth, activeSnapshot.detailPanelWidth ?? detailPanelWidth, normalizeFileOrder(
       files,
       selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage),
     ));
@@ -1406,6 +1412,35 @@ export function App() {
     window.addEventListener("pointercancel", onPointerCancel);
   }
 
+  function handleDetailPanelWidthChange(width: number) {
+    setDetailPanelWidth(clampDetailPanelWidth(width));
+  }
+
+  function commitDetailPanelWidth(width: number) {
+    const nextWidth = clampDetailPanelWidth(width);
+    setDetailPanelWidth(nextWidth);
+    if (!mutateSelectedViewProfile((draft) => { draft.detailPanelWidth = nextWidth; })) {
+      if (selectedPath) {
+        const nextState = readLocalViewState({
+          path: selectedPath,
+          collectionPath,
+          localStorage: window.localStorage,
+        });
+        writeLocalViewState({
+          path: selectedPath,
+          collectionPath,
+          state: {
+            ...nextState,
+            detailPanelWidth: nextWidth,
+          },
+          localStorage: window.localStorage,
+        });
+      } else {
+        localStorage.setItem(detailPanelWidthStorageKey, String(nextWidth));
+      }
+    }
+  }
+
   function openDetail(rowIndex: number) {
     flushSync(() => {
       setSelectedRowIndex(rowIndex);
@@ -1473,6 +1508,7 @@ export function App() {
     if (!selectedPath) return;
     if (mutateSelectedViewProfile((draft) => {
       draft.sidebarWidth = null;
+      draft.detailPanelWidth = null;
       delete draft.collections[collectionConfigKey(selectedPath, collectionPath)];
       if (activeCollectionKey && activeSharedView) {
         const result = resetActiveSharedViewDraft(draft, activeCollectionKey, activeSharedView.id);
@@ -1482,6 +1518,7 @@ export function App() {
         setViewDraftDirty(result.dirty);
       }
       setSidebarWidth(defaultSidebarWidth);
+      setDetailPanelWidth(defaultDetailPanelWidth);
     })) return;
     writeLocalViewState({
       path: selectedPath,
@@ -1498,6 +1535,7 @@ export function App() {
       });
     }
     setSidebarWidth(readSidebarWidth());
+    setDetailPanelWidth(readDetailPanelWidth());
     bump((value) => value + 1);
   }
 
@@ -2116,6 +2154,7 @@ export function App() {
           />
           <DetailPanel
             open={detailOpen}
+            panelWidth={detailPanelWidth}
             row={selectedRow}
             rowIndex={selectedRowIndex}
             rowCount={rows.length}
@@ -2141,6 +2180,8 @@ export function App() {
             onOpenRelationTarget={handleOpenRelationTarget}
             onSelectRow={selectRow}
             onClose={() => setDetailOpen(false)}
+            onPanelWidthChange={handleDetailPanelWidthChange}
+            onPanelWidthCommit={commitDetailPanelWidth}
             onEditField={(fieldName, value) => selectedRowIndex != null && handleEditCell(selectedRowIndex, fieldName, value)}
             onReorderFields={handleReorderDetailFields}
           />
@@ -2846,10 +2887,19 @@ const localProfileOptionValue = "__local__";
 const minSidebarWidth = 180;
 const maxSidebarWidth = 520;
 const defaultSidebarWidth = 260;
+const detailPanelWidthStorageKey = "data-editor:detail-panel-width";
+const minDetailPanelWidth = 320;
+const maxDetailPanelWidth = 920;
+const defaultDetailPanelWidth = 400;
 
 function readSidebarWidth() {
   const stored = Number(localStorage.getItem(sidebarWidthStorageKey));
   return clampSidebarWidth(Number.isFinite(stored) && stored > 0 ? stored : defaultSidebarWidth);
+}
+
+function readDetailPanelWidth() {
+  const stored = Number(localStorage.getItem(detailPanelWidthStorageKey));
+  return clampDetailPanelWidth(Number.isFinite(stored) && stored > 0 ? stored : defaultDetailPanelWidth);
 }
 
 function rememberTransientStatus(message: string) {
@@ -2862,6 +2912,10 @@ function consumeTransientStatus() {
 
 function clampSidebarWidth(width: number) {
   return Math.min(maxSidebarWidth, Math.max(minSidebarWidth, Math.round(width)));
+}
+
+function clampDetailPanelWidth(width: number) {
+  return Math.min(maxDetailPanelWidth, Math.max(minDetailPanelWidth, Math.round(width)));
 }
 
 function replaceRowsForView(model: DocumentModel, collectionPath: string, rows: DataRecord[]) {
@@ -2877,6 +2931,7 @@ function cloneDataRoot<T>(value: T): T {
 function emptyUserViewProfile(): UserViewProfile {
   return {
     sidebarWidth: null,
+    detailPanelWidth: null,
     fileOrder: [],
     lastActiveViews: {},
     viewDrafts: {},
@@ -2959,10 +3014,11 @@ function ensureCollectionView(profile: UserViewProfile, path: string, collection
   return profile.collections[key];
 }
 
-function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number, fileOrder: string[]): UserViewProfile {
+function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[]): UserViewProfile {
   if (!path) {
     return {
       sidebarWidth,
+      detailPanelWidth,
       fileOrder: [...fileOrder],
       lastActiveViews: {},
       viewDrafts: {},
@@ -2972,6 +3028,7 @@ function buildProfileFromCurrentView(path: string | null, collectionPath: string
   }
   return {
     sidebarWidth,
+    detailPanelWidth,
     fileOrder: [...fileOrder],
     lastActiveViews: {},
     viewDrafts: {},

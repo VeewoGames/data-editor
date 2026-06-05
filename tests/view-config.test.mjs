@@ -84,7 +84,7 @@ test("loadViewConfig falls back to legacy project config path", async () => {
   }
 });
 
-test("loadViewConfig normalizes unsupported field type and malformed select options", async () => {
+test("loadViewConfig drops unsupported field type and normalizes malformed select options", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
   try {
     await saveViewConfig(root, {
@@ -103,7 +103,7 @@ test("loadViewConfig normalizes unsupported field type and malformed select opti
     assert.deepEqual(loaded, {
       fields: {
         "data/e2e_select.json:$:category": {
-          type: "Text",
+          type: undefined,
           selectOptions: {
             attack: { label: "attack", color: null },
           },
@@ -114,6 +114,38 @@ test("loadViewConfig normalizes unsupported field type and malformed select opti
       backlinks: defaultBacklinkConfigs(),
       relations: defaultRelationConfigs(),
       relationsVersion: currentRelationsVersion,
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewConfig preserves missing field type instead of forcing Text", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
+  try {
+    const target = path.join(root, ".data-editor", "view-config.json");
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, JSON.stringify({
+      fields: {
+        "data/prototypes.json:$:match_build_tags": {
+          selectOptions: {},
+          multiSelectOptions: {
+            attack: { label: "attack", color: "red" },
+            ailment: { label: "ailment", color: "brown" },
+          },
+        },
+      },
+      primaryKeys: defaultPrimaryKeys(),
+      backlinks: defaultBacklinkConfigs(),
+      relations: defaultRelationConfigs(),
+      relationsVersion: currentRelationsVersion,
+    }), "utf8");
+
+    const loaded = await loadViewConfig(root);
+    assert.equal(loaded.fields["data/prototypes.json:$:match_build_tags"].type, undefined);
+    assert.deepEqual(loaded.fields["data/prototypes.json:$:match_build_tags"].multiSelectOptions, {
+      attack: { label: "attack", color: "red" },
+      ailment: { label: "ailment", color: "brown" },
     });
   } finally {
     await rm(root, { recursive: true, force: true });

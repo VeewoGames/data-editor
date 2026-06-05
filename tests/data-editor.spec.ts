@@ -1092,6 +1092,157 @@ test("file list order can be dragged and persists after reload", async ({ page }
   expect(fileOrderAfterDrag.indexOf("data/status_effects.json")).toBeLessThan(fileOrderAfterDrag.indexOf("data/runes.json"));
 });
 
+test("detail panel width can be resized and property spacing stays compact", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const spacingBeforeDrag = await page.evaluate(() => {
+    const propertyList = document.querySelector(".detail-panel.primary .property-list") as HTMLElement | null;
+    const propertyBlock = document.querySelector(".detail-panel.primary .property-block") as HTMLElement | null;
+    if (!propertyList || !propertyBlock) return null;
+    const listStyle = getComputedStyle(propertyList);
+    const blockStyle = getComputedStyle(propertyBlock);
+    return {
+      listGap: listStyle.rowGap,
+      blockGap: blockStyle.rowGap,
+    };
+  });
+  expect(spacingBeforeDrag).toEqual({
+    listGap: "8px",
+    blockGap: "4px",
+  });
+
+  const panelBefore = await page.locator(".detail-panel.primary").boundingBox();
+  const handleBefore = await page.locator(".detail-panel-resize-handle").boundingBox();
+  expect(panelBefore).not.toBeNull();
+  expect(handleBefore).not.toBeNull();
+  await page.evaluate((point) => {
+    const handle = document.querySelector(".detail-panel-resize-handle") as HTMLElement;
+    handle.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      clientX: point.x,
+      clientY: point.y,
+      pointerId: 1,
+    }));
+    window.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      clientX: point.x - 120,
+      clientY: point.y,
+      pointerId: 1,
+    }));
+    window.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      button: 0,
+      buttons: 0,
+      clientX: point.x - 120,
+      clientY: point.y,
+      pointerId: 1,
+    }));
+  }, {
+    x: handleBefore!.x + handleBefore!.width / 2,
+    y: handleBefore!.y + handleBefore!.height / 2,
+  });
+
+  const panelAfter = await page.locator(".detail-panel.primary").boundingBox();
+  expect(panelAfter).not.toBeNull();
+  expect(panelAfter!.width).toBeGreaterThan(panelBefore!.width + 80);
+});
+
+test("detail panel width persists in selected profile after reload", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "detail_panel_width_profile",
+        profile: {
+          sidebarWidth: null,
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "detail_panel_width_profile");
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const handleBefore = await page.locator(".detail-panel-resize-handle").boundingBox();
+  expect(handleBefore).not.toBeNull();
+  await page.evaluate((point) => {
+    const handle = document.querySelector(".detail-panel-resize-handle") as HTMLElement;
+    handle.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      clientX: point.x,
+      clientY: point.y,
+      pointerId: 1,
+    }));
+    window.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      clientX: point.x - 120,
+      clientY: point.y,
+      pointerId: 1,
+    }));
+    window.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      button: 0,
+      buttons: 0,
+      clientX: point.x - 120,
+      clientY: point.y,
+      pointerId: 1,
+    }));
+  }, {
+    x: handleBefore!.x + handleBefore!.width / 2,
+    y: handleBefore!.y + handleBefore!.height / 2,
+  });
+
+  const widthAfterResize = await page.locator(".detail-panel.primary").evaluate((element) => Math.round(element.getBoundingClientRect().width));
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/detail_panel_width_profile.json"), "utf8");
+    const profile = JSON.parse(text);
+    return profile.detailPanelWidth ?? null;
+  }).toBe(widthAfterResize);
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  await expect.poll(async () => page.locator(".detail-panel.primary").evaluate((element) => Math.round(element.getBoundingClientRect().width))).toBe(widthAfterResize);
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:detail-panel-width"))).toBe(null);
+});
+
+test("clicking outside detail panels closes primary and nested detail panels", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary.open")).toBeVisible();
+  await page.locator(".detail-panel.primary .nested-entry-button").click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await page.locator(".nested-item-list button").first().click();
+  await expect(page.locator(".detail-panel.secondary .property-block")).toHaveCount(4);
+
+  await page.locator(".toolbar strong").click();
+  await expect(page.locator(".detail-panel.primary.open")).toHaveCount(0);
+  await expect(page.locator(".detail-panel.secondary.open")).toHaveCount(0);
+});
+
 test("profile file order controls initial open and ignores stale local file order", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(async () => {

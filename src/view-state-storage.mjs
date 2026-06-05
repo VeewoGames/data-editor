@@ -17,6 +17,7 @@ export function emptyLocalViewState() {
   return {
     ...emptyCollectionViewState(),
     sidebarWidth: null,
+    detailPanelWidth: null,
   };
 }
 
@@ -33,6 +34,7 @@ function orderStorageKey(path, collectionPath) {
 }
 
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
+const detailPanelWidthStorageKey = "data-editor:detail-panel-width";
 const fileOrderStorageKey = "data-editor:__file-order";
 const sharedViewDraftsStorageKey = "data-editor:shared-view-drafts";
 
@@ -52,11 +54,13 @@ export function readCollectionViewState({ mode, path, collectionPath, localState
     return {
       ...cloneCollectionViewState(collection),
       sidebarWidth: profile.sidebarWidth ?? null,
+      detailPanelWidth: profile.detailPanelWidth ?? null,
     };
   }
   return {
     ...cloneCollectionViewState(localState ?? emptyLocalViewState()),
     sidebarWidth: localState?.sidebarWidth ?? null,
+    detailPanelWidth: localState?.detailPanelWidth ?? null,
   };
 }
 
@@ -86,6 +90,8 @@ export function readLocalViewState({ path, collectionPath, localStorage }) {
   }
   const sidebarWidth = Number(localStorage.getItem(sidebarWidthStorageKey));
   state.sidebarWidth = Number.isFinite(sidebarWidth) && sidebarWidth > 0 ? sidebarWidth : null;
+  const detailPanelWidth = Number(localStorage.getItem(detailPanelWidthStorageKey));
+  state.detailPanelWidth = Number.isFinite(detailPanelWidth) && detailPanelWidth > 0 ? detailPanelWidth : null;
   return state;
 }
 
@@ -152,6 +158,11 @@ export function writeLocalViewState({ path, collectionPath, state, localStorage 
   } else {
     localStorage.removeItem(sidebarWidthStorageKey);
   }
+  if (state.detailPanelWidth != null && Number.isFinite(state.detailPanelWidth) && state.detailPanelWidth > 0) {
+    localStorage.setItem(detailPanelWidthStorageKey, String(Math.round(state.detailPanelWidth)));
+  } else {
+    localStorage.removeItem(detailPanelWidthStorageKey);
+  }
 }
 
 function normalizeStringArray(value) {
@@ -172,6 +183,7 @@ export function resetCollectionViewState({ mode, path, collectionPath, profile, 
   if (mode === "profile") {
     const nextProfile = {
       sidebarWidth: null,
+      detailPanelWidth: null,
       fileOrder: [...(profile?.fileOrder ?? [])],
       lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
       viewDrafts: { ...(profile?.viewDrafts ?? {}) },

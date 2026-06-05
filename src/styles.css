@@ -1990,7 +1990,7 @@ th:hover .column-resize-handle::after,
   top: 0;
   transform: translateX(100%);
   transition: transform 180ms ease;
-  width: 400px;
+  width: var(--detail-panel-width, 400px);
   z-index: 10;
   pointer-events: none;
 }
@@ -2011,6 +2011,38 @@ th:hover .column-resize-handle::after,
 
 .detail-panel.empty {
   color: #8b8a86;
+}
+
+.detail-panel-resize-handle {
+  bottom: 0;
+  cursor: col-resize;
+  left: -4px;
+  position: absolute;
+  top: 0;
+  width: 8px;
+}
+
+.detail-panel-resize-handle::after {
+  background: transparent;
+  border-radius: 999px;
+  content: "";
+  height: calc(100% - 24px);
+  left: 3px;
+  position: absolute;
+  top: 12px;
+  transition: background 120ms ease;
+  width: 2px;
+}
+
+.detail-panel:hover .detail-panel-resize-handle::after,
+.detail-panel-resize-handle:hover::after,
+.is-resizing-detail-panel .detail-panel-resize-handle::after {
+  background: #c9c6bf;
+}
+
+.is-resizing-detail-panel {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .detail-header {
@@ -2056,7 +2088,7 @@ th:hover .column-resize-handle::after,
 
 .property-list {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .detail-drop-indicator {
@@ -2070,9 +2102,9 @@ th:hover .column-resize-handle::after,
   align-items: flex-start;
   border-radius: 10px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: 20px minmax(0, 1fr);
-  padding: 4px 0;
+  padding: 2px 0;
   transition: background 120ms ease, opacity 120ms ease;
 }
 
@@ -2116,7 +2148,7 @@ th:hover .column-resize-handle::after,
 
 .property-block {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .detail-property-placeholder {

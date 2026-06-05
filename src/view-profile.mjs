@@ -37,6 +37,7 @@ export async function saveViewProfile(projectContextOrRoot, name, profile) {
 export function emptyViewProfile() {
   return {
     sidebarWidth: null,
+    detailPanelWidth: null,
     fileOrder: [],
     lastActiveViews: {},
     viewDrafts: {},
@@ -71,6 +72,7 @@ function normalizeViewProfile(value) {
   const sharedDrafts = normalizeSharedViewDraftState(value);
   return {
     sidebarWidth: Number.isFinite(value.sidebarWidth) ? Math.round(value.sidebarWidth) : null,
+    detailPanelWidth: Number.isFinite(value.detailPanelWidth) ? Math.round(value.detailPanelWidth) : null,
     fileOrder: normalizeStringArray(value.fileOrder),
     lastActiveViews: sharedDrafts.lastActiveViews,
     viewDrafts: sharedDrafts.viewDrafts,

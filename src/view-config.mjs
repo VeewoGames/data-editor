@@ -84,7 +84,7 @@ function normalizeViewConfig(value) {
         }
       }
       normalizedFields[fieldKey] = {
-        type: fieldConfig.type === "Select" ? "Select" : "Text",
+        type: fieldConfig.type === "Select" || fieldConfig.type === "Text" ? fieldConfig.type : undefined,
         selectOptions: normalizedSelectOptions,
         multiSelectOptions: normalizedOptions,
       };

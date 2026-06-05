@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { icons } from "../components/icons";
 import { RelationBacklinksPanel } from "../components/RelationBacklinksPanel";
 import type { SaveDocumentsResult } from "../api/client";
@@ -17,6 +17,7 @@ import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../
 
 type DetailPanelProps = {
   open: boolean;
+  panelWidth: number;
   row: DataRecord | null;
   rowIndex: number | null;
   rowCount: number;
@@ -42,6 +43,8 @@ type DetailPanelProps = {
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onSelectRow: (rowIndex: number) => void;
   onClose: () => void;
+  onPanelWidthChange: (width: number) => void;
+  onPanelWidthCommit: (width: number) => void;
   onEditField: (fieldName: string, value: unknown) => void;
   onReorderFields: (nextOrder: string[]) => void;
 };
@@ -57,6 +60,7 @@ type NestedPanelState = {
 
 export function DetailPanel({
   open,
+  panelWidth,
   row,
   rowIndex,
   rowCount,
@@ -82,6 +86,8 @@ export function DetailPanel({
   onOpenRelationTarget,
   onSelectRow,
   onClose,
+  onPanelWidthChange,
+  onPanelWidthCommit,
   onEditField,
   onReorderFields,
 }: DetailPanelProps) {
@@ -115,16 +121,72 @@ export function DetailPanel({
     setDragState(null);
   }, [rowIndex, detailOrder]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleOutsidePointerDown(event: PointerEvent) {
+      if (event.button !== 0) return;
+      if (document.body.classList.contains("is-resizing-detail-panel")) return;
+      if (document.body.classList.contains("is-dragging-detail-property")) return;
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (panelRef.current?.contains(target)) return;
+      if (nestedPanelRef.current?.contains(target)) return;
+      onClose();
+    }
+
+    window.addEventListener("pointerdown", handleOutsidePointerDown);
+    return () => {
+      window.removeEventListener("pointerdown", handleOutsidePointerDown);
+    };
+  }, [open, onClose]);
+
   const activeNested = nestedStack.at(-1) ?? null;
+  const primaryPanelStyle = useMemo(
+    () => ({ "--detail-panel-width": `${panelWidth}px` }) as CSSProperties,
+    [panelWidth],
+  );
   const activeNestedValue = useMemo(() => {
     if (!row || !activeNested) return null;
     return getValueAtPath(row[activeNested.rootField], activeNested.path);
   }, [row, activeNested]);
 
+  function beginPanelResize(event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = panelWidth;
+    document.body.classList.add("is-resizing-detail-panel");
+
+    function onPointerMove(moveEvent: PointerEvent) {
+      onPanelWidthChange(startWidth - (moveEvent.clientX - startX));
+    }
+
+    function finish() {
+      document.body.classList.remove("is-resizing-detail-panel");
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+    }
+
+    function onPointerUp(upEvent: PointerEvent) {
+      onPanelWidthCommit(startWidth - (upEvent.clientX - startX));
+      finish();
+    }
+
+    function onPointerCancel() {
+      finish();
+    }
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+  }
+
   if (!row || rowIndex == null) {
     return (
       <>
-        <aside className={`detail-panel primary empty ${open ? "open" : ""}`} ref={panelRef}>
+        <aside className={`detail-panel primary empty ${open ? "open" : ""}`} ref={panelRef} style={primaryPanelStyle}>
+          <div className="detail-panel-resize-handle" onPointerDown={beginPanelResize} aria-label="调整详情面板宽度" role="separator" />
           <div className="panel-kicker">Record detail</div>
           <div className="panel-title">No record selected</div>
         </aside>
@@ -238,7 +300,8 @@ export function DetailPanel({
 
   return (
     <>
-      <aside className={primaryClassName} ref={panelRef}>
+      <aside className={primaryClassName} ref={panelRef} style={primaryPanelStyle}>
+        <div className="detail-panel-resize-handle" onPointerDown={beginPanelResize} aria-label="调整详情面板宽度" role="separator" />
         <div className="detail-header">
           <div className="detail-title-block">
             <div className="panel-kicker">Record detail</div>
