@@ -564,6 +564,12 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/keywords.json"]').click();
   await expect(page.locator('.column-trigger[title="back_keyword_id"]')).toBeVisible();
+  await page.locator(".view-tab").filter({ hasText: "构筑" }).click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("构筑");
+  await expect(page.locator('.column-trigger[title="dev_status"]')).toBeVisible();
+  await page.locator(".view-tab").filter({ hasText: "物品" }).click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("物品");
+  await expect(page.locator('.column-trigger[title="dev_status"]')).toBeVisible();
   const keywordBacklinkChip = page.locator('.data-table tbody .backlink-chip-button[title*="data/status_effects.json"]').first();
   await expect(keywordBacklinkChip).toBeVisible();
   await expect(keywordBacklinkChip).toHaveCSS("background-color", "rgb(233, 232, 229)");

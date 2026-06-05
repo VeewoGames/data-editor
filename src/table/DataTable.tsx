@@ -51,6 +51,7 @@ const addColumnWidth = 44;
 
 type DataTableProps = {
   model: DocumentModel;
+  schemaModel?: DocumentModel | null;
   sourcePath: string | null;
   collectionPath: string;
   fieldConfig: FieldConfig;
@@ -110,9 +111,10 @@ function DataTableComponent(props: DataTableProps) {
   const columnDragAutoScrollFrameRef = useRef<number | null>(null);
   const localWidthsRef = useRef<Record<string, number>>({ ...props.fieldConfig.widths });
   const rows = getRows(props.model, props.collectionPath) as DataRecord[];
+  const schemaModel = props.schemaModel ?? props.model;
   const nestedFieldSet = useMemo(
-    () => new Set(getNestedFields(props.model, props.collectionPath)),
-    [props.model, props.collectionPath],
+    () => new Set(getNestedFields(schemaModel, props.collectionPath)),
+    [schemaModel, props.collectionPath],
   );
 
   useEffect(() => {
@@ -132,10 +134,10 @@ function DataTableComponent(props: DataTableProps) {
   }, [columnDragState]);
   useEffect(() => () => stopColumnAutoScroll(), []);
   const allColumns = useMemo(() => orderColumns([
-    ...getMainColumns(props.model, props.collectionPath),
+    ...getMainColumns(schemaModel, props.collectionPath),
     ...nestedFieldSet,
     ...props.backlinkColumns.map((column) => column.fieldName),
-  ], props.fieldConfig.order), [props.model, props.collectionPath, props.fieldConfig.order, nestedFieldSet, props.backlinkColumns]);
+  ], props.fieldConfig.order), [schemaModel, props.collectionPath, props.fieldConfig.order, nestedFieldSet, props.backlinkColumns]);
 
   const detectedTitleField = props.titleField ?? findTitleField(allColumns, rows);
   const visibleBaseFields = useMemo(() => allColumns.filter((field) => !props.fieldConfig.hidden.has(field)), [allColumns, props.fieldConfig.hidden]);

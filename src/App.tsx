@@ -2076,6 +2076,7 @@ export function App() {
           ) : null}
           <DataTable
             model={viewModel!}
+            schemaModel={model}
             sourcePath={selectedPath}
             collectionPath={collectionPath}
             fieldConfig={fieldConfig}
