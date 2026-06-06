@@ -141,6 +141,12 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     setMenuOpen(false);
   }
 
+  async function copyFieldText() {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(props.fieldName);
+    setMenuOpen(false);
+  }
+
   function runDialogAction(action: () => void) {
     flushSync(() => {
       action();
@@ -246,6 +252,9 @@ export function ColumnHeader(props: ColumnHeaderProps) {
           <div className="menu-separator" />
           <button className="menu-item" onClick={() => runAfterMenuClose(props.onToggleWrap)} type="button">
             <icons.wrapText size={15} /> {props.wrapped ? "取消内容自动换行" : "内容自动换行"}
+          </button>
+          <button className="menu-item" onClick={copyFieldText} type="button">
+            <icons.copy size={15} /> 复制字段文本
           </button>
           {props.allowTypeChange ? (
             <>

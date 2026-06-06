@@ -230,6 +230,21 @@ function hasSort(view: SharedViewConfig | undefined, field: string, direction: s
   return Boolean(view?.sorts?.some((sort) => sort.field === field && sort.direction === direction));
 }
 
+test("column header menu copies the field name to the clipboard", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.locator('.column-trigger[title="category"]').click();
+  const copyAction = page.locator(".column-menu-popup .menu-item").filter({ hasText: "复制字段文本" });
+  await expect(copyAction).toBeVisible();
+  await copyAction.click();
+
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("category");
+});
+
 test("shared view filter and sort drafts persist through save and reload", async ({ page }) => {
   const collectionKey = "data/e2e_multiselect.json:$";
   const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
@@ -1243,6 +1258,40 @@ test("clicking outside detail panels closes primary and nested detail panels", a
   await expect(page.locator(".detail-panel.secondary.open")).toHaveCount(0);
 });
 
+test("detail panel reuses table select and multi-select editors", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  const featuresBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "features" }),
+  });
+  await expect(featuresBlock.locator(".multi-select-trigger")).toBeVisible();
+  await expect(featuresBlock.locator(".nested-entry-button")).toHaveCount(0);
+  await featuresBlock.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover")).toBeVisible();
+  await expect(page.locator(".multi-select-popover .selected-chip")).toContainText("minion");
+  await page.locator(".multi-select-popover").press("Escape");
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "category" }),
+  });
+  await expect(categoryBlock.locator(".multi-select-trigger")).toBeVisible();
+  await expect(categoryBlock.locator(".multi-select-trigger .chip")).toContainText("attack");
+  await categoryBlock.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover")).toBeVisible();
+  await expect(page.locator(".multi-select-popover .selected-chip")).toContainText("attack");
+});
+
 test("profile file order controls initial open and ignores stale local file order", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(async () => {
@@ -1476,13 +1525,15 @@ test("profile reset clears current collection without localStorage resurrection"
   await expect(page.locator('col[data-column-field="description"]')).toHaveCount(1);
 });
 
-test("toolbar renders close button next to save", async ({ page }) => {
+test("toolbar renders settings, refresh, and close buttons after save", async ({ page }) => {
   await page.goto("/");
   const saveButton = page.locator(".toolbar .primary-button").filter({ hasText: "保存" });
+  const settingsButton = page.locator(".toolbar .toolbar-settings-button");
   const refreshButton = page.locator(".toolbar .toolbar-rebuild-button");
   const closeButton = page.locator(".toolbar .toolbar-close-button");
 
   await expect(saveButton).toBeVisible();
+  await expect(settingsButton).toBeVisible();
   await expect(refreshButton).toBeVisible();
   await expect(closeButton).toBeVisible();
   await expect(refreshButton).not.toContainText("刷新构建");
@@ -1491,11 +1542,89 @@ test("toolbar renders close button next to save", async ({ page }) => {
   const orderIsCorrect = await page.locator(".toolbar").evaluate(() => {
     const save = [...document.querySelectorAll(".toolbar button")]
       .find((element) => element.classList.contains("primary-button") && element.textContent?.includes("保存"));
+    const settings = document.querySelector(".toolbar-settings-button");
     const refresh = document.querySelector(".toolbar-rebuild-button");
     const close = document.querySelector(".toolbar-close-button");
-    return save?.nextElementSibling === refresh && refresh?.nextElementSibling === close;
+    return save?.nextElementSibling === settings && settings?.nextElementSibling === refresh && refresh?.nextElementSibling === close;
   });
   expect(orderIsCorrect).toBe(true);
+});
+
+test("toolbar appearance settings toggles theme and base font size independently", async ({ page }) => {
+  await page.goto("/");
+  const settingsButton = page.locator(".toolbar .toolbar-settings-button");
+  await settingsButton.click();
+
+  const popover = page.locator(".appearance-popover-content");
+  await expect(popover).toBeVisible();
+  await expect(page.locator('[data-theme-option="light"]')).toBeVisible();
+  await expect(page.locator('[data-theme-option="dark"]')).toBeVisible();
+  await expect(page.locator('[data-font-size-option="14"]')).toBeVisible();
+  await expect(page.locator('[data-font-size-option="14.5"]')).toBeVisible();
+  await expect(page.locator('[data-font-size-option="16"]')).toBeVisible();
+
+  await page.locator('[data-theme-option="dark"]').click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+
+  await page.locator('[data-font-size-option="16"]').click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.fontSizeBase)).toBe("16");
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("16px");
+  await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-font-size-option="16"]')).toHaveAttribute("aria-pressed", "true");
+});
+
+test("toolbar appearance settings persist in localStorage when no profile is selected", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+  });
+  await page.reload();
+
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await page.locator('[data-theme-option="dark"]').click();
+  await page.locator('[data-font-size-option="14.5"]').click();
+
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("data-editor:ui-theme"))).toBe("dark");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("data-editor:ui-font-size"))).toBe("14.5");
+
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.fontSizeBase)).toBe("14.5");
+});
+
+test("toolbar appearance settings persist to selected profile", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "appearance_profile",
+        profile: {
+          sidebarWidth: null,
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "appearance_profile");
+  });
+
+  await page.reload();
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await page.locator('[data-theme-option="dark"]').click();
+  await page.locator('[data-font-size-option="14.5"]').click();
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.fontSizeBase)).toBe("14.5");
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/appearance_profile.json"), "utf8");
+    const profile = JSON.parse(text);
+    return JSON.stringify(profile.appearance ?? null);
+  }).toBe(JSON.stringify({
+    activeThemeId: "dark",
+    baseFontSize: 14.5,
+  }));
 });
 
 test("close button switches to server closed page", async ({ page }) => {

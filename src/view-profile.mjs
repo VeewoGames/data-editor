@@ -3,6 +3,11 @@ import path from "node:path";
 import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
 import { normalizeSharedViewDraftState } from "./shared-views.mjs";
 
+const defaultAppearanceThemeId = "light";
+const defaultAppearanceBaseFontSize = 14;
+const allowedAppearanceThemeIds = new Set(["light", "dark"]);
+const allowedAppearanceBaseFontSizes = new Set([14, 14.5, 15, 16]);
+
 export async function listViewProfiles(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
   const names = new Set([
@@ -70,6 +75,7 @@ function normalizeViewProfile(value) {
     }
   }
   const sharedDrafts = normalizeSharedViewDraftState(value);
+  const appearance = normalizeAppearance(value.appearance);
   return {
     sidebarWidth: Number.isFinite(value.sidebarWidth) ? Math.round(value.sidebarWidth) : null,
     detailPanelWidth: Number.isFinite(value.detailPanelWidth) ? Math.round(value.detailPanelWidth) : null,
@@ -77,8 +83,54 @@ function normalizeViewProfile(value) {
     lastActiveViews: sharedDrafts.lastActiveViews,
     viewDrafts: sharedDrafts.viewDrafts,
     viewOrderDrafts: sharedDrafts.viewOrderDrafts,
+    ...(appearance ? { appearance } : {}),
     collections,
   };
+}
+
+function normalizeAppearance(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const activeThemeId = normalizeThemeId(value.activeThemeId);
+  const baseFontSize = normalizeBaseFontSize(value.baseFontSize);
+  const themeOverrides = normalizeThemeOverrides(value.themeOverrides);
+  if (!activeThemeId && !baseFontSize && !themeOverrides) return undefined;
+  return {
+    activeThemeId: activeThemeId ?? defaultAppearanceThemeId,
+    baseFontSize: baseFontSize ?? defaultAppearanceBaseFontSize,
+    ...(themeOverrides ? { themeOverrides } : {}),
+  };
+}
+
+function normalizeThemeId(value) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return allowedAppearanceThemeIds.has(normalized) ? normalized : undefined;
+}
+
+function normalizeBaseFontSize(value) {
+  if (!Number.isFinite(value)) return undefined;
+  const normalized = Number(value);
+  return allowedAppearanceBaseFontSizes.has(normalized) ? normalized : undefined;
+}
+
+function normalizeThemeOverrides(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const light = normalizeThemeOverrideRecord(value.light);
+  const dark = normalizeThemeOverrideRecord(value.dark);
+  if (!light && !dark) return undefined;
+  return {
+    ...(light ? { light } : {}),
+    ...(dark ? { dark } : {}),
+  };
+}
+
+function normalizeThemeOverrideRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const entries = Object.entries(value)
+    .filter(([key, item]) => typeof key === "string" && key.trim() && typeof item === "string" && item.trim())
+    .map(([key, item]) => [key.trim(), item.trim()]);
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries);
 }
 
 function normalizeStringArray(value) {

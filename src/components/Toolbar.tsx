@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import * as Popover from "@radix-ui/react-popover";
 import * as Select from "@radix-ui/react-select";
+import type { UiPreferences, UiTheme } from "../ui-preferences";
 import { icons } from "./icons";
 import { ExpandableSearch } from "./ExpandableSearch";
 
@@ -8,6 +10,8 @@ type ToolbarProps = {
   collectionPath: string;
   viewProfiles: string[];
   selectedViewProfileName: string | null;
+  activeThemeId: UiTheme;
+  baseFontSize: UiPreferences["baseFontSize"];
   rowCount: number;
   visibleCount: number;
   query: string;
@@ -24,9 +28,13 @@ type ToolbarProps = {
   onResetView: () => void;
   onSelectViewProfile: (name: string) => void;
   onCreateViewProfile: () => void;
+  onChangeTheme: (theme: UiTheme) => void;
+  onChangeBaseFontSize: (size: UiPreferences["baseFontSize"]) => void;
   onUnhideField: (fieldName: string) => void;
   onUnhideAllFields: () => void;
 };
+
+const fontSizeOptions: UiPreferences["baseFontSize"][] = [14, 14.5, 15, 16];
 
 export function Toolbar(props: ToolbarProps) {
   const [hiddenPanelOpen, setHiddenPanelOpen] = useState(false);
@@ -44,6 +52,11 @@ export function Toolbar(props: ToolbarProps) {
   useEffect(() => {
     if (props.hiddenFields.length === 0) setHiddenPanelOpen(false);
   }, [props.hiddenFields]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = props.activeThemeId;
+    document.documentElement.dataset.fontSizeBase = String(props.baseFontSize);
+  }, [props.activeThemeId, props.baseFontSize]);
 
   return (
     <header className="toolbar">
@@ -73,7 +86,7 @@ export function Toolbar(props: ToolbarProps) {
             </Select.Content>
           </Select.Portal>
         </Select.Root>
-        <button className="ghost-button icon-button toolbar-action-button" onClick={props.onCreateViewProfile} title="新建视图配置">
+        <button className="ghost-button icon-button toolbar-action-button" onClick={props.onCreateViewProfile} title="新建视图配置" type="button">
           <icons.addField size={16} />
         </button>
       </div>
@@ -93,6 +106,7 @@ export function Toolbar(props: ToolbarProps) {
           disabled={props.hiddenFields.length === 0}
           onClick={() => setHiddenPanelOpen((open) => !open)}
           title={props.hiddenFields.length > 0 ? `Hidden fields (${props.hiddenFields.length})` : "Hidden fields"}
+          type="button"
         >
           <icons.hidden size={16} />
         </button>
@@ -100,11 +114,11 @@ export function Toolbar(props: ToolbarProps) {
           <div className="hidden-fields-panel">
             <div className="hidden-fields-header">
               <strong>Hidden fields</strong>
-              <button className="ghost-button compact" onClick={props.onUnhideAllFields}>Restore all</button>
+              <button className="ghost-button compact" onClick={props.onUnhideAllFields} type="button">Restore all</button>
             </div>
             <div className="hidden-fields-list">
               {props.hiddenFields.map((fieldName) => (
-                <button className="hidden-field-item" key={fieldName} onClick={() => props.onUnhideField(fieldName)}>
+                <button className="hidden-field-item" key={fieldName} onClick={() => props.onUnhideField(fieldName)} type="button">
                   <span>{fieldName}</span>
                   <small>Restore</small>
                 </button>
@@ -118,13 +132,79 @@ export function Toolbar(props: ToolbarProps) {
         className="ghost-button icon-button toolbar-action-button caution-button"
         onClick={props.onResetView}
         title="Reset view"
+        type="button"
       >
         <icons.reset size={16} />
       </button>
-      <button className="primary-button" disabled={!props.dirty || props.saving || props.closing || props.rebuilding} onClick={props.onSave}>
+      <button className="primary-button" disabled={!props.dirty || props.saving || props.closing || props.rebuilding} onClick={props.onSave} type="button">
         <icons.save size={16} />
         {props.saving ? "保存中..." : "保存"}
       </button>
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            aria-label="外观设置"
+            className="ghost-button icon-button toolbar-action-button toolbar-settings-button"
+            disabled={props.closing || props.saving}
+            title="外观设置"
+            type="button"
+          >
+            <icons.settings size={16} />
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content className="menu-content appearance-popover-content" sideOffset={6} align="end">
+            <div className="appearance-popover">
+              <section className="appearance-section" aria-label="Theme settings">
+                <div className="appearance-section-header">
+                  <strong>主题</strong>
+                  <span>{props.activeThemeId === "dark" ? "深色" : "浅色"}</span>
+                </div>
+                <div className="appearance-segmented-control" role="group" aria-label="Theme">
+                  <button
+                    aria-pressed={props.activeThemeId === "light"}
+                    className={props.activeThemeId === "light" ? "appearance-segment is-active" : "appearance-segment"}
+                    data-theme-option="light"
+                    onClick={() => props.onChangeTheme("light")}
+                    type="button"
+                  >
+                    浅色
+                  </button>
+                  <button
+                    aria-pressed={props.activeThemeId === "dark"}
+                    className={props.activeThemeId === "dark" ? "appearance-segment is-active" : "appearance-segment"}
+                    data-theme-option="dark"
+                    onClick={() => props.onChangeTheme("dark")}
+                    type="button"
+                  >
+                    深色
+                  </button>
+                </div>
+              </section>
+              <section className="appearance-section" aria-label="Base font size settings">
+                <div className="appearance-section-header">
+                  <strong>基础字号</strong>
+                  <span>{props.baseFontSize}px</span>
+                </div>
+                <div className="appearance-segmented-control" role="group" aria-label="Base font size">
+                  {fontSizeOptions.map((size) => (
+                    <button
+                      aria-pressed={props.baseFontSize === size}
+                      className={props.baseFontSize === size ? "appearance-segment is-active" : "appearance-segment"}
+                      data-font-size-option={String(size)}
+                      key={size}
+                      onClick={() => props.onChangeBaseFontSize(size)}
+                      type="button"
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
       <button
         aria-label="刷新构建"
         className={props.rebuilding ? "ghost-button toolbar-rebuild-button" : "ghost-button icon-button toolbar-rebuild-button"}

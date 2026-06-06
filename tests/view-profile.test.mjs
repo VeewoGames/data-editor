@@ -73,6 +73,17 @@ test("saveViewProfile writes normalized profile file", async () => {
         " data/runes.json::$ ": [" view-2 ", "view-1", "view-2", " "],
         "data/empty.json::$": [" "],
       },
+      appearance: {
+        activeThemeId: "dark",
+        baseFontSize: 16,
+        themeOverrides: {
+          light: {
+            accent: " #7c3aed ",
+            empty: " ",
+          },
+          dark: ["bad"],
+        },
+      },
       collections: {
         "data/runes.json::$": {
           hidden: ["description"],
@@ -110,6 +121,15 @@ test("saveViewProfile writes normalized profile file", async () => {
       viewOrderDrafts: {
         "data/runes.json::$": ["view-2", "view-1"],
       },
+      appearance: {
+        activeThemeId: "dark",
+        baseFontSize: 16,
+        themeOverrides: {
+          light: {
+            accent: "#7c3aed",
+          },
+        },
+      },
       collections: {
         "data/runes.json::$": {
           hidden: ["description"],
@@ -120,6 +140,94 @@ test("saveViewProfile writes normalized profile file", async () => {
         },
       },
     });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile normalizes appearance and drops invalid values", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      appearance: {
+        activeThemeId: "neon",
+        baseFontSize: 18,
+        themeOverrides: {
+          light: {
+            accent: " #7c3aed ",
+            invalid: "",
+          },
+          dark: {
+            surface: " #111827 ",
+          },
+        },
+      },
+    }, null, 2));
+    const profile = await loadViewProfile(root, "lans");
+    assert.deepEqual(profile, {
+      ...emptyViewProfile(),
+      appearance: {
+        activeThemeId: "light",
+        baseFontSize: 14,
+        themeOverrides: {
+          light: {
+            accent: "#7c3aed",
+          },
+          dark: {
+            surface: "#111827",
+          },
+        },
+      },
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile preserves supported fractional base font size", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      appearance: {
+        activeThemeId: "dark",
+        baseFontSize: 14.5,
+      },
+    }, null, 2));
+    const profile = await loadViewProfile(root, "lans");
+    assert.deepEqual(profile, {
+      ...emptyViewProfile(),
+      appearance: {
+        activeThemeId: "dark",
+        baseFontSize: 14.5,
+      },
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile omits appearance when no valid appearance values remain", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      appearance: {
+        activeThemeId: "solarized",
+        baseFontSize: 13,
+        themeOverrides: {
+          light: {
+            accent: "",
+          },
+        },
+      },
+    }, null, 2));
+    const profile = await loadViewProfile(root, "lans");
+    assert.deepEqual(profile, emptyViewProfile());
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -76,6 +76,15 @@ import {
   writeLocalSharedViewDrafts,
   writeLocalViewState,
 } from "./view-state-storage.mjs";
+import {
+  cloneUiPreferences,
+  defaultUiPreferences,
+  normalizeUiPreferences,
+  readLocalUiPreferences,
+  writeLocalUiPreferences,
+  type UiPreferences,
+  type UiTheme,
+} from "./ui-preferences";
 import { applyViewFilters } from "./view/filtering.mjs";
 import { applyViewSorts, updateHeaderSorts } from "./view/sorting.mjs";
 import {
@@ -141,6 +150,7 @@ export function App() {
   const [viewProfiles, setViewProfiles] = useState<string[]>([]);
   const [selectedViewProfileName, setSelectedViewProfileName] = useState<string | null>(() => localStorage.getItem(selectedViewProfileStorageKey));
   const [selectedViewProfile, setSelectedViewProfile] = useState<UserViewProfile>(emptyUserViewProfile());
+  const [uiPreferences, setUiPreferences] = useState<UiPreferences>(() => readLocalUiPreferences(window.localStorage));
   const [bridgePort, setBridgePort] = useState(defaultRecoveryBridgePort);
   const [newProfileOpen, setNewProfileOpen] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
@@ -197,6 +207,11 @@ export function App() {
   useEffect(() => { bridgePortRef.current = bridgePort; }, [bridgePort]);
   useEffect(() => { serviceLifecycleStateRef.current = serviceLifecycleState; }, [serviceLifecycleState]);
   useEffect(() => {
+    document.documentElement.dataset.theme = uiPreferences.activeThemeId;
+    document.documentElement.dataset.fontSizeBase = String(uiPreferences.baseFontSize);
+    document.documentElement.style.setProperty("--font-size-base", `${uiPreferences.baseFontSize}px`);
+  }, [uiPreferences]);
+  useEffect(() => {
     if (!flashStatus) return;
     window.sessionStorage.removeItem(transientStatusStorageKey);
     const timer = window.setTimeout(() => setFlashStatus(""), 4000);
@@ -228,12 +243,14 @@ export function App() {
       localStorage.removeItem(selectedViewProfileStorageKey);
       setSidebarWidth(readSidebarWidth());
       setDetailPanelWidth(readDetailPanelWidth());
+      setUiPreferences(readLocalUiPreferences(window.localStorage));
       return;
     }
     localStorage.setItem(selectedViewProfileStorageKey, selectedViewProfileName);
     loadViewProfile(selectedViewProfileName, activeProjectId)
       .then((profile) => {
         setSelectedViewProfile(profile);
+        setUiPreferences(resolveUiPreferences(profile.appearance));
         setSidebarWidth(clampSidebarWidth(profile.sidebarWidth ?? defaultSidebarWidth));
         setDetailPanelWidth(clampDetailPanelWidth(profile.detailPanelWidth ?? defaultDetailPanelWidth));
         bump((value) => value + 1);
@@ -277,8 +294,11 @@ export function App() {
       if (profileNameForInitialOrder && nextProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
         setSelectedViewProfile(nextProfile);
         selectedViewProfileRef.current = nextProfile;
+        setUiPreferences(resolveUiPreferences(nextProfile.appearance));
         setSidebarWidth(clampSidebarWidth(nextProfile.sidebarWidth ?? defaultSidebarWidth));
         setDetailPanelWidth(clampDetailPanelWidth(nextProfile.detailPanelWidth ?? defaultDetailPanelWidth));
+      } else if (!profileNameForInitialOrder) {
+        setUiPreferences(readLocalUiPreferences(window.localStorage));
       }
       const savedOrder = profileNameForInitialOrder
         ? (nextProfile?.fileOrder ?? selectedViewProfileRef.current.fileOrder)
@@ -316,6 +336,7 @@ export function App() {
       selectedViewProfileNameRef.current = null;
       setSelectedViewProfile(emptyUserViewProfile());
       selectedViewProfileRef.current = emptyUserViewProfile();
+      setUiPreferences(readLocalUiPreferences(window.localStorage));
     }
     setRelationIndexes({});
     setRelationOptions({});
@@ -935,30 +956,66 @@ export function App() {
 
   function mutateSelectedViewProfile(mutator: (draft: UserViewProfile) => void) {
     if (!selectedViewProfileName) return false;
-    setSelectedViewProfile((current) => {
-      const next: UserViewProfile = {
-        sidebarWidth: current.sidebarWidth,
-        detailPanelWidth: current.detailPanelWidth,
-        fileOrder: [...current.fileOrder],
-        lastActiveViews: { ...current.lastActiveViews },
-        viewDrafts: { ...current.viewDrafts },
-        viewOrderDrafts: { ...current.viewOrderDrafts },
-        collections: Object.fromEntries(Object.entries(current.collections).map(([key, value]) => [
-          key,
-          {
-            hidden: [...value.hidden],
-            wrapped: [...value.wrapped],
-            order: [...value.order],
-            detailOrder: [...value.detailOrder],
-            widths: { ...value.widths },
-          },
-        ])),
-      };
-      mutator(next);
-      return next;
-    });
+    const next: UserViewProfile = {
+      sidebarWidth: selectedViewProfileRef.current.sidebarWidth,
+      detailPanelWidth: selectedViewProfileRef.current.detailPanelWidth,
+      fileOrder: [...selectedViewProfileRef.current.fileOrder],
+      lastActiveViews: { ...selectedViewProfileRef.current.lastActiveViews },
+      viewDrafts: { ...selectedViewProfileRef.current.viewDrafts },
+      viewOrderDrafts: { ...selectedViewProfileRef.current.viewOrderDrafts },
+      ...(selectedViewProfileRef.current.appearance ? { appearance: cloneUiPreferences(selectedViewProfileRef.current.appearance) } : {}),
+      collections: Object.fromEntries(Object.entries(selectedViewProfileRef.current.collections).map(([key, value]) => [
+        key,
+        {
+          hidden: [...value.hidden],
+          wrapped: [...value.wrapped],
+          order: [...value.order],
+          detailOrder: [...value.detailOrder],
+          widths: { ...value.widths },
+        },
+      ])),
+    };
+    mutator(next);
+    selectedViewProfileRef.current = next;
+    setSelectedViewProfile(next);
     bump((value) => value + 1);
-    return true;
+    return next;
+  }
+
+  function updateUiPreferences(mutator: (draft: UiPreferences) => void) {
+    if (selectedViewProfileName) {
+      let nextPreferences = defaultUiPreferences();
+      const nextProfile = mutateSelectedViewProfile((draft) => {
+        const next = cloneUiPreferences(draft.appearance);
+        mutator(next);
+        draft.appearance = normalizeUiPreferences(next);
+        nextPreferences = draft.appearance;
+      });
+      if (nextProfile) {
+        setUiPreferences(nextPreferences);
+        void commitProfileSave(selectedViewProfileName, nextProfile);
+      }
+      return;
+    }
+    setUiPreferences((current) => {
+      const next = cloneUiPreferences(current);
+      mutator(next);
+      const normalized = normalizeUiPreferences(next);
+      writeLocalUiPreferences(window.localStorage, normalized);
+      return normalized;
+    });
+  }
+
+  function handleChangeTheme(nextTheme: UiTheme) {
+    updateUiPreferences((draft) => {
+      draft.activeThemeId = nextTheme;
+    });
+  }
+
+  function handleChangeBaseFontSize(nextFontSize: UiPreferences["baseFontSize"]) {
+    updateUiPreferences((draft) => {
+      draft.baseFontSize = nextFontSize;
+    });
   }
 
   function updateActiveCollectionView(mutator: (draft: UserViewProfile["collections"][string]) => void) {
@@ -1343,7 +1400,7 @@ export function App() {
     }, activeSnapshot.sidebarWidth ?? sidebarWidth, activeSnapshot.detailPanelWidth ?? detailPanelWidth, normalizeFileOrder(
       files,
       selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage),
-    ));
+    ), uiPreferences);
     try {
       await saveViewProfile(name, profile, activeProjectId);
       setViewProfiles((current) => current.includes(name) ? current : [...current, name].sort((left, right) => left.localeCompare(right, undefined, { numeric: true })));
@@ -2048,6 +2105,8 @@ export function App() {
           collectionPath={collectionPath}
           viewProfiles={viewProfiles}
           selectedViewProfileName={selectedViewProfileName}
+          activeThemeId={uiPreferences.activeThemeId}
+          baseFontSize={uiPreferences.baseFontSize}
           rowCount={rows.length}
           visibleCount={viewRows.length}
           query={activeView?.query ?? ""}
@@ -2064,6 +2123,8 @@ export function App() {
           onResetView={handleResetView}
           onSelectViewProfile={handleSelectViewProfile}
           onCreateViewProfile={() => setNewProfileOpen(true)}
+          onChangeTheme={handleChangeTheme}
+          onChangeBaseFontSize={handleChangeBaseFontSize}
           onUnhideField={handleUnhideField}
           onUnhideAllFields={handleUnhideAllFields}
         />
@@ -2172,6 +2233,9 @@ export function App() {
             primaryKeySyncPlan={primaryKeySyncPlan}
             primaryKeySyncResult={primaryKeySyncResult}
             saving={saving}
+            onRenameMultiSelectOption={handleRenameMultiSelectOption}
+            onDeleteMultiSelectOption={handleDeleteMultiSelectOption}
+            onSetMultiSelectOptionColor={handleSetMultiSelectOptionColor}
             onRenameSelectOption={handleRenameSelectOption}
             onDeleteSelectOption={handleDeleteSelectOption}
             onSetSelectOptionColor={handleSetSelectOptionColor}
@@ -2940,6 +3004,10 @@ function emptyUserViewProfile(): UserViewProfile {
   };
 }
 
+function resolveUiPreferences(appearance?: UserViewProfile["appearance"]) {
+  return normalizeUiPreferences(appearance ?? readLocalUiPreferences(window.localStorage));
+}
+
 function emptySharedViewsConfig(): SharedViewsConfig {
   return {
     version: 1,
@@ -3014,7 +3082,7 @@ function ensureCollectionView(profile: UserViewProfile, path: string, collection
   return profile.collections[key];
 }
 
-function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[]): UserViewProfile {
+function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[], appearance: UiPreferences): UserViewProfile {
   if (!path) {
     return {
       sidebarWidth,
@@ -3023,6 +3091,7 @@ function buildProfileFromCurrentView(path: string | null, collectionPath: string
       lastActiveViews: {},
       viewDrafts: {},
       viewOrderDrafts: {},
+      appearance: cloneUiPreferences(appearance),
       collections: {},
     };
   }
@@ -3033,6 +3102,7 @@ function buildProfileFromCurrentView(path: string | null, collectionPath: string
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
+    appearance: cloneUiPreferences(appearance),
     collections: {
       [collectionConfigKey(path, collectionPath)]: {
         hidden: [...fieldConfig.hidden],

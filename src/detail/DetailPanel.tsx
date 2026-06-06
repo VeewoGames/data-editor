@@ -10,10 +10,12 @@ import { buildRelationKey } from "../model/relationPath";
 import { getRecordTitle } from "../model/titleField";
 import type { ValidationIssue } from "../model/validation";
 import { NestedEditor } from "./NestedEditor";
+import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
 import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
 import type { FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
+import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
 
 type DetailPanelProps = {
   open: boolean;
@@ -35,6 +37,9 @@ type DetailPanelProps = {
   primaryKeySyncPlan: PrimaryKeySyncPlan | null;
   primaryKeySyncResult: SaveDocumentsResult | null;
   saving: boolean;
+  onRenameMultiSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
+  onDeleteMultiSelectOption: (fieldName: string, optionValue: string | number) => void;
+  onSetMultiSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
   onRenameSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
   onDeleteSelectOption: (fieldName: string, optionValue: string | number) => void;
   onSetSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
@@ -78,6 +83,9 @@ export function DetailPanel({
   primaryKeySyncPlan,
   primaryKeySyncResult,
   saving,
+  onRenameMultiSelectOption,
+  onDeleteMultiSelectOption,
+  onSetMultiSelectOptionColor,
   onRenameSelectOption,
   onDeleteSelectOption,
   onSetSelectOptionColor,
@@ -221,6 +229,18 @@ export function DetailPanel({
     }
     return result;
   }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
+  const multiSelectOptionsByField = useMemo(() => {
+    const result: Record<string, { options: MultiSelectOptionView[]; optionMap: Record<string, MultiSelectOptionView> }> = {};
+    for (const key of naturalFieldOrder) {
+      if (displayTypes[key] !== "Multi-select") continue;
+      const value = row?.[key];
+      const discovered = Array.isArray(value)
+        ? value.filter((item): item is string | number => item != null && (typeof item === "string" || typeof item === "number"))
+        : [];
+      result[key] = buildMultiSelectFieldConfig(discovered, fieldViewConfigs[key]);
+    }
+    return result;
+  }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
 
   function openNestedField(fieldName: string, value: unknown, path: Array<string | number> = [], customTitle?: string) {
     const itemCount = Array.isArray(value) ? value.length : 0;
@@ -361,15 +381,19 @@ export function DetailPanel({
                         fieldName: key,
                         displayType: displayTypes[key] ?? defaultTypeFor(value),
                         value,
+                        multiSelectOptions: multiSelectOptionsByField[key]?.options ?? [],
                         selectOptions: selectOptionsByField[key] ?? [],
                         relationOptions,
                         relationConfigs,
                         sourcePath,
                         collectionPath,
                         onOpenRelationTarget,
+                        onRenameMultiSelectOption,
+                        onDeleteMultiSelectOption,
+                        onSetSelectOptionColor,
+                        onSetMultiSelectOptionColor,
                         onRenameSelectOption,
                         onDeleteSelectOption,
-                        onSetSelectOptionColor,
                         onEditField,
                         onOpenNested: (nestedValue, path, customTitle) => openNestedField(key, nestedValue, path, customTitle),
                       })}
@@ -584,11 +608,15 @@ function NestedObjectPanel(props: {
               fieldName: key,
               displayType: defaultTypeFor(value),
               value,
+              multiSelectOptions: [],
               selectOptions: [],
               relationOptions: props.relationOptions,
               relationConfigs: props.relationConfigs,
               sourcePath: props.sourcePath,
               collectionPath: props.collectionPath,
+              onRenameMultiSelectOption: () => {},
+              onDeleteMultiSelectOption: () => {},
+              onSetMultiSelectOptionColor: () => {},
               onRenameSelectOption: () => {},
               onDeleteSelectOption: () => {},
               onSetSelectOptionColor: () => {},
@@ -696,12 +724,16 @@ function renderValueEditor(props: {
   fieldName: string;
   displayType: FieldDisplayType;
   value: unknown;
+  multiSelectOptions: MultiSelectOptionView[];
   selectOptions: MultiSelectOptionView[];
   relationOptions: Record<string, RelationOption[]>;
   relationConfigs?: Record<string, RelationConfig>;
   sourcePath?: string | null;
   collectionPath?: string;
   onOpenRelationTarget?: (config: RelationConfig, value: string | number) => void;
+  onRenameMultiSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
+  onDeleteMultiSelectOption: (fieldName: string, optionValue: string | number) => void;
+  onSetMultiSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
   onRenameSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
   onDeleteSelectOption: (fieldName: string, optionValue: string | number) => void;
   onSetSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
@@ -732,6 +764,20 @@ function renderValueEditor(props: {
         onRenameOption={(previousValue, nextValue) => props.onRenameSelectOption(props.fieldName, previousValue, nextValue)}
         onDeleteOption={(optionValue) => props.onDeleteSelectOption(props.fieldName, optionValue)}
         onSetOptionColor={(optionValue, color) => props.onSetSelectOptionColor(props.fieldName, optionValue, color)}
+      />
+    );
+  }
+  if (props.displayType === "Multi-select" && Array.isArray(props.value)) {
+    return (
+      <MultiSelectCellEditor
+        cellId={props.cellId}
+        value={props.value as Array<string | number>}
+        options={props.multiSelectOptions}
+        optionMap={Object.fromEntries(props.multiSelectOptions.map((option) => [option.value, option]))}
+        onEdit={(next) => props.onEditField(props.fieldName, next)}
+        onRenameOption={(previousValue, nextValue) => props.onRenameMultiSelectOption(props.fieldName, previousValue, nextValue)}
+        onDeleteOption={(optionValue) => props.onDeleteMultiSelectOption(props.fieldName, optionValue)}
+        onSetOptionColor={(optionValue, color) => props.onSetMultiSelectOptionColor(props.fieldName, optionValue, color)}
       />
     );
   }

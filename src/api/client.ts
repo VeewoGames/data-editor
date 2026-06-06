@@ -65,6 +65,17 @@ export type ViewConfig = {
   relations: Record<string, RelationConfig>;
   relationsVersion: number;
 };
+export type UserThemeId = "light" | "dark";
+export type UserBaseFontSize = 14 | 14.5 | 15 | 16;
+export type UserThemeOverrides = {
+  light?: Record<string, string>;
+  dark?: Record<string, string>;
+};
+export type UserAppearancePreferences = {
+  activeThemeId: UserThemeId;
+  baseFontSize: UserBaseFontSize;
+  themeOverrides?: UserThemeOverrides;
+};
 export type UserViewProfile = {
   sidebarWidth: number | null;
   detailPanelWidth: number | null;
@@ -72,6 +83,7 @@ export type UserViewProfile = {
   lastActiveViews: Record<string, string>;
   viewDrafts: Record<string, Record<string, Partial<CollectionView>>>;
   viewOrderDrafts: Record<string, string[]>;
+  appearance?: UserAppearancePreferences;
   collections: Record<string, {
     hidden: string[];
     wrapped: string[];
