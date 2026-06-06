@@ -248,7 +248,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
             <icons.sortDescending size={15} /> 降序排序
           </button>
           <button className="menu-item" onClick={() => runAfterMenuClose(() => props.onSort(null))} type="button">
-            <icons.filter size={15} /> 清除排序
+            <icons.close size={15} /> 清除排序
           </button>
           {props.roleKind === "backlink" ? null : (
             <button className="menu-item" data-column-action="add-filter" onClick={() => runAfterMenuClose(props.onAddFilter)} type="button">
