@@ -84,13 +84,15 @@ test("saveViewProfile writes normalized profile file", async () => {
           dark: ["bad"],
         },
       },
-      collections: {
+      viewLayouts: {
         "data/runes.json::$": {
-          hidden: ["description"],
-          wrapped: ["name"],
-          order: ["name", "rune_id"],
-          detailOrder: ["rune_name", "description", "description_zh"],
-          widths: { description: 181.2 },
+          "view-1": {
+            hidden: ["description"],
+            wrapped: ["name"],
+            order: ["name", "rune_id"],
+            detailOrder: ["rune_name", "description", "description_zh"],
+            widths: { description: 181.2 },
+          },
         },
       },
     });
@@ -130,13 +132,15 @@ test("saveViewProfile writes normalized profile file", async () => {
           },
         },
       },
-      collections: {
+      viewLayouts: {
         "data/runes.json::$": {
-          hidden: ["description"],
-          wrapped: ["name"],
-          order: ["name", "rune_id"],
-          detailOrder: ["rune_name", "description", "description_zh"],
-          widths: { description: 181 },
+          "view-1": {
+            hidden: ["description"],
+            wrapped: ["name"],
+            order: ["name", "rune_id"],
+            detailOrder: ["rune_name", "description", "description_zh"],
+            widths: { description: 181 },
+          },
         },
       },
     });
@@ -247,21 +251,58 @@ test("loadViewProfile de-duplicates repeated order fields", async () => {
       sidebarWidth: null,
       detailPanelWidth: 470,
       fileOrder: ["data/status_effects.json", "data/runes.json", "data/status_effects.json"],
-      collections: {
+      lastActiveViews: {
+        "data/status_effects.json:$": "all",
+      },
+      viewLayouts: {
         "data/status_effects.json:$": {
-          hidden: [],
-          wrapped: [],
-          order: ["effects", "effects", "dot", "dot", "buildup"],
-          detailOrder: ["effect_name", "effect_name", "description"],
-          widths: {},
+          all: {
+            hidden: [],
+            wrapped: [],
+            order: ["effects", "effects", "dot", "dot", "buildup"],
+            detailOrder: ["effect_name", "effect_name", "description"],
+            widths: {},
+          },
         },
       },
     }, null, 2));
     const profile = await loadViewProfile(root, "lans");
     assert.equal(profile.detailPanelWidth, 470);
     assert.deepEqual(profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
-    assert.deepEqual(profile.collections["data/status_effects.json:$"].order, ["effects", "dot", "buildup"]);
-    assert.deepEqual(profile.collections["data/status_effects.json:$"].detailOrder, ["effect_name", "description"]);
+    assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.order, ["effects", "dot", "buildup"]);
+    assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.detailOrder, ["effect_name", "description"]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile migrates legacy collections into the last active view layout", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      lastActiveViews: {
+        "data/runes.json:$": "damage",
+      },
+      collections: {
+        "data/runes.json:$": {
+          hidden: ["debug"],
+          wrapped: ["description"],
+          order: ["rune_name", "description"],
+          detailOrder: ["description"],
+          widths: { description: 220 },
+        },
+      },
+    }, null, 2));
+    const profile = await loadViewProfile(root, "lans");
+    assert.deepEqual(profile.viewLayouts["data/runes.json:$"].damage, {
+      hidden: ["debug"],
+      wrapped: ["description"],
+      order: ["rune_name", "description"],
+      detailOrder: ["description"],
+      widths: { description: 220 },
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

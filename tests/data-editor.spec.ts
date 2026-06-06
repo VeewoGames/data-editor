@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(process.cwd(), "..", "Nocturnel"));
@@ -309,7 +309,6 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect(page.locator(".add-filter-popover-content")).toBeVisible();
     await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toBeVisible();
-    await page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" }).click();
     await expect(page.locator(".filter-popover-content")).toBeVisible();
     await page.locator(".filter-checkbox-item").filter({ hasText: "attack" }).click();
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" })).toBeVisible();
@@ -321,6 +320,14 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect(page.locator(".data-table tbody tr[data-row-index]").first()).toHaveAttribute("data-row-index", "1");
 
     await page.locator(".filter-popover-content").press("Escape");
+    await page.locator('.column-trigger[title="id"]').click();
+    await expect(page.locator(".column-menu-popup")).toBeVisible();
+    await page.locator('.column-menu-popup .menu-item[data-column-action="add-filter"]').click();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toBeVisible();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-text-input").fill("multi_2");
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "multi_2" })).toBeVisible();
+    await page.locator(".filter-popover-content").press("Escape");
     await page.locator('.column-trigger[title="name"]').click();
     await expect(page.locator(".column-menu-popup")).toBeVisible();
     await page.locator(".column-menu-popup .menu-item").nth(1).click();
@@ -328,7 +335,8 @@ test("shared view filter and sort drafts persist through save and reload", async
     await saveSharedViewForEveryone(page, (config) => {
       const savedView = getSharedView(config, collectionKey, createdView.id);
       const values = filterValues(savedView, "features");
-      return values.includes("attack") && hasSort(savedView, "name", "desc");
+      const idValues = filterValues(savedView, "id");
+      return values.includes("attack") && idValues.includes("multi_2") && hasSort(savedView, "name", "desc");
     });
     await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(0);
 
@@ -356,17 +364,19 @@ test("shared view filter and sort drafts persist through save and reload", async
     await page.locator(".filter-action-trigger").click();
     await expect(page.locator(".filter-action-menu")).toBeVisible();
     await page.locator(".filter-action-menu .menu-item.danger").evaluate((element) => (element as HTMLButtonElement).click());
-    await expect(page.locator(".view-filter-chip:not(.sort-chip)")).toHaveCount(0);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)")).toHaveCount(1);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "multi_2" })).toBeVisible();
     await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
     await saveSharedViewForEveryone(page, (config) => {
       const savedView = getSharedView(config, collectionKey, createdView.id);
-      return Boolean(savedView && (savedView.filters?.rules ?? []).length === 0 && hasSort(savedView, "name", "desc"));
+      return Boolean(savedView && filterValues(savedView, "features").length === 0 && filterValues(savedView, "id").includes("multi_2") && hasSort(savedView, "name", "desc"));
     });
 
     await page.reload();
     await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
     await selectViewTab(page, activeViewName);
-    await expect(page.locator(".view-filter-chip:not(.sort-chip)")).toHaveCount(0);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)")).toHaveCount(1);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "multi_2" })).toBeVisible();
 
     await dragViewTab(page, activeViewName, defaultViewName!, "before");
     await expect.poll(async () => (await getViewTabNames(page))[0]).toBe(activeViewName);
@@ -1090,6 +1100,43 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   expect(realRunesAfter).toBe(realRunesBefore);
 });
 
+test("select column dragged to the first position keeps select rendering when title falls back to first field", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_select_title_fallback.json");
+  const rows = [
+    { id: "row_1", status: "review" },
+    { id: "row_2", status: "parked" },
+    { id: "row_3", status: "" },
+  ];
+  await writeFile(dataPath, JSON.stringify(rows, null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_select_title_fallback.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await page.locator('.column-trigger[title="status"]').click();
+    await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
+    await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+    await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+
+    await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("review");
+    await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger .chip')).toBeVisible();
+
+    await dragColumnHeader(page, "status", "id");
+
+    await expect(page.locator(".column-trigger").first()).toHaveAttribute("title", "status");
+    const firstDataCell = page.locator('.data-table tbody tr[data-row-index="0"] td').nth(1);
+    await expect(firstDataCell.locator(".multi-select-trigger")).toContainText("review");
+    await expect(firstDataCell.locator(".multi-select-trigger .chip")).toBeVisible();
+    await expect(firstDataCell.locator(".title-cell")).toHaveCount(0);
+  } finally {
+    await bestEffortRestore("e2e_select_title_fallback.json", () => rm(dataPath, { force: true }));
+  }
+});
+
 test("file list order can be dragged and persists after reload", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
@@ -1455,9 +1502,9 @@ test("profile mode ignores stale localStorage view state", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(async () => {
     localStorage.clear();
-    localStorage.setItem("data-editor:data/runes.json:$:description:hidden", "1");
-    localStorage.setItem("data-editor:data/runes.json:$:description:width", "380");
-    localStorage.setItem("data-editor:data/runes.json:$:__order", "description,rune_name");
+    localStorage.setItem("data-editor:data/runes.json:$:all:description:hidden", "1");
+    localStorage.setItem("data-editor:data/runes.json:$:all:description:width", "380");
+    localStorage.setItem("data-editor:data/runes.json:$:all:__order", "description,rune_name");
     await fetch("/api/view-profile", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1465,13 +1512,18 @@ test("profile mode ignores stale localStorage view state", async ({ page }) => {
         name: "clean_profile",
         profile: {
           sidebarWidth: 260,
-          collections: {
+          lastActiveViews: {
+            "data/runes.json:$": "all",
+          },
+          viewLayouts: {
             "data/runes.json:$": {
-              hidden: [],
-              wrapped: [],
-              order: ["rune_name", "description"],
-              detailOrder: [],
-              widths: { description: 180 },
+              all: {
+                hidden: [],
+                wrapped: [],
+                order: ["rune_name", "description"],
+                detailOrder: [],
+                widths: { description: 180 },
+              },
             },
           },
         },
@@ -1493,7 +1545,7 @@ test("profile reset clears current collection without localStorage resurrection"
   await page.goto("/");
   await page.evaluate(async () => {
     localStorage.clear();
-    localStorage.setItem("data-editor:data/runes.json:$:description:hidden", "1");
+    localStorage.setItem("data-editor:data/runes.json:$:all:description:hidden", "1");
     await fetch("/api/view-profile", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1501,13 +1553,18 @@ test("profile reset clears current collection without localStorage resurrection"
         name: "reset_profile",
         profile: {
           sidebarWidth: 300,
-          collections: {
+          lastActiveViews: {
+            "data/runes.json:$": "all",
+          },
+          viewLayouts: {
             "data/runes.json:$": {
-              hidden: ["description"],
-              wrapped: ["description"],
-              order: ["description", "rune_name"],
-              detailOrder: ["description"],
-              widths: { description: 280 },
+              all: {
+                hidden: ["description"],
+                wrapped: ["description"],
+                order: ["description", "rune_name"],
+                detailOrder: ["description"],
+                widths: { description: 280 },
+              },
             },
           },
         },
@@ -1625,6 +1682,93 @@ test("toolbar appearance settings persist to selected profile", async ({ page })
     activeThemeId: "dark",
     baseFontSize: 14.5,
   }));
+});
+
+test("legacy selected profile without viewLayouts still allows switching shared view tabs", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("data-editor:selected-view-profile", "legacy_profile");
+  });
+  await page.route("**/api/view-profiles?*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(["legacy_profile"]),
+    });
+  });
+  await page.route("**/api/shared-views?*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        version: 1,
+        collections: {
+          "data/keywords.json:$": {
+            defaultViewId: "all",
+            views: [
+              {
+                id: "all",
+                name: "全部",
+                type: "table",
+                query: "",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: [],
+                widths: {},
+              },
+              {
+                id: "build",
+                name: "构筑",
+                type: "table",
+                query: "",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: [],
+                widths: {},
+              },
+            ],
+          },
+        },
+      }),
+    });
+  });
+  await page.route("**/api/view-profile?name=legacy_profile*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        sidebarWidth: null,
+        detailPanelWidth: null,
+        fileOrder: ["data/keywords.json", "data/equipment_bases.json"],
+        lastActiveViews: {
+          "data/keywords.json:$": "all",
+        },
+        viewDrafts: {},
+        viewOrderDrafts: {},
+        collections: {
+          "data/keywords.json:$": {
+            hidden: [],
+            wrapped: [],
+            order: ["id"],
+            detailOrder: [],
+            widths: { id: 120 },
+          },
+        },
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  await page.locator(".view-tab").filter({ hasText: "构筑" }).click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("构筑");
+  await page.locator(".view-tab").filter({ hasText: "全部" }).click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("全部");
 });
 
 test("close button switches to server closed page", async ({ page }) => {

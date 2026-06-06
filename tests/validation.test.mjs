@@ -4,13 +4,24 @@ import { buildRelationOptions, getRelationOptionLabel } from "../src/relations.m
 import { buildRelationIndex, validateRelationValue, validateRequired, validateUnique } from "../src/validation.mjs";
 
 test("required validation flags empty values", () => {
-  assert.equal(validateRequired("", "rune_id").severity, "error");
-  assert.equal(validateRequired("rune_fire", "rune_id"), null);
+  assert.equal(validateRequired("", "candidate_id").severity, "error");
+  assert.equal(validateRequired("mini_multi_hit", "candidate_id"), null);
 });
 
 test("unique validation flags duplicate values", () => {
   const result = validateUnique([{ id: "a" }, { id: "a" }], "id");
   assert.equal(result.length, 2);
+});
+
+test("id-suffixed non-primary fields are not implicitly required or unique", () => {
+  assert.equal(validateRequired("", "parent_candidate_id", { required: false }), null);
+
+  const result = validateUnique([
+    { candidate_id: "mini_attack_multi_hit", parent_candidate_id: "mini_multi_hit" },
+    { candidate_id: "mini_spell_multi_hit", parent_candidate_id: "mini_multi_hit" },
+  ], "parent_candidate_id", { unique: false });
+
+  assert.equal(result.length, 0);
 });
 
 test("relation validation flags missing reference", () => {

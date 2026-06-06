@@ -35,7 +35,7 @@ export async function saveViewProfile(projectContextOrRoot, name, profile) {
   const profileName = normalizeProfileName(name);
   const target = path.join(profileDir(context), `${profileName}.json`);
   await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, `${JSON.stringify(normalizeViewProfile(profile), null, 2)}\n`, "utf8");
+  await writeFile(target, `${JSON.stringify(serializeViewProfile(profile), null, 2)}\n`, "utf8");
   return { path: displayProjectPath(context, target), name: profileName };
 }
 
@@ -47,6 +47,7 @@ export function emptyViewProfile() {
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
+    viewLayouts: {},
     collections: {},
   };
 }
@@ -60,22 +61,11 @@ export function normalizeProfileName(name) {
 
 function normalizeViewProfile(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return emptyViewProfile();
-  const collections = {};
-  const rawCollections = value.collections;
-  if (rawCollections && typeof rawCollections === "object" && !Array.isArray(rawCollections)) {
-    for (const [key, rawEntry] of Object.entries(rawCollections)) {
-      if (!rawEntry || typeof rawEntry !== "object" || Array.isArray(rawEntry)) continue;
-      collections[key] = {
-        hidden: normalizeStringArray(rawEntry.hidden),
-        wrapped: normalizeStringArray(rawEntry.wrapped),
-        order: normalizeStringArray(rawEntry.order),
-        detailOrder: normalizeStringArray(rawEntry.detailOrder),
-        widths: normalizeNumberRecord(rawEntry.widths),
-      };
-    }
-  }
   const sharedDrafts = normalizeSharedViewDraftState(value);
   const appearance = normalizeAppearance(value.appearance);
+  const viewLayouts = normalizeViewLayouts(value.viewLayouts);
+  migrateLegacyCollectionsToViewLayouts(viewLayouts, value.collections, sharedDrafts.lastActiveViews);
+  const collections = deriveLegacyCollections(viewLayouts, sharedDrafts.lastActiveViews);
   return {
     sidebarWidth: Number.isFinite(value.sidebarWidth) ? Math.round(value.sidebarWidth) : null,
     detailPanelWidth: Number.isFinite(value.detailPanelWidth) ? Math.round(value.detailPanelWidth) : null,
@@ -84,7 +74,66 @@ function normalizeViewProfile(value) {
     viewDrafts: sharedDrafts.viewDrafts,
     viewOrderDrafts: sharedDrafts.viewOrderDrafts,
     ...(appearance ? { appearance } : {}),
+    viewLayouts,
     collections,
+  };
+}
+
+function normalizeViewLayouts(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const result = {};
+  for (const [collectionKey, rawViews] of Object.entries(value)) {
+    if (!rawViews || typeof rawViews !== "object" || Array.isArray(rawViews)) continue;
+    const normalizedViews = {};
+    for (const [viewId, rawLayout] of Object.entries(rawViews)) {
+      const normalizedViewId = normalizeNonEmptyString(viewId);
+      if (!normalizedViewId || !rawLayout || typeof rawLayout !== "object" || Array.isArray(rawLayout)) continue;
+      normalizedViews[normalizedViewId] = normalizeLayoutState(rawLayout);
+    }
+    if (Object.keys(normalizedViews).length) result[collectionKey] = normalizedViews;
+  }
+  return result;
+}
+
+function migrateLegacyCollectionsToViewLayouts(viewLayouts, legacyCollections, lastActiveViews) {
+  if (!legacyCollections || typeof legacyCollections !== "object" || Array.isArray(legacyCollections)) return;
+  for (const [collectionKey, rawLayout] of Object.entries(legacyCollections)) {
+    const viewId = normalizeNonEmptyString(lastActiveViews?.[collectionKey]);
+    if (!viewId || !rawLayout || typeof rawLayout !== "object" || Array.isArray(rawLayout)) continue;
+    viewLayouts[collectionKey] ??= {};
+    viewLayouts[collectionKey][viewId] ??= normalizeLayoutState(rawLayout);
+  }
+}
+
+function deriveLegacyCollections(viewLayouts, lastActiveViews) {
+  const result = {};
+  for (const [collectionKey, viewId] of Object.entries(lastActiveViews ?? {})) {
+    const normalizedViewId = normalizeNonEmptyString(viewId);
+    if (!normalizedViewId) continue;
+    const layout = viewLayouts[collectionKey]?.[normalizedViewId];
+    if (!layout) continue;
+    result[collectionKey] = cloneLayoutState(layout);
+  }
+  return result;
+}
+
+function normalizeLayoutState(value) {
+  return {
+    hidden: normalizeStringArray(value.hidden),
+    wrapped: normalizeStringArray(value.wrapped),
+    order: normalizeStringArray(value.order),
+    detailOrder: normalizeStringArray(value.detailOrder),
+    widths: normalizeNumberRecord(value.widths),
+  };
+}
+
+function cloneLayoutState(value) {
+  return {
+    hidden: [...value.hidden],
+    wrapped: [...value.wrapped],
+    order: [...value.order],
+    detailOrder: [...value.detailOrder],
+    widths: { ...value.widths },
   };
 }
 
@@ -133,6 +182,11 @@ function normalizeThemeOverrideRecord(value) {
   return Object.fromEntries(entries);
 }
 
+function normalizeNonEmptyString(value) {
+  if (typeof value !== "string") return "";
+  return value.trim();
+}
+
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) return [];
   const seen = new Set();
@@ -177,6 +231,20 @@ async function loadLegacyViewProfile(context, profileName) {
     if (error?.code === "ENOENT") return emptyViewProfile();
     throw error;
   }
+}
+
+function serializeViewProfile(profile) {
+  const normalized = normalizeViewProfile(profile);
+  return {
+    sidebarWidth: normalized.sidebarWidth,
+    detailPanelWidth: normalized.detailPanelWidth,
+    fileOrder: normalized.fileOrder,
+    lastActiveViews: normalized.lastActiveViews,
+    viewDrafts: normalized.viewDrafts,
+    viewOrderDrafts: normalized.viewOrderDrafts,
+    ...(normalized.appearance ? { appearance: normalized.appearance } : {}),
+    viewLayouts: normalized.viewLayouts,
+  };
 }
 
 function profileDir(context) {

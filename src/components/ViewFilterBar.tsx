@@ -1,5 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CollectionView, FilterGroup, FilterRule, SortRule } from "../api/client";
 import type { FieldConfig } from "../table/DataTable";
 import type { FieldDisplayType } from "../model/fieldTypes";
@@ -9,6 +10,7 @@ import { BooleanFilterPopover } from "./filters/BooleanFilterPopover";
 import { MultiSelectFilterPopover } from "./filters/MultiSelectFilterPopover";
 import { TextFilterPopover } from "./filters/TextFilterPopover";
 import { SortPopover } from "./sort/SortPopover";
+import { createDefaultFilterRule } from "../view/filter-rules.mjs";
 
 export type ViewFilterBarProps = {
   view: CollectionView | null;
@@ -20,8 +22,11 @@ export type ViewFilterBarProps = {
   dirty: boolean;
   viewOrderDirty: boolean;
   saving: boolean;
+  autoOpenRuleId: string | null;
   onChangeFilters: (filters: FilterGroup) => void;
   onChangeSorts: (sorts: SortRule[]) => void;
+  onAddFilter: (field: string, fieldType: FieldDisplayType) => void;
+  onAutoOpenRuleHandled: () => void;
   onResetView: () => void;
   onSaveForEveryone: () => void;
 };
@@ -36,12 +41,20 @@ export function ViewFilterBar({
   dirty,
   viewOrderDirty,
   saving,
+  autoOpenRuleId,
   onChangeFilters,
   onChangeSorts,
+  onAddFilter,
+  onAutoOpenRuleHandled,
   onResetView,
   onSaveForEveryone,
 }: ViewFilterBarProps) {
   const [addFilterOpen, setAddFilterOpen] = useState(false);
+  const [openRuleId, setOpenRuleId] = useState<string | null>(null);
+  const [openRuleRect, setOpenRuleRect] = useState<{ left: number; top: number } | null>(null);
+  const handledAutoOpenRuleIdRef = useRef<string | null>(null);
+  const suppressCloseRuleIdRef = useRef<string | null>(null);
+  const filterChipWrapRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   if (!view) return null;
 
@@ -49,9 +62,66 @@ export function ViewFilterBar({
   const sorts = view.sorts ?? [];
   const showSharedViewActions = !saving && (dirty || viewOrderDirty);
 
+  useEffect(() => {
+    if (!autoOpenRuleId) return;
+    if (handledAutoOpenRuleIdRef.current === autoOpenRuleId) return;
+    if (!visibleFilterRules.some((rule) => rule.id === autoOpenRuleId)) return;
+    setAddFilterOpen(false);
+    handledAutoOpenRuleIdRef.current = autoOpenRuleId;
+    suppressCloseRuleIdRef.current = autoOpenRuleId;
+    setOpenRuleId(autoOpenRuleId);
+    window.setTimeout(() => {
+      if (suppressCloseRuleIdRef.current === autoOpenRuleId) suppressCloseRuleIdRef.current = null;
+    }, 0);
+    onAutoOpenRuleHandled();
+  }, [autoOpenRuleId, onAutoOpenRuleHandled, visibleFilterRules]);
+
+  useEffect(() => {
+    if (!openRuleId) return;
+    const updateRect = () => {
+      const anchor = filterChipWrapRefs.current[openRuleId];
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      setOpenRuleRect({ left: rect.left, top: rect.bottom + 6 });
+    };
+    updateRect();
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (filterChipWrapRefs.current[openRuleId]?.contains(target)) return;
+      if (target.closest(".filter-popover-content, .filter-select-content, .filter-action-menu, .add-filter-popover-content, .column-menu-popup")) return;
+      setOpenRuleId(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenRuleId(null);
+    };
+    window.addEventListener("resize", updateRect);
+    window.addEventListener("scroll", updateRect, true);
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openRuleId]);
+
+  useEffect(() => {
+    if (openRuleId) return;
+    setOpenRuleRect(null);
+  }, [openRuleId]);
+
   function addFilter(field: string) {
     if (!view || !field) return;
-    onChangeFilters(withRules(view.filters, [...visibleFilterRules, createDefaultFilterRule(field, resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes), visibleFilterRules)]));
+    const fieldType = resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes);
+    const nextRule = createDefaultFilterRule(field, fieldType, visibleFilterRules);
+    suppressCloseRuleIdRef.current = nextRule.id;
+    setOpenRuleId(nextRule.id);
+    window.setTimeout(() => {
+      if (suppressCloseRuleIdRef.current === nextRule.id) suppressCloseRuleIdRef.current = null;
+    }, 0);
+    onAddFilter(field, fieldType);
     setAddFilterOpen(false);
   }
 
@@ -106,19 +176,31 @@ export function ViewFilterBar({
           </Popover.Root>
         ))}
         {visibleFilterRules.map((rule) => (
-          <Popover.Root key={rule.id}>
-            <Popover.Trigger asChild>
-              <button className="view-filter-chip filter-chip" type="button" title={filterChipTitle(rule, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions)}>
-                <span className="filter-chip-label">{filterChipLabel(rule, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions)}</span>
-                <icons.chevronDown className="filter-chip-chevron" size={14} />
-              </button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content className="menu-content filter-popover-content" sideOffset={6} align="start">
-                {renderFilterPopover(rule, view.filters, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions, onChangeFilters)}
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
+          <div className="filter-chip-wrap" key={rule.id} ref={(node) => { filterChipWrapRefs.current[rule.id] = node; }}>
+            <button
+              className="view-filter-chip filter-chip"
+              type="button"
+              title={filterChipTitle(rule, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions)}
+              onClick={() => {
+                if (suppressCloseRuleIdRef.current === rule.id) return;
+                setOpenRuleId((current) => current === rule.id ? null : rule.id);
+              }}
+            >
+              <span className="filter-chip-label">{filterChipLabel(rule, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions)}</span>
+              <icons.chevronDown className="filter-chip-chevron" size={14} />
+            </button>
+            {openRuleId === rule.id && openRuleRect && typeof document !== "undefined"
+              ? createPortal(
+                <div
+                  className="menu-content filter-popover-content filter-popover-inline"
+                  style={{ left: `${openRuleRect.left}px`, top: `${openRuleRect.top}px` }}
+                >
+                  {renderFilterPopover(rule, view.filters, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions, onChangeFilters)}
+                </div>,
+                document.body,
+              )
+              : null}
+          </div>
         ))}
       </div>
       {showSharedViewActions ? (
@@ -159,32 +241,6 @@ function renderFilterPopover(
     );
   }
   return <TextFilterPopover filters={filters} rule={rule} onChangeFilters={onChangeFilters} />;
-}
-
-function createDefaultFilterRule(field: string, fieldType: FieldDisplayType, rules: FilterRule[]): FilterRule {
-  if (fieldType === "Checkbox") {
-    return { id: createFilterId(field, rules), field, operator: "is" };
-  }
-  if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
-    return { id: createFilterId(field, rules), field, operator: "contains", value: [] };
-  }
-  return { id: createFilterId(field, rules), field, operator: "contains", value: "" };
-}
-
-function withRules(filters: FilterGroup | null | undefined, rules: FilterRule[]): FilterGroup {
-  return {
-    op: "and",
-    rules,
-  };
-}
-
-function createFilterId(field: string, rules: FilterRule[]) {
-  const safeField = field.replace(/\s+/g, "_");
-  const baseId = `filter:${safeField}`;
-  if (!rules.some((rule) => rule.id === baseId)) return baseId;
-  let index = 2;
-  while (rules.some((rule) => rule.id === `${baseId}:${index}`)) index += 1;
-  return `${baseId}:${index}`;
 }
 
 function resolveFieldType(

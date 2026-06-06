@@ -17,6 +17,7 @@ type ColumnHeaderProps = {
   isDragging: boolean;
   relationConfigured: boolean;
   onSort: (direction: "asc" | "desc" | null) => void;
+  onAddFilter: () => void;
   onHide: () => void;
   onResize: (width: number) => void;
   onMove: (direction: "left" | "right") => void;
@@ -249,6 +250,11 @@ export function ColumnHeader(props: ColumnHeaderProps) {
           <button className="menu-item" onClick={() => runAfterMenuClose(() => props.onSort(null))} type="button">
             <icons.filter size={15} /> 清除排序
           </button>
+          {props.roleKind === "backlink" ? null : (
+            <button className="menu-item" data-column-action="add-filter" onClick={() => runAfterMenuClose(props.onAddFilter)} type="button">
+              <icons.filter size={15} /> 添加筛选
+            </button>
+          )}
           <div className="menu-separator" />
           <button className="menu-item" onClick={() => runAfterMenuClose(props.onToggleWrap)} type="button">
             <icons.wrapText size={15} /> {props.wrapped ? "取消内容自动换行" : "内容自动换行"}

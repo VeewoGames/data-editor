@@ -76,6 +76,13 @@ export type UserAppearancePreferences = {
   baseFontSize: UserBaseFontSize;
   themeOverrides?: UserThemeOverrides;
 };
+export type UserViewLayoutState = {
+  hidden: string[];
+  wrapped: string[];
+  order: string[];
+  detailOrder: string[];
+  widths: Record<string, number>;
+};
 export type UserViewProfile = {
   sidebarWidth: number | null;
   detailPanelWidth: number | null;
@@ -84,13 +91,8 @@ export type UserViewProfile = {
   viewDrafts: Record<string, Record<string, Partial<CollectionView>>>;
   viewOrderDrafts: Record<string, string[]>;
   appearance?: UserAppearancePreferences;
-  collections: Record<string, {
-    hidden: string[];
-    wrapped: string[];
-    order: string[];
-    detailOrder: string[];
-    widths: Record<string, number>;
-  }>;
+  viewLayouts: Record<string, Record<string, UserViewLayoutState>>;
+  collections?: Record<string, UserViewLayoutState>;
 };
 export type FilterOperator = "is" | "is_not" | "contains" | "does_not_contain" | "is_empty" | "is_not_empty";
 export type FilterRule = { id: string; field: string; operator: FilterOperator; value?: unknown };

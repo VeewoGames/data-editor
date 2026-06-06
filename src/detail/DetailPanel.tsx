@@ -754,6 +754,17 @@ function renderValueEditor(props: {
       />
     );
   }
+  if (props.displayType === "Checkbox") {
+    return (
+      <label className="checkbox-cell" onClick={(event) => event.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={Boolean(props.value)}
+          onChange={(event) => props.onEditField(props.fieldName, event.target.checked)}
+        />
+      </label>
+    );
+  }
   if (props.displayType === "Select" && (props.value == null || typeof props.value === "string" || typeof props.value === "number")) {
     return (
       <SelectCellEditor

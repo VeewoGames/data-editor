@@ -81,6 +81,7 @@ type DataTableProps = {
   onMoveField: (fieldName: string, direction: "left" | "right") => void;
   onReorderFields: (order: string[]) => void;
   onSort: (fieldName: string, direction: "asc" | "desc" | null) => void;
+  onAddFilter: (fieldName: string, fieldType: FieldDisplayType) => void;
   onConfigureRelation: (fieldName: string) => void;
   onClearRelation: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
@@ -242,6 +243,7 @@ function DataTableComponent(props: DataTableProps) {
           width={getColumnWidth(fieldName)}
           pressed={pressedField === fieldName}
           onSort={(direction) => props.onSort(fieldName, direction)}
+          onAddFilter={() => props.onAddFilter(fieldName, displayType)}
           onHide={() => props.onHideField(fieldName)}
           onResize={(width) => resizeField(fieldName, width)}
           onMove={(direction) => props.onMoveField(fieldName, direction)}

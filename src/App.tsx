@@ -29,8 +29,10 @@ import {
   type ProjectDefinition,
   type SaveDocumentsResult,
   type CollectionView,
+  type FilterGroup,
   type SharedViewsConfig,
   type SortRule,
+  type UserViewLayoutState,
   type UserViewProfile,
   type ViewConfig,
 } from "./api/client";
@@ -68,12 +70,15 @@ import {
 } from "./multiselect-config.mjs";
 import {
   emptyLocalViewState,
+  emptyViewLayoutState,
+  deleteLocalViewState,
   readLocalFileOrder,
-  readCollectionViewState,
+  readViewLayoutState,
   readLocalSharedViewDrafts,
   readLocalViewState,
   writeLocalFileOrder,
   writeLocalSharedViewDrafts,
+  resetViewLayoutState,
   writeLocalViewState,
 } from "./view-state-storage.mjs";
 import {
@@ -86,6 +91,7 @@ import {
   type UiTheme,
 } from "./ui-preferences";
 import { applyViewFilters } from "./view/filtering.mjs";
+import { createDefaultFilterRule, withRules } from "./view/filter-rules.mjs";
 import { applyViewSorts, updateHeaderSorts } from "./view/sorting.mjs";
 import {
   applyViewOrderDraft,
@@ -143,6 +149,7 @@ export function App() {
   const [pendingDeleteField, setPendingDeleteField] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
+  const [pendingOpenFilterRuleId, setPendingOpenFilterRuleId] = useState<string | null>(null);
   const [viewRevision, bump] = useState(0);
   const [viewConfig, setViewConfig] = useState<ViewConfig>(emptyProjectViewConfig());
   const [sharedViewsConfig, setSharedViewsConfig] = useState<SharedViewsConfig>(emptySharedViewsConfig());
@@ -249,10 +256,11 @@ export function App() {
     localStorage.setItem(selectedViewProfileStorageKey, selectedViewProfileName);
     loadViewProfile(selectedViewProfileName, activeProjectId)
       .then((profile) => {
-        setSelectedViewProfile(profile);
-        setUiPreferences(resolveUiPreferences(profile.appearance));
-        setSidebarWidth(clampSidebarWidth(profile.sidebarWidth ?? defaultSidebarWidth));
-        setDetailPanelWidth(clampDetailPanelWidth(profile.detailPanelWidth ?? defaultDetailPanelWidth));
+        const normalizedProfile = normalizeUserViewProfile(profile);
+        setSelectedViewProfile(normalizedProfile);
+        setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
+        setSidebarWidth(clampSidebarWidth(normalizedProfile.sidebarWidth ?? defaultSidebarWidth));
+        setDetailPanelWidth(clampDetailPanelWidth(normalizedProfile.detailPanelWidth ?? defaultDetailPanelWidth));
         bump((value) => value + 1);
       })
       .catch((error) => setStatus(error.message));
@@ -292,16 +300,17 @@ export function App() {
       setLocalSharedViewDrafts(readLocalSharedViewDrafts(window.localStorage));
       setViewProfiles(nextProfiles);
       if (profileNameForInitialOrder && nextProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
-        setSelectedViewProfile(nextProfile);
-        selectedViewProfileRef.current = nextProfile;
-        setUiPreferences(resolveUiPreferences(nextProfile.appearance));
-        setSidebarWidth(clampSidebarWidth(nextProfile.sidebarWidth ?? defaultSidebarWidth));
-        setDetailPanelWidth(clampDetailPanelWidth(nextProfile.detailPanelWidth ?? defaultDetailPanelWidth));
+        const normalizedProfile = normalizeUserViewProfile(nextProfile);
+        setSelectedViewProfile(normalizedProfile);
+        selectedViewProfileRef.current = normalizedProfile;
+        setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
+        setSidebarWidth(clampSidebarWidth(normalizedProfile.sidebarWidth ?? defaultSidebarWidth));
+        setDetailPanelWidth(clampDetailPanelWidth(normalizedProfile.detailPanelWidth ?? defaultDetailPanelWidth));
       } else if (!profileNameForInitialOrder) {
         setUiPreferences(readLocalUiPreferences(window.localStorage));
       }
       const savedOrder = profileNameForInitialOrder
-        ? (nextProfile?.fileOrder ?? selectedViewProfileRef.current.fileOrder)
+        ? (normalizeUserViewProfile(nextProfile).fileOrder ?? selectedViewProfileRef.current.fileOrder)
         : readLocalFileOrder(window.localStorage);
       const initialFileOrder = normalizeFileOrder(nextFiles, savedOrder);
       if (initialFileOrder[0]) await openDocumentAt(initialFileOrder[0], undefined, undefined, false, projectId);
@@ -838,6 +847,7 @@ export function App() {
       : null,
     [activeCollectionKey, activeSharedView, draftSource],
   );
+  const activeViewLayoutId = activeSharedView?.id ?? null;
   const activeViewHasFilters = Boolean(activeView?.filters?.rules?.length);
   const viewRows = useMemo(() => {
     const filtered = applyViewFilters(rows, activeView?.query ?? "", activeView?.filters ?? { op: "and", rules: [] });
@@ -863,13 +873,14 @@ export function App() {
     () => buildFieldConfig(
       selectedPath,
       collectionPath,
+      activeViewLayoutId,
       model,
       viewConfig,
       selectedViewProfileName ? "profile" : "local",
       selectedViewProfileName ? selectedViewProfile : null,
       backlinkColumns.map((column) => column.fieldName),
     ),
-    [selectedPath, collectionPath, model, viewConfig, selectedViewProfile, selectedViewProfileName, viewRevision, backlinkColumns],
+    [selectedPath, collectionPath, activeViewLayoutId, model, viewConfig, selectedViewProfile, selectedViewProfileName, viewRevision, backlinkColumns],
   );
   const allFields = useMemo(
     () => model ? getOrderedFields(model, collectionPath, fieldConfig.order, backlinkColumns.map((column) => column.fieldName)) : [],
@@ -913,8 +924,8 @@ export function App() {
   );
   const hiddenFields = useMemo(() => allFields.filter((field) => fieldConfig.hidden.has(field)), [allFields, fieldConfig.hidden]);
   const titleField = useMemo(
-    () => model ? findTitleField(getOrderedFields(model, collectionPath, fieldConfig.order, backlinkColumns.map((column) => column.fieldName)), rows) : null,
-    [model, collectionPath, fieldConfig.order, rows, backlinkColumns],
+    () => model ? findTitleField(getMainColumns(model, collectionPath), rows) : null,
+    [model, collectionPath, rows],
   );
   const relationConfigKey = useMemo(
     () => selectedPath && relationConfigField
@@ -956,24 +967,29 @@ export function App() {
 
   function mutateSelectedViewProfile(mutator: (draft: UserViewProfile) => void) {
     if (!selectedViewProfileName) return false;
+    const current = normalizeUserViewProfile(selectedViewProfileRef.current);
     const next: UserViewProfile = {
-      sidebarWidth: selectedViewProfileRef.current.sidebarWidth,
-      detailPanelWidth: selectedViewProfileRef.current.detailPanelWidth,
-      fileOrder: [...selectedViewProfileRef.current.fileOrder],
-      lastActiveViews: { ...selectedViewProfileRef.current.lastActiveViews },
-      viewDrafts: { ...selectedViewProfileRef.current.viewDrafts },
-      viewOrderDrafts: { ...selectedViewProfileRef.current.viewOrderDrafts },
-      ...(selectedViewProfileRef.current.appearance ? { appearance: cloneUiPreferences(selectedViewProfileRef.current.appearance) } : {}),
-      collections: Object.fromEntries(Object.entries(selectedViewProfileRef.current.collections).map(([key, value]) => [
+      sidebarWidth: current.sidebarWidth,
+      detailPanelWidth: current.detailPanelWidth,
+      fileOrder: [...current.fileOrder],
+      lastActiveViews: { ...current.lastActiveViews },
+      viewDrafts: { ...current.viewDrafts },
+      viewOrderDrafts: { ...current.viewOrderDrafts },
+      ...(current.appearance ? { appearance: cloneUiPreferences(current.appearance) } : {}),
+      viewLayouts: Object.fromEntries(Object.entries(current.viewLayouts).map(([key, views]) => [
         key,
-        {
-          hidden: [...value.hidden],
-          wrapped: [...value.wrapped],
-          order: [...value.order],
-          detailOrder: [...value.detailOrder],
-          widths: { ...value.widths },
-        },
+        Object.fromEntries(Object.entries(views).map(([viewId, value]) => [
+          viewId,
+          {
+            hidden: [...value.hidden],
+            wrapped: [...value.wrapped],
+            order: [...value.order],
+            detailOrder: [...value.detailOrder],
+            widths: { ...value.widths },
+          },
+        ])),
       ])),
+      collections: { ...(current.collections ?? {}) },
     };
     mutator(next);
     selectedViewProfileRef.current = next;
@@ -1018,21 +1034,23 @@ export function App() {
     });
   }
 
-  function updateActiveCollectionView(mutator: (draft: UserViewProfile["collections"][string]) => void) {
-    if (!selectedPath) return;
+  function updateActiveViewLayout(mutator: (draft: UserViewLayoutState) => void) {
+    if (!selectedPath || !activeViewLayoutId) return;
     if (mutateSelectedViewProfile((draft) => {
-      const collectionView = ensureCollectionView(draft, selectedPath, collectionPath);
-      mutator(collectionView);
+      const viewLayout = ensureViewLayout(draft, selectedPath, collectionPath, activeViewLayoutId);
+      mutator(viewLayout);
     })) return;
     const next = readLocalViewState({
       path: selectedPath,
       collectionPath,
+      viewId: activeViewLayoutId,
       localStorage: window.localStorage,
     });
     mutator(next);
     writeLocalViewState({
       path: selectedPath,
       collectionPath,
+      viewId: activeViewLayoutId,
       state: next,
       localStorage: window.localStorage,
     });
@@ -1210,28 +1228,28 @@ export function App() {
 
   function handleHideField(fieldName: string) {
     if (!selectedPath) return;
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.hidden = addUnique(draft.hidden, fieldName);
     });
   }
 
   function handleUnhideField(fieldName: string) {
     if (!selectedPath) return;
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.hidden = draft.hidden.filter((value) => value !== fieldName);
     });
   }
 
   function handleUnhideAllFields() {
     if (!selectedPath) return;
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.hidden = [];
     });
   }
 
   function handleToggleWrapField(fieldName: string) {
     if (!selectedPath) return;
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.wrapped = draft.wrapped.includes(fieldName)
         ? draft.wrapped.filter((value) => value !== fieldName)
         : [...draft.wrapped, fieldName];
@@ -1240,7 +1258,7 @@ export function App() {
 
   function handleResizeField(fieldName: string, width: number) {
     if (!selectedPath) return;
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.widths[fieldName] = Math.round(width);
     });
   }
@@ -1254,7 +1272,7 @@ export function App() {
     if (index < 0 || targetIndex < 0 || targetIndex >= currentOrder.length) return;
     const nextOrder = [...currentOrder];
     [nextOrder[index], nextOrder[targetIndex]] = [nextOrder[targetIndex], nextOrder[index]];
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.order = nextOrder;
     });
   }
@@ -1263,20 +1281,29 @@ export function App() {
     if (!selectedPath || !model) return;
     const fields = getOrderedFields(model, collectionPath, fieldConfig.order, backlinkColumns.map((column) => column.fieldName));
     const normalizedOrder = orderColumns(fields, nextOrder);
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.order = normalizedOrder;
     });
   }
 
   function handleReorderDetailFields(nextOrder: string[]) {
     if (!selectedPath) return;
-    updateActiveCollectionView((draft) => {
+    updateActiveViewLayout((draft) => {
       draft.detailOrder = [...nextOrder];
     });
   }
 
   function handleSort(fieldName: string, direction: "asc" | "desc" | null) {
     updateActiveViewDraft({ sorts: updateHeaderSorts(activeView?.sorts ?? [], fieldName, direction) as SortRule[] });
+  }
+
+  function handleAddFilter(fieldName: string, fieldType: FieldDisplayType) {
+    if (!activeView) return;
+    const currentRules = activeView.filters?.rules ?? [];
+    const nextRule = createDefaultFilterRule(fieldName, fieldType, currentRules);
+    setFilterBarVisible(true);
+    setPendingOpenFilterRuleId(nextRule.id);
+    updateActiveViewDraft({ filters: withRules(activeView.filters, [...currentRules, nextRule]) as FilterGroup });
   }
 
   function handleRenameMultiSelectOption(fieldName: string, previousValue: string | number, nextValue: string) {
@@ -1377,14 +1404,16 @@ export function App() {
   async function handleCreateViewProfile() {
     const name = newProfileName.trim();
     if (!name) return;
-    const activeSnapshot = selectedPath
-      ? readCollectionViewState({
+    const activeSnapshot = selectedPath && activeViewLayoutId
+      ? readViewLayoutState({
         mode: selectedViewProfileName ? "profile" : "local",
         path: selectedPath,
         collectionPath,
+        viewId: activeViewLayoutId,
         localState: readLocalViewState({
           path: selectedPath,
           collectionPath,
+          viewId: activeViewLayoutId,
           localStorage: window.localStorage,
         }),
         profile: selectedViewProfileName ? selectedViewProfile : null,
@@ -1397,7 +1426,7 @@ export function App() {
       widths: { ...activeSnapshot.widths },
       order: [...activeSnapshot.order],
       detailOrder: [...activeSnapshot.detailOrder],
-    }, activeSnapshot.sidebarWidth ?? sidebarWidth, activeSnapshot.detailPanelWidth ?? detailPanelWidth, normalizeFileOrder(
+    }, activeViewLayoutId, activeSnapshot.sidebarWidth ?? sidebarWidth, activeSnapshot.detailPanelWidth ?? detailPanelWidth, normalizeFileOrder(
       files,
       selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage),
     ), uiPreferences);
@@ -1432,15 +1461,17 @@ export function App() {
       const nextWidth = clampSidebarWidth(startWidth + upEvent.clientX - startX);
       setSidebarWidth(nextWidth);
       if (!mutateSelectedViewProfile((draft) => { draft.sidebarWidth = nextWidth; })) {
-        if (selectedPath) {
+        if (selectedPath && activeViewLayoutId) {
           const nextState = readLocalViewState({
             path: selectedPath,
             collectionPath,
+            viewId: activeViewLayoutId,
             localStorage: window.localStorage,
           });
           writeLocalViewState({
             path: selectedPath,
             collectionPath,
+            viewId: activeViewLayoutId,
             state: {
               ...nextState,
               sidebarWidth: nextWidth,
@@ -1477,15 +1508,17 @@ export function App() {
     const nextWidth = clampDetailPanelWidth(width);
     setDetailPanelWidth(nextWidth);
     if (!mutateSelectedViewProfile((draft) => { draft.detailPanelWidth = nextWidth; })) {
-      if (selectedPath) {
+      if (selectedPath && activeViewLayoutId) {
         const nextState = readLocalViewState({
           path: selectedPath,
           collectionPath,
+          viewId: activeViewLayoutId,
           localStorage: window.localStorage,
         });
         writeLocalViewState({
           path: selectedPath,
           collectionPath,
+          viewId: activeViewLayoutId,
           state: {
             ...nextState,
             detailPanelWidth: nextWidth,
@@ -1562,35 +1595,35 @@ export function App() {
   }
 
   function handleResetView() {
-    if (!selectedPath) return;
+    if (!selectedPath || !activeViewLayoutId) return;
     if (mutateSelectedViewProfile((draft) => {
-      draft.sidebarWidth = null;
-      draft.detailPanelWidth = null;
-      delete draft.collections[collectionConfigKey(selectedPath, collectionPath)];
-      if (activeCollectionKey && activeSharedView) {
-        const result = resetActiveSharedViewDraft(draft, activeCollectionKey, activeSharedView.id);
-        draft.lastActiveViews = result.draftState.lastActiveViews;
-        draft.viewDrafts = result.draftState.viewDrafts;
-        draft.viewOrderDrafts = result.draftState.viewOrderDrafts;
-        setViewDraftDirty(result.dirty);
-      }
+      const result = resetViewLayoutState({
+        mode: "profile",
+        path: selectedPath,
+        collectionPath,
+        viewId: activeViewLayoutId,
+        profile: draft,
+        localState: null,
+      });
+      draft.sidebarWidth = result.profile.sidebarWidth;
+      draft.detailPanelWidth = result.profile.detailPanelWidth;
+      draft.fileOrder = result.profile.fileOrder;
+      draft.lastActiveViews = result.profile.lastActiveViews;
+      draft.viewDrafts = result.profile.viewDrafts;
+      draft.viewOrderDrafts = result.profile.viewOrderDrafts;
+      draft.viewLayouts = result.profile.viewLayouts;
+      draft.collections = result.profile.collections;
+      if (result.profile.appearance) draft.appearance = result.profile.appearance;
       setSidebarWidth(defaultSidebarWidth);
       setDetailPanelWidth(defaultDetailPanelWidth);
     })) return;
     writeLocalViewState({
       path: selectedPath,
       collectionPath,
+      viewId: activeViewLayoutId,
       state: emptyLocalViewState(),
       localStorage: window.localStorage,
     });
-    if (activeCollectionKey && activeSharedView) {
-      setLocalSharedViewDrafts((current) => {
-        const result = resetActiveSharedViewDraft(current, activeCollectionKey, activeSharedView.id);
-        writeLocalSharedViewDrafts(window.localStorage, result.draftState);
-        setViewDraftDirty(result.dirty);
-        return result.draftState;
-      });
-    }
     setSidebarWidth(readSidebarWidth());
     setDetailPanelWidth(readDetailPanelWidth());
     bump((value) => value + 1);
@@ -1700,7 +1733,7 @@ export function App() {
   }
 
   async function handleDeleteSharedView(viewId: string) {
-    if (saving || !activeCollectionKey) return;
+    if (saving || !activeCollectionKey || !selectedPath) return;
     const current = currentSharedViewDraftState();
     const result = deleteSharedViewConfig(sharedViewsConfig, current, activeCollectionKey, viewId);
     if (!result.deleted) {
@@ -1713,6 +1746,25 @@ export function App() {
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
       setSharedViewsConfig(nextConfig);
+      if (mutateSelectedViewProfile((draft) => {
+        const collectionLayouts = draft.viewLayouts?.[activeCollectionKey];
+        if (collectionLayouts) {
+          delete collectionLayouts[viewId];
+          if (Object.keys(collectionLayouts).length === 0) delete draft.viewLayouts[activeCollectionKey];
+        }
+        if (draft.collections?.[activeCollectionKey] && draft.lastActiveViews?.[activeCollectionKey] === viewId) {
+          delete draft.collections[activeCollectionKey];
+        }
+      })) {
+        // profile mode handled above
+      } else {
+        deleteLocalViewState({
+          path: selectedPath,
+          collectionPath,
+          viewId,
+          localStorage: window.localStorage,
+        });
+      }
       updateSharedViewDraftState(result.draftState);
       setSelectedRowIndex(0);
       setDetailOpen(false);
@@ -2158,8 +2210,11 @@ export function App() {
               dirty={activeViewDirty}
               viewOrderDirty={viewOrderDirty}
               saving={saving}
+              autoOpenRuleId={pendingOpenFilterRuleId}
               onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
               onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
+              onAddFilter={handleAddFilter}
+              onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
               onResetView={handleResetSharedViewDraft}
               onSaveForEveryone={() => void handleSaveViewForEveryone()}
             />
@@ -2205,6 +2260,7 @@ export function App() {
             onMoveField={handleMoveField}
             onReorderFields={handleReorderFields}
             onSort={handleSort}
+            onAddFilter={handleAddFilter}
             onConfigureRelation={handleConfigureRelation}
             onClearRelation={handleClearRelation}
             onOpenRelationTarget={handleOpenRelationTarget}
@@ -2760,6 +2816,7 @@ function formatFilteredCandidateReason(candidate: FilteredPrimaryKeyCandidate) {
 function buildFieldConfig(
   path: string | null,
   collectionPath: string,
+  viewId: string | null,
   model: DocumentModel | null,
   viewConfig: ViewConfig,
   mode: "local" | "profile",
@@ -2767,14 +2824,16 @@ function buildFieldConfig(
   extraFields: string[] = [],
 ): FieldConfig {
   const displayTypes: Record<string, FieldDisplayType> = {};
-  const activeState = path
-    ? readCollectionViewState({
+  const activeState = path && viewId
+    ? readViewLayoutState({
       mode,
       path,
       collectionPath,
+      viewId,
       localState: readLocalViewState({
         path,
         collectionPath,
+        viewId,
         localStorage: window.localStorage,
       }),
       profile,
@@ -2824,12 +2883,14 @@ function buildValidationIssues(
 ) {
   const result: Record<string, ValidationIssue | null> = {};
   const fields = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const primaryKey = viewConfig.primaryKeys[buildCollectionKey(sourcePath, collectionPath)] ?? null;
   for (const field of fields) {
-    for (const duplicate of validateUniqueTyped(rows, field)) {
+    const isPrimaryKey = field === primaryKey;
+    for (const duplicate of validateUniqueTyped(rows, field, { unique: isPrimaryKey })) {
       if (duplicate.rowIndex != null) result[`${duplicate.rowIndex}:${field}`] = duplicate;
     }
     rows.forEach((row, rowIndex) => {
-      const required = validateRequiredTyped(row[field], field);
+      const required = validateRequiredTyped(row[field], field, { required: isPrimaryKey });
       if (required) result[`${rowIndex}:${field}`] = required;
       const displayType = fieldConfig.displayTypes[field];
       if (displayType && !isCompatible(displayType, row[field])) {
@@ -3000,7 +3061,35 @@ function emptyUserViewProfile(): UserViewProfile {
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
+    viewLayouts: {},
     collections: {},
+  };
+}
+
+function normalizeUserViewProfile(profile: Partial<UserViewProfile> | null | undefined): UserViewProfile {
+  if (!profile || typeof profile !== "object") return emptyUserViewProfile();
+  return {
+    sidebarWidth: Number.isFinite(profile.sidebarWidth) ? Number(profile.sidebarWidth) : null,
+    detailPanelWidth: Number.isFinite(profile.detailPanelWidth) ? Number(profile.detailPanelWidth) : null,
+    fileOrder: Array.isArray(profile.fileOrder) ? [...profile.fileOrder] : [],
+    lastActiveViews: { ...(profile.lastActiveViews ?? {}) },
+    viewDrafts: { ...(profile.viewDrafts ?? {}) },
+    viewOrderDrafts: { ...(profile.viewOrderDrafts ?? {}) },
+    ...(profile.appearance ? { appearance: cloneUiPreferences(profile.appearance) } : {}),
+    viewLayouts: Object.fromEntries(Object.entries(profile.viewLayouts ?? {}).map(([key, views]) => [
+      key,
+      Object.fromEntries(Object.entries(views ?? {}).map(([viewId, value]) => [
+        viewId,
+        {
+          hidden: [...(value?.hidden ?? [])],
+          wrapped: [...(value?.wrapped ?? [])],
+          order: [...(value?.order ?? [])],
+          detailOrder: [...(value?.detailOrder ?? [])],
+          widths: { ...(value?.widths ?? {}) },
+        },
+      ])),
+    ])),
+    collections: { ...(profile.collections ?? {}) },
   };
 }
 
@@ -3076,13 +3165,15 @@ function parseConfigKey(value: string) {
   return { file, collection, field };
 }
 
-function ensureCollectionView(profile: UserViewProfile, path: string, collectionPath: string) {
+function ensureViewLayout(profile: UserViewProfile, path: string, collectionPath: string, viewId: string) {
   const key = collectionConfigKey(path, collectionPath);
-  profile.collections[key] ??= { hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} };
-  return profile.collections[key];
+  profile.viewLayouts ??= {};
+  profile.viewLayouts[key] ??= {};
+  profile.viewLayouts[key][viewId] ??= emptyViewLayoutState();
+  return profile.viewLayouts[key][viewId];
 }
 
-function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[], appearance: UiPreferences): UserViewProfile {
+function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, viewId: string | null, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[], appearance: UiPreferences): UserViewProfile {
   if (!path) {
     return {
       sidebarWidth,
@@ -3092,26 +3183,39 @@ function buildProfileFromCurrentView(path: string | null, collectionPath: string
       viewDrafts: {},
       viewOrderDrafts: {},
       appearance: cloneUiPreferences(appearance),
+      viewLayouts: {},
       collections: {},
     };
   }
+  const collectionKey = collectionConfigKey(path, collectionPath);
   return {
     sidebarWidth,
     detailPanelWidth,
     fileOrder: [...fileOrder],
-    lastActiveViews: {},
+    lastActiveViews: viewId ? { [collectionKey]: viewId } : {},
     viewDrafts: {},
     viewOrderDrafts: {},
     appearance: cloneUiPreferences(appearance),
-    collections: {
-      [collectionConfigKey(path, collectionPath)]: {
+    viewLayouts: viewId ? {
+      [collectionKey]: {
+        [viewId]: {
+          hidden: [...fieldConfig.hidden],
+          wrapped: [...fieldConfig.wrapped],
+          order: [...fieldConfig.order],
+          detailOrder: [...fieldConfig.detailOrder],
+          widths: { ...fieldConfig.widths },
+        },
+      },
+    } : {},
+    collections: viewId ? {
+      [collectionKey]: {
         hidden: [...fieldConfig.hidden],
         wrapped: [...fieldConfig.wrapped],
         order: [...fieldConfig.order],
         detailOrder: [...fieldConfig.detailOrder],
         widths: { ...fieldConfig.widths },
       },
-    },
+    } : {},
   };
 }
 

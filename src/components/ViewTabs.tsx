@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { useMemo, useState, type DragEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { CollectionView } from "../api/client";
 import { ExpandableSearch } from "./ExpandableSearch";
 import { icons } from "./icons";
@@ -46,8 +46,41 @@ export function ViewTabs({
   const [openMenuViewId, setOpenMenuViewId] = useState<string | null>(null);
   const [renamingViewId, setRenamingViewId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [dragGhost, setDragGhost] = useState<null | {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    label: string;
+  }>(null);
+  const tabShellRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const pointerDragRef = useRef<null | {
+    pointerId: number;
+    sourceViewId: string;
+    startX: number;
+    startY: number;
+    pointerOffsetX: number;
+    shellTop: number;
+    shellWidth: number;
+    shellHeight: number;
+    label: string;
+    dragging: boolean;
+  }>(null);
+  const suppressClickRef = useRef(false);
   const viewIds = useMemo(() => views.map((view) => view.id), [views]);
   const viewTabsDisabled = saving;
+
+  useEffect(() => {
+    if (!draggingViewId) return;
+    function cancelPointerDrag() {
+      pointerDragRef.current = null;
+      setDraggingViewId(null);
+      setDropTarget(null);
+      setDragGhost(null);
+    }
+    window.addEventListener("pointercancel", cancelPointerDrag);
+    return () => window.removeEventListener("pointercancel", cancelPointerDrag);
+  }, [draggingViewId]);
 
   function beginRename(view: CollectionView) {
     if (viewTabsDisabled) return;
@@ -102,45 +135,71 @@ export function ViewTabs({
     setOpenMenuViewId(null);
   }
 
-  function handleDragStart(event: DragEvent<HTMLButtonElement>, viewId: string) {
+  function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>, view: CollectionView) {
     if (viewTabsDisabled) return;
-    setDraggingViewId(viewId);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", viewId);
+    if (event.button !== 0) return;
+    const shell = tabShellRefs.current[view.id];
+    if (!shell) return;
+    const bounds = shell.getBoundingClientRect();
+    pointerDragRef.current = {
+      pointerId: event.pointerId,
+      sourceViewId: view.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      pointerOffsetX: event.clientX - bounds.left,
+      shellTop: bounds.top,
+      shellWidth: bounds.width,
+      shellHeight: bounds.height,
+      label: view.name,
+      dragging: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function handleDragOver(event: DragEvent<HTMLButtonElement>, viewId: string) {
-    if (viewTabsDisabled) return;
-    if (!draggingViewId || draggingViewId === viewId) return;
-    event.preventDefault();
-    const sourceIndex = viewIds.indexOf(draggingViewId);
-    const targetIndex = viewIds.indexOf(viewId);
-    const bounds = (event.currentTarget.closest(".view-tab-shell") ?? event.currentTarget).getBoundingClientRect();
-    const placement = sourceIndex > targetIndex
-      ? "before"
-      : sourceIndex < targetIndex
-        ? "after"
-        : event.clientX < bounds.left + bounds.width / 2 ? "before" : "after";
-    setDropTarget({ viewId, placement });
-  }
-
-  function handleDrop(event: DragEvent<HTMLButtonElement>, viewId: string) {
-    if (viewTabsDisabled) return;
-    event.preventDefault();
-    const sourceViewId = draggingViewId ?? event.dataTransfer.getData("text/plain");
-    if (!sourceViewId || sourceViewId === viewId) {
-      clearDragState();
-      return;
+  function handlePointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const state = pointerDragRef.current;
+    if (!state || state.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - state.startX;
+    const deltaY = event.clientY - state.startY;
+    if (!state.dragging) {
+      if (Math.abs(deltaX) < 6 && Math.abs(deltaY) < 6) return;
+      state.dragging = true;
+      setDraggingViewId(state.sourceViewId);
+      setDragGhost({
+        left: event.clientX - state.pointerOffsetX,
+        top: state.shellTop,
+        width: state.shellWidth,
+        height: state.shellHeight,
+        label: state.label,
+      });
+      suppressClickRef.current = true;
+    } else {
+      setDragGhost((current) => current ? {
+        ...current,
+        left: event.clientX - state.pointerOffsetX,
+      } : current);
     }
-    const placement = dropTarget?.viewId === viewId ? dropTarget.placement : "after";
-    const nextOrder = moveViewId(viewIds, sourceViewId, viewId, placement);
+    setDropTarget(resolveDropTarget(viewIds, state.sourceViewId, tabShellRefs.current, event.clientX));
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    const state = pointerDragRef.current;
+    if (!state || state.pointerId !== event.pointerId) return;
+    if (state.dragging) {
+      const target = resolveDropTarget(viewIds, state.sourceViewId, tabShellRefs.current, event.clientX);
+      if (target) {
+        const nextOrder = moveViewId(viewIds, state.sourceViewId, target.viewId, target.placement);
+        if (nextOrder.join("\u0000") !== viewIds.join("\u0000")) onReorderViews(nextOrder);
+      }
+    }
     clearDragState();
-    if (nextOrder.join("\u0000") !== viewIds.join("\u0000")) onReorderViews(nextOrder);
   }
 
   function clearDragState() {
+    pointerDragRef.current = null;
     setDraggingViewId(null);
     setDropTarget(null);
+    setDragGhost(null);
   }
 
   return (
@@ -161,6 +220,7 @@ export function ViewTabs({
             >
               <Popover.Anchor asChild>
                 <div
+                  ref={(node) => { tabShellRefs.current[view.id] = node; }}
                   className={[
                     "view-tab-shell",
                     active ? "active" : "",
@@ -176,8 +236,11 @@ export function ViewTabs({
                     role="tab"
                     aria-selected={active}
                     disabled={viewTabsDisabled}
-                    draggable={!viewTabsDisabled}
                     onClick={() => {
+                      if (suppressClickRef.current) {
+                        suppressClickRef.current = false;
+                        return;
+                      }
                       if (viewTabsDisabled) return;
                       if (active) {
                         setOpenMenuViewId(view.id);
@@ -187,10 +250,9 @@ export function ViewTabs({
                       onSelectView(view.id);
                     }}
                     onDoubleClick={() => beginRename(view)}
-                    onDragStart={(event) => handleDragStart(event, view.id)}
-                    onDragOver={(event) => handleDragOver(event, view.id)}
-                    onDrop={(event) => handleDrop(event, view.id)}
-                    onDragEnd={clearDragState}
+                    onPointerDown={(event) => handlePointerDown(event, view)}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
                   >
                     <icons.table size={17} />
                     <span className="view-tab-name">{view.name}</span>
@@ -272,6 +334,21 @@ export function ViewTabs({
         <ExpandableSearch className="view-tabs-search" value={searchQuery} onChange={onSearchQueryChange} placeholder="搜索当前视图" />
       </div>
       {viewOrderDirty ? <div className="view-order-dirty">视图顺序有未保存更改</div> : null}
+      {dragGhost ? (
+        <div
+          className="view-tab-drag-ghost"
+          aria-hidden="true"
+          style={{
+            left: dragGhost.left,
+            top: dragGhost.top,
+            width: dragGhost.width,
+            height: dragGhost.height,
+          }}
+        >
+          <icons.table size={17} />
+          <span>{dragGhost.label}</span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -286,4 +363,21 @@ function moveViewId(viewIds: string[], sourceViewId: string, targetViewId: strin
     sourceViewId,
     ...withoutSource.slice(insertIndex),
   ];
+}
+
+function resolveDropTarget(
+  viewIds: string[],
+  sourceViewId: string,
+  refs: Record<string, HTMLDivElement | null>,
+  pointerX: number,
+) {
+  const otherViewIds = viewIds.filter((viewId) => viewId !== sourceViewId);
+  if (otherViewIds.length === 0) return null;
+  for (const viewId of otherViewIds) {
+    const bounds = refs[viewId]?.getBoundingClientRect();
+    if (!bounds) continue;
+    if (pointerX < bounds.left + bounds.width / 2) return { viewId, placement: "before" as const };
+  }
+  const lastViewId = otherViewIds[otherViewIds.length - 1];
+  return lastViewId ? { viewId: lastViewId, placement: "after" as const } : null;
 }

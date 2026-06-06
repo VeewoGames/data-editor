@@ -1,13 +1,13 @@
-export function validateRequired(value, fieldName) {
-  if (!isRequiredField(fieldName)) return null;
+export function validateRequired(value, fieldName, options = {}) {
+  if (!isRequiredField(fieldName, options)) return null;
   if (value == null || value === "") {
     return { severity: "error", message: `${fieldName} 不能为空` };
   }
   return null;
 }
 
-export function validateUnique(rows, fieldName) {
-  if (!isUniqueField(fieldName)) return [];
+export function validateUnique(rows, fieldName, options = {}) {
+  if (!isUniqueField(fieldName, options)) return [];
   const counts = new Map();
   for (const row of rows) {
     const value = row?.[fieldName];
@@ -40,10 +40,10 @@ export function validateRelationValue(value, index) {
   return null;
 }
 
-export function isRequiredField(fieldName) {
-  return ["id", "name", "skill_id", "rune_id", "keyword_id"].includes(fieldName) || fieldName.endsWith("_id");
+export function isRequiredField(_fieldName, options = {}) {
+  return options.required !== false;
 }
 
-export function isUniqueField(fieldName) {
-  return fieldName === "id" || fieldName.endsWith("_id");
+export function isUniqueField(_fieldName, options = {}) {
+  return options.unique !== false;
 }

@@ -20,6 +20,7 @@
   --color-bg-primary: #2f6fed;
   --color-bg-primary-hover: #295fd0;
   --color-bg-accent-subtle: #eef4ff;
+  --color-bg-accent-hover: #dfeaff;
   --color-bg-danger-subtle: #fff3ee;
   --color-bg-warning: #fff6d6;
   --color-bg-overlay: rgba(15, 15, 15, 0.18);
@@ -53,6 +54,7 @@
   --color-bg-primary: #6e98ff;
   --color-bg-primary-hover: #5b87f3;
   --color-bg-accent-subtle: #263247;
+  --color-bg-accent-hover: #314263;
   --color-bg-danger-subtle: #412926;
   --color-bg-warning: #42371e;
   --color-bg-overlay: rgba(5, 7, 10, 0.62);
@@ -322,6 +324,24 @@ select {
 
 .view-tab-shell.dragging {
   opacity: 0.55;
+}
+
+.view-tab-drag-ghost {
+  align-items: center;
+  background: #efeeeb;
+  border: 1px solid rgba(55, 53, 47, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  color: #37352f;
+  display: inline-flex;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  pointer-events: none;
+  position: fixed;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 1400;
 }
 
 .view-tab-shell.drop-before::before,
@@ -1071,6 +1091,11 @@ select {
   overflow-y: hidden;
 }
 
+.filter-chip-wrap {
+  flex: 0 0 auto;
+  position: relative;
+}
+
 .view-filter-actions {
   align-items: center;
   display: inline-flex;
@@ -1102,7 +1127,7 @@ select {
 .filter-chip {
   align-items: center;
   background: var(--color-bg-accent-subtle);
-  border-color: var(--color-border-strong);
+  border-color: transparent;
   border-radius: 999px;
   color: var(--color-bg-primary);
   display: inline-flex;
@@ -1114,7 +1139,8 @@ select {
 }
 
 .filter-chip:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-accent-hover);
+  color: var(--color-bg-primary-hover);
 }
 
 .filter-chip-label {
@@ -1142,6 +1168,11 @@ select {
 .filter-popover-content,
 .sort-popover-content {
   z-index: 30;
+}
+
+.filter-popover-inline {
+  position: fixed;
+  z-index: 1600;
 }
 
 .add-filter-popover {

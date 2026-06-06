@@ -528,6 +528,30 @@ test("shared view reset uses draft-only reset instead of global view reset", asy
   assert.doesNotMatch(resetSharedViewSection, /setSidebarWidth/);
 });
 
+test("global reset clears personal view layout without touching shared drafts", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const resetViewSection = appSource.slice(
+    appSource.indexOf("function handleResetView()"),
+    appSource.indexOf("function updateSharedViewDraftState"),
+  );
+
+  assert.match(resetViewSection, /resetViewLayoutState/);
+  assert.match(resetViewSection, /writeLocalViewState/);
+  assert.doesNotMatch(resetViewSection, /resetActiveSharedViewDraft/);
+  assert.doesNotMatch(resetViewSection, /writeLocalSharedViewDrafts/);
+});
+
+test("deleting a shared view also clears the matching personal view layout state", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const deleteViewSection = appSource.slice(
+    appSource.indexOf("async function handleDeleteSharedView"),
+    appSource.indexOf("function handleReorderSharedViews"),
+  );
+
+  assert.match(deleteViewSection, /draft\.viewLayouts/);
+  assert.match(deleteViewSection, /deleteLocalViewState/);
+});
+
 test("toolbar save dirty excludes shared view draft dirty while global unsaved state includes it", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const toolbarSection = appSource.slice(

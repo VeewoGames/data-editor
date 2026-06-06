@@ -13,6 +13,8 @@ export function emptyCollectionViewState() {
   };
 }
 
+export const emptyViewLayoutState = emptyCollectionViewState;
+
 export function emptyLocalViewState() {
   return {
     ...emptyCollectionViewState(),
@@ -25,12 +27,29 @@ export function collectionConfigKey(path, collectionPath) {
   return `${path}:${collectionPath}`;
 }
 
-function fieldStorageKey(path, collectionPath, fieldName, suffix) {
-  return `data-editor:${path}:${collectionPath}:${fieldName}:${suffix}`;
+function normalizeViewId(value) {
+  if (typeof value !== "string") return "";
+  return value.trim();
 }
 
-function orderStorageKey(path, collectionPath) {
-  return `data-editor:${path}:${collectionPath}:__order`;
+function encodeViewId(viewId) {
+  return encodeURIComponent(normalizeViewId(viewId));
+}
+
+function viewStoragePrefix(path, collectionPath, viewId) {
+  return `data-editor:${path}:${collectionPath}:${encodeViewId(viewId)}:`;
+}
+
+function viewFieldStorageKey(path, collectionPath, viewId, fieldName, suffix) {
+  return `${viewStoragePrefix(path, collectionPath, viewId)}${fieldName}:${suffix}`;
+}
+
+function viewOrderStorageKey(path, collectionPath, viewId) {
+  return `${viewStoragePrefix(path, collectionPath, viewId)}__order`;
+}
+
+function viewDetailOrderStorageKey(path, collectionPath, viewId) {
+  return `${viewStoragePrefix(path, collectionPath, viewId)}__detail-order`;
 }
 
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
@@ -48,11 +67,23 @@ export function cloneCollectionViewState(state) {
   };
 }
 
-export function readCollectionViewState({ mode, path, collectionPath, localState, profile }) {
+export const cloneViewLayoutState = cloneCollectionViewState;
+
+export function readCollectionViewState({ mode, path, collectionPath, viewId, localState, profile }) {
+  return readViewLayoutState({ mode, path, collectionPath, viewId, localState, profile });
+}
+
+export function readViewLayoutState({ mode, path, collectionPath, viewId, localState, profile }) {
   if (mode === "profile" && profile) {
-    const collection = profile.collections?.[collectionConfigKey(path, collectionPath)] ?? emptyCollectionViewState();
+    const collectionKey = collectionConfigKey(path, collectionPath);
+    const normalizedViewId = normalizeViewId(viewId);
+    const layout = (
+      normalizedViewId
+        ? profile.viewLayouts?.[collectionKey]?.[normalizedViewId]
+        : null
+    ) ?? profile.collections?.[collectionKey] ?? emptyCollectionViewState();
     return {
-      ...cloneCollectionViewState(collection),
+      ...cloneCollectionViewState(layout),
       sidebarWidth: profile.sidebarWidth ?? null,
       detailPanelWidth: profile.detailPanelWidth ?? null,
     };
@@ -64,12 +95,17 @@ export function readCollectionViewState({ mode, path, collectionPath, localState
   };
 }
 
-export function readLocalViewState({ path, collectionPath, localStorage }) {
+export function readLocalViewState({ path, collectionPath, viewId, localStorage }) {
+  return readLocalViewLayoutState({ path, collectionPath, viewId, localStorage });
+}
+
+export function readLocalViewLayoutState({ path, collectionPath, viewId, localStorage }) {
   const state = emptyLocalViewState();
-  const prefix = `data-editor:${path}:${collectionPath}:`;
+  const normalizedViewId = normalizeViewId(viewId);
+  const prefix = normalizedViewId ? viewStoragePrefix(path, collectionPath, normalizedViewId) : null;
   for (let i = 0; i < localStorage.length; i += 1) {
     const key = localStorage.key(i);
-    if (!key?.startsWith(prefix)) continue;
+    if (!prefix || !key?.startsWith(prefix)) continue;
     if (key.endsWith(":hidden")) {
       state.hidden.push(key.slice(prefix.length, -":hidden".length));
       continue;
@@ -84,8 +120,12 @@ export function readLocalViewState({ path, collectionPath, localStorage }) {
       if (Number.isFinite(width) && width > 0) state.widths[fieldName] = width;
       continue;
     }
-    if (key === orderStorageKey(path, collectionPath)) {
-      state.order = (localStorage.getItem(key) ?? "").split(",").filter(Boolean);
+    if (key === viewOrderStorageKey(path, collectionPath, normalizedViewId)) {
+      state.order = normalizeStringArray((localStorage.getItem(key) ?? "").split(","));
+      continue;
+    }
+    if (key === viewDetailOrderStorageKey(path, collectionPath, normalizedViewId)) {
+      state.detailOrder = normalizeStringArray((localStorage.getItem(key) ?? "").split(","));
     }
   }
   const sidebarWidth = Number(localStorage.getItem(sidebarWidthStorageKey));
@@ -135,23 +175,36 @@ export function writeLocalSharedViewDrafts(localStorage, value) {
   localStorage.setItem(sharedViewDraftsStorageKey, JSON.stringify(normalized));
 }
 
-export function writeLocalViewState({ path, collectionPath, state, localStorage }) {
-  const prefix = `data-editor:${path}:${collectionPath}:`;
-  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(prefix)) localStorage.removeItem(key);
-  }
-  for (const fieldName of state.hidden) {
-    localStorage.setItem(fieldStorageKey(path, collectionPath, fieldName, "hidden"), "1");
-  }
-  for (const fieldName of state.wrapped) {
-    localStorage.setItem(fieldStorageKey(path, collectionPath, fieldName, "wrapped"), "1");
-  }
-  for (const [fieldName, width] of Object.entries(state.widths)) {
-    localStorage.setItem(fieldStorageKey(path, collectionPath, fieldName, "width"), String(Math.round(width)));
-  }
-  if (state.order.length) {
-    localStorage.setItem(orderStorageKey(path, collectionPath), state.order.join(","));
+export function writeLocalViewState({ path, collectionPath, viewId, state, localStorage }) {
+  return writeLocalViewLayoutState({ path, collectionPath, viewId, state, localStorage });
+}
+
+export function writeLocalViewLayoutState({ path, collectionPath, viewId, state, localStorage }) {
+  const normalizedViewId = normalizeViewId(viewId);
+  if (normalizedViewId) {
+    const prefix = viewStoragePrefix(path, collectionPath, normalizedViewId);
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(prefix)) localStorage.removeItem(key);
+    }
+    for (const fieldName of normalizeStringArray(state.hidden)) {
+      localStorage.setItem(viewFieldStorageKey(path, collectionPath, normalizedViewId, fieldName, "hidden"), "1");
+    }
+    for (const fieldName of normalizeStringArray(state.wrapped)) {
+      localStorage.setItem(viewFieldStorageKey(path, collectionPath, normalizedViewId, fieldName, "wrapped"), "1");
+    }
+    for (const [fieldName, width] of Object.entries(state.widths ?? {})) {
+      if (!Number.isFinite(width) || width <= 0) continue;
+      localStorage.setItem(viewFieldStorageKey(path, collectionPath, normalizedViewId, fieldName, "width"), String(Math.round(width)));
+    }
+    const normalizedOrder = normalizeStringArray(state.order);
+    if (normalizedOrder.length) {
+      localStorage.setItem(viewOrderStorageKey(path, collectionPath, normalizedViewId), normalizedOrder.join(","));
+    }
+    const normalizedDetailOrder = normalizeStringArray(state.detailOrder);
+    if (normalizedDetailOrder.length) {
+      localStorage.setItem(viewDetailOrderStorageKey(path, collectionPath, normalizedViewId), normalizedDetailOrder.join(","));
+    }
   }
   if (state.sidebarWidth != null && Number.isFinite(state.sidebarWidth) && state.sidebarWidth > 0) {
     localStorage.setItem(sidebarWidthStorageKey, String(Math.round(state.sidebarWidth)));
@@ -162,6 +215,20 @@ export function writeLocalViewState({ path, collectionPath, state, localStorage 
     localStorage.setItem(detailPanelWidthStorageKey, String(Math.round(state.detailPanelWidth)));
   } else {
     localStorage.removeItem(detailPanelWidthStorageKey);
+  }
+}
+
+export function deleteLocalViewState({ path, collectionPath, viewId, localStorage }) {
+  return deleteLocalViewLayoutState({ path, collectionPath, viewId, localStorage });
+}
+
+export function deleteLocalViewLayoutState({ path, collectionPath, viewId, localStorage }) {
+  const normalizedViewId = normalizeViewId(viewId);
+  if (!normalizedViewId) return;
+  const prefix = viewStoragePrefix(path, collectionPath, normalizedViewId);
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) localStorage.removeItem(key);
   }
 }
 
@@ -179,7 +246,11 @@ function normalizeStringArray(value) {
   return result;
 }
 
-export function resetCollectionViewState({ mode, path, collectionPath, profile, localState }) {
+export function resetCollectionViewState({ mode, path, collectionPath, viewId, profile, localState }) {
+  return resetViewLayoutState({ mode, path, collectionPath, viewId, profile, localState });
+}
+
+export function resetViewLayoutState({ mode, path, collectionPath, viewId, profile, localState }) {
   if (mode === "profile") {
     const nextProfile = {
       sidebarWidth: null,
@@ -188,9 +259,16 @@ export function resetCollectionViewState({ mode, path, collectionPath, profile, 
       lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
       viewDrafts: { ...(profile?.viewDrafts ?? {}) },
       viewOrderDrafts: { ...(profile?.viewOrderDrafts ?? {}) },
+      viewLayouts: cloneNestedViewLayouts(profile?.viewLayouts),
       collections: { ...(profile?.collections ?? {}) },
     };
-    delete nextProfile.collections[collectionConfigKey(path, collectionPath)];
+    const collectionKey = collectionConfigKey(path, collectionPath);
+    const normalizedViewId = normalizeViewId(viewId);
+    if (normalizedViewId && nextProfile.viewLayouts[collectionKey]) {
+      delete nextProfile.viewLayouts[collectionKey][normalizedViewId];
+      if (Object.keys(nextProfile.viewLayouts[collectionKey]).length === 0) delete nextProfile.viewLayouts[collectionKey];
+    }
+    delete nextProfile.collections[collectionKey];
     return {
       profile: nextProfile,
       localState,
@@ -200,4 +278,16 @@ export function resetCollectionViewState({ mode, path, collectionPath, profile, 
     profile,
     localState: emptyLocalViewState(),
   };
+}
+
+function cloneNestedViewLayouts(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).map(([collectionKey, views]) => [
+      collectionKey,
+      Object.fromEntries(
+        Object.entries(views ?? {}).map(([viewId, layout]) => [viewId, cloneCollectionViewState(layout)]),
+      ),
+    ]),
+  );
 }

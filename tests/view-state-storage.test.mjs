@@ -1,20 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  deleteLocalViewState,
   emptyLocalViewState,
   emptyLocalSharedViewDrafts,
-  emptyCollectionViewState,
+  emptyViewLayoutState,
   readLocalViewState,
   readLocalSharedViewDrafts,
-  readCollectionViewState,
+  readViewLayoutState,
   readLocalFileOrder,
-  resetCollectionViewState,
+  resetViewLayoutState,
   writeLocalFileOrder,
   writeLocalSharedViewDrafts,
   writeLocalViewState,
 } from "../src/view-state-storage.mjs";
 
-test("profile mode ignores legacy localStorage width hidden and order fallback", () => {
+test("profile mode reads the active view layout instead of collection-level fallback", () => {
   const localState = {
     widths: { description: 320 },
     hidden: ["description"],
@@ -27,21 +28,24 @@ test("profile mode ignores legacy localStorage width hidden and order fallback",
   const profile = {
     sidebarWidth: 260,
     detailPanelWidth: 420,
-    collections: {
+    viewLayouts: {
       "data/runes.json:$": {
-        hidden: [],
-        wrapped: [],
-        order: ["rune_name", "description"],
-        detailOrder: ["rune_name", "description"],
-        widths: { description: 180 },
+        "view:damage/main": {
+          hidden: [],
+          wrapped: [],
+          order: ["rune_name", "description"],
+          detailOrder: ["rune_name", "description"],
+          widths: { description: 180 },
+        },
       },
     },
   };
 
-  const state = readCollectionViewState({
+  const state = readViewLayoutState({
     mode: "profile",
     path: "data/runes.json",
     collectionPath: "$",
+    viewId: "view:damage/main",
     localState,
     profile,
   });
@@ -58,10 +62,11 @@ test("profile mode ignores legacy localStorage width hidden and order fallback",
 });
 
 test("local mode reads only local state", () => {
-  const state = readCollectionViewState({
+  const state = readViewLayoutState({
     mode: "local",
     path: "data/runes.json",
     collectionPath: "$",
+    viewId: "view:damage/main",
     localState: {
       widths: { description: 300 },
       hidden: ["description"],
@@ -80,15 +85,40 @@ test("local mode reads only local state", () => {
   assert.equal(state.detailPanelWidth, 430);
 });
 
-test("profile reset removes only target collection and clears profile sidebar width", () => {
-  const next = resetCollectionViewState({
+test("profile reset removes only target view layout and clears profile sidebar width", () => {
+  const next = resetViewLayoutState({
     mode: "profile",
     path: "data/runes.json",
     collectionPath: "$",
+    viewId: "view:damage/main",
     profile: {
       sidebarWidth: 320,
       detailPanelWidth: 410,
       fileOrder: ["data/status_effects.json", "data/runes.json"],
+      lastActiveViews: {
+        "data/runes.json:$": "damage",
+      },
+      viewLayouts: {
+        "data/runes.json:$": {
+          "view:damage/main": {
+            hidden: ["description"],
+            wrapped: [],
+            order: ["description"],
+            detailOrder: [],
+            widths: { description: 240 },
+          },
+          utility: {
+            hidden: ["rune_name"],
+            wrapped: [],
+            order: ["rune_name"],
+            detailOrder: ["rune_name"],
+            widths: { rune_name: 240 },
+          },
+        },
+        "data/status_effects.json:$": {
+          all: emptyViewLayoutState(),
+        },
+      },
       collections: {
         "data/runes.json:$": {
           hidden: ["description"],
@@ -97,24 +127,26 @@ test("profile reset removes only target collection and clears profile sidebar wi
           detailOrder: [],
           widths: { description: 240 },
         },
-        "data/status_effects.json:$": emptyCollectionViewState(),
       },
     },
     localState: null,
   });
 
+  assert.equal(next.profile.viewLayouts["data/runes.json:$"]["view:damage/main"], undefined);
+  assert.ok(next.profile.viewLayouts["data/runes.json:$"].utility);
+  assert.ok(next.profile.viewLayouts["data/status_effects.json:$"]);
   assert.equal(next.profile.collections["data/runes.json:$"], undefined);
-  assert.ok(next.profile.collections["data/status_effects.json:$"]);
   assert.equal(next.profile.sidebarWidth, null);
   assert.equal(next.profile.detailPanelWidth, null);
   assert.deepEqual(next.profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
 });
 
 test("profile mode uses empty state when profile collection has no saved values", () => {
-  const state = readCollectionViewState({
+  const state = readViewLayoutState({
     mode: "profile",
     path: "data/runes.json",
     collectionPath: "$",
+    viewId: "view:missing/main",
     localState: {
       widths: { description: 320 },
       hidden: ["description"],
@@ -127,13 +159,15 @@ test("profile mode uses empty state when profile collection has no saved values"
     profile: {
       sidebarWidth: null,
       detailPanelWidth: 405,
-      collections: {
+      viewLayouts: {
         "data/runes.json:$": {
-          hidden: [],
-          wrapped: [],
-          order: [],
-          detailOrder: [],
-          widths: {},
+          all: {
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
         },
       },
     },
@@ -146,50 +180,55 @@ test("profile mode uses empty state when profile collection has no saved values"
   assert.equal(state.detailPanelWidth, 405);
 });
 
-test("readLocalViewState reads only localStorage keys for the current collection", () => {
+test("readLocalViewState reads only localStorage keys for the current encoded view id", () => {
   const storage = createMemoryStorage({
-    "data-editor:data/runes.json:$:description:hidden": "1",
-    "data-editor:data/runes.json:$:description:wrapped": "1",
-    "data-editor:data/runes.json:$:description:width": "280",
-    "data-editor:data/runes.json:$:__order": "description,rune_name",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden": "1",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:wrapped": "1",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:width": "280",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__order": "description,rune_name",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order": "description,rune_name",
     "data-editor:sidebar-width": "333",
     "data-editor:detail-panel-width": "444",
-    "data-editor:data/other.json:$:name:hidden": "1",
+    "data-editor:data/runes.json:$:damage:name:hidden": "1",
   });
 
   const state = readLocalViewState({
     path: "data/runes.json",
     collectionPath: "$",
+    viewId: "view:damage/main",
     localStorage: storage,
   });
 
   assert.deepEqual(state.hidden, ["description"]);
   assert.deepEqual(state.wrapped, ["description"]);
   assert.deepEqual(state.order, ["description", "rune_name"]);
+  assert.deepEqual(state.detailOrder, ["description", "rune_name"]);
   assert.deepEqual(state.widths, { description: 280 });
   assert.equal(state.sidebarWidth, 333);
   assert.equal(state.detailPanelWidth, 444);
 });
 
-test("writeLocalViewState overwrites only localStorage keys for the current collection", () => {
+test("writeLocalViewState overwrites only localStorage keys for the current encoded view id", () => {
   const storage = createMemoryStorage({
-    "data-editor:data/runes.json:$:old:hidden": "1",
-    "data-editor:data/runes.json:$:old:wrapped": "1",
-    "data-editor:data/runes.json:$:old:width": "210",
-    "data-editor:data/runes.json:$:__order": "old",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:old:hidden": "1",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:old:wrapped": "1",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:old:width": "210",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__order": "old",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order": "old",
     "data-editor:sidebar-width": "300",
     "data-editor:detail-panel-width": "450",
-    "data-editor:data/other.json:$:name:hidden": "1",
+    "data-editor:data/runes.json:$:damage:name:hidden": "1",
   });
 
   writeLocalViewState({
     path: "data/runes.json",
     collectionPath: "$",
+    viewId: "view:damage/main",
     state: {
       hidden: ["description"],
       wrapped: ["description"],
       order: ["rune_name", "description"],
-      detailOrder: [],
+      detailOrder: ["description", "rune_name"],
       widths: { description: 180 },
       sidebarWidth: 260,
       detailPanelWidth: 410,
@@ -197,20 +236,40 @@ test("writeLocalViewState overwrites only localStorage keys for the current coll
     localStorage: storage,
   });
 
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:old:hidden"), null);
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:description:hidden"), "1");
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:description:wrapped"), "1");
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:description:width"), "180");
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:__order"), "rune_name,description");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:old:hidden"), null);
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden"), "1");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:wrapped"), "1");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:width"), "180");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:__order"), "rune_name,description");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order"), "description,rune_name");
   assert.equal(storage.getItem("data-editor:sidebar-width"), "260");
   assert.equal(storage.getItem("data-editor:detail-panel-width"), "410");
-  assert.equal(storage.getItem("data-editor:data/other.json:$:name:hidden"), "1");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:damage:name:hidden"), "1");
+});
+
+test("deleteLocalViewState removes only the targeted view layout keys", () => {
+  const storage = createMemoryStorage({
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden": "1",
+    "data-editor:data/runes.json:$:all:description:hidden": "1",
+    "data-editor:data/other.json:$:all:name:hidden": "1",
+  });
+
+  deleteLocalViewState({
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "view:damage/main",
+    localStorage: storage,
+  });
+
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden"), null);
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all:description:hidden"), "1");
+  assert.equal(storage.getItem("data-editor:data/other.json:$:all:name:hidden"), "1");
 });
 
 test("readLocalFileOrder reads top-level file order independently of collection state", () => {
   const storage = createMemoryStorage({
     "data-editor:__file-order": "data/c.json,data/a.json",
-    "data-editor:data/runes.json:$:__order": "description,rune_name",
+    "data-editor:data/runes.json:$:damage:__order": "description,rune_name",
   });
 
   assert.deepEqual(readLocalFileOrder(storage), ["data/c.json", "data/a.json"]);
@@ -219,13 +278,13 @@ test("readLocalFileOrder reads top-level file order independently of collection 
 test("writeLocalFileOrder stores top-level file order without touching collection state", () => {
   const storage = createMemoryStorage({
     "data-editor:__file-order": "data/old.json",
-    "data-editor:data/runes.json:$:__order": "description,rune_name",
+    "data-editor:data/runes.json:$:damage:__order": "description,rune_name",
   });
 
   writeLocalFileOrder(storage, ["data/b.json", "data/a.json"]);
 
   assert.equal(storage.getItem("data-editor:__file-order"), "data/b.json,data/a.json");
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:__order"), "description,rune_name");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:damage:__order"), "description,rune_name");
 });
 
 test("writeLocalFileOrder removes top-level file order when empty", () => {
@@ -265,7 +324,7 @@ test("local shared view drafts are stored independently from collection view sta
         " data/runes.json:$ ": [" view-2 ", "view-1", "view-2", " "],
       },
     }),
-    "data-editor:data/runes.json:$:__order": "description,rune_name",
+    "data-editor:data/runes.json:$:damage:__order": "description,rune_name",
   });
 
   assert.deepEqual(readLocalSharedViewDrafts(storage), {
@@ -321,7 +380,7 @@ test("local shared view drafts are stored independently from collection view sta
       "data/runes.json:$": ["view-2", "view-1"],
     },
   });
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:__order"), "description,rune_name");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:damage:__order"), "description,rune_name");
 });
 
 test("writeLocalSharedViewDrafts removes storage when all shared drafts are empty", () => {
@@ -383,10 +442,11 @@ test("readLocalSharedViewDrafts returns empty drafts for malformed JSON", () => 
 });
 
 test("local reset returns an empty local view state", () => {
-  const next = resetCollectionViewState({
+  const next = resetViewLayoutState({
     mode: "local",
     path: "data/runes.json",
     collectionPath: "$",
+    viewId: "damage",
     profile: null,
     localState: {
       hidden: ["description"],

@@ -16,12 +16,12 @@ import {
 
 export { buildRelationIndex, isRequiredField, isUniqueField };
 
-export function validateRequiredTyped(value: unknown, fieldName: string): ValidationIssue | null {
-  return validateRequired(value, fieldName) as ValidationIssue | null;
+export function validateRequiredTyped(value: unknown, fieldName: string, options?: { required?: boolean }): ValidationIssue | null {
+  return validateRequired(value, fieldName, options) as ValidationIssue | null;
 }
 
-export function validateUniqueTyped(rows: Record<string, unknown>[], fieldName: string): ValidationIssue[] {
-  return validateUnique(rows, fieldName) as ValidationIssue[];
+export function validateUniqueTyped(rows: Record<string, unknown>[], fieldName: string, options?: { unique?: boolean }): ValidationIssue[] {
+  return validateUnique(rows, fieldName, options) as ValidationIssue[];
 }
 
 export function validateRelationValueTyped(value: unknown, index: Set<string>): ValidationIssue | null {
