@@ -48,6 +48,7 @@ export async function saveProjectRegistry(registry, options = {}) {
 export async function addOrActivateProject(input, options = {}) {
   const registry = await loadProjectRegistry(options);
   const root = path.resolve(input.root ?? input.projectRoot ?? process.cwd());
+  if (isFilesystemRoot(root)) throw new Error(`Project root cannot be a filesystem root: ${root}`);
   const existing = registry.projects.find((project) => samePath(project.root, root));
   if (existing) {
     registry.activeProjectId = existing.id;
@@ -82,9 +83,14 @@ export function emptyProjectRegistry() {
 
 export function normalizeProjectRegistry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return emptyProjectRegistry();
-  const projects = Array.isArray(value.projects) ? value.projects.map(normalizeProjectDefinition) : [];
-  const activeProjectId = typeof value.activeProjectId === "string" && value.activeProjectId.trim()
+  const projects = Array.isArray(value.projects)
+    ? value.projects.map(normalizeProjectDefinition).filter((project) => !isFilesystemRoot(project.root))
+    : [];
+  const requestedActiveProjectId = typeof value.activeProjectId === "string" && value.activeProjectId.trim()
     ? value.activeProjectId.trim()
+    : null;
+  const activeProjectId = requestedActiveProjectId && projects.some((project) => project.id === requestedActiveProjectId)
+    ? requestedActiveProjectId
     : projects[0]?.id ?? null;
   return {
     version: registryVersion,
@@ -134,6 +140,7 @@ function validateProjectRegistry(registry) {
   const roots = new Set();
   for (const project of registry.projects) {
     validateId(project.id, "project");
+    if (isFilesystemRoot(project.root)) throw new Error(`Project root cannot be a filesystem root: ${project.root}`);
     if (projectIds.has(project.id)) throw new Error(`Duplicate project id: ${project.id}`);
     projectIds.add(project.id);
     const rootKey = normalizePathKey(project.root);
@@ -189,6 +196,11 @@ function samePath(a, b) {
 
 function normalizePathKey(value) {
   return path.resolve(String(value)).toLowerCase();
+}
+
+function isFilesystemRoot(value) {
+  const resolved = path.resolve(String(value));
+  return path.parse(resolved).root === resolved;
 }
 
 function stripBom(text) {

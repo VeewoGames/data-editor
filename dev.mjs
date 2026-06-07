@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { buildDevChildSpawnOptions, isBackgroundDevProcess } from "./src/dev-spawn-options.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
@@ -8,11 +9,13 @@ import { createProjectContext } from "./src/project-context.mjs";
 const toolRoot = path.dirname(fileURLToPath(import.meta.url));
 const rootArgIndex = process.argv.indexOf("--root");
 const projectArgIndex = process.argv.indexOf("--project");
+const registryHomeArgIndex = process.argv.indexOf("--registry-home");
+const registryHome = registryHomeArgIndex >= 0 ? process.argv[registryHomeArgIndex + 1] : null;
 const projectRoot = projectArgIndex >= 0
   ? process.argv[projectArgIndex + 1]
   : rootArgIndex >= 0
     ? process.argv[rootArgIndex + 1]
-    : path.resolve(toolRoot, "../..");
+    : inferDefaultProjectRoot({ toolRoot, cwd: process.cwd(), registryHome });
 const portArgIndex = process.argv.indexOf("--port");
 const vitePort = portArgIndex >= 0 ? Number(process.argv[portArgIndex + 1]) : 8787;
 const apiPort = vitePort + 1;
@@ -24,8 +27,6 @@ const runtimeDirArgIndex = process.argv.indexOf("--runtime-dir");
 const runtimeDir = runtimeDirArgIndex >= 0 ? process.argv[runtimeDirArgIndex + 1] : ".data-editor/runtime";
 const logsDirArgIndex = process.argv.indexOf("--logs-dir");
 const logsDir = logsDirArgIndex >= 0 ? process.argv[logsDirArgIndex + 1] : ".data-editor/logs";
-const registryHomeArgIndex = process.argv.indexOf("--registry-home");
-const registryHome = registryHomeArgIndex >= 0 ? process.argv[registryHomeArgIndex + 1] : null;
 const runtimeToolRootArgIndex = process.argv.indexOf("--tool-root");
 const runtimeToolRoot = runtimeToolRootArgIndex >= 0 ? process.argv[runtimeToolRootArgIndex + 1] : toolRoot;
 const background = isBackgroundDevProcess(process.env);

@@ -8,6 +8,7 @@ import {
   clearRecoveryBridgeState,
   loadRecoveryBridgeState,
 } from "./src/runtime-state.mjs";
+import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import { runtimeHome } from "./src/project-registry.mjs";
 import { inspectProcess, matchesRecoveryBridgeIdentity } from "./stop.mjs";
 
@@ -202,18 +203,22 @@ function normalizeOptions(options) {
 
 function parseArgs(argv) {
   const explicitMode = readOption(argv, "--mode");
-  const projectRoot = readOption(argv, "--project") ?? readOption(argv, "--root") ?? path.resolve(scriptRoot, "../..");
+  const toolRoot = readOption(argv, "--tool-root") ?? scriptRoot;
+  const registryHome = readOption(argv, "--registry-home") ?? undefined;
+  const projectRoot = readOption(argv, "--project")
+    ?? readOption(argv, "--root")
+    ?? inferDefaultProjectRoot({ toolRoot, cwd: process.cwd(), registryHome });
   const portValue = readOption(argv, "--port");
   const port = Number.isInteger(Number(portValue)) && Number(portValue) > 0 ? Number(portValue) : 8787;
   const selectedMode = explicitMode === "dev" || explicitMode === "static" ? explicitMode : inferMode();
   return {
-    toolRoot: readOption(argv, "--tool-root") ?? scriptRoot,
+    toolRoot,
     projectRoot,
     adapterId: readOption(argv, "--adapter") ?? "nocturnel",
     port,
     bridgePort: Number(readOption(argv, "--bridge-port") ?? 8791),
     mode: selectedMode,
-    registryHome: readOption(argv, "--registry-home") ?? undefined,
+    registryHome,
     runtimeDir: readOption(argv, "--runtime-dir") ?? undefined,
     logsDir: readOption(argv, "--logs-dir") ?? undefined,
   };

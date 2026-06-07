@@ -7,6 +7,7 @@ import { execFile, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
+import net from "node:net";
 import { EventEmitter } from "node:events";
 import { promisify } from "node:util";
 import { loadControllerState, loadServiceState, saveServiceState } from "../src/runtime-state.mjs";
@@ -29,7 +30,7 @@ const stopScriptPath = path.join(repoRoot, "stop.mjs");
 const openScriptPath = path.join(repoRoot, "open.mjs");
 const serverScriptPath = path.join(repoRoot, "server.mjs");
 const serviceFinalizeScriptPath = path.join(repoRoot, "scripts", "service-finalize.mjs");
-const projectRoot = path.resolve(repoRoot, "../..");
+const projectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(repoRoot, "..", "Nocturnel"));
 const execFileAsync = promisify(execFile);
 
 async function makeToolRoot(t) {
@@ -165,6 +166,45 @@ function postJson(port, requestPath, body = {}) {
     request.on("error", reject);
     request.end(payload);
   });
+}
+
+async function openIdleKeepAliveConnection(port, requestPath = "/") {
+  const socket = net.createConnection({ host: "127.0.0.1", port });
+  await new Promise((resolve, reject) => {
+    socket.once("connect", resolve);
+    socket.once("error", reject);
+  });
+
+  const responseText = await new Promise((resolve, reject) => {
+    let buffer = "";
+    const onData = (chunk) => {
+      buffer += chunk.toString("utf8");
+      const headerEnd = buffer.indexOf("\r\n\r\n");
+      if (headerEnd < 0) return;
+      const headerText = buffer.slice(0, headerEnd);
+      const match = headerText.match(/content-length:\s*(\d+)/i);
+      const contentLength = match ? Number(match[1]) : 0;
+      const totalLength = headerEnd + 4 + contentLength;
+      if (buffer.length < totalLength) return;
+      socket.off("data", onData);
+      resolve(buffer.slice(0, totalLength));
+    };
+    socket.on("data", onData);
+    socket.once("error", reject);
+    socket.write(`GET ${requestPath} HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nConnection: keep-alive\r\n\r\n`);
+  });
+
+  return { socket, responseText };
+}
+
+async function openIncompleteHttpConnection(port, requestPath = "/") {
+  const socket = net.createConnection({ host: "127.0.0.1", port });
+  await new Promise((resolve, reject) => {
+    socket.once("connect", resolve);
+    socket.once("error", reject);
+  });
+  socket.write(`GET ${requestPath} HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nConnection: keep-alive\r\n`);
+  return socket;
 }
 
 function getJson(port, requestPath) {
@@ -1283,6 +1323,30 @@ test("missing static assets return 404 without crashing the static server", asyn
   assert.equal(healthResponse.statusCode, 200, JSON.stringify(healthResponse.body));
 });
 
+test("invalid document requests return 500 without crashing the static server", async (t) => {
+  const port = await findAvailablePort();
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-invalid-document-home-"));
+  t.after(async () => {
+    await rm(registryHome, { recursive: true, force: true });
+  });
+  const child = spawnDataEditorServer(port, ["--project", projectRoot, "--registry-home", registryHome, "--static", "dist"]);
+  t.after(async () => {
+    try {
+      child.kill();
+    } catch {}
+    await waitForExit(child).catch(() => {});
+  });
+
+  await waitForHttpOk(port);
+
+  const response = await getJson(port, "/api/document?path=data/prototypes_mini.json");
+  assert.equal(response.statusCode, 500);
+  assert.match(String(response.body?.error ?? ""), /allowlist/i);
+
+  const healthResponse = await getJson(port, "/api/health");
+  assert.equal(healthResponse.statusCode, 200, JSON.stringify(healthResponse.body));
+});
+
 test("server registers project and lists files by projectId", async (t) => {
   const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-api-project-"));
   const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-api-home-"));
@@ -1360,6 +1424,70 @@ test("POST /api/shutdown also stops the dev service through the same formal stop
   const rebound = await listenOnPort(port);
   await new Promise((resolve, reject) => rebound.close((error) => (error ? reject(error) : resolve())));
   await waitForServiceStateClear(runtimeTarget);
+  const bridgeHealth = await getJson(bridgePort, "/health");
+  assert.equal(bridgeHealth.statusCode, 200);
+  const stopResult = await runStop(toolRoot);
+  assert.equal(stopResult.code, 0, stopResult.stderr || stopResult.stdout);
+  await waitForHttpDown(bridgePort);
+});
+
+test("POST /api/shutdown exits the static service even when a keep-alive client is still connected", async (t) => {
+  const toolRoot = await makeToolRoot(t);
+  const runtimeTarget = runtimeTargetFor(toolRoot);
+  const port = await findAvailablePort();
+  const bridgePort = await findAvailablePort();
+
+  const result = await runOpen(toolRoot, ["--root", projectRoot, "--port", String(port), "--bridge-port", String(bridgePort)]);
+  assert.equal(result.code, 0, `stdout=${result.stdout}\nstderr=${result.stderr}`);
+  await waitForHttpOk(port);
+
+  const serviceState = await loadServiceState(runtimeTarget);
+  assert.ok(serviceState?.pid, "expected service pid to be recorded before shutdown");
+
+  const { socket, responseText } = await openIdleKeepAliveConnection(port, "/api/health");
+  t.after(() => socket.destroy());
+  assert.match(responseText, /^HTTP\/1\.1 200 /);
+  assert.match(responseText, /Connection: keep-alive/i);
+
+  const shutdownResponse = await postJson(port, "/api/shutdown");
+  assert.equal(shutdownResponse.statusCode, 202, JSON.stringify(shutdownResponse.body));
+  assert.deepEqual(shutdownResponse.body, { ok: true, stopping: true });
+
+  await waitForHttpDown(port);
+  await waitForServiceStateClear(runtimeTarget);
+  await waitForPidExit(Number(serviceState.pid));
+
+  const bridgeHealth = await getJson(bridgePort, "/health");
+  assert.equal(bridgeHealth.statusCode, 200);
+  const stopResult = await runStop(toolRoot);
+  assert.equal(stopResult.code, 0, stopResult.stderr || stopResult.stdout);
+  await waitForHttpDown(bridgePort);
+});
+
+test("POST /api/shutdown exits the static service even when a client leaves an incomplete HTTP connection open", async (t) => {
+  const toolRoot = await makeToolRoot(t);
+  const runtimeTarget = runtimeTargetFor(toolRoot);
+  const port = await findAvailablePort();
+  const bridgePort = await findAvailablePort();
+
+  const result = await runOpen(toolRoot, ["--root", projectRoot, "--port", String(port), "--bridge-port", String(bridgePort)]);
+  assert.equal(result.code, 0, `stdout=${result.stdout}\nstderr=${result.stderr}`);
+  await waitForHttpOk(port);
+
+  const serviceState = await loadServiceState(runtimeTarget);
+  assert.ok(serviceState?.pid, "expected service pid to be recorded before shutdown");
+
+  const socket = await openIncompleteHttpConnection(port, "/api/health");
+  t.after(() => socket.destroy());
+
+  const shutdownResponse = await postJson(port, "/api/shutdown");
+  assert.equal(shutdownResponse.statusCode, 202, JSON.stringify(shutdownResponse.body));
+  assert.deepEqual(shutdownResponse.body, { ok: true, stopping: true });
+
+  await waitForHttpDown(port);
+  await waitForServiceStateClear(runtimeTarget);
+  await waitForPidExit(Number(serviceState.pid));
+
   const bridgeHealth = await getJson(bridgePort, "/health");
   assert.equal(bridgeHealth.statusCode, 200);
   const stopResult = await runStop(toolRoot);

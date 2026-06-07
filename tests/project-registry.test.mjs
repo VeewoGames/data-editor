@@ -93,3 +93,37 @@ test("addOrActivateProject creates a default data source and avoids duplicate ro
   const stored = JSON.parse(await readFile(projectRegistryPath({ home }), "utf8"));
   assert.equal(stored.projects.length, 1);
 });
+
+test("loadProjectRegistry drops filesystem-root projects and restores a valid active project", async (t) => {
+  const home = await makeHome(t);
+  const validRoot = path.join(home, "Nocturnel");
+  await mkdir(validRoot, { recursive: true });
+  await writeFile(projectRegistryPath({ home }), `${JSON.stringify({
+    version: 1,
+    activeProjectId: "project-59d75dd6",
+    projects: [
+      {
+        id: "nocturnel-e621a436",
+        name: "Nocturnel",
+        root: validRoot,
+        adapter: "nocturnel",
+        dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
+        filePolicy: { includeExtensions: [".json", ".csv"] },
+      },
+      {
+        id: "project-59d75dd6",
+        name: "Project",
+        root: path.parse(validRoot).root,
+        adapter: "nocturnel",
+        dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
+        filePolicy: { includeExtensions: [".json", ".csv"] },
+      },
+    ],
+  }, null, 2)}\n`, "utf8");
+
+  const registry = await loadProjectRegistry({ home });
+
+  assert.equal(registry.projects.length, 1);
+  assert.equal(registry.projects[0].id, "nocturnel-e621a436");
+  assert.equal(registry.activeProjectId, "nocturnel-e621a436");
+});

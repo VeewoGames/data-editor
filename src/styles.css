@@ -2382,17 +2382,34 @@ th:hover .column-resize-handle::after,
   width: 100%;
 }
 
-.title-cell span:first-child {
+.title-cell-button {
+  appearance: none;
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  box-sizing: border-box;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  height: calc(100% + 14px);
+  margin: -7px -8px;
+  min-width: 0;
+  padding: 7px 8px;
+  text-align: left;
+  width: calc(100% + 16px);
+}
+
+.title-cell-text {
   color: #116baa;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  padding-right: 32px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.title-cell.cell-text-wrap span:first-child {
+.title-cell-button.cell-text-wrap .title-cell-text {
   display: block;
   line-height: var(--line-height-body);
   overflow: visible;
@@ -2401,33 +2418,8 @@ th:hover .column-resize-handle::after,
   word-break: break-word;
 }
 
-.title-open-button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  color: #00b143;
-  display: inline-flex;
-  justify-content: center;
-  height: 28px;
-  width: 28px;
-  opacity: 0;
-  padding: 0;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-  top: 2px;
-  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
-}
-
-.title-cell:hover .title-open-button,
-.title-open-button:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.title-open-button:hover {
-  background: #e7f8ed;
+.title-cell-button:hover .title-cell-text,
+.title-cell-button:focus-visible .title-cell-text {
   color: #009a3a;
 }
 

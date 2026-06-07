@@ -14,6 +14,7 @@ import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
+import { createConnectionShutdown } from "./src/server-shutdown.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const projectRoot = path.resolve(args.project ?? args.root ?? process.cwd());
@@ -27,34 +28,36 @@ const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileUR
 const execFileAsync = promisify(execFile);
 let shuttingDown = false;
 let initialProjectPromise = null;
+const connectionShutdown = createConnectionShutdown();
 
 const server = http.createServer(async (req, res) => {
   try {
     await ensureInitialProject();
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
-    if (url.pathname === "/api/projects" && req.method === "POST") return handleCreateProject(req, res);
-    if (url.pathname === "/api/project-update" && req.method === "POST") return handleUpdateProject(req, res);
-    if (url.pathname === "/api/project-delete" && req.method === "POST") return handleDeleteProject(req, res);
-    if (url.pathname === "/api/project-activate" && req.method === "POST") return handleActivateProject(req, res);
+    if (url.pathname === "/api/projects" && req.method === "POST") return await handleCreateProject(req, res);
+    if (url.pathname === "/api/project-update" && req.method === "POST") return await handleUpdateProject(req, res);
+    if (url.pathname === "/api/project-delete" && req.method === "POST") return await handleDeleteProject(req, res);
+    if (url.pathname === "/api/project-activate" && req.method === "POST") return await handleActivateProject(req, res);
     if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(await projectContextForUrl(url)));
-    if (url.pathname === "/api/document") return handleDocument(url, res);
-    if (url.pathname === "/api/save" && req.method === "POST") return handleSave(req, res);
+    if (url.pathname === "/api/document") return await handleDocument(url, res);
+    if (url.pathname === "/api/save" && req.method === "POST") return await handleSave(req, res);
     if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(await projectContextForUrl(url)));
-    if (url.pathname === "/api/view-config" && req.method === "POST") return handleSaveViewConfig(req, res);
+    if (url.pathname === "/api/view-config" && req.method === "POST") return await handleSaveViewConfig(req, res);
     if (url.pathname === "/api/shared-views" && req.method === "GET") return sendJson(res, await loadSharedViews(await projectContextForUrl(url)));
-    if (url.pathname === "/api/shared-views" && req.method === "POST") return handleSaveSharedViews(req, res);
+    if (url.pathname === "/api/shared-views" && req.method === "POST") return await handleSaveSharedViews(req, res);
     if (url.pathname === "/api/view-profiles") return sendJson(res, await listViewProfiles(await projectContextForUrl(url)));
-    if (url.pathname === "/api/view-profile" && req.method === "GET") return handleLoadViewProfile(url, res);
-    if (url.pathname === "/api/view-profile" && req.method === "POST") return handleSaveViewProfile(req, res);
+    if (url.pathname === "/api/view-profile" && req.method === "GET") return await handleLoadViewProfile(url, res);
+    if (url.pathname === "/api/view-profile" && req.method === "POST") return await handleSaveViewProfile(req, res);
     if (url.pathname === "/api/health" && req.method === "GET") return sendJson(res, { ok: true, bridgePort });
-    if (url.pathname === "/api/rebuild" && req.method === "POST") return handleRebuild(res);
+    if (url.pathname === "/api/rebuild" && req.method === "POST") return await handleRebuild(res);
     if (url.pathname === "/api/shutdown" && req.method === "POST") return handleShutdown(res);
-    return serveStatic(url.pathname, res);
+    return await serveStatic(url.pathname, res);
   } catch (error) {
     sendJson(res, { error: error.message }, 500);
   }
 });
+connectionShutdown.attach(server);
 
 if (isMainModule) {
   registerRuntimeStateCleanup();
@@ -323,7 +326,7 @@ async function shutdownServer(exitCode) {
   shuttingDown = true;
   process.exitCode = exitCode;
   await clearServiceStateIfOwned(runtimeTargetFromArgs(), process.pid).catch(() => {});
-  await new Promise((resolve) => server.close(() => resolve()));
+  await connectionShutdown.close(server);
   process.exit(exitCode);
 }
 

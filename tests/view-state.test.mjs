@@ -650,8 +650,30 @@ test("project reload lets openDocumentAt choose the first valid collection", asy
     appSource.indexOf("async function loadMaintenanceInfo"),
   );
 
-  assert.match(reloadSection, /openDocumentAt\(initialFileOrder\[0\], undefined, undefined, false, projectId\)/);
-  assert.doesNotMatch(reloadSection, /openDocumentAt\(initialFileOrder\[0\], "\$"/);
+  assert.match(reloadSection, /resolvePreferredFilePath\(nextFiles, savedOrder, selectedPathRef\.current\)/);
+  assert.match(reloadSection, /openDocumentAt\(preferredPath, undefined, undefined, false, projectId\)/);
+  assert.doesNotMatch(reloadSection, /openDocumentAt\(preferredPath, "\$"/);
   assert.match(openDocumentSection, /resolveDocumentCollection\(documentModel, targetCollection\)/);
   assert.match(appSource, /function resolveDocumentCollection\(model: DocumentModel, targetCollection\?: string\)/);
+});
+
+test("project reload and document open both guard against stale file paths before retrying", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const reloadSection = appSource.slice(
+    appSource.indexOf("async function reloadProjectWorkspace"),
+    appSource.indexOf("function resetWorkspaceState"),
+  );
+  const openDocumentSection = appSource.slice(
+    appSource.indexOf("async function openDocumentAt"),
+    appSource.indexOf("async function loadMaintenanceInfo"),
+  );
+
+  assert.match(appSource, /import \{ normalizeFileOrder, resolvePreferredFilePath \} from "\.\/file-order\.mjs";/);
+  assert.match(reloadSection, /const preferredPath = resolvePreferredFilePath\(nextFiles, savedOrder, selectedPathRef\.current\);/);
+  assert.match(reloadSection, /if \(preferredPath\) await openDocumentAt\(preferredPath, undefined, undefined, false, projectId\);/);
+  assert.match(
+    openDocumentSection,
+    /const fallbackPath = resolvePreferredFilePath\(\s*files,\s*selectedViewProfileNameRef\.current \? selectedViewProfileRef\.current\.fileOrder : readLocalFileOrder\(window\.localStorage\),\s*path,\s*\);/,
+  );
+  assert.match(openDocumentSection, /if \(fallbackPath && fallbackPath !== path\) \{/);
 });

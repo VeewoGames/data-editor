@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { moveFileToIndex, normalizeFileOrder } from "../src/file-order.mjs";
+import { moveFileToIndex, normalizeFileOrder, resolvePreferredFilePath } from "../src/file-order.mjs";
 
 const files = [
   { path: "data/a.json" },
@@ -42,4 +42,16 @@ test("moveFileToIndex ignores unknown source paths", () => {
     "data/a.json",
     "data/b.json",
   ]);
+});
+
+test("resolvePreferredFilePath keeps a valid preferred path", () => {
+  assert.equal(resolvePreferredFilePath(files, ["data/c.json"], "data/b.json"), "data/b.json");
+});
+
+test("resolvePreferredFilePath falls back to the first valid ordered path when preferred path is stale", () => {
+  assert.equal(resolvePreferredFilePath(files, ["data/c.json", "data/a.json"], "data/missing.json"), "data/c.json");
+});
+
+test("resolvePreferredFilePath returns null when there are no files", () => {
+  assert.equal(resolvePreferredFilePath([], ["data/a.json"], "data/missing.json"), null);
 });

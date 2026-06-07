@@ -1,6 +1,7 @@
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import {
   clearServiceState,
   clearControllerStateIfOwned,
@@ -256,7 +257,7 @@ function buildCorsHeaders() {
 function parseArgs(argv) {
   const parsed = {
     toolRoot: scriptRoot,
-    projectRoot: path.resolve(scriptRoot, "../.."),
+    projectRoot: null,
     registryHome: runtimeHome().projectRoot,
     port: 8791,
     servicePort: 8787,
@@ -278,6 +279,11 @@ function parseArgs(argv) {
     else if (token === "--runtime-dir") parsed.runtimeDir = argv[++index];
     else if (token === "--logs-dir") parsed.logsDir = argv[++index];
   }
+  parsed.projectRoot ??= inferDefaultProjectRoot({
+    toolRoot: parsed.toolRoot,
+    cwd: process.cwd(),
+    registryHome: parsed.registryHome,
+  });
   parsed.runtimeTarget = runtimeHome({ home: parsed.registryHome });
   return parsed;
 }
