@@ -11,9 +11,10 @@ import { getRecordTitle } from "../model/titleField";
 import type { ValidationIssue } from "../model/validation";
 import { NestedEditor } from "./NestedEditor";
 import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
+import type { OptionFieldDraftCommit } from "../table/OptionFieldEditor";
 import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
-import type { FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
+import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
 import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
 
@@ -37,14 +38,8 @@ type DetailPanelProps = {
   primaryKeySyncPlan: PrimaryKeySyncPlan | null;
   primaryKeySyncResult: SaveDocumentsResult | null;
   saving: boolean;
-  onRenameMultiSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
-  onDeleteMultiSelectOption: (fieldName: string, optionValue: string | number) => void;
-  onSetMultiSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderMultiSelectOptions: (fieldName: string, orderedValues: string[]) => void;
-  onRenameSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
-  onDeleteSelectOption: (fieldName: string, optionValue: string | number) => void;
-  onSetSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderSelectOptions: (fieldName: string, orderedValues: string[]) => void;
+  onCommitMultiSelectDraft: (fieldName: string, patch: OptionFieldDraftCommit) => void;
+  onCommitSelectDraft: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
   onRequestSyncSave: () => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
@@ -85,14 +80,8 @@ export function DetailPanel({
   primaryKeySyncPlan,
   primaryKeySyncResult,
   saving,
-  onRenameMultiSelectOption,
-  onDeleteMultiSelectOption,
-  onSetMultiSelectOptionColor,
-  onReorderMultiSelectOptions,
-  onRenameSelectOption,
-  onDeleteSelectOption,
-  onSetSelectOptionColor,
-  onReorderSelectOptions,
+  onCommitMultiSelectDraft,
+  onCommitSelectDraft,
   onOpenBacklink,
   onRequestSyncSave,
   onOpenRelationTarget,
@@ -392,14 +381,8 @@ export function DetailPanel({
                         sourcePath,
                         collectionPath,
                         onOpenRelationTarget,
-                        onRenameMultiSelectOption,
-                        onDeleteMultiSelectOption,
-                        onSetSelectOptionColor,
-                        onReorderSelectOptions,
-                        onSetMultiSelectOptionColor,
-                        onReorderMultiSelectOptions,
-                        onRenameSelectOption,
-                        onDeleteSelectOption,
+                        onCommitMultiSelectDraft,
+                        onCommitSelectDraft,
                         onEditField,
                         onOpenNested: (nestedValue, path, customTitle) => openNestedField(key, nestedValue, path, customTitle),
                       })}
@@ -620,14 +603,6 @@ function NestedObjectPanel(props: {
               relationConfigs: props.relationConfigs,
               sourcePath: props.sourcePath,
               collectionPath: props.collectionPath,
-              onRenameMultiSelectOption: () => {},
-              onDeleteMultiSelectOption: () => {},
-              onSetMultiSelectOptionColor: () => {},
-              onReorderMultiSelectOptions: () => {},
-              onRenameSelectOption: () => {},
-              onDeleteSelectOption: () => {},
-              onSetSelectOptionColor: () => {},
-              onReorderSelectOptions: () => {},
               onEditField: (_fieldName, nextValue) => props.onEditValue([key], nextValue),
               onOpenNested: (nestedValue, path, customTitle) => props.onOpenNested([key, ...path], Array.isArray(nestedValue) ? nestedValue : nestedValue as Record<string, unknown>),
             })}
@@ -740,14 +715,8 @@ function renderValueEditor(props: {
   sourcePath?: string | null;
   collectionPath?: string;
   onOpenRelationTarget?: (config: RelationConfig, value: string | number) => void;
-  onRenameMultiSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
-  onDeleteMultiSelectOption: (fieldName: string, optionValue: string | number) => void;
-  onSetMultiSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderMultiSelectOptions: (fieldName: string, orderedValues: string[]) => void;
-  onRenameSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
-  onDeleteSelectOption: (fieldName: string, optionValue: string | number) => void;
-  onSetSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderSelectOptions: (fieldName: string, orderedValues: string[]) => void;
+  onCommitMultiSelectDraft?: (fieldName: string, patch: OptionFieldDraftCommit) => void;
+  onCommitSelectDraft?: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onEditField: (fieldName: string, value: unknown) => void;
   onOpenNested: (value: unknown, path: Array<string | number>, customTitle?: string) => void;
 }) {
@@ -778,32 +747,50 @@ function renderValueEditor(props: {
     );
   }
   if (props.displayType === "Select" && (props.value == null || typeof props.value === "string" || typeof props.value === "number")) {
+    if (!props.onCommitSelectDraft) {
+      const selectedOption = props.selectOptions.find((option) => String(option.value) === String(props.value));
+      return (
+        <div className="chips-cell">
+          {props.value == null || props.value === ""
+            ? <span className="select-placeholder">未设置</span>
+            : <span className="chip">{selectedOption?.label ?? String(props.value)}</span>}
+        </div>
+      );
+    }
     return (
       <SelectCellEditor
         cellId={props.cellId}
+        key={props.cellId}
+        onCommitDraft={(patch) => props.onCommitSelectDraft!(props.fieldName, patch)}
         options={props.selectOptions}
         surface="detail"
         value={props.value as string | number | null}
-        onEdit={(next) => props.onEditField(props.fieldName, next)}
-        onRenameOption={(previousValue, nextValue) => props.onRenameSelectOption(props.fieldName, previousValue, nextValue)}
-        onDeleteOption={(optionValue) => props.onDeleteSelectOption(props.fieldName, optionValue)}
-        onSetOptionColor={(optionValue, color) => props.onSetSelectOptionColor(props.fieldName, optionValue, color)}
-        onReorderOptions={(orderedValues) => props.onReorderSelectOptions(props.fieldName, orderedValues)}
       />
     );
   }
   if (props.displayType === "Multi-select" && Array.isArray(props.value)) {
+    if (!props.onCommitMultiSelectDraft) {
+      return (
+        <div className="chips-cell">
+          {(props.value as Array<string | number>).map((item, index) => {
+            const option = props.multiSelectOptions.find((candidate) => String(candidate.value) === String(item));
+            return (
+              <span className="chip" key={`${item}-${index}`}>
+                {option?.label ?? String(item)}
+              </span>
+            );
+          })}
+        </div>
+      );
+    }
     return (
       <MultiSelectCellEditor
         cellId={props.cellId}
+        key={props.cellId}
+        onCommitDraft={(patch) => props.onCommitMultiSelectDraft!(props.fieldName, patch)}
         surface="detail"
         value={props.value as Array<string | number>}
         options={props.multiSelectOptions}
-        onEdit={(next) => props.onEditField(props.fieldName, next)}
-        onRenameOption={(previousValue, nextValue) => props.onRenameMultiSelectOption(props.fieldName, previousValue, nextValue)}
-        onDeleteOption={(optionValue) => props.onDeleteMultiSelectOption(props.fieldName, optionValue)}
-        onSetOptionColor={(optionValue, color) => props.onSetMultiSelectOptionColor(props.fieldName, optionValue, color)}
-        onReorderOptions={(orderedValues) => props.onReorderMultiSelectOptions(props.fieldName, orderedValues)}
       />
     );
   }

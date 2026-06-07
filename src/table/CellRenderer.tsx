@@ -4,10 +4,11 @@ import { isCompatible } from "../model/fieldTypes";
 import type { RelationOption } from "../model/relations";
 import type { ValidationIssue } from "../model/validation";
 import { MultiSelectCellEditor } from "./MultiSelectCellEditor";
+import type { OptionFieldDraftCommit } from "./OptionFieldEditor";
 import { RelationCellEditor } from "./RelationCellEditor";
 import { SelectCellEditor } from "./SelectCellEditor";
 import type { MultiSelectFieldOptionConfig, SelectFieldOptionConfig } from "./DataTable";
-import type { MultiSelectOptionColor, RelationMode } from "../model/viewConfig";
+import type { RelationMode } from "../model/viewConfig";
 
 type CellRendererProps = {
   cellId?: string;
@@ -22,14 +23,8 @@ type CellRendererProps = {
   relationMode?: RelationMode;
   onEdit: (value: unknown) => void;
   onOpenRelationTarget?: (value: string | number) => void;
-  onRenameMultiSelectOption?: (previousValue: string | number, nextValue: string) => void;
-  onDeleteMultiSelectOption?: (optionValue: string | number) => void;
-  onSetMultiSelectOptionColor?: (optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderMultiSelectOptions?: (orderedValues: string[]) => void;
-  onRenameSelectOption?: (previousValue: string | number, nextValue: string) => void;
-  onDeleteSelectOption?: (optionValue: string | number) => void;
-  onSetSelectOptionColor?: (optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderSelectOptions?: (orderedValues: string[]) => void;
+  onCommitMultiSelectDraft?: (patch: OptionFieldDraftCommit) => void;
+  onCommitSelectDraft?: (patch: OptionFieldDraftCommit) => void;
 };
 
 export function CellRenderer({
@@ -45,14 +40,8 @@ export function CellRenderer({
   relationMode,
   onEdit,
   onOpenRelationTarget,
-  onRenameMultiSelectOption,
-  onDeleteMultiSelectOption,
-  onSetMultiSelectOptionColor,
-  onReorderMultiSelectOptions,
-  onRenameSelectOption,
-  onDeleteSelectOption,
-  onSetSelectOptionColor,
-  onReorderSelectOptions,
+  onCommitMultiSelectDraft,
+  onCommitSelectDraft,
 }: CellRendererProps) {
   const shouldShowIssue = issue != null && !shouldSuppressRelationIssue(displayType, value);
   if (!isCompatible(displayType, value)) {
@@ -78,15 +67,11 @@ export function CellRenderer({
       <>
         <MultiSelectCellEditor
           cellId={cellId}
+          onCommitDraft={onCommitMultiSelectDraft ?? (() => {})}
           surface="table"
           value={value as Array<string | number>}
           options={multiSelectConfig?.options ?? []}
           wrapped={wrapped}
-          onEdit={onEdit}
-          onRenameOption={onRenameMultiSelectOption ?? (() => {})}
-          onDeleteOption={onDeleteMultiSelectOption ?? (() => {})}
-          onSetOptionColor={onSetMultiSelectOptionColor ?? (() => {})}
-          onReorderOptions={onReorderMultiSelectOptions ?? (() => {})}
         />
         {shouldShowIssue ? <Issue issue={issue} /> : null}
       </>
@@ -98,15 +83,11 @@ export function CellRenderer({
       <>
         <SelectCellEditor
           cellId={cellId}
+          onCommitDraft={onCommitSelectDraft ?? (() => {})}
           surface="table"
           options={selectConfig?.options ?? []}
           value={value as string | number | null}
           wrapped={wrapped}
-          onEdit={onEdit}
-          onRenameOption={onRenameSelectOption ?? (() => {})}
-          onDeleteOption={onDeleteSelectOption ?? (() => {})}
-          onSetOptionColor={onSetSelectOptionColor ?? (() => {})}
-          onReorderOptions={onReorderSelectOptions ?? (() => {})}
         />
         {shouldShowIssue ? <Issue issue={issue} /> : null}
       </>

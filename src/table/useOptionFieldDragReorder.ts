@@ -5,7 +5,6 @@ import {
   mergeProjectedSubsetOrder,
   projectVerticalDrag,
 } from "../drag/one-dimensional-dnd.mjs";
-import type { MultiSelectOptionView } from "../model/viewConfig";
 
 type DragPreviewState = {
   activeValue: string;
@@ -16,21 +15,23 @@ type DragPreviewState = {
   ghostWidth: number;
 };
 
-type UseOptionFieldDragReorderArgs = {
-  filteredOptions: MultiSelectOptionView[];
-  localOptionsRef: MutableRefObject<MultiSelectOptionView[]>;
-  onReorderOptions: (orderedValues: string[]) => void;
-  optionRowRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;
-  setLocalOptions: Dispatch<SetStateAction<MultiSelectOptionView[]>>;
+type OptionLike = {
+  value: string;
 };
 
-export function useOptionFieldDragReorder({
+type UseOptionFieldDragReorderArgs<TOption extends OptionLike> = {
+  filteredOptions: TOption[];
+  localOptionsRef: MutableRefObject<TOption[]>;
+  optionRowRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;
+  setLocalOptions: Dispatch<SetStateAction<TOption[]>>;
+};
+
+export function useOptionFieldDragReorder<TOption extends OptionLike>({
   filteredOptions,
   localOptionsRef,
-  onReorderOptions,
   optionRowRefs,
   setLocalOptions,
-}: UseOptionFieldDragReorderArgs) {
+}: UseOptionFieldDragReorderArgs<TOption>) {
   const [draggingValue, setDraggingValue] = useState<string | null>(null);
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null);
   const dragCleanupRef = useRef<(() => void) | null>(null);
@@ -133,7 +134,6 @@ export function useOptionFieldDragReorder({
         const nextOptions = applyOptionOrder(localOptionsRef.current, finalizedOrder);
         localOptionsRef.current = nextOptions;
         setLocalOptions(nextOptions);
-        onReorderOptions(finalizedOrder);
       },
       onCancel: () => {
         setDraggingValue(null);
@@ -195,12 +195,12 @@ export function useOptionFieldDragReorder({
   };
 }
 
-function applyOptionOrder(
-  options: MultiSelectOptionView[],
+function applyOptionOrder<TOption extends OptionLike>(
+  options: TOption[],
   orderedValues: string[],
 ) {
   const optionByValue = new Map(options.map((option) => [option.value, option]));
-  return orderedValues.map((value) => optionByValue.get(value)).filter((option): option is MultiSelectOptionView => option != null);
+  return orderedValues.map((value) => optionByValue.get(value)).filter((option): option is TOption => option != null);
 }
 
 function sameOrder(left: string[], right: string[]) {

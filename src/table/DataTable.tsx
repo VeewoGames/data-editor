@@ -10,6 +10,7 @@ import {
 } from "./column-dnd.mjs";
 import { BacklinkCellViewer } from "./BacklinkCellViewer";
 import { CellRenderer } from "./CellRenderer";
+import type { OptionFieldDraftCommit } from "./OptionFieldEditor";
 import type { DataRecord, DocumentModel } from "../model/documentModel";
 import { getMainColumns, getNestedFields, getRows, summarizeNested } from "../model/documentModel";
 import type { FieldDisplayType } from "../model/fieldTypes";
@@ -22,7 +23,7 @@ import { icons } from "../components/icons";
 import { findTitleField } from "../model/titleField";
 import type { BacklinkGridColumn } from "../model/backlinkGrid";
 import type { RelationBacklink } from "../model/relationMaintenance";
-import type { FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
+import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
 
 export type FieldConfig = {
@@ -68,14 +69,8 @@ type DataTableProps = {
   onOpenDetail: (rowIndex: number) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
   onEditCell: (rowIndex: number, fieldName: string, value: unknown) => void;
-  onRenameMultiSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
-  onDeleteMultiSelectOption: (fieldName: string, optionValue: string | number) => void;
-  onSetMultiSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderMultiSelectOptions: (fieldName: string, orderedValues: string[]) => void;
-  onRenameSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
-  onDeleteSelectOption: (fieldName: string, optionValue: string | number) => void;
-  onSetSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderSelectOptions: (fieldName: string, orderedValues: string[]) => void;
+  onCommitMultiSelectDraft: (rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) => void;
+  onCommitSelectDraft: (rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) => void;
   onChangeFieldType: (fieldName: string, displayType: FieldDisplayType) => void;
   onHideField: (fieldName: string) => void;
   onToggleWrapField: (fieldName: string) => void;
@@ -291,16 +286,19 @@ function DataTableComponent(props: DataTableProps) {
       if (fieldName === detectedTitleField) {
         const wrapped = props.fieldConfig.wrapped.has(fieldName);
         return (
-          <div
-            className={`title-cell cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
-            data-cell-role="title"
+          <button
+            type="button"
+            className={`title-cell title-cell-button cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
+            data-cell-role="title-action"
             data-wrap-mode={wrapped ? "wrap" : "truncate"}
+            onClick={(event) => {
+              event.stopPropagation();
+              props.onOpenDetail(originalRowIndex);
+            }}
+            title="Open detail"
           >
-            <span data-cell-role="title-text">{value == null ? "" : String(value)}</span>
-            <button className="title-open-button" onClick={(event) => { event.stopPropagation(); props.onOpenDetail(originalRowIndex); }} title="Open detail">
-              <icons.openDetail size={16} />
-            </button>
-          </div>
+            <span className="title-cell-text" data-cell-role="title-text">{value == null ? "" : String(value)}</span>
+          </button>
         );
       }
       return (
@@ -317,14 +315,8 @@ function DataTableComponent(props: DataTableProps) {
           onOpenRelationTarget={relationConfigByField[fieldName] ? (value) => props.onOpenRelationTarget(relationConfigByField[fieldName]!, value) : undefined}
           issue={props.issues[`${originalRowIndex}:${fieldName}`]}
           onEdit={(next) => props.onEditCell(originalRowIndex, fieldName, next)}
-          onRenameMultiSelectOption={(previousValue, nextValue) => props.onRenameMultiSelectOption(fieldName, previousValue, nextValue)}
-          onDeleteMultiSelectOption={(optionValue) => props.onDeleteMultiSelectOption(fieldName, optionValue)}
-          onSetMultiSelectOptionColor={(optionValue, color) => props.onSetMultiSelectOptionColor(fieldName, optionValue, color)}
-          onReorderMultiSelectOptions={(orderedValues) => props.onReorderMultiSelectOptions(fieldName, orderedValues)}
-          onRenameSelectOption={(previousValue, nextValue) => props.onRenameSelectOption(fieldName, previousValue, nextValue)}
-          onDeleteSelectOption={(optionValue) => props.onDeleteSelectOption(fieldName, optionValue)}
-          onSetSelectOptionColor={(optionValue, color) => props.onSetSelectOptionColor(fieldName, optionValue, color)}
-          onReorderSelectOptions={(orderedValues) => props.onReorderSelectOptions(fieldName, orderedValues)}
+          onCommitMultiSelectDraft={(patch) => props.onCommitMultiSelectDraft(originalRowIndex, fieldName, patch)}
+          onCommitSelectDraft={(patch) => props.onCommitSelectDraft(originalRowIndex, fieldName, patch)}
         />
       );
     },
@@ -365,14 +357,8 @@ function DataTableComponent(props: DataTableProps) {
     props.onOpenDetail,
     props.onOpenBacklink,
     props.onEditCell,
-    props.onRenameMultiSelectOption,
-    props.onDeleteMultiSelectOption,
-    props.onSetMultiSelectOptionColor,
-    props.onReorderMultiSelectOptions,
-    props.onRenameSelectOption,
-    props.onDeleteSelectOption,
-    props.onSetSelectOptionColor,
-    props.onReorderSelectOptions,
+    props.onCommitMultiSelectDraft,
+    props.onCommitSelectDraft,
   ]);
 
   const table = useReactTable({

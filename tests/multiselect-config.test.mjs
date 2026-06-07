@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildMultiSelectFieldConfig,
+  buildOptionConfigFromOptions,
   buildOptionConfigByOrder,
   removeMultiSelectOptionFromRows,
   renameOptionConfigValue,
@@ -57,7 +58,7 @@ test("removeSingleSelectOptionFromRows clears matching scalar values only in one
   ];
   removeSingleSelectOptionFromRows(rows, "category", "attack");
   assert.deepEqual(rows, [
-    { id: "1", category: "" },
+    { id: "1", category: null },
     { id: "2", category: "spell" },
     { id: "3", category: ["attack"] },
   ]);
@@ -127,6 +128,19 @@ test("buildOptionConfigByOrder materializes missing ordered values with default 
     {
       spell: { label: "spell", color: null },
       attack: { label: "攻击", color: "red" },
+    },
+  );
+});
+
+test("buildOptionConfigFromOptions preserves the provided order and metadata", () => {
+  assert.deepEqual(
+    buildOptionConfigFromOptions([
+      { value: "spell", label: "法术", color: "blue" },
+      { value: "attack", label: "攻击", color: null },
+    ]),
+    {
+      spell: { label: "法术", color: "blue" },
+      attack: { label: "攻击", color: null },
     },
   );
 });

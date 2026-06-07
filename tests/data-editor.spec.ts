@@ -195,6 +195,10 @@ async function cancelOptionHandleDrag(page: Page, _sourceRowText: string) {
   });
 }
 
+async function closePopoverByClickingOutside(page: Page) {
+  await page.mouse.click(24, 24);
+}
+
 async function getSidebarFileOrder(page: Page) {
   return page.locator(".sidebar-section").first().locator(".sidebar-file-item").evaluateAll((items) => (
     items.map((item) => item.getAttribute("title")).filter((title): title is string => Boolean(title))
@@ -474,7 +478,7 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
     await expect(page.locator(".data-table tbody tr[data-row-index]").first()).toHaveAttribute("data-row-index", "1");
 
-    await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+    await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
     const nameInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "name" }).locator(".detail-input").first();
     await expect(nameInput).toBeVisible();
     await nameInput.fill("Filtered original row edited");
@@ -989,7 +993,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await expect(page.locator('.sidebar-item[title="data/e2e_mixed.json"]')).toContainText("e2e_mixed.json");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary .nested-entry-button")).toContainText("mixed");
   await page.locator(".detail-panel.primary .nested-entry-button").click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
@@ -1024,12 +1028,14 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".chip")).toHaveCSS("background-color", "rgb(255, 217, 214)");
   await page.locator(".multi-select-option-row").filter({ hasText: "spell" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
-  await page.locator(".multi-select-popover").press("Escape");
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await closePopoverByClickingOutside(page);
   const featuresBlockAfterEdit = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "features" }),
   });
   await expect(featuresBlockAfterEdit.locator(".multi-select-trigger .chip")).toContainText(["strike", "custom_tag"]);
   await expect(featuresBlockAfterEdit.locator(".multi-select-trigger .chip").filter({ hasText: "strike" })).toBeVisible();
+  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
   await expect.poll(async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_multiselect.json"), "utf8");
@@ -1059,6 +1065,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await page.locator(".multi-select-option").filter({ hasText: "spell" }).click();
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
   await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("spell");
   await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger .chip')).toBeVisible();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
@@ -1069,7 +1076,10 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-color-item").filter({ hasText: "蓝色" }).click();
-  await page.locator(".multi-select-popover").press("Escape");
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await closePopoverByClickingOutside(page);
+  await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("spell");
+  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
   await expect.poll(async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_select.json"), "utf8");
@@ -1248,7 +1258,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   }).toBe(true);
 
   await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_target.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   const targetIdInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "target_id" }).locator(".detail-input").first();
   await targetIdInput.fill("focus_sync");
   await expect(page.locator(".relation-maintenance-panel")).toContainText("保存并同步引用");
@@ -1535,7 +1545,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   await expect(page.locator(".detail-panel.primary .nested-entry-button")).toContainText("effects");
   await expect(page.locator(".detail-panel.primary .json-editor textarea")).toHaveCount(0);
@@ -1569,7 +1579,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const detailOrderBefore = await page.locator(".detail-panel.primary .detail-property-item .property-heading span:first-child").evaluateAll(
     (items) => items.slice(0, 4).map((item) => item.textContent?.trim()).filter(Boolean),
@@ -1628,7 +1638,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     return text.includes("\"detailOrder\"") && text.includes(`\"${draggedField}\"`);
   }).toBe(true);
 
-  await page.locator(".data-table tbody tr[data-row-index]").nth(0).locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").nth(0).locator('[data-cell-role="title-action"]').click();
   const firstDetailTitle = await page.locator(".detail-panel.primary .panel-title").textContent();
   await expect(page.locator(".detail-panel.primary .property-block").filter({ hasText: "description" }).locator("textarea.detail-textarea").first()).toBeVisible();
   await expect(page.locator(".detail-panel.primary .property-block").filter({ hasText: "rune_id" }).locator(".relation-trigger")).toHaveCount(0);
@@ -1639,7 +1649,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator('.sidebar-item[title="data/status_effects.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator('col[data-column-field="control"]')).toHaveCount(1);
-  await page.locator('.data-table tbody tr[data-row-index="20"]').locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator('.data-table tbody tr[data-row-index="20"]').locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const controlBlock = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "control" }),
@@ -1703,7 +1713,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
 
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   await page.locator(".detail-input").first().evaluate((element) => {
     const input = element as HTMLInputElement;
@@ -1784,7 +1794,7 @@ test("detail panel width can be resized and property spacing stays compact", asy
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const spacingBeforeDrag = await page.evaluate(() => {
@@ -1864,7 +1874,7 @@ test("detail panel width persists in selected profile after reload", async ({ pa
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const handleBefore = await page.locator(".detail-panel-resize-handle").boundingBox();
@@ -1909,7 +1919,7 @@ test("detail panel width persists in selected profile after reload", async ({ pa
 
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   await expect.poll(async () => page.locator(".detail-panel.primary").evaluate((element) => Math.round(element.getBoundingClientRect().width))).toBe(widthAfterResize);
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:detail-panel-width"))).toBe(null);
@@ -1919,7 +1929,7 @@ test("clicking outside detail panels closes primary and nested detail panels", a
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary.open")).toBeVisible();
   await page.locator(".detail-panel.primary .nested-entry-button").click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
@@ -1936,7 +1946,7 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const featuresBlock = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "features" }),
@@ -1955,7 +1965,7 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "category" }),
@@ -2007,7 +2017,7 @@ test("detail panel option field editors reuse the shared popover shell", async (
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const featuresBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -2025,7 +2035,7 @@ test("detail panel option field editors reuse the shared popover shell", async (
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -2080,9 +2090,13 @@ test("option field editor keeps create rename color and delete actions", async (
   await page.locator(".multi-select-input").fill("phase2_tag");
   await page.locator(".multi-select-input").press("Enter");
   await expect(page.locator(".multi-select-popover .selected-chip").filter({ hasText: "phase2_tag" })).toBeVisible();
+  await page.locator(".multi-select-input").fill("");
 
-  const attackRow = page.locator(".multi-select-option-row").filter({ hasText: "attack" });
-  await attackRow.locator(".option-menu-trigger").click();
+  const renameSource = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => (
+    items.map((item) => item.textContent?.trim()).find((text) => text && text !== "phase2_tag")
+  ));
+  expect(renameSource).toBeTruthy();
+  await page.locator(".multi-select-option-row").filter({ hasText: renameSource! }).locator(".option-menu-trigger").click();
   await expect(page.locator(".multi-select-option-editor")).toBeVisible();
   await page.locator(".multi-select-option-name-input").fill("phase2_attack");
   await page.locator(".multi-select-option-name-input").press("Enter");
@@ -2096,6 +2110,12 @@ test("option field editor keeps create rename color and delete actions", async (
   await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" })).toHaveCount(0);
   await expect(page.locator(".multi-select-popover .selected-chip").filter({ hasText: "phase2_tag" })).toHaveCount(0);
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await closePopoverByClickingOutside(page);
+  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" })).toBeVisible();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" })).toHaveCount(0);
 });
 
 test("option field editor drag reorder updates visible chip order and persists after save", async ({ page }) => {
@@ -2137,7 +2157,10 @@ test("option field editor drag reorder updates visible chip order and persists a
   await expect(saveButton).toBeDisabled();
 
   await endOptionHandleDrag(page, sourceValue, targetValue);
-  await page.locator(".multi-select-popover").press("Escape");
+  await expect(saveButton).toBeDisabled();
+  const rowChipTextsAfterRelease = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(rowChipTextsAfterRelease.indexOf(sourceValue)).toBeLessThan(rowChipTextsAfterRelease.indexOf(targetValue));
+  await closePopoverByClickingOutside(page);
 
   const rowChipTexts = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(rowChipTexts.indexOf(sourceValue)).toBeLessThan(rowChipTexts.indexOf(targetValue));
@@ -2210,7 +2233,17 @@ test("option field editor drag reorder also persists for single-select options",
   await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
   await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
   await endOptionHandleDrag(page, sourceValue, targetValue);
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
   await page.locator(".multi-select-popover").press("Escape");
+  await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
+  const optionTextsAfterCancel = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsAfterCancel.indexOf(sourceValue)).toBeGreaterThan(optionTextsAfterCancel.indexOf(targetValue));
+  await beginOptionHandleDrag(page, sourceValue);
+  await movePointerOverOptionRow(page, targetValue);
+  await endOptionHandleDrag(page, sourceValue, targetValue);
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await closePopoverByClickingOutside(page);
+  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
   await page.reload();
 
@@ -2221,7 +2254,7 @@ test("option field editor drag reorder also persists for single-select options",
   expect(optionTextsAfterReload.indexOf(sourceValue)).toBeLessThan(optionTextsAfterReload.indexOf(targetValue));
 });
 
-test("detail panel option field drag reorder updates preview order and dirties on release", async ({ page }) => {
+test("detail panel option field drag reorder commits only after parent close", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -2231,7 +2264,7 @@ test("detail panel option field drag reorder updates preview order and dirties o
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await page.locator(".data-table tbody tr[data-row-index='0'] .title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator('.data-table tbody tr[data-row-index="0"] [data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -2261,7 +2294,38 @@ test("detail panel option field drag reorder updates preview order and dirties o
   expect(triggerChipTextsDuringPreview).toEqual(triggerChipTextsBefore);
 
   await page.mouse.up();
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await closePopoverByClickingOutside(page);
   await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+});
+
+test("detail panel option field draft stays bound to the original row when navigating records", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator('.data-table tbody tr[data-row-index="0"] [data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "category" }),
+  });
+  await categoryBlock.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+  await page.locator(".multi-select-input").fill("detail_row_commit_tag");
+  await page.locator(".multi-select-input").press("Enter");
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+
+  await page.locator('.detail-panel.primary button[title="Next record"]').click();
+  await expect(page.locator(".detail-panel.primary .panel-subtitle")).toContainText("Row 2");
+  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+  await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("detail_row_commit_tag");
+  await expect(page.locator('.data-table tbody tr[data-row-index="1"] .multi-select-trigger')).not.toContainText("detail_row_commit_tag");
 });
 
 test("option field editor drag preview uses a ghost and placeholder instead of moving the live row", async ({ page }) => {
@@ -2328,9 +2392,14 @@ test("option field editor drag reorder works after filtering visible options", a
   await page.locator(".multi-select-input").fill("");
   const optionTextsAfterClear = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(optionTextsAfterClear.indexOf(sourceValue)).toBeLessThan(optionTextsAfterClear.indexOf(targetValue));
+  await page.locator(".multi-select-popover").press("Escape");
+
+  await trigger.click();
+  const optionTextsAfterEscape = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsAfterEscape.indexOf(sourceValue)).toBeGreaterThan(optionTextsAfterEscape.indexOf(targetValue));
 });
 
-test("option field editor clears sticky popover state after unmount", async ({ page }) => {
+test("option field editor closes the popover cleanly when switching files", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -2339,13 +2408,18 @@ test("option field editor clears sticky popover state after unmount", async ({ p
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger").click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+  await page.locator(".multi-select-input").fill("draft_discard_tag");
+  await page.locator(".multi-select-input").press("Enter");
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
+  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toHaveCount(0);
+  await expect(page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger")).not.toContainText("draft_discard_tag");
 });
 
 test("profile file order controls initial open and ignores stale local file order", async ({ page }) => {
@@ -2905,7 +2979,7 @@ test("close button asks for confirmation when unsaved changes would be lost", as
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
 
@@ -2952,7 +3026,7 @@ test("single transient network failure does not trigger recovery", async ({ page
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
@@ -3053,7 +3127,7 @@ test("unexpected disconnect waits for manual reload after recovery when unsaved 
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
 
@@ -3211,7 +3285,7 @@ test("refresh build asks for confirmation when unsaved changes would be lost", a
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
 

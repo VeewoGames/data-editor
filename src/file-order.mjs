@@ -1,3 +1,7 @@
+/**
+ * @param {{ path: string }[]} files
+ * @param {string[] | null | undefined} order
+ */
 export function normalizeFileOrder(files, order) {
   const filePaths = files.map((file) => file.path);
   const filePathSet = new Set(filePaths);
@@ -14,6 +18,18 @@ export function normalizeFileOrder(files, order) {
     normalized.push(path);
   }
   return normalized;
+}
+
+/**
+ * @param {{ path: string }[]} files
+ * @param {string[] | null | undefined} order
+ * @param {string | null | undefined} preferredPath
+ */
+export function resolvePreferredFilePath(files, order, preferredPath = null) {
+  const normalizedOrder = normalizeFileOrder(files, order);
+  const filePathSet = new Set(files.map((file) => file.path));
+  if (preferredPath && filePathSet.has(preferredPath)) return preferredPath;
+  return normalizedOrder[0] ?? null;
 }
 
 export function moveFileToIndex(order, sourcePath, targetIndex) {

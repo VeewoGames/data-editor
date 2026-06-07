@@ -43,6 +43,7 @@ import { ViewFilterBar } from "./components/ViewFilterBar";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
 import { icons } from "./components/icons";
+import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
 import { DataTable, type FieldConfig } from "./table/DataTable";
 import { DetailPanel } from "./detail/DetailPanel";
 import type { DataRecord, DocumentModel } from "./model/documentModel";
@@ -62,11 +63,10 @@ import { findTitleField, getRecordTitle } from "./model/titleField";
 import type { BacklinkGridColumn } from "./model/backlinkGrid";
 import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RealFieldType, RelationConfig } from "./model/viewConfig";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
-import { normalizeFileOrder } from "./file-order.mjs";
+import { normalizeFileOrder, resolvePreferredFilePath } from "./file-order.mjs";
 import {
-  buildOptionConfigByOrder,
+  buildOptionConfigFromOptions,
   removeMultiSelectOptionFromRows,
-  renameOptionConfigValue,
   removeSingleSelectOptionFromRows,
   renameMultiSelectOptionInRows,
   renameSingleSelectOptionInRows,
@@ -315,8 +315,8 @@ export function App() {
       const savedOrder = profileNameForInitialOrder
         ? (normalizeUserViewProfile(nextProfile).fileOrder ?? selectedViewProfileRef.current.fileOrder)
         : readLocalFileOrder(window.localStorage);
-      const initialFileOrder = normalizeFileOrder(nextFiles, savedOrder);
-      if (initialFileOrder[0]) await openDocumentAt(initialFileOrder[0], undefined, undefined, false, projectId);
+      const preferredPath = resolvePreferredFilePath(nextFiles, savedOrder, selectedPathRef.current);
+      if (preferredPath) await openDocumentAt(preferredPath, undefined, undefined, false, projectId);
       loadedProjectIdRef.current = projectId;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -595,7 +595,25 @@ export function App() {
     setSelectedRowIndex(null);
     setDetailOpen(false);
     setStatus(`Loading ${path}...`);
-    const documentModel = await loadDocument(path, projectId);
+    let documentModel: DocumentModel;
+    try {
+      documentModel = await loadDocument(path, projectId);
+    } catch (error) {
+      if (shouldRetryWithFallbackFile(error)) {
+        const fallbackPath = resolvePreferredFilePath(
+          files,
+          selectedViewProfileNameRef.current ? selectedViewProfileRef.current.fileOrder : readLocalFileOrder(window.localStorage),
+          path,
+        );
+        if (fallbackPath && fallbackPath !== path) {
+          return openDocumentAt(fallbackPath, undefined, undefined, false, projectId);
+        }
+      }
+      selectedPathRef.current = null;
+      setSelectedPath(null);
+      setStatus(error instanceof Error ? error.message : String(error));
+      return;
+    }
     if (requestId !== openRequestRef.current) return;
     const nextCollection = resolveDocumentCollection(documentModel, targetCollection);
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
@@ -968,6 +986,32 @@ export function App() {
     bump((value) => value + 1);
   }
 
+  function mutateOptionFieldTransaction({
+    mutateData,
+    mutateViewConfigDraft,
+  }: {
+    mutateData?: () => void;
+    mutateViewConfigDraft?: (draft: ViewConfig) => void;
+  }) {
+    let changed = false;
+    if (mutateData) {
+      mutateData();
+      dataDirtyRef.current = true;
+      setDataDirty(true);
+      changed = true;
+    }
+    if (mutateViewConfigDraft) {
+      const nextViewConfig = cloneViewConfig(viewConfigRef.current);
+      mutateViewConfigDraft(nextViewConfig);
+      viewConfigRef.current = nextViewConfig;
+      setViewConfig(nextViewConfig);
+      viewConfigDirtyRef.current = true;
+      setViewConfigDirty(true);
+      changed = true;
+    }
+    if (changed) bump((value) => value + 1);
+  }
+
   function mutateSelectedViewProfile(mutator: (draft: UserViewProfile) => void) {
     if (!selectedViewProfileName) return false;
     const current = normalizeUserViewProfile(selectedViewProfileRef.current);
@@ -1310,115 +1354,57 @@ export function App() {
     updateActiveViewDraft({ filters: withRules(activeView.filters, [...currentRules, nextRule]) as FilterGroup });
   }
 
-  function handleRenameMultiSelectOption(fieldName: string, previousValue: string | number, nextValue: string) {
+  function handleCommitMultiSelectOptionFieldDraft(rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) {
     if (!model) return;
-    mutate(() => renameMultiSelectOptionInRows(getRows(model, collectionPath) as DataRecord[], fieldName, previousValue, nextValue));
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key) return;
-      const current = ensureFieldViewConfig(draft, key);
-      draft.fields[key] = {
-        ...current,
-        multiSelectOptions: renameOptionConfigValue(current.multiSelectOptions, previousValue, nextValue) as typeof current.multiSelectOptions,
-      };
+    const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
+    const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
+    mutateOptionFieldTransaction({
+      mutateData: needsDataMutation ? () => {
+        const rows = getRows(model, collectionPath) as DataRecord[];
+        for (const rename of patch.renamedOptions) {
+          renameMultiSelectOptionInRows(rows, fieldName, rename.previousValue, rename.nextValue);
+        }
+        for (const optionValue of patch.deletedOptionValues) {
+          removeMultiSelectOptionFromRows(rows, fieldName, optionValue);
+        }
+        setCellValue(model, collectionPath, rowIndex, fieldName, patch.nextSelectedValues);
+      } : undefined,
+      mutateViewConfigDraft: needsViewConfigMutation ? (draft) => {
+        const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
+        if (!key) return;
+        const current = ensureFieldViewConfig(draft, key);
+        draft.fields[key] = {
+          ...current,
+          multiSelectOptions: buildOptionConfigFromOptions(patch.nextOptions) as typeof current.multiSelectOptions,
+        };
+      } : undefined,
     });
   }
 
-  function handleRenameSelectOption(fieldName: string, previousValue: string | number, nextValue: string) {
+  function handleCommitSelectOptionFieldDraft(rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) {
     if (!model) return;
-    mutate(() => renameSingleSelectOptionInRows(getRows(model, collectionPath) as DataRecord[], fieldName, previousValue, nextValue));
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key) return;
-      const current = ensureFieldViewConfig(draft, key);
-      draft.fields[key] = {
-        ...current,
-        selectOptions: renameOptionConfigValue(current.selectOptions, previousValue, nextValue) as typeof current.selectOptions,
-      };
-    });
-  }
-
-  function handleDeleteMultiSelectOption(fieldName: string, optionValue: string | number) {
-    if (!model) return;
-    mutate(() => removeMultiSelectOptionFromRows(getRows(model, collectionPath) as DataRecord[], fieldName, optionValue));
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key || !draft.fields[key]) return;
-      delete draft.fields[key].multiSelectOptions[String(optionValue)];
-    });
-  }
-
-  function handleReorderMultiSelectOptions(fieldName: string, orderedValues: string[]) {
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key) return;
-      const current = ensureFieldViewConfig(draft, key);
-      draft.fields[key] = {
-        ...current,
-        multiSelectOptions: buildOptionConfigByOrder(current.multiSelectOptions, orderedValues) as typeof current.multiSelectOptions,
-      };
-    });
-  }
-
-  function handleDeleteSelectOption(fieldName: string, optionValue: string | number) {
-    if (!model) return;
-    mutate(() => removeSingleSelectOptionFromRows(getRows(model, collectionPath) as DataRecord[], fieldName, optionValue));
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key || !draft.fields[key]) return;
-      delete draft.fields[key].selectOptions[String(optionValue)];
-    });
-  }
-
-  function handleReorderSelectOptions(fieldName: string, orderedValues: string[]) {
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key) return;
-      const current = ensureFieldViewConfig(draft, key);
-      draft.fields[key] = {
-        ...current,
-        selectOptions: buildOptionConfigByOrder(current.selectOptions, orderedValues) as typeof current.selectOptions,
-      };
-    });
-  }
-
-  function handleSetMultiSelectOptionColor(fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) {
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key) return;
-      const current = ensureFieldViewConfig(draft, key);
-      const optionKey = String(optionValue);
-      const currentOption = current.multiSelectOptions[optionKey];
-      draft.fields[key] = {
-        ...current,
-        multiSelectOptions: {
-          ...current.multiSelectOptions,
-          [optionKey]: {
-            label: currentOption?.label ?? optionKey,
-            color,
-          },
-        },
-      };
-    });
-  }
-
-  function handleSetSelectOptionColor(fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) {
-    mutateViewConfig((draft) => {
-      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
-      if (!key) return;
-      const current = ensureFieldViewConfig(draft, key);
-      const optionKey = String(optionValue);
-      const currentOption = current.selectOptions[optionKey];
-      draft.fields[key] = {
-        ...current,
-        selectOptions: {
-          ...current.selectOptions,
-          [optionKey]: {
-            label: currentOption?.label ?? optionKey,
-            color,
-          },
-        },
-      };
+    const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
+    const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
+    mutateOptionFieldTransaction({
+      mutateData: needsDataMutation ? () => {
+        const rows = getRows(model, collectionPath) as DataRecord[];
+        for (const rename of patch.renamedOptions) {
+          renameSingleSelectOptionInRows(rows, fieldName, rename.previousValue, rename.nextValue);
+        }
+        for (const optionValue of patch.deletedOptionValues) {
+          removeSingleSelectOptionFromRows(rows, fieldName, optionValue);
+        }
+        setCellValue(model, collectionPath, rowIndex, fieldName, patch.nextSelectedValues[0] ?? null);
+      } : undefined,
+      mutateViewConfigDraft: needsViewConfigMutation ? (draft) => {
+        const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
+        if (!key) return;
+        const current = ensureFieldViewConfig(draft, key);
+        draft.fields[key] = {
+          ...current,
+          selectOptions: buildOptionConfigFromOptions(patch.nextOptions) as typeof current.selectOptions,
+        };
+      } : undefined,
     });
   }
 
@@ -2274,14 +2260,8 @@ export function App() {
             onOpenDetail={openDetail}
             onOpenBacklink={handleOpenBacklink}
             onEditCell={handleEditCell}
-            onRenameMultiSelectOption={handleRenameMultiSelectOption}
-            onDeleteMultiSelectOption={handleDeleteMultiSelectOption}
-            onSetMultiSelectOptionColor={handleSetMultiSelectOptionColor}
-            onReorderMultiSelectOptions={handleReorderMultiSelectOptions}
-            onRenameSelectOption={handleRenameSelectOption}
-            onDeleteSelectOption={handleDeleteSelectOption}
-            onSetSelectOptionColor={handleSetSelectOptionColor}
-            onReorderSelectOptions={handleReorderSelectOptions}
+            onCommitMultiSelectDraft={handleCommitMultiSelectOptionFieldDraft}
+            onCommitSelectDraft={handleCommitSelectOptionFieldDraft}
             onChangeFieldType={handleChangeFieldType}
             onHideField={handleHideField}
             onToggleWrapField={handleToggleWrapField}
@@ -2318,14 +2298,8 @@ export function App() {
             primaryKeySyncPlan={primaryKeySyncPlan}
             primaryKeySyncResult={primaryKeySyncResult}
             saving={saving}
-            onRenameMultiSelectOption={handleRenameMultiSelectOption}
-            onDeleteMultiSelectOption={handleDeleteMultiSelectOption}
-            onSetMultiSelectOptionColor={handleSetMultiSelectOptionColor}
-            onReorderMultiSelectOptions={handleReorderMultiSelectOptions}
-            onRenameSelectOption={handleRenameSelectOption}
-            onDeleteSelectOption={handleDeleteSelectOption}
-            onSetSelectOptionColor={handleSetSelectOptionColor}
-            onReorderSelectOptions={handleReorderSelectOptions}
+            onCommitMultiSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitMultiSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
+            onCommitSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
             onOpenBacklink={handleOpenBacklink}
             onRequestSyncSave={() => void persistChanges(true)}
             onOpenRelationTarget={handleOpenRelationTarget}
@@ -3064,6 +3038,11 @@ function rememberTransientStatus(message: string) {
 
 function consumeTransientStatus() {
   return window.sessionStorage.getItem(transientStatusStorageKey) ?? "";
+}
+
+function shouldRetryWithFallbackFile(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return message.includes("allowlist") || message.includes("Unknown data source");
 }
 
 function clampSidebarWidth(width: number) {

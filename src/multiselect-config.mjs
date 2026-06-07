@@ -32,7 +32,7 @@ export function removeSingleSelectOptionFromRows(rows, fieldName, optionValue) {
   for (const row of rows) {
     const value = row?.[fieldName];
     if (value == null || Array.isArray(value) || typeof value === "object") continue;
-    if (String(value) === target) row[fieldName] = "";
+    if (String(value) === target) row[fieldName] = null;
   }
 }
 
@@ -80,6 +80,18 @@ export function buildOptionConfigByOrder(optionConfig, orderedValues) {
   for (const [key, config] of Object.entries(optionConfig)) {
     if (seen.has(key)) continue;
     nextConfig[key] = config;
+  }
+  return nextConfig;
+}
+
+export function buildOptionConfigFromOptions(options) {
+  const nextConfig = {};
+  for (const option of options) {
+    const key = String(option.value);
+    nextConfig[key] = {
+      label: option.label ?? key,
+      color: option.color ?? null,
+    };
   }
   return nextConfig;
 }

@@ -1,5 +1,5 @@
-import type { MultiSelectOptionColor, MultiSelectOptionView } from "../model/viewConfig";
-import { OptionFieldEditor } from "./OptionFieldEditor";
+import type { MultiSelectOptionView } from "../model/viewConfig";
+import { OptionFieldEditor, type OptionFieldDraftCommit } from "./OptionFieldEditor";
 
 type MultiSelectCellEditorProps = {
   cellId: string;
@@ -7,11 +7,7 @@ type MultiSelectCellEditorProps = {
   options: MultiSelectOptionView[];
   surface?: "table" | "detail";
   wrapped?: boolean;
-  onEdit: (value: unknown) => void;
-  onRenameOption: (previousValue: string | number, nextValue: string) => void;
-  onDeleteOption: (optionValue: string | number) => void;
-  onSetOptionColor: (optionValue: string | number, color: MultiSelectOptionColor | null) => void;
-  onReorderOptions: (orderedValues: string[]) => void;
+  onCommitDraft: (patch: OptionFieldDraftCommit) => void;
 };
 
 export function MultiSelectCellEditor({
@@ -20,21 +16,13 @@ export function MultiSelectCellEditor({
   options,
   surface = "table",
   wrapped = false,
-  onEdit,
-  onRenameOption,
-  onDeleteOption,
-  onSetOptionColor,
-  onReorderOptions,
+  onCommitDraft,
 }: MultiSelectCellEditorProps) {
   return (
     <OptionFieldEditor
       cellId={cellId}
       mode="multi"
-      onDeleteOption={onDeleteOption}
-      onEdit={(nextValue) => onEdit(nextValue)}
-      onReorderOptions={onReorderOptions}
-      onRenameOption={onRenameOption}
-      onSetOptionColor={onSetOptionColor}
+      onCommitDraft={onCommitDraft}
       options={options}
       surface={surface}
       value={value}
