@@ -71,9 +71,11 @@ type DataTableProps = {
   onRenameMultiSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
   onDeleteMultiSelectOption: (fieldName: string, optionValue: string | number) => void;
   onSetMultiSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
+  onReorderMultiSelectOptions: (fieldName: string, orderedValues: string[]) => void;
   onRenameSelectOption: (fieldName: string, previousValue: string | number, nextValue: string) => void;
   onDeleteSelectOption: (fieldName: string, optionValue: string | number) => void;
   onSetSelectOptionColor: (fieldName: string, optionValue: string | number, color: MultiSelectOptionColor | null) => void;
+  onReorderSelectOptions: (fieldName: string, orderedValues: string[]) => void;
   onChangeFieldType: (fieldName: string, displayType: FieldDisplayType) => void;
   onHideField: (fieldName: string) => void;
   onToggleWrapField: (fieldName: string) => void;
@@ -287,9 +289,14 @@ function DataTableComponent(props: DataTableProps) {
         ? "Nested"
         : relationConfigByField[fieldName] ? "Relation" : props.fieldConfig.displayTypes[fieldName] ?? defaultTypeFor(value);
       if (fieldName === detectedTitleField) {
+        const wrapped = props.fieldConfig.wrapped.has(fieldName);
         return (
-          <div className={`title-cell ${props.fieldConfig.wrapped.has(fieldName) ? "cell-wrap" : ""}`}>
-            <span>{value == null ? "" : String(value)}</span>
+          <div
+            className={`title-cell cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
+            data-cell-role="title"
+            data-wrap-mode={wrapped ? "wrap" : "truncate"}
+          >
+            <span data-cell-role="title-text">{value == null ? "" : String(value)}</span>
             <button className="title-open-button" onClick={(event) => { event.stopPropagation(); props.onOpenDetail(originalRowIndex); }} title="Open detail">
               <icons.openDetail size={16} />
             </button>
@@ -313,9 +320,11 @@ function DataTableComponent(props: DataTableProps) {
           onRenameMultiSelectOption={(previousValue, nextValue) => props.onRenameMultiSelectOption(fieldName, previousValue, nextValue)}
           onDeleteMultiSelectOption={(optionValue) => props.onDeleteMultiSelectOption(fieldName, optionValue)}
           onSetMultiSelectOptionColor={(optionValue, color) => props.onSetMultiSelectOptionColor(fieldName, optionValue, color)}
+          onReorderMultiSelectOptions={(orderedValues) => props.onReorderMultiSelectOptions(fieldName, orderedValues)}
           onRenameSelectOption={(previousValue, nextValue) => props.onRenameSelectOption(fieldName, previousValue, nextValue)}
           onDeleteSelectOption={(optionValue) => props.onDeleteSelectOption(fieldName, optionValue)}
           onSetSelectOptionColor={(optionValue, color) => props.onSetSelectOptionColor(fieldName, optionValue, color)}
+          onReorderSelectOptions={(orderedValues) => props.onReorderSelectOptions(fieldName, orderedValues)}
         />
       );
     },
@@ -359,9 +368,11 @@ function DataTableComponent(props: DataTableProps) {
     props.onRenameMultiSelectOption,
     props.onDeleteMultiSelectOption,
     props.onSetMultiSelectOptionColor,
+    props.onReorderMultiSelectOptions,
     props.onRenameSelectOption,
     props.onDeleteSelectOption,
     props.onSetSelectOptionColor,
+    props.onReorderSelectOptions,
   ]);
 
   const table = useReactTable({
@@ -534,17 +545,23 @@ function DataTableComponent(props: DataTableProps) {
                   data-row-index={originalRowIndex}
                   onClick={(event) => selectRow(event, originalRowIndex)}
                 >
-                  <td className="row-action-cell">
+                  <td className="row-action-cell" data-cell-kind="row-action">
                     <button className="icon-button danger" onClick={(event) => { event.stopPropagation(); props.onDeleteRow(originalRowIndex); }} title="Delete row">
                       <icons.delete size={14} />
                     </button>
                   </td>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className={props.fieldConfig.wrapped.has(cell.column.id) ? "wrapped-cell" : undefined}>
+                    <td
+                      key={cell.id}
+                      className="data-cell"
+                      data-cell-kind="data"
+                      data-column-field={cell.column.id}
+                      data-wrap-mode={props.fieldConfig.wrapped.has(cell.column.id) ? "wrap" : "truncate"}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
-                  <td />
+                  <td data-cell-kind="add-column-spacer" />
                 </tr>
               );
             })}

@@ -25,9 +25,11 @@ type CellRendererProps = {
   onRenameMultiSelectOption?: (previousValue: string | number, nextValue: string) => void;
   onDeleteMultiSelectOption?: (optionValue: string | number) => void;
   onSetMultiSelectOptionColor?: (optionValue: string | number, color: MultiSelectOptionColor | null) => void;
+  onReorderMultiSelectOptions?: (orderedValues: string[]) => void;
   onRenameSelectOption?: (previousValue: string | number, nextValue: string) => void;
   onDeleteSelectOption?: (optionValue: string | number) => void;
   onSetSelectOptionColor?: (optionValue: string | number, color: MultiSelectOptionColor | null) => void;
+  onReorderSelectOptions?: (orderedValues: string[]) => void;
 };
 
 export function CellRenderer({
@@ -46,9 +48,11 @@ export function CellRenderer({
   onRenameMultiSelectOption,
   onDeleteMultiSelectOption,
   onSetMultiSelectOptionColor,
+  onReorderMultiSelectOptions,
   onRenameSelectOption,
   onDeleteSelectOption,
   onSetSelectOptionColor,
+  onReorderSelectOptions,
 }: CellRendererProps) {
   const shouldShowIssue = issue != null && !shouldSuppressRelationIssue(displayType, value);
   if (!isCompatible(displayType, value)) {
@@ -74,14 +78,15 @@ export function CellRenderer({
       <>
         <MultiSelectCellEditor
           cellId={cellId}
+          surface="table"
           value={value as Array<string | number>}
           options={multiSelectConfig?.options ?? []}
-          optionMap={multiSelectConfig?.optionMap ?? {}}
           wrapped={wrapped}
           onEdit={onEdit}
           onRenameOption={onRenameMultiSelectOption ?? (() => {})}
           onDeleteOption={onDeleteMultiSelectOption ?? (() => {})}
           onSetOptionColor={onSetMultiSelectOptionColor ?? (() => {})}
+          onReorderOptions={onReorderMultiSelectOptions ?? (() => {})}
         />
         {shouldShowIssue ? <Issue issue={issue} /> : null}
       </>
@@ -93,12 +98,15 @@ export function CellRenderer({
       <>
         <SelectCellEditor
           cellId={cellId}
+          surface="table"
           options={selectConfig?.options ?? []}
           value={value as string | number | null}
+          wrapped={wrapped}
           onEdit={onEdit}
           onRenameOption={onRenameSelectOption ?? (() => {})}
           onDeleteOption={onDeleteSelectOption ?? (() => {})}
           onSetOptionColor={onSetSelectOptionColor ?? (() => {})}
+          onReorderOptions={onReorderSelectOptions ?? (() => {})}
         />
         {shouldShowIssue ? <Issue issue={issue} /> : null}
       </>
@@ -113,6 +121,7 @@ export function CellRenderer({
           configured={relationConfigured}
           mode={relationMode}
           options={relationOptions}
+          surface="table"
           value={value as string | number | null | Array<string | number>}
           wrapped={wrapped}
           onOpenTarget={onOpenRelationTarget}
@@ -125,7 +134,12 @@ export function CellRenderer({
 
   const textValue = value == null ? "" : String(value);
   return (
-    <div className={`editable-cell cell-display ${wrapped ? "cell-wrap" : ""}`} title={textValue}>
+    <div
+      className={`editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
+      data-cell-role="content"
+      data-wrap-mode={wrapped ? "wrap" : "truncate"}
+      title={textValue}
+    >
       <span>{textValue}</span>
       {shouldShowIssue ? <Issue issue={issue} /> : null}
     </div>

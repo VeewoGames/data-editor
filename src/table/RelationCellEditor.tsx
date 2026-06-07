@@ -12,6 +12,7 @@ type RelationCellEditorProps = {
   options: RelationOption[];
   configured: boolean;
   mode?: RelationMode;
+  surface?: "table" | "detail";
   wrapped?: boolean;
   onEdit: (value: unknown) => void;
   onOpenTarget?: (value: string | number) => void;
@@ -20,7 +21,7 @@ type RelationCellEditorProps = {
 let stickyOpenCellId: string | null = null;
 const stickyValuesByCellId = new Map<string, Array<string | number>>();
 
-export function RelationCellEditor({ cellId, value, options, configured, mode, wrapped = false, onEdit, onOpenTarget }: RelationCellEditorProps) {
+export function RelationCellEditor({ cellId, value, options, configured, mode, surface = "table", wrapped = false, onEdit, onOpenTarget }: RelationCellEditorProps) {
   const multiple = mode ? mode === "multi" : Array.isArray(value);
   const normalizedValue = useMemo(() => normalizeValue(value), [value]);
   const [open, setOpen] = useState(() => stickyOpenCellId === cellId);
@@ -80,7 +81,9 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, w
     >
       <Popover.Trigger asChild>
         <button
-          className={`multi-select-trigger relation-trigger ${wrapped ? "cell-wrap" : ""}`}
+          className={`multi-select-trigger relation-trigger field-surface-${surface} ${surface === "table" ? "cell-token-trigger" : "detail-field-trigger"} ${wrapped && surface === "table" ? "cell-token-flow" : ""}`}
+          data-cell-role={surface === "table" ? "token-trigger" : "detail-trigger"}
+          data-wrap-mode={wrapped && surface === "table" ? "wrap" : "truncate"}
           onClick={(event) => event.stopPropagation()}
           type="button"
         >

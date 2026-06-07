@@ -13,14 +13,19 @@ export function BacklinkCellViewer({ items, status = "active", message, wrapped 
   if (!items.length) {
     const placeholder = status === "missing-source" ? "关联失效" : "-";
     return (
-      <div className={`editable-cell cell-display backlink-display ${wrapped ? "cell-wrap" : ""} ${status === "missing-source" ? "backlink-display-invalid" : ""}`} title={message}>
+      <div
+        className={`editable-cell cell-display cell-text-content backlink-display ${wrapped ? "cell-text-wrap" : ""} ${status === "missing-source" ? "backlink-display-invalid" : ""}`}
+        data-cell-role="content"
+        data-wrap-mode={wrapped ? "wrap" : "truncate"}
+        title={message}
+      >
         <span className={`backlink-placeholder ${status === "missing-source" ? "backlink-placeholder-invalid" : ""}`}>{placeholder}</span>
       </div>
     );
   }
 
   return (
-    <div className={`chips-cell backlink-chips-cell ${wrapped ? "cell-wrap" : ""}`}>
+    <div className={`chips-cell backlink-chips-cell ${wrapped ? "cell-token-flow" : ""}`} data-cell-role="token-content" data-wrap-mode={wrapped ? "wrap" : "truncate"}>
       {items.map((item, index) => (
         <button
           className="chip backlink-chip-button"

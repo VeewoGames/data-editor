@@ -41,6 +41,24 @@ async function configureRelation(page: Page, fieldName: string, options: {
   await expect(page.locator(".relation-config-dialog")).toHaveCount(0);
 }
 
+async function ensurePrimaryKeySelection(page: Page, fieldName: string) {
+  const banner = page.locator(".primary-key-candidate-banner");
+  if (!(await banner.isVisible().catch(() => false))) return;
+  await banner.locator(".primary-button").click();
+  await expect(page.locator(".primary-key-candidate-dialog")).toBeVisible();
+  const candidateField = page.locator(".primary-key-candidate-dialog .dialog-field").filter({ hasText: "候选字段" });
+  if (await candidateField.count()) {
+    const trigger = candidateField.locator(".select-trigger");
+    if (!(await trigger.textContent())?.includes(fieldName)) {
+      await trigger.click();
+      await page.locator('[role="option"]').filter({ hasText: fieldName }).first().click();
+    }
+  }
+  await page.locator(".primary-key-candidate-dialog .primary-button").click();
+  await expect(page.locator(".primary-key-candidate-dialog")).toHaveCount(0);
+  await expect(banner).toHaveCount(0);
+}
+
 async function chooseDialogSelect(page: Page, label: string, option: string) {
   const field = page.locator(".relation-config-dialog .dialog-field").filter({ hasText: label });
   if ((await field.locator(".select-trigger").textContent())?.includes(option)) return;
@@ -98,6 +116,72 @@ async function dragColumnHeader(page: Page, sourceField: string, targetField: st
   await expect(page.locator(".column-drag-ghost")).toBeVisible();
   await page.mouse.move(dragTarget!.x + dragTarget!.width * 0.25, dragTarget!.y + dragTarget!.height / 2, { steps: 10 });
   await page.mouse.up();
+}
+
+async function dragOptionHandle(page: Page, sourceRowText: string, targetRowText: string) {
+  await beginOptionHandleDrag(page, sourceRowText);
+  await movePointerOverOptionRow(page, targetRowText);
+  await endOptionHandleDrag(page, sourceRowText, targetRowText);
+}
+
+async function beginOptionHandleDrag(page: Page, sourceRowText: string) {
+  await page.evaluate((sourceText) => {
+    const sourceHandle = [...document.querySelectorAll(".multi-select-option-row")]
+      .find((row) => row.textContent?.includes(sourceText))
+      ?.querySelector(".option-drag-handle");
+    if (!(sourceHandle instanceof HTMLElement)) return;
+    const shared = { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: "mouse", isPrimary: true };
+    sourceHandle.dispatchEvent(new PointerEvent("pointerdown", { ...shared, button: 0, buttons: 1 }));
+  }, sourceRowText);
+}
+
+async function hoverOptionRow(page: Page, targetRowText: string) {
+  await page.evaluate((targetText) => {
+    const targetRow = [...document.querySelectorAll(".multi-select-option-row")]
+      .find((row) => row.textContent?.includes(targetText));
+    if (!(targetRow instanceof HTMLElement)) return;
+    const shared = { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: "mouse", isPrimary: true };
+    targetRow.dispatchEvent(new PointerEvent("pointerover", { ...shared, button: 0, buttons: 1 }));
+  }, targetRowText);
+}
+
+async function movePointerOverOptionRow(page: Page, targetRowText: string) {
+  await page.evaluate(async (targetText) => {
+    const targetRow = [...document.querySelectorAll(".multi-select-option-row")]
+      .find((row) => row.textContent?.includes(targetText));
+    if (!(targetRow instanceof HTMLElement)) return;
+    const rect = targetRow.getBoundingClientRect();
+    const shared = {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height * 0.1,
+    };
+    targetRow.dispatchEvent(new PointerEvent("pointermove", shared));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  }, targetRowText);
+}
+
+async function endOptionHandleDrag(page: Page, sourceRowText: string, targetRowText: string) {
+  await page.evaluate(({ sourceText, targetText }) => {
+    const sourceHandle = [...document.querySelectorAll(".multi-select-option-row")]
+      .find((row) => row.textContent?.includes(sourceText))
+      ?.querySelector(".option-drag-handle");
+    const targetRow = [...document.querySelectorAll(".multi-select-option-row")]
+      .find((row) => row.textContent?.includes(targetText));
+    if (!(sourceHandle instanceof HTMLElement) || !(targetRow instanceof HTMLElement)) return;
+    const shared = { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: "mouse", isPrimary: true };
+    const pointerUp = new PointerEvent("pointerup", { ...shared, button: 0, buttons: 0 });
+    sourceHandle.dispatchEvent(pointerUp);
+    targetRow.dispatchEvent(pointerUp);
+    window.dispatchEvent(pointerUp);
+  }, { sourceText: sourceRowText, targetText: targetRowText });
 }
 
 async function getSidebarFileOrder(page: Page) {
@@ -328,6 +412,7 @@ test("shared view filter and sort drafts persist through save and reload", async
     await page.locator(".filter-text-input").fill("multi_2");
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "multi_2" })).toBeVisible();
     await page.locator(".filter-popover-content").press("Escape");
+
     await page.locator('.column-trigger[title="name"]').click();
     await expect(page.locator(".column-menu-popup")).toBeVisible();
     await page.locator(".column-menu-popup .menu-item").nth(1).click();
@@ -392,6 +477,468 @@ test("shared view filter and sort drafts persist through save and reload", async
   }
 });
 
+test("multi-select filter popover uses shared shell and scroll section", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+  await page.locator(".add-filter-field-option").filter({ hasText: "dev_tags" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "dev_tags" })).toBeVisible();
+  const multiScrollSection = page.locator(".filter-popover-section-scroll");
+  await expect(page.locator(".filter-popover-shell")).toBeVisible();
+  await expect(multiScrollSection).toBeVisible();
+  await expect(multiScrollSection).toHaveCSS("max-height", "500px");
+  await expect(multiScrollSection).toHaveCSS("overflow-y", "auto");
+  const multiScrollMetrics = await multiScrollSection.evaluate((node) => {
+    const element = node as HTMLDivElement;
+    return {
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    };
+  });
+  expect(multiScrollMetrics.scrollHeight).toBeGreaterThan(multiScrollMetrics.clientHeight);
+  const multiListMetrics = await page.locator(".filter-option-list").evaluate((node) => {
+    const element = node as HTMLDivElement;
+    return {
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    };
+  });
+  expect(multiListMetrics.scrollHeight).toBeGreaterThan(multiScrollMetrics.clientHeight);
+});
+
+test("multi-select filter popover supports operator text, selected chips, search, and checkbox rows", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+
+  const filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+  await expect(filterPopover.locator(".filter-option-search-input")).toBeVisible();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
+  await expect(filterPopover).not.toContainText("未选择");
+  await expect(filterPopover.locator(".filter-popover-section-scroll")).toHaveCSS("max-height", "500px");
+  await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("min-height", "36px");
+  await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("align-items", "center");
+  await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("padding-top", "0px");
+  await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("padding-bottom", "0px");
+  await expect(filterPopover.locator(".filter-option-list")).toHaveCSS("row-gap", "0px");
+  await expect(filterPopover.locator(".filter-option-row").first()).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  expect(await filterPopover.locator(".filter-option-row input[type='checkbox']").count()).toBeGreaterThan(0);
+
+  await filterPopover.locator(".filter-option-search-input").fill("spe");
+  await expect(filterPopover.locator(".filter-option-row").filter({ hasText: "spell" })).toBeVisible();
+  await expect(filterPopover.locator(".filter-option-row").filter({ hasText: "attack" })).toHaveCount(0);
+
+  await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("包含任一");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("spell");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+
+  await filterPopover.locator('.filter-selected-chip-list .selected-chip-remove[aria-label="移除 spell"]').click();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toHaveCount(0);
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+});
+
+test("add filter menu hides fields that already have a rule in the current view", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toHaveCount(1);
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+  await expect(page.locator(".add-filter-field-option").filter({ hasText: "features" })).toHaveCount(0);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toHaveCount(1);
+});
+
+test("select filter restores cached values after empty operators hide the value area", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+
+  const filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含任一");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+
+  await filterPopover.locator(".filter-select-trigger").click();
+  await page.getByRole("option", { name: "为空", exact: true }).click();
+  await expect(filterPopover.locator(".filter-option-value-area")).toHaveCount(0);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("为空");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+
+  await filterPopover.locator(".filter-select-trigger").click();
+  await page.getByRole("option", { name: "包含任一", exact: true }).click();
+  await expect(filterPopover.locator(".filter-option-value-area")).toBeVisible();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+});
+
+test("value filter cache stays scoped per view and clears after delete and recreate", async ({ page }) => {
+  const collectionKey = "data/e2e_select.json:$";
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+
+  const sharedViews = await loadSharedViewsConfig(page);
+  sharedViews.collections[collectionKey] = {
+    defaultViewId: "all",
+    views: [
+      {
+        id: "all",
+        name: "全部",
+        type: "table",
+        query: "",
+        filters: { op: "and", rules: [] },
+        sorts: [],
+        hidden: [],
+        wrapped: [],
+        order: [],
+        detailOrder: [],
+        widths: {},
+      },
+      {
+        id: "second",
+        name: "第二视图",
+        type: "table",
+        query: "",
+        filters: { op: "and", rules: [] },
+        sorts: [],
+        hidden: [],
+        wrapped: [],
+        order: [],
+        detailOrder: [],
+        widths: {},
+      },
+    ],
+  };
+  await saveSharedViewsConfig(page, sharedViews);
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  let filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await filterPopover.locator(".filter-select-trigger").click();
+  await page.getByRole("option", { name: "为空", exact: true }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("为空");
+
+  await page.locator(".view-tab").filter({ hasText: "第二视图" }).click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("第二视图");
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含任一");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(3);
+
+  await filterPopover.locator(".filter-select-trigger").click();
+  await page.getByRole("option", { name: "为空", exact: true }).click();
+  await filterPopover.locator(".filter-select-trigger").click();
+  await page.getByRole("option", { name: "包含任一", exact: true }).click();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
+
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item.danger").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含任一");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(3);
+});
+
+test("value filters support does_not_contain and is_not_empty with real row results", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  const filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+
+  await filterPopover.locator(".filter-select-trigger").click();
+  await page.getByRole("option", { name: "不包含", exact: true }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("不包含");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+
+  await filterPopover.locator(".filter-select-trigger").click();
+  await page.getByRole("option", { name: "不为空", exact: true }).click();
+  await expect(filterPopover.locator(".filter-option-value-area")).toHaveCount(0);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("不为空");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+});
+
+test("relation filter keeps missing selected keys visible with fallback labels", async ({ page }) => {
+  const collectionKey = "data/e2e_relation.json:$";
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await ensurePrimaryKeySelection(page, "id");
+  await configureRelation(page, "skill_id", {
+    targetFile: "data/skills.json",
+    targetCollection: "skills",
+    targetKey: "skill_id",
+    mode: "single",
+  });
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+
+  const sharedViews = await loadSharedViewsConfig(page);
+  if (!sharedViews.collections[collectionKey]) {
+    sharedViews.collections[collectionKey] = {
+      defaultViewId: "all",
+      views: [{
+        id: "all",
+        name: "全部",
+        type: "table",
+        query: "",
+        filters: { op: "and", rules: [] },
+        sorts: [],
+        hidden: [],
+        wrapped: [],
+        order: [],
+        detailOrder: [],
+        widths: {},
+      }],
+    };
+  }
+  const defaultViewId = sharedViews.collections[collectionKey]?.defaultViewId;
+  const activeView = sharedViews.collections[collectionKey]?.views.find((view) => view.id === defaultViewId) ?? sharedViews.collections[collectionKey]?.views[0];
+  expect(activeView).toBeTruthy();
+  activeView!.filters = {
+    op: "and",
+    rules: [{ id: "filter:skill_id", field: "skill_id", operator: "contains", value: ["missing_skill"] }],
+  };
+  await saveSharedViewsConfig(page, sharedViews);
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+  const relationChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" });
+  await expect(relationChip).toContainText("包含任一");
+  await expect(relationChip).toContainText("missing_skill");
+  await relationChip.click();
+
+  const filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "missing_skill" })).toBeVisible();
+  await filterPopover.locator(".filter-option-search-input").fill("missing_skill");
+  const missingRow = filterPopover.locator(".filter-option-row").filter({ hasText: "missing_skill" });
+  await expect(missingRow).toBeVisible();
+  await expect(missingRow.locator("input[type='checkbox']")).toBeChecked();
+});
+
+test("relation filter search matches title first and key fallback", async ({ page }) => {
+  const collectionKey = "data/e2e_relation.json:$";
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await ensurePrimaryKeySelection(page, "id");
+  await configureRelation(page, "skill_id", {
+    targetFile: "data/skills.json",
+    targetCollection: "skills",
+    targetKey: "skill_id",
+    mode: "single",
+  });
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+
+  const sharedViews = await loadSharedViewsConfig(page);
+  sharedViews.collections[collectionKey] = {
+    defaultViewId: "all",
+    views: [{
+      id: "all",
+      name: "全部",
+      type: "table",
+      query: "",
+      filters: { op: "and", rules: [] },
+      sorts: [],
+    }],
+  };
+  await saveSharedViewsConfig(page, sharedViews);
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "skill_id" }).click();
+  const filterPopover = page.locator(".filter-popover-content");
+  const slashRow = filterPopover.locator(".filter-option-row").filter({ has: page.locator(".filter-option-label", { hasText: /^斩击$/ }) });
+  await expect(filterPopover).toBeVisible();
+
+  await filterPopover.locator(".filter-option-search-input").fill("斩击");
+  await expect(slashRow).toBeVisible();
+  await filterPopover.locator(".filter-option-search-input").fill("skill_slash");
+  await expect(slashRow).toBeVisible();
+
+  await slashRow.click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" })).toContainText("斩击");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+});
+
+test("text filter popover keeps shared shell without scroll section", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+  await page.locator(".add-filter-field-option").filter({ hasText: "id" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toBeVisible();
+  await expect(page.locator(".filter-popover-shell")).toBeVisible();
+  await expect(page.locator(".filter-popover-section").filter({ has: page.locator(".filter-text-input") })).toBeVisible();
+  await expect(page.locator(".filter-popover-section-scroll")).toHaveCount(0);
+  await expect(page.locator(".filter-option-list")).toHaveCount(0);
+});
+
+test("boolean filter popover keeps shared shell without scroll section", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/status_effects.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+  await page.locator(".add-filter-field-option").filter({ hasText: "stackable" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "stackable" })).toBeVisible();
+  await expect(page.locator(".filter-popover-shell")).toBeVisible();
+  await expect(page.locator(".filter-choice-list")).toBeVisible();
+  await expect(page.locator(".filter-popover-section-scroll")).toHaveCount(0);
+  await expect(page.locator(".filter-option-list")).toHaveCount(0);
+});
+
+test("view tabs and filter bar buttons suppress text caret affordance", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const activeViewTab = page.locator(".view-tab-shell.active .view-tab");
+  const createViewButton = page.locator(".view-tab-create");
+  const filterToggleButton = page.locator(".view-tabs-filter-toggle");
+  const sortButton = page.locator(".view-filter-sort-button");
+  const addFilterButton = page.getByRole("button", { name: "+ 筛选" });
+
+  await expect(activeViewTab).toHaveCSS("user-select", "none");
+  await expect(activeViewTab).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
+  await expect(createViewButton).toHaveCSS("user-select", "none");
+  await expect(createViewButton).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
+  await expect(filterToggleButton).toHaveCSS("user-select", "none");
+  await expect(filterToggleButton).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
+  await expect(sortButton).toHaveCSS("user-select", "none");
+  await expect(sortButton).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
+  await expect(addFilterButton).toHaveCSS("user-select", "none");
+  await expect(addFilterButton).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
+});
+
+test("clickable drag surfaces use pointer by default and grabbing while dragging", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const activeViewTab = page.locator(".view-tab-shell.active .view-tab");
+  const sidebarFileItem = page.locator('.sidebar-file-item[title="data/e2e_multiselect.json"]');
+  const columnTrigger = page.locator('.column-trigger[title="id"]');
+
+  await expect(activeViewTab).toHaveCSS("cursor", "pointer");
+  await expect(sidebarFileItem).toHaveCSS("cursor", "pointer");
+  await expect(columnTrigger).toHaveCSS("cursor", "pointer");
+
+  const activeViewBox = await activeViewTab.boundingBox();
+  expect(activeViewBox).not.toBeNull();
+  await page.mouse.move(activeViewBox!.x + activeViewBox!.width / 2, activeViewBox!.y + activeViewBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(activeViewBox!.x + activeViewBox!.width / 2 - 12, activeViewBox!.y + activeViewBox!.height / 2, { steps: 3 });
+  await expect(page.locator(".view-tab-shell.dragging .view-tab")).toHaveCSS("cursor", "grabbing");
+  await page.mouse.up();
+
+  const sourceFile = page.locator('.sidebar-file-item[title="data/e2e_multiselect.json"]');
+  const targetFile = page.locator('.sidebar-file-item[title="data/status_effects.json"]');
+  const sourceFileBox = await sourceFile.boundingBox();
+  const targetFileBox = await targetFile.boundingBox();
+  expect(sourceFileBox).not.toBeNull();
+  expect(targetFileBox).not.toBeNull();
+  await page.mouse.move(sourceFileBox!.x + sourceFileBox!.width / 2, sourceFileBox!.y + sourceFileBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(sourceFileBox!.x + sourceFileBox!.width / 2, sourceFileBox!.y + sourceFileBox!.height / 2 + 8, { steps: 3 });
+  await expect(sourceFile).toHaveClass(/is-dragging/);
+  await expect(sourceFile).toHaveCSS("cursor", "grabbing");
+  await page.mouse.move(targetFileBox!.x + targetFileBox!.width / 2, targetFileBox!.y + targetFileBox!.height * 0.25, { steps: 6 });
+  await page.mouse.up();
+
+  const sourceColumn = page.locator('.column-trigger[title="id"]');
+  const targetColumn = page.locator('.column-trigger[title="name"]');
+  const sourceColumnBox = await sourceColumn.boundingBox();
+  const targetColumnBox = await targetColumn.boundingBox();
+  expect(sourceColumnBox).not.toBeNull();
+  expect(targetColumnBox).not.toBeNull();
+  await page.mouse.move(sourceColumnBox!.x + sourceColumnBox!.width / 2, sourceColumnBox!.y + sourceColumnBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(sourceColumnBox!.x + sourceColumnBox!.width / 2 - 18, sourceColumnBox!.y + sourceColumnBox!.height / 2, { steps: 4 });
+  await expect(page.locator(".column-drag-ghost")).toBeVisible();
+  await expect(sourceColumn).toHaveCSS("cursor", "grabbing");
+  await page.mouse.move(targetColumnBox!.x + targetColumnBox!.width * 0.25, targetColumnBox!.y + targetColumnBox!.height / 2, { steps: 8 });
+  await page.mouse.up();
+});
+
 test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page }) => {
   const realRunesBefore = await readFile(fixtureRunesPath, "utf8");
 
@@ -417,7 +964,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").click();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").last().click();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await expect(page.locator(".multi-select-popover .selected-chip")).toContainText("minion");
   await page.locator(".multi-select-option").filter({ hasText: "attack" }).click();
@@ -433,11 +980,15 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-color-item").filter({ hasText: "红色" }).click();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".chip")).toHaveCSS("background-color", "rgb(255, 217, 214)");
   await page.locator(".multi-select-option-row").filter({ hasText: "spell" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
   await page.locator(".multi-select-popover").press("Escape");
-  await expect(page.locator(".data-table tbody tr[data-row-index='0'] .chip")).toContainText(["strike", "custom_tag"]);
-  await expect(page.locator(".data-table tbody tr[data-row-index='0'] .chip").filter({ hasText: "strike" })).toHaveCSS("background-color", "rgb(255, 217, 214)");
+  const featuresBlockAfterEdit = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "features" }),
+  });
+  await expect(featuresBlockAfterEdit.locator(".multi-select-trigger .chip")).toContainText(["strike", "custom_tag"]);
+  await expect(featuresBlockAfterEdit.locator(".multi-select-trigger .chip").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
   await expect.poll(async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_multiselect.json"), "utf8");
@@ -491,6 +1042,20 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     return text.includes('"type": "Text"') && text.includes('"strike"') && text.includes('"blue"') && text.includes('"spell"');
   }).toBe(true);
 
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").last().click();
+  await page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".option-menu-trigger").click();
+  const pinkItem = page.locator(".multi-select-color-item").filter({ hasText: "粉色" });
+  const redItem = page.locator(".multi-select-color-item").filter({ hasText: "红色" });
+  await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-width", "0px");
+  await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(247, 216, 238)");
+  await expect(redItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(255, 217, 214)");
+  await pinkItem.click();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".chip")).toHaveCSS("background-color", "rgb(247, 216, 238)");
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".chip")).toHaveCSS("color", "rgb(138, 63, 116)");
+  await page.locator(".multi-select-popover").press("Escape");
+
   const collectionsSection = page.locator(".sidebar-section").filter({ hasText: "Collections" });
   const alphaCollection = collectionsSection.locator(".sidebar-item").filter({ hasText: "alpha" });
   const betaCollection = collectionsSection.locator(".sidebar-item").filter({ hasText: "beta" });
@@ -527,6 +1092,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
+  await ensurePrimaryKeySelection(page, "id");
   const relationDataBeforeConfig = await readFile(path.resolve("tests/.scratch/data/e2e_relation.json"), "utf8");
   await configureRelation(page, "skill_id", {
     targetFile: "data/skills.json",
@@ -589,15 +1155,27 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/keywords.json"]').click();
   await expect(page.locator('.column-trigger[title="back_keyword_id"]')).toBeVisible();
-  await page.locator(".view-tab").filter({ hasText: "构筑" }).click();
-  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("构筑");
-  await expect(page.locator('.column-trigger[title="dev_status"]')).toBeVisible();
-  await page.locator(".view-tab").filter({ hasText: "物品" }).click();
-  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("物品");
-  await expect(page.locator('.column-trigger[title="dev_status"]')).toBeVisible();
+  await page.evaluate(() => {
+    localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:wrapped", "1");
+    localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:width", "120");
+  });
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  const wrappedBacklinkCell = page.locator('td[data-column-field="back_keyword_id"][data-wrap-mode="wrap"] [data-cell-role="token-content"]').first();
+  await expect(wrappedBacklinkCell).toBeVisible();
   const keywordBacklinkChip = page.locator('.data-table tbody .backlink-chip-button[title*="data/status_effects.json"]').first();
   await expect(keywordBacklinkChip).toBeVisible();
   await expect(keywordBacklinkChip).toHaveCSS("background-color", "rgb(233, 232, 229)");
+  const backlinkWrapResult = await wrappedBacklinkCell.evaluate((element) => {
+    const chip = element.querySelector(".backlink-chip-button") as HTMLElement | null;
+    return {
+      clientHeight: (element as HTMLElement).clientHeight,
+      scrollHeight: (element as HTMLElement).scrollHeight,
+      chipWhiteSpace: chip ? getComputedStyle(chip).whiteSpace : null,
+    };
+  });
+  expect(backlinkWrapResult.chipWhiteSpace).toBe("normal");
+  expect(backlinkWrapResult.scrollHeight).toBeLessThanOrEqual(backlinkWrapResult.clientHeight);
   await keywordBacklinkChip.click();
   await expect(page.locator(".toolbar strong")).toContainText("data/status_effects.json");
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
@@ -651,7 +1229,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.getByRole("button", { name: "$" })).toBeVisible();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  await page.evaluate(() => localStorage.setItem("data-editor:data/runes.json:$:description:hidden", "1"));
+  await page.evaluate(() => localStorage.setItem("data-editor:data/runes.json:$:all:description:hidden", "1"));
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator('col[data-column-field="description"]')).toHaveCount(0);
@@ -672,7 +1250,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".menu-content")).toHaveCount(0);
   const headerOrderAfterDrag = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
   expect(headerOrderAfterDrag.slice(0, 3)).toEqual(["description_zh", "rune_name", "description"]);
-  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/runes.json:$:__order"))).toContain("description_zh,rune_name,description");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/runes.json:$:all:__order"))).toContain("description_zh,rune_name,description");
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
@@ -688,7 +1266,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   expect(headerOrderAfterIconDrag.indexOf("icon_path")).toBeGreaterThanOrEqual(0);
   expect(headerOrderAfterIconDrag.indexOf("dev_status")).toBeGreaterThanOrEqual(0);
   expect(headerOrderAfterIconDrag.indexOf("icon_path")).toBeLessThan(headerOrderAfterIconDrag.indexOf("dev_status"));
-  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/skills.json:skills:__order"))).toContain("icon_path");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/skills.json:skills:all:__order"))).toContain("icon_path");
   await page.reload();
   await page.locator('.sidebar-item[title="data/skills.json"]').click();
   await expect(page.locator('.column-trigger[title="icon_path"]')).toBeVisible();
@@ -696,7 +1274,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   expect(headerOrderAfterSkillsReload.indexOf("icon_path")).toBeLessThan(headerOrderAfterSkillsReload.indexOf("dev_status"));
 
   await page.evaluate(() => localStorage.setItem(
-    "data-editor:data/skills.json:skills:__order",
+    "data-editor:data/skills.json:skills:all:__order",
     "dev_status,skill_name,ap_cost,description,class_pool,complexity,cooldown,description_zh,id,mana_cost,owner,range_type_show,range_value_show,skill_category,skill_id,skill_type,tags,spell_subtype,minion_subtype,form_duration,enemy_behavior_actions,enemy_intent_type,enemy_ai_tags,enemy_interaction_windows,enemy_bonus_answer_tags,enemy_skill_role,control_protection_tags,nodes,icon_path,equipment_requirement,on_expire_effect,replaced_skills,enemy_budget_score,back_skills,back_phase_skills",
   ));
   await page.reload();
@@ -709,7 +1287,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   const headerOrderAfterIconRightDrag = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
   expect(headerOrderAfterIconRightDrag.indexOf("icon_path")).toBeGreaterThan(headerOrderAfterIconRightDrag.indexOf("equipment_requirement"));
   expect(headerOrderAfterIconRightDrag.indexOf("icon_path")).toBeLessThan(headerOrderAfterIconRightDrag.indexOf("on_expire_effect"));
-  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/skills.json:skills:__order"))).toContain("on_expire_effect");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/skills.json:skills:all:__order"))).toContain("on_expire_effect");
   await page.reload();
   await page.locator('.sidebar-item[title="data/skills.json"]').click();
   await scrollColumnHeaderNearEdge(page, "icon_path", "right");
@@ -842,12 +1420,12 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   expect(descriptionHeaderLayout.typeTop).toBeGreaterThanOrEqual(descriptionHeaderLayout.nameBottom - 1);
 
   await page.evaluate(() => {
-    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:description:wrapped", "1");
-    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:description:width", "180");
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:wrapped", "1");
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:width", "180");
   });
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
-  await page.waitForSelector(".cell-wrap");
+  await page.waitForSelector('td[data-column-field="description"][data-wrap-mode="wrap"] [data-cell-role="content"]');
   await page.waitForFunction(() => [...document.querySelectorAll(".column-resize-handle[aria-label=\"Resize description column\"]")].some((element) => {
     const rect = element.getBoundingClientRect();
     return element.isConnected && rect.width > 0 && rect.height > 0;
@@ -892,18 +1470,25 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     y: descriptionResizeBox.y + descriptionResizeBox.height / 2,
   });
   const wrapResult = await page.evaluate(() => {
-    const span = document.querySelector("td .cell-wrap span") as HTMLElement;
-    const titleSpan = document.querySelector("td .title-cell.cell-wrap span") as HTMLElement;
+    const td = document.querySelector('td[data-column-field="description"][data-wrap-mode="wrap"]') as HTMLTableCellElement;
+    const content = document.querySelector('td[data-column-field="description"][data-wrap-mode="wrap"] [data-cell-role="content"]') as HTMLElement;
+    const span = document.querySelector('td[data-column-field="description"][data-wrap-mode="wrap"] [data-cell-role="content"] span') as HTMLElement;
+    const titleSpan = document.querySelector('td[data-cell-kind="data"][data-wrap-mode="wrap"] [data-cell-role="title-text"]') as HTMLElement;
     const heights = [...document.querySelectorAll("tbody tr[data-row-index]")].map((row) => (row as HTMLTableRowElement).getBoundingClientRect().height);
     return {
+      contentClientHeight: content?.clientHeight ?? null,
+      contentScrollHeight: content?.scrollHeight ?? null,
+      tdVerticalAlign: td ? getComputedStyle(td).verticalAlign : null,
       width: (document.querySelector("col[data-column-field=\"description\"]") as HTMLTableColElement).style.width,
       whiteSpace: span ? getComputedStyle(span).whiteSpace : null,
       titleWhiteSpace: titleSpan ? getComputedStyle(titleSpan).whiteSpace : null,
       heights,
     };
   });
+  expect(wrapResult.tdVerticalAlign).toBe("top");
   expect(wrapResult.whiteSpace).toBe("normal");
   expect(["normal", null]).toContain(wrapResult.titleWhiteSpace);
+  expect(wrapResult.contentScrollHeight).toBeLessThanOrEqual(wrapResult.contentClientHeight);
   expect(wrapResult.width).not.toBe(descriptionWidthBefore);
   expect(Math.max(...wrapResult.heights)).toBeGreaterThan(Math.min(...wrapResult.heights));
 
@@ -1128,10 +1713,10 @@ test("select column dragged to the first position keeps select rendering when ti
     await dragColumnHeader(page, "status", "id");
 
     await expect(page.locator(".column-trigger").first()).toHaveAttribute("title", "status");
-    const firstDataCell = page.locator('.data-table tbody tr[data-row-index="0"] td').nth(1);
+    const firstDataCell = page.locator('.data-table tbody tr[data-row-index="0"] td[data-column-field="status"]');
     await expect(firstDataCell.locator(".multi-select-trigger")).toContainText("review");
     await expect(firstDataCell.locator(".multi-select-trigger .chip")).toBeVisible();
-    await expect(firstDataCell.locator(".title-cell")).toHaveCount(0);
+    await expect(firstDataCell.locator('[data-cell-role="title"]')).toHaveCount(0);
   } finally {
     await bestEffortRestore("e2e_select_title_fallback.json", () => rm(dataPath, { force: true }));
   }
@@ -1316,10 +1901,12 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
     has: page.locator(".property-heading span", { hasText: "features" }),
   });
   await expect(featuresBlock.locator(".multi-select-trigger")).toBeVisible();
+  await expect(featuresBlock.locator(".multi-select-trigger")).toHaveAttribute("data-cell-role", "detail-trigger");
+  await expect(featuresBlock.locator(".multi-select-trigger")).toHaveAttribute("data-wrap-mode", "truncate");
   await expect(featuresBlock.locator(".nested-entry-button")).toHaveCount(0);
-  await featuresBlock.locator(".multi-select-trigger").click();
+  await featuresBlock.locator(".multi-select-trigger").evaluate((element) => (element as HTMLButtonElement).click());
   await expect(page.locator(".multi-select-popover")).toBeVisible();
-  await expect(page.locator(".multi-select-popover .selected-chip")).toContainText("minion");
+  await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(1);
   await page.locator(".multi-select-popover").press("Escape");
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
@@ -1333,10 +1920,193 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
     has: page.locator(".property-heading span", { hasText: "category" }),
   });
   await expect(categoryBlock.locator(".multi-select-trigger")).toBeVisible();
+  await expect(categoryBlock.locator(".multi-select-trigger")).toHaveAttribute("data-cell-role", "detail-trigger");
+  await expect(categoryBlock.locator(".multi-select-trigger")).toHaveAttribute("data-wrap-mode", "truncate");
   await expect(categoryBlock.locator(".multi-select-trigger .chip")).toContainText("attack");
-  await categoryBlock.locator(".multi-select-trigger").click();
+  await categoryBlock.locator(".multi-select-trigger").evaluate((element) => (element as HTMLButtonElement).click());
   await expect(page.locator(".multi-select-popover")).toBeVisible();
-  await expect(page.locator(".multi-select-popover .selected-chip")).toContainText("attack");
+  await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(1);
+});
+
+test("option field editor popover uses shared shell and scroll section from table cell", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  const devTagsColumnIndex = await page.evaluate(() => {
+    return [...document.querySelectorAll("th[data-column-field]")].findIndex((header) => header.getAttribute("data-column-field") === "dev_tags");
+  });
+  expect(devTagsColumnIndex).toBeGreaterThanOrEqual(0);
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator("td").nth(devTagsColumnIndex + 1).locator(".multi-select-trigger").click();
+
+  const popover = page.locator(".multi-select-popover.option-field-popover-shell");
+  const selectedSection = popover.locator(".option-field-popover-section").first();
+  const scrollSection = popover.locator(".option-field-popover-section-scroll");
+  await expect(popover).toBeVisible();
+  await expect(selectedSection).toBeVisible();
+  await expect(selectedSection.locator(".multi-select-input")).toBeVisible();
+  await expect(scrollSection).toBeVisible();
+  const scrollMetrics = await scrollSection.evaluate((node) => {
+    const element = node as HTMLDivElement;
+    return {
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    };
+  });
+  expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
+  await expect(page.locator('.data-table tbody tr[data-row-index="0"] td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
+});
+
+test("detail panel option field editors reuse the shared popover shell", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const featuresBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "features" }),
+  });
+  await expect(featuresBlock.locator(".multi-select-trigger")).toHaveAttribute("data-cell-role", "detail-trigger");
+  await expect(featuresBlock.locator(".multi-select-trigger")).not.toHaveClass(/cell-token-flow/);
+  await featuresBlock.locator(".multi-select-trigger").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+  await expect(page.locator(".multi-select-popover .option-field-popover-section-scroll")).toBeVisible();
+  await page.locator(".multi-select-popover").press("Escape");
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "category" }),
+  });
+  await expect(categoryBlock.locator(".multi-select-trigger")).toHaveAttribute("data-cell-role", "detail-trigger");
+  await expect(categoryBlock.locator(".multi-select-trigger")).not.toHaveClass(/cell-token-flow/);
+  await categoryBlock.locator(".multi-select-trigger").evaluate((element) => (element as HTMLButtonElement).click());
+  const selectPopover = page.locator(".multi-select-popover.option-field-popover-shell");
+  await expect(selectPopover).toBeVisible();
+  await expect(selectPopover.locator(".option-field-popover-section")).toHaveCount(2);
+  await expect(selectPopover.locator(".option-field-popover-section-scroll")).toBeVisible();
+});
+
+test("relation popover still opens and selects target after option field shell migration", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await ensurePrimaryKeySelection(page, "id");
+
+  await configureRelation(page, "skill_id", {
+    targetFile: "data/skills.json",
+    targetCollection: "skills",
+    targetKey: "skill_id",
+    mode: "single",
+  });
+
+  const relationTrigger = page.locator(".data-table tbody tr[data-row-index='0'] .relation-trigger").first();
+  const initialRelationText = ((await relationTrigger.textContent()) ?? "").trim();
+  await relationTrigger.click();
+  const relationPopover = page.locator(".relation-popover");
+  await expect(relationPopover).toBeVisible();
+  await expect(relationPopover.locator(".option-field-popover-shell")).toHaveCount(0);
+  await relationPopover.locator(".relation-option").filter({ hasText: "skill_heavy_slash" }).click();
+  await relationPopover.press("Escape");
+  await expect(relationTrigger).not.toHaveText(initialRelationText);
+});
+
+test("option field editor keeps create rename color and delete actions", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+
+  await page.locator(".multi-select-input").fill("phase2_tag");
+  await page.locator(".multi-select-input").press("Enter");
+  await expect(page.locator(".multi-select-popover .selected-chip").filter({ hasText: "phase2_tag" })).toBeVisible();
+
+  const attackRow = page.locator(".multi-select-option-row").filter({ hasText: "attack" });
+  await attackRow.locator(".option-menu-trigger").click();
+  await expect(page.locator(".multi-select-option-editor")).toBeVisible();
+  await page.locator(".multi-select-option-name-input").fill("phase2_attack");
+  await page.locator(".multi-select-option-name-input").press("Enter");
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" })).toBeVisible();
+
+  await page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" }).locator(".option-menu-trigger").click();
+  await page.locator(".multi-select-color-item").filter({ hasText: "蓝色" }).click();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" }).locator(".chip")).toHaveCSS("background-color", "rgb(219, 234, 254)");
+
+  await page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" }).locator(".option-menu-trigger").click();
+  await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" })).toHaveCount(0);
+  await expect(page.locator(".multi-select-popover .selected-chip").filter({ hasText: "phase2_tag" })).toHaveCount(0);
+});
+
+test("option field editor drag reorder updates visible chip order and persists after save", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const secondRowTrigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  await secondRowTrigger.click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+
+  const rowChipTextsBeforePreview = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(rowChipTextsBeforePreview.length).toBeGreaterThan(1);
+  const targetValue = rowChipTextsBeforePreview[0]!;
+  const sourceValue = rowChipTextsBeforePreview[1]!;
+  const optionTextsBeforeSweep = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  const farTargetValue = optionTextsBeforeSweep.find((value) => value && value !== sourceValue && value !== targetValue && optionTextsBeforeSweep.indexOf(value) >= 4) ?? targetValue;
+
+  await beginOptionHandleDrag(page, sourceValue);
+  await movePointerOverOptionRow(page, targetValue);
+  const optionTexts = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTexts.indexOf(sourceValue)).toBeLessThan(optionTexts.indexOf(targetValue));
+
+  const selectedTextsInPopover = await page.locator(".multi-select-popover .selected-chip span:first-child").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(selectedTextsInPopover.indexOf(sourceValue)).toBeLessThan(selectedTextsInPopover.indexOf(targetValue));
+
+  await movePointerOverOptionRow(page, farTargetValue);
+  await movePointerOverOptionRow(page, targetValue);
+  const optionTextsAfterRepeatedMove = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsAfterRepeatedMove.indexOf(sourceValue)).toBeLessThan(optionTextsAfterRepeatedMove.indexOf(targetValue));
+
+  const saveButton = page.locator(".toolbar .primary-button");
+  await expect(saveButton).toBeDisabled();
+
+  await endOptionHandleDrag(page, sourceValue, targetValue);
+  await page.locator(".multi-select-popover").press("Escape");
+
+  const rowChipTexts = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(rowChipTexts.indexOf(sourceValue)).toBeLessThan(rowChipTexts.indexOf(targetValue));
+
+  await expect(saveButton).toBeEnabled();
+  await saveButton.evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(saveButton).toBeDisabled();
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const rowChipTextsAfterReload = await page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(rowChipTextsAfterReload.indexOf(sourceValue)).toBeLessThan(rowChipTextsAfterReload.indexOf(targetValue));
 });
 
 test("profile file order controls initial open and ignores stale local file order", async ({ page }) => {
