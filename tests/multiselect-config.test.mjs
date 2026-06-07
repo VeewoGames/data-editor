@@ -2,10 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildMultiSelectFieldConfig,
+  buildOptionConfigByOrder,
   removeMultiSelectOptionFromRows,
+  renameOptionConfigValue,
   removeSingleSelectOptionFromRows,
   renameMultiSelectOptionInRows,
   renameSingleSelectOptionInRows,
+  sortValuesByOptionOrder,
 } from "../src/multiselect-config.mjs";
 
 test("renameMultiSelectOptionInRows updates every matching value in one field", () => {
@@ -77,4 +80,67 @@ test("buildMultiSelectFieldConfig merges discovered values with project config",
   ]);
   assert.equal(config.optionMap.attack.label, "普攻");
   assert.equal(config.optionMap.spell.color, null);
+});
+
+test("buildMultiSelectFieldConfig preserves stored option order and appends discovered values", () => {
+  const config = buildMultiSelectFieldConfig(
+    ["spell", "attack", "buff"],
+    {
+      multiSelectOptions: {
+        area: { label: "范围", color: "blue" },
+        attack: { label: "攻击", color: "red" },
+      },
+    },
+  );
+  assert.deepEqual(config.options.map((option) => option.value), ["area", "attack", "spell", "buff"]);
+});
+
+test("sortValuesByOptionOrder follows configured option order and keeps unknown values at the end", () => {
+  assert.deepEqual(
+    sortValuesByOptionOrder(["attack", "unknown", "area"], ["area", "attack"]),
+    ["area", "attack", "unknown"],
+  );
+});
+
+test("buildOptionConfigByOrder rebuilds object insertion order from the requested sequence", () => {
+  assert.deepEqual(
+    Object.keys(buildOptionConfigByOrder(
+      {
+        attack: { label: "攻击", color: "red" },
+        area: { label: "范围", color: "blue" },
+        buff: { label: "增益", color: null },
+      },
+      ["buff", "attack"],
+    )),
+    ["buff", "attack", "area"],
+  );
+});
+
+test("buildOptionConfigByOrder materializes missing ordered values with default metadata", () => {
+  assert.deepEqual(
+    buildOptionConfigByOrder(
+      {
+        attack: { label: "攻击", color: "red" },
+      },
+      ["spell", "attack"],
+    ),
+    {
+      spell: { label: "spell", color: null },
+      attack: { label: "攻击", color: "red" },
+    },
+  );
+});
+
+test("renameOptionConfigValue preserves the original option position", () => {
+  const renamed = renameOptionConfigValue(
+    {
+      attack: { label: "攻击", color: "red" },
+      area: { label: "范围", color: "blue" },
+      buff: { label: "增益", color: null },
+    },
+    "area",
+    "zone",
+  );
+  assert.deepEqual(Object.keys(renamed), ["attack", "zone", "buff"]);
+  assert.equal(renamed.zone.color, "blue");
 });

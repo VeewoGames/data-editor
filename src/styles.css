@@ -1935,6 +1935,7 @@ th:hover .column-resize-handle::after,
 .option-field-popover-shell {
   gap: 0;
   min-width: 320px;
+  position: relative;
 }
 
 .option-field-popover-section {
@@ -2041,8 +2042,38 @@ th:hover .column-resize-handle::after,
   border-radius: 8px;
 }
 
-.multi-select-option-row.is-dragging {
-  opacity: 0.55;
+.option-field-drag-placeholder {
+  background: #efeeeb;
+  border: 1px dashed #d3d0ca;
+  border-radius: 8px;
+}
+
+.option-field-drag-ghost {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d9d6d1;
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(15, 15, 15, 0.18);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 24px minmax(0, 1fr) 32px;
+  opacity: 0.96;
+  pointer-events: none;
+  position: absolute;
+  z-index: 30;
+}
+
+.option-field-drag-ghost-handle,
+.option-field-drag-ghost-menu {
+  align-items: center;
+  color: #8b8a86;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+}
+
+.option-field-drag-ghost-menu {
+  width: 28px;
 }
 
 .multi-select-option:hover,

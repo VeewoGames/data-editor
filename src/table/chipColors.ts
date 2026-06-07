@@ -16,7 +16,7 @@ export const namedChipPalette = {
   green: { background: "#dcefe4", color: "#2f5d49" },
   blue: { background: "#dbeafe", color: "#2f5f9a" },
   purple: { background: "#e7dbfa", color: "#6d4aa2" },
-  pink: { background: "#f5d7db", color: "#7a3f4b" },
+  pink: { background: "#f7d8ee", color: "#8a3f74" },
   red: { background: "#ffd9d6", color: "#a13a31" },
 } as const;
 

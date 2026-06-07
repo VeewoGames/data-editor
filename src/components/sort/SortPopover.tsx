@@ -51,7 +51,7 @@ export function SortPopover({ fields, sorts, onChangeSorts }: SortPopoverProps) 
             <Select.Root value={sort.field} onValueChange={(field) => updateSort(sort.id, { field, id: createSortId(field, sorts, sort.id) })}>
               <Select.Trigger className="select-trigger sort-field-trigger" aria-label="排序字段">
                 <Select.Value />
-                <Select.Icon />
+                <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
               </Select.Trigger>
               <Select.Portal>
                 <Select.Content className="menu-content select-content sort-select-content" position="popper" sideOffset={6}>
@@ -68,7 +68,7 @@ export function SortPopover({ fields, sorts, onChangeSorts }: SortPopoverProps) 
             <Select.Root value={sort.direction} onValueChange={(direction) => updateSort(sort.id, { direction: direction as SortRule["direction"] })}>
               <Select.Trigger className="select-trigger sort-direction-trigger" aria-label="排序方向">
                 <Select.Value />
-                <Select.Icon />
+                <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
               </Select.Trigger>
               <Select.Portal>
                 <Select.Content className="menu-content select-content sort-direction-content" position="popper" sideOffset={6}>

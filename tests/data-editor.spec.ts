@@ -130,8 +130,15 @@ async function beginOptionHandleDrag(page: Page, sourceRowText: string) {
       .find((row) => row.textContent?.includes(sourceText))
       ?.querySelector(".option-drag-handle");
     if (!(sourceHandle instanceof HTMLElement)) return;
+    const rect = sourceHandle.getBoundingClientRect();
     const shared = { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: "mouse", isPrimary: true };
-    sourceHandle.dispatchEvent(new PointerEvent("pointerdown", { ...shared, button: 0, buttons: 1 }));
+    sourceHandle.dispatchEvent(new PointerEvent("pointerdown", {
+      ...shared,
+      button: 0,
+      buttons: 1,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2,
+    }));
   }, sourceRowText);
 }
 
@@ -168,20 +175,24 @@ async function movePointerOverOptionRow(page: Page, targetRowText: string) {
   }, targetRowText);
 }
 
-async function endOptionHandleDrag(page: Page, sourceRowText: string, targetRowText: string) {
-  await page.evaluate(({ sourceText, targetText }) => {
-    const sourceHandle = [...document.querySelectorAll(".multi-select-option-row")]
-      .find((row) => row.textContent?.includes(sourceText))
-      ?.querySelector(".option-drag-handle");
+async function endOptionHandleDrag(page: Page, _sourceRowText: string, targetRowText: string) {
+  await page.evaluate(({ targetText }) => {
     const targetRow = [...document.querySelectorAll(".multi-select-option-row")]
       .find((row) => row.textContent?.includes(targetText));
-    if (!(sourceHandle instanceof HTMLElement) || !(targetRow instanceof HTMLElement)) return;
+    if (!(targetRow instanceof HTMLElement)) return;
     const shared = { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: "mouse", isPrimary: true };
     const pointerUp = new PointerEvent("pointerup", { ...shared, button: 0, buttons: 0 });
-    sourceHandle.dispatchEvent(pointerUp);
     targetRow.dispatchEvent(pointerUp);
     window.dispatchEvent(pointerUp);
-  }, { sourceText: sourceRowText, targetText: targetRowText });
+  }, { targetText: targetRowText });
+}
+
+async function cancelOptionHandleDrag(page: Page, _sourceRowText: string) {
+  await page.evaluate(() => {
+    const shared = { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: "mouse", isPrimary: true };
+    const pointerCancel = new PointerEvent("pointercancel", { ...shared, button: 0, buttons: 0 });
+    window.dispatchEvent(pointerCancel);
+  });
 }
 
 async function getSidebarFileOrder(page: Page) {
@@ -190,24 +201,54 @@ async function getSidebarFileOrder(page: Page) {
   ));
 }
 
-async function dragSidebarFile(page: Page, sourcePath: string, targetPath: string, placement: "before" | "after" = "before") {
+async function beginSidebarFileDrag(page: Page, sourcePath: string) {
   const sourceLocator = page.locator(`.sidebar-file-item[title="${sourcePath}"]`);
-  const targetLocator = page.locator(`.sidebar-file-item[title="${targetPath}"]`);
   await sourceLocator.scrollIntoViewIfNeeded();
-  await targetLocator.scrollIntoViewIfNeeded();
   const source = await sourceLocator.boundingBox();
-  const target = await targetLocator.boundingBox();
   expect(source).not.toBeNull();
-  expect(target).not.toBeNull();
   const startX = source!.x + source!.width / 2;
   const startY = source!.y + source!.height / 2;
-  const targetY = placement === "before" ? target!.y + target!.height * 0.25 : target!.y + target!.height * 0.75;
   await page.mouse.move(startX, startY);
   await page.mouse.down();
   await page.mouse.move(startX, startY + 8, { steps: 3 });
   await expect(sourceLocator).toHaveClass(/is-dragging/);
+}
+
+async function moveSidebarFileDrag(page: Page, targetPath: string, placement: "before" | "after" = "before") {
+  const targetLocator = page.locator(`.sidebar-file-item[title="${targetPath}"]`);
+  await targetLocator.scrollIntoViewIfNeeded();
+  const target = await targetLocator.boundingBox();
+  expect(target).not.toBeNull();
+  const targetY = placement === "before" ? target!.y + target!.height * 0.25 : target!.y + target!.height * 0.75;
   await page.mouse.move(target!.x + target!.width / 2, targetY, { steps: 8 });
+}
+
+async function releaseSidebarFileDrag(page: Page) {
   await page.mouse.up();
+}
+
+async function cancelSidebarFileDrag(page: Page) {
+  await page.evaluate(() => {
+    const active = document.querySelector(".sidebar-file-item.is-dragging");
+    if (!(active instanceof HTMLElement)) return;
+    active.dispatchEvent(new PointerEvent("pointercancel", {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+    }));
+  });
+  await page.mouse.up();
+}
+
+async function dragSidebarFile(page: Page, sourcePath: string, targetPath: string, placement: "before" | "after" = "before") {
+  await beginSidebarFileDrag(page, sourcePath);
+  await moveSidebarFileDrag(page, targetPath, placement);
+  await releaseSidebarFileDrag(page);
 }
 
 async function getViewTabNames(page: Page) {
@@ -2078,16 +2119,19 @@ test("option field editor drag reorder updates visible chip order and persists a
 
   await beginOptionHandleDrag(page, sourceValue);
   await movePointerOverOptionRow(page, targetValue);
-  const optionTexts = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
-  expect(optionTexts.indexOf(sourceValue)).toBeLessThan(optionTexts.indexOf(targetValue));
+  await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
+  await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
+  const rowChipTextsDuringPreview = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(rowChipTextsDuringPreview).toEqual(rowChipTextsBeforePreview);
 
   const selectedTextsInPopover = await page.locator(".multi-select-popover .selected-chip span:first-child").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
-  expect(selectedTextsInPopover.indexOf(sourceValue)).toBeLessThan(selectedTextsInPopover.indexOf(targetValue));
+  const selectedTextsInPopoverBeforePreview = rowChipTextsBeforePreview;
+  expect(selectedTextsInPopover).toEqual(selectedTextsInPopoverBeforePreview);
 
   await movePointerOverOptionRow(page, farTargetValue);
   await movePointerOverOptionRow(page, targetValue);
-  const optionTextsAfterRepeatedMove = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
-  expect(optionTextsAfterRepeatedMove.indexOf(sourceValue)).toBeLessThan(optionTextsAfterRepeatedMove.indexOf(targetValue));
+  await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
+  await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
 
   const saveButton = page.locator(".toolbar .primary-button");
   await expect(saveButton).toBeDisabled();
@@ -2107,6 +2151,201 @@ test("option field editor drag reorder updates visible chip order and persists a
 
   const rowChipTextsAfterReload = await page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(rowChipTextsAfterReload.indexOf(sourceValue)).toBeLessThan(rowChipTextsAfterReload.indexOf(targetValue));
+});
+
+test("option field editor drag cancel rolls back preview and leaves the parent row clean", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const secondRowTrigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  await secondRowTrigger.click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+
+  const rowChipTextsBeforePreview = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(rowChipTextsBeforePreview.length).toBeGreaterThan(1);
+  const targetValue = rowChipTextsBeforePreview[0]!;
+  const sourceValue = rowChipTextsBeforePreview[1]!;
+
+  await beginOptionHandleDrag(page, sourceValue);
+  await movePointerOverOptionRow(page, targetValue);
+  await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
+  await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
+
+  await cancelOptionHandleDrag(page, sourceValue);
+
+  const optionTextsAfterCancel = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsAfterCancel.indexOf(sourceValue)).toBeGreaterThan(optionTextsAfterCancel.indexOf(targetValue));
+
+  const rowChipTextsAfterCancel = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(rowChipTextsAfterCancel).toEqual(rowChipTextsBeforePreview);
+  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+});
+
+test("option field editor drag reorder also persists for single-select options", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+
+  const trigger = page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger');
+  await trigger.click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+
+  const optionTextsBefore = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsBefore.length).toBeGreaterThan(1);
+  const targetValue = optionTextsBefore[0]!;
+  const sourceValue = optionTextsBefore[1]!;
+
+  await beginOptionHandleDrag(page, sourceValue);
+  await movePointerOverOptionRow(page, targetValue);
+  await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
+  await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
+  await endOptionHandleDrag(page, sourceValue, targetValue);
+  await page.locator(".multi-select-popover").press("Escape");
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
+  const optionTextsAfterReload = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsAfterReload.indexOf(sourceValue)).toBeLessThan(optionTextsAfterReload.indexOf(targetValue));
+});
+
+test("detail panel option field drag reorder updates preview order and dirties on release", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await page.locator(".data-table tbody tr[data-row-index='0'] .title-open-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "category" }),
+  });
+  const trigger = categoryBlock.locator(".multi-select-trigger");
+  await trigger.click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+  const optionTextsBefore = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsBefore.length).toBeGreaterThan(1);
+  const targetValue = optionTextsBefore[0]!;
+  const sourceValue = optionTextsBefore[1]!;
+  const triggerChipTextsBefore = await trigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  const sourceHandle = page.locator(".multi-select-option-row").filter({ hasText: sourceValue }).locator(".option-drag-handle");
+  const targetRow = page.locator(".multi-select-option-row").filter({ hasText: targetValue }).first();
+  const sourceBox = await sourceHandle.boundingBox();
+  const targetBox = await targetRow.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(sourceBox!.x + sourceBox!.width / 2, sourceBox!.y + sourceBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(sourceBox!.x + sourceBox!.width / 2, sourceBox!.y + sourceBox!.height / 2 - 10, { steps: 3 });
+  await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height * 0.1, { steps: 8 });
+  await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
+  await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
+  const triggerChipTextsDuringPreview = await trigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(triggerChipTextsDuringPreview).toEqual(triggerChipTextsBefore);
+
+  await page.mouse.up();
+  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+});
+
+test("option field editor drag preview uses a ghost and placeholder instead of moving the live row", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const trigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  await trigger.click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+
+  const optionTextsBefore = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsBefore.length).toBeGreaterThan(1);
+  const targetValue = optionTextsBefore[0]!;
+  const sourceValue = optionTextsBefore[1]!;
+
+  await beginOptionHandleDrag(page, sourceValue);
+  await movePointerOverOptionRow(page, targetValue);
+
+  await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
+  await expect(page.locator(".option-field-drag-ghost .chip")).toContainText(sourceValue);
+  await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
+  await expect(page.locator(".multi-select-option-row.is-dragging")).toHaveCount(0);
+  const popoverBox = await page.locator(".multi-select-popover.option-field-popover-shell").boundingBox();
+  const ghostBox = await page.locator(".option-field-drag-ghost").boundingBox();
+  expect(popoverBox).not.toBeNull();
+  expect(ghostBox).not.toBeNull();
+  expect(ghostBox!.y).toBeGreaterThanOrEqual(popoverBox!.y - 2);
+  expect(ghostBox!.y + ghostBox!.height).toBeLessThanOrEqual(popoverBox!.y + popoverBox!.height + 80);
+
+  await releaseSidebarFileDrag(page);
+});
+
+test("option field editor drag reorder works after filtering visible options", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const trigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  await trigger.click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+
+  const optionTextsBefore = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  const filteredCandidates = optionTextsBefore.filter((value) => /a/i.test(value ?? ""));
+  expect(filteredCandidates.length).toBeGreaterThan(1);
+  const targetValue = filteredCandidates[0]!;
+  const sourceValue = filteredCandidates[1]!;
+
+  await page.locator(".multi-select-input").fill("a");
+  const filteredOptionTexts = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(filteredOptionTexts).toContain(sourceValue);
+  expect(filteredOptionTexts).toContain(targetValue);
+
+  await beginOptionHandleDrag(page, sourceValue);
+  await movePointerOverOptionRow(page, targetValue);
+  await endOptionHandleDrag(page, sourceValue, targetValue);
+
+  await page.locator(".multi-select-input").fill("");
+  const optionTextsAfterClear = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  expect(optionTextsAfterClear.indexOf(sourceValue)).toBeLessThan(optionTextsAfterClear.indexOf(targetValue));
+});
+
+test("option field editor clears sticky popover state after unmount", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toHaveCount(0);
 });
 
 test("profile file order controls initial open and ignores stale local file order", async ({ page }) => {
@@ -2165,6 +2404,95 @@ test("profile file order drag persists to profile JSON", async ({ page }) => {
     const profile = JSON.parse(text);
     return profile.fileOrder?.join(",");
   }).toContain("data/status_effects.json,data/runes.json");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:__file-order"))).toBe(null);
+});
+
+test("profile file order drag previews before release and commits only on drop", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "file_order_preview_profile",
+        profile: {
+          sidebarWidth: null,
+          fileOrder: [],
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "file_order_preview_profile");
+  });
+
+  await page.reload();
+  await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
+
+  const orderBeforeDrag = await getSidebarFileOrder(page);
+  await beginSidebarFileDrag(page, "data/status_effects.json");
+  await moveSidebarFileDrag(page, "data/runes.json", "before");
+
+  const orderDuringPreview = await getSidebarFileOrder(page);
+  expect(orderDuringPreview.indexOf("data/status_effects.json")).toBeLessThan(orderDuringPreview.indexOf("data/runes.json"));
+  expect(orderDuringPreview).not.toEqual(orderBeforeDrag);
+
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/file_order_preview_profile.json"), "utf8");
+    const profile = JSON.parse(text);
+    return profile.fileOrder?.join(",");
+  }).toBe("");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:__file-order"))).toBe(null);
+
+  await releaseSidebarFileDrag(page);
+
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/file_order_preview_profile.json"), "utf8");
+    const profile = JSON.parse(text);
+    return profile.fileOrder?.join(",");
+  }).toContain("data/status_effects.json,data/runes.json");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:__file-order"))).toBe(null);
+});
+
+test("profile file order drag cancel rolls back preview without committing", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "file_order_cancel_profile",
+        profile: {
+          sidebarWidth: null,
+          fileOrder: [],
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "file_order_cancel_profile");
+  });
+
+  await page.reload();
+  await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
+
+  const orderBeforeDrag = await getSidebarFileOrder(page);
+  await beginSidebarFileDrag(page, "data/status_effects.json");
+  await moveSidebarFileDrag(page, "data/runes.json", "before");
+
+  const orderDuringPreview = await getSidebarFileOrder(page);
+  expect(orderDuringPreview.indexOf("data/status_effects.json")).toBeLessThan(orderDuringPreview.indexOf("data/runes.json"));
+
+  await cancelSidebarFileDrag(page);
+
+  const orderAfterCancel = await getSidebarFileOrder(page);
+  expect(orderAfterCancel).toEqual(orderBeforeDrag);
+  await expect(page.locator('.sidebar-file-item[title="data/status_effects.json"]')).not.toHaveClass(/is-dragging/);
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/file_order_cancel_profile.json"), "utf8");
+    const profile = JSON.parse(text);
+    return profile.fileOrder?.join(",");
+  }).toBe("");
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:__file-order"))).toBe(null);
 });
 

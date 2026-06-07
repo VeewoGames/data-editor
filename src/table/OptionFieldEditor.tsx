@@ -1,9 +1,10 @@
 import * as Popover from "@radix-ui/react-popover";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { icons } from "../components/icons";
 import type { MultiSelectOptionColor, MultiSelectOptionView } from "../model/viewConfig";
 import { sortValuesByOptionOrder } from "../multiselect-config.mjs";
 import { namedChipPalette, chipStyleForValue } from "./chipColors";
+import { useOptionFieldDragReorder } from "./useOptionFieldDragReorder";
 
 type OptionFieldEditorProps = {
   cellId: string;
@@ -27,8 +28,6 @@ type EditingState = {
 
 let stickyOpenCellId: string | null = null;
 const stickyValuesByCellId = new Map<string, Array<string | number>>();
-const reorderTriggerRatioUp = 0.75;
-const reorderTriggerRatioDown = 0.25;
 
 const colorChoices: Array<{ value: MultiSelectOptionColor; label: string }> = [
   { value: "default", label: "默认" },
@@ -62,19 +61,12 @@ export function OptionFieldEditor({
   const [selectedValues, setSelectedValues] = useState<Array<string | number>>(() => stickyValuesByCellId.get(cellId) ?? value);
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [localOptions, setLocalOptions] = useState<MultiSelectOptionView[]>(options);
-  const [draggingValue, setDraggingValue] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
-  const dragStartOptionsRef = useRef<MultiSelectOptionView[] | null>(null);
   const localOptionsRef = useRef<MultiSelectOptionView[]>(options);
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-  const draggingValueRef = useRef<string | null>(null);
   const optionRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const previousRowTopsRef = useRef<Record<string, number>>({});
-  const filteredOptionValuesRef = useRef<string[]>([]);
-  const queuedPointerYRef = useRef<number | null>(null);
-  const pointerFrameRef = useRef<number | null>(null);
-  const skipNextLayoutAnimationRef = useRef(false);
+  const popoverContentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (sameOptionSnapshot(localOptionsRef.current, options)) return;
@@ -84,8 +76,6 @@ export function OptionFieldEditor({
   useEffect(() => {
     localOptionsRef.current = localOptions;
   }, [localOptions]);
-
-  useEffect(() => () => dragCleanupRef.current?.(), []);
 
   useEffect(() => {
     if (!open) {
@@ -103,6 +93,13 @@ export function OptionFieldEditor({
   useEffect(() => {
     if (editing) renameInputRef.current?.focus();
   }, [editing]);
+
+  useEffect(() => {
+    return () => {
+      if (stickyOpenCellId === cellId) stickyOpenCellId = null;
+      stickyValuesByCellId.delete(cellId);
+    };
+  }, [cellId]);
 
   const optionMap = useMemo(() => {
     const merged: Record<string, MultiSelectOptionView> = {};
@@ -124,28 +121,37 @@ export function OptionFieldEditor({
     const needle = draft.trim().toLowerCase();
     return normalizedOptions.filter((option) => option.label.toLowerCase().includes(needle) || option.value.toLowerCase().includes(needle));
   }, [draft, normalizedOptions]);
-
-  useEffect(() => {
-    filteredOptionValuesRef.current = filteredOptions.map((option) => option.value);
-  }, [filteredOptions]);
+  const {
+    dragPreview,
+    draggingValue,
+    handleDragStart,
+  } = useOptionFieldDragReorder({
+    filteredOptions,
+    localOptionsRef,
+    onReorderOptions,
+    optionRowRefs,
+    setLocalOptions,
+  });
+  const renderedOptions = useMemo(
+    () => filteredOptions.filter((option) => option.value !== dragPreview?.activeValue),
+    [dragPreview?.activeValue, filteredOptions],
+  );
 
   useLayoutEffect(() => {
     const nextRowTops: Record<string, number> = {};
-    for (const option of filteredOptions) {
+    for (const option of renderedOptions) {
       const row = optionRowRefs.current[option.value];
       if (!row) continue;
       row.getAnimations().forEach((animation) => animation.cancel());
       row.style.transition = "";
       row.style.transform = "";
     }
-    const shouldAnimate = !skipNextLayoutAnimationRef.current;
-    skipNextLayoutAnimationRef.current = false;
-    for (const option of filteredOptions) {
+    for (const option of renderedOptions) {
       const row = optionRowRefs.current[option.value];
       if (!row) continue;
       const nextTop = row.getBoundingClientRect().top;
       nextRowTops[option.value] = nextTop;
-      if (!shouldAnimate) continue;
+      if (draggingValue === option.value) continue;
       const previousTop = previousRowTopsRef.current[option.value];
       if (previousTop == null) continue;
       const delta = previousTop - nextTop;
@@ -162,7 +168,7 @@ export function OptionFieldEditor({
       );
     }
     previousRowTopsRef.current = nextRowTops;
-  }, [filteredOptions]);
+  }, [renderedOptions]);
 
   const canCreate = draft.trim().length > 0 && !normalizedOptions.some((option) => option.value.toLowerCase() === draft.trim().toLowerCase());
   const orderedOptionValues = useMemo(() => normalizedOptions.map((option) => option.value), [normalizedOptions]);
@@ -227,86 +233,6 @@ export function OptionFieldEditor({
     setLocalOptions((current) => current.map((option) => option.value === optionValue ? { ...option, color: color === "default" ? null : color } : option));
   }
 
-  function previewReorderByPointer(clientY: number) {
-    const currentDraggingValue = draggingValueRef.current;
-    const allVisibleOptionValues = filteredOptionValuesRef.current;
-    const visibleOptionValues = allVisibleOptionValues.filter((value) => value !== currentDraggingValue);
-    if (!currentDraggingValue || visibleOptionValues.length === 0) return;
-    const draggingIndex = allVisibleOptionValues.findIndex((value) => value === currentDraggingValue);
-    let insertionIndex = visibleOptionValues.length;
-    for (let index = 0; index < visibleOptionValues.length; index += 1) {
-      const row = optionRowRefs.current[visibleOptionValues[index]];
-      if (!row) continue;
-      const rect = row.getBoundingClientRect();
-      const movingUpward = draggingIndex >= 0 && index < draggingIndex;
-      const triggerRatio = movingUpward ? reorderTriggerRatioUp : reorderTriggerRatioDown;
-      if (clientY < rect.top + rect.height * triggerRatio) {
-        insertionIndex = index;
-        break;
-      }
-    }
-    setLocalOptions((current) => {
-      const nextOptions = reorderOptionsByInsertion(current, currentDraggingValue, visibleOptionValues, insertionIndex);
-      if (sameOrder(
-        current.map((option) => option.value),
-        nextOptions.map((option) => option.value),
-      )) {
-        return current;
-      }
-      localOptionsRef.current = nextOptions;
-      return nextOptions;
-    });
-  }
-
-  function handleDragStart(optionValue: string) {
-    dragStartOptionsRef.current = localOptionsRef.current;
-    draggingValueRef.current = optionValue;
-    setDraggingValue(optionValue);
-    dragCleanupRef.current?.();
-    const onPointerMove = (event: PointerEvent) => {
-      queuedPointerYRef.current = event.clientY;
-      if (pointerFrameRef.current != null) return;
-      pointerFrameRef.current = window.requestAnimationFrame(() => {
-        pointerFrameRef.current = null;
-        const nextPointerY = queuedPointerYRef.current;
-        if (nextPointerY == null) return;
-        previewReorderByPointer(nextPointerY);
-      });
-    };
-    const onPointerUp = () => {
-      const startedOptions = dragStartOptionsRef.current;
-      const finalizedOptions = localOptionsRef.current;
-      if (startedOptions && !sameOrder(
-        startedOptions.map((option) => option.value),
-        finalizedOptions.map((option) => option.value),
-      )) {
-        skipNextLayoutAnimationRef.current = true;
-        onReorderOptions(finalizedOptions.map((option) => option.value));
-      }
-      draggingValueRef.current = null;
-      queuedPointerYRef.current = null;
-      if (pointerFrameRef.current != null) {
-        window.cancelAnimationFrame(pointerFrameRef.current);
-        pointerFrameRef.current = null;
-      }
-      setDraggingValue(null);
-      dragStartOptionsRef.current = null;
-      dragCleanupRef.current?.();
-      dragCleanupRef.current = null;
-    };
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp, { once: true });
-    dragCleanupRef.current = () => {
-      queuedPointerYRef.current = null;
-      if (pointerFrameRef.current != null) {
-        window.cancelAnimationFrame(pointerFrameRef.current);
-        pointerFrameRef.current = null;
-      }
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-    };
-  }
-
   return (
     <Popover.Root
       open={open}
@@ -343,6 +269,7 @@ export function OptionFieldEditor({
           sideOffset={6}
           collisionPadding={12}
           onOpenAutoFocus={(event) => event.preventDefault()}
+          ref={popoverContentRef}
         >
           <div className="multi-select-selected option-field-popover-section option-field-selected-surface">
             {orderedSelectedValues.map((item, index) => {
@@ -378,11 +305,11 @@ export function OptionFieldEditor({
             />
           </div>
           <div className="multi-select-options option-field-popover-section option-field-popover-section-scroll">
-            {filteredOptions.map((option) => {
+            {renderedOptions.map((option, index) => {
               const selected = selectedValues.some((item) => String(item) === option.value);
-              return (
+              const row = (
                 <div
-                  className={`multi-select-option-row ${selected ? " selected" : ""}${draggingValue === option.value ? " is-dragging" : ""}`}
+                  className={`multi-select-option-row ${selected ? " selected" : ""}`}
                   data-option-value={option.value}
                   key={option.value}
                   ref={(node) => {
@@ -393,7 +320,7 @@ export function OptionFieldEditor({
                     className="option-drag-handle"
                     onPointerDown={(event) => {
                       event.preventDefault();
-                      handleDragStart(option.value);
+                      handleDragStart(option.value, event);
                     }}
                     type="button"
                   >
@@ -479,7 +406,19 @@ export function OptionFieldEditor({
                   </Popover.Root>
                 </div>
               );
+              if (dragPreview?.dropIndex === index) {
+                return (
+                  <Fragment key={`placeholder-before-${option.value}`}>
+                    <div className="option-field-drag-placeholder" style={{ minHeight: dragPreview.ghostHeight }} />
+                    {row}
+                  </Fragment>
+                );
+              }
+              return row;
             })}
+            {dragPreview?.dropIndex === renderedOptions.length ? (
+              <div className="option-field-drag-placeholder" style={{ minHeight: dragPreview.ghostHeight }} />
+            ) : null}
             {canCreate ? (
               <button
                 className="multi-select-option create"
@@ -494,6 +433,32 @@ export function OptionFieldEditor({
               </button>
             ) : null}
           </div>
+          {dragPreview && draggingValue ? (
+            <div
+              className="option-field-drag-ghost"
+              style={{
+                left: dragPreview.ghostLeft - (popoverContentRef.current?.getBoundingClientRect().left ?? 0),
+                minHeight: dragPreview.ghostHeight,
+                top: dragPreview.ghostTop - (popoverContentRef.current?.getBoundingClientRect().top ?? 0),
+                width: dragPreview.ghostWidth,
+              }}
+            >
+              {(() => {
+                const option = normalizedOptions.find((candidate) => candidate.value === draggingValue);
+                const selected = selectedValues.some((item) => String(item) === draggingValue);
+                if (!option) return null;
+                return (
+                  <>
+                    <span className="option-field-drag-ghost-handle"><icons.dragHandle size={14} /></span>
+                    <span className={`multi-select-option ${selected ? "selected" : ""}`}>
+                      <span className="chip" style={chipStyleForValue(option.value, option.color)}>{option.label}</span>
+                    </span>
+                    <span className="option-field-drag-ghost-menu"><icons.more size={16} /></span>
+                  </>
+                );
+              })()}
+            </div>
+          ) : null}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
@@ -503,35 +468,6 @@ export function OptionFieldEditor({
 function castLike(previousValue: string | number, nextValue: string) {
   if (typeof previousValue === "number" && /^-?\d+(\.\d+)?$/.test(nextValue)) return Number(nextValue);
   return nextValue;
-}
-
-function reorderOptionsByInsertion(
-  options: MultiSelectOptionView[],
-  draggingValue: string,
-  visibleOptionValues: string[],
-  insertionIndex: number,
-) {
-  const draggingOption = options.find((option) => option.value === draggingValue);
-  if (!draggingOption) return options;
-  const nextOptions = options.filter((option) => option.value !== draggingValue);
-  const anchorValue = visibleOptionValues[insertionIndex];
-  if (anchorValue) {
-    const anchorIndex = nextOptions.findIndex((option) => option.value === anchorValue);
-    if (anchorIndex >= 0) {
-      nextOptions.splice(anchorIndex, 0, draggingOption);
-      return nextOptions;
-    }
-  }
-  const tailValue = visibleOptionValues[visibleOptionValues.length - 1];
-  if (!tailValue) return options;
-  const tailIndex = nextOptions.findIndex((option) => option.value === tailValue);
-  if (tailIndex < 0) return options;
-  nextOptions.splice(tailIndex + 1, 0, draggingOption);
-  return nextOptions;
-}
-
-function sameOrder(left: string[], right: string[]) {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 function sameOptionSnapshot(left: MultiSelectOptionView[], right: MultiSelectOptionView[]) {

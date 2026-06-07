@@ -69,7 +69,7 @@ export function Toolbar(props: ToolbarProps) {
         <Select.Root value={props.selectedViewProfileName ?? "__local__"} onValueChange={props.onSelectViewProfile}>
           <Select.Trigger className="select-trigger toolbar-profile-select-trigger" aria-label="View profile">
             <Select.Value />
-            <Select.Icon />
+            <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
           </Select.Trigger>
           <Select.Portal>
             <Select.Content className="menu-content select-content toolbar-profile-select-content" position="popper" sideOffset={6}>

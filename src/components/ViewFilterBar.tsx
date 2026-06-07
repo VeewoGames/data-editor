@@ -13,6 +13,7 @@ import { SortPopover } from "./sort/SortPopover";
 import { createDefaultFilterRule } from "../view/filter-rules.mjs";
 
 export type ViewFilterBarProps = {
+  collectionKey?: string | null;
   view: CollectionView | null;
   fields: string[];
   fieldConfig: FieldConfig;
@@ -32,6 +33,7 @@ export type ViewFilterBarProps = {
 };
 
 export function ViewFilterBar({
+  collectionKey = null,
   view,
   fields,
   fieldConfig,
@@ -55,12 +57,15 @@ export function ViewFilterBar({
   const handledAutoOpenRuleIdRef = useRef<string | null>(null);
   const suppressCloseRuleIdRef = useRef<string | null>(null);
   const filterChipWrapRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const recentValueCacheRef = useRef(new Map<string, string[]>());
 
   if (!view) return null;
 
   const visibleFilterRules = view.filters?.rules ?? [];
+  const availableFilterFields = fields.filter((field) => !visibleFilterRules.some((rule) => rule.field === field));
   const sorts = view.sorts ?? [];
   const showSharedViewActions = !saving && (dirty || viewOrderDirty);
+  const currentScopeKey = `${collectionKey ?? "__unknown_collection__"}::${view.id}`;
 
   useEffect(() => {
     if (!autoOpenRuleId) return;
@@ -112,8 +117,21 @@ export function ViewFilterBar({
     setOpenRuleRect(null);
   }, [openRuleId]);
 
+  useEffect(() => {
+    const liveRuleKeys = new Set(visibleFilterRules.map((rule) => scopedRecentValueKey(currentScopeKey, rule.id)));
+    for (const key of [...recentValueCacheRef.current.keys()]) {
+      if (key.startsWith(`${currentScopeKey}::`) && !liveRuleKeys.has(key)) {
+        recentValueCacheRef.current.delete(key);
+      }
+    }
+  }, [currentScopeKey, visibleFilterRules]);
+
   function addFilter(field: string) {
     if (!view || !field) return;
+    if (visibleFilterRules.some((rule) => rule.field === field)) {
+      setAddFilterOpen(false);
+      return;
+    }
     const fieldType = resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes);
     const nextRule = createDefaultFilterRule(field, fieldType, visibleFilterRules);
     suppressCloseRuleIdRef.current = nextRule.id;
@@ -142,7 +160,7 @@ export function ViewFilterBar({
       </Popover.Root>
       <Popover.Root open={addFilterOpen} onOpenChange={setAddFilterOpen}>
         <Popover.Trigger asChild>
-          <button className="ghost-button compact" disabled={!fields.length} type="button">
+          <button className="ghost-button compact" disabled={!availableFilterFields.length} type="button">
             <icons.filter size={15} />
             + 筛选
           </button>
@@ -150,7 +168,7 @@ export function ViewFilterBar({
         <Popover.Portal>
           <Popover.Content className="menu-content add-filter-popover-content" sideOffset={6} align="start">
             <div className="add-filter-popover" role="menu" aria-label="选择筛选字段">
-              {fields.map((field) => (
+              {availableFilterFields.map((field) => (
                 <button className="add-filter-field-option" key={field} onClick={() => addFilter(field)} type="button" role="menuitem">
                   <span className="add-filter-field-icon">{fieldTypeIcon(resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes))}</span>
                   <span className="add-filter-field-name">{field}</span>
@@ -195,7 +213,21 @@ export function ViewFilterBar({
                   className="menu-content filter-popover-content filter-popover-inline"
                   style={{ left: `${openRuleRect.left}px`, top: `${openRuleRect.top}px` }}
                 >
-                  {renderFilterPopover(rule, view.filters, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions, onChangeFilters)}
+                  {renderFilterPopover(
+                    rule,
+                    view.filters,
+                    fieldConfig,
+                    fieldViewConfigs,
+                    fieldTypes,
+                    relationFilterOptions,
+                    recentValueCacheRef.current.get(scopedRecentValueKey(currentScopeKey, rule.id)) ?? null,
+                    (values) => {
+                      const key = scopedRecentValueKey(currentScopeKey, rule.id);
+                      if (!values?.length) recentValueCacheRef.current.delete(key);
+                      else recentValueCacheRef.current.set(key, values);
+                    },
+                    onChangeFilters,
+                  )}
                 </div>,
                 document.body,
               )
@@ -224,6 +256,8 @@ function renderFilterPopover(
   fieldViewConfigs: Record<string, FieldViewConfig>,
   fieldTypes: Record<string, FieldDisplayType>,
   relationFilterOptions: Record<string, MultiSelectOptionView[]>,
+  cachedValues: string[] | null,
+  onCachedValuesChange: (values: string[] | null) => void,
   onChangeFilters: (filters: FilterGroup) => void,
 ) {
   const fieldType = resolveFieldType(rule.field, fieldConfig, fieldViewConfigs, fieldTypes);
@@ -235,7 +269,10 @@ function renderFilterPopover(
       <MultiSelectFilterPopover
         filters={filters}
         rule={rule}
+        mode={fieldType === "Multi-select" || fieldType === "Relation" ? "multi" : "single"}
         options={optionsForField(rule.field, fieldType, fieldViewConfigs, relationFilterOptions)}
+        cachedValues={cachedValues}
+        onCachedValuesChange={onCachedValuesChange}
         onChangeFilters={onChangeFilters}
       />
     );
@@ -298,10 +335,14 @@ function filterChipLabel(
   if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
     const labels = normalizeFilterValues(rule.value)
       .map((value) => optionLabel(rule.field, value, fieldType, fieldViewConfigs, relationFilterOptions));
-    return labels.length ? `${rule.field}: ${truncateList(labels)}` : rule.field;
+    const operator = valueOperatorLabel(rule.operator);
+    if (!labels.length) return `${rule.field} ${operator}`;
+    return `${rule.field} ${operator} ${truncateList(labels)}`;
   }
+  const textOperator = textOperatorLabel(rule.operator);
   const value = textValue(rule.value);
-  return value ? `${rule.field}: ${truncateText(value, 28)}` : rule.field;
+  if (!value) return `${rule.field} ${textOperator}`;
+  return `${rule.field} ${textOperator} ${truncateText(value, 28)}`;
 }
 
 function filterChipTitle(
@@ -316,10 +357,17 @@ function filterChipTitle(
     const label = booleanLabel(rule);
     return label ? `${rule.field}: ${label}` : rule.field;
   }
+  if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
+    const operator = valueOperatorLabel(rule.operator);
+    const values = normalizeFilterValues(rule.value);
+    if (!values.length) return `${rule.field} ${operator}`;
+    const labels = values.map((value) => optionLabel(rule.field, value, fieldType, fieldViewConfigs, relationFilterOptions));
+    return `${rule.field} ${operator} ${labels.join(", ")}`;
+  }
+  const operator = textOperatorLabel(rule.operator);
   const values = normalizeFilterValues(rule.value);
-  if (!values.length) return rule.field;
-  const labels = values.map((value) => optionLabel(rule.field, value, fieldType, fieldViewConfigs, relationFilterOptions));
-  return `${rule.field}: ${labels.join(", ")}`;
+  if (!values.length) return `${rule.field} ${operator}`;
+  return `${rule.field} ${operator} ${values.join(", ")}`;
 }
 
 function booleanLabel(rule: FilterRule) {
@@ -355,4 +403,24 @@ function truncateText(value: string, maxLength: number) {
 function textValue(value: unknown) {
   if (value == null || Array.isArray(value) || typeof value === "object") return "";
   return String(value);
+}
+
+function scopedRecentValueKey(scopeKey: string, ruleId: string) {
+  return `${scopeKey}::${ruleId}`;
+}
+
+function valueOperatorLabel(operator: FilterRule["operator"]) {
+  if (operator === "does_not_contain") return "不包含";
+  if (operator === "is_empty") return "为空";
+  if (operator === "is_not_empty") return "不为空";
+  return "包含任一";
+}
+
+function textOperatorLabel(operator: FilterRule["operator"]) {
+  if (operator === "does_not_contain") return "不包含";
+  if (operator === "is") return "等于";
+  if (operator === "is_not") return "不等于";
+  if (operator === "is_empty") return "为空";
+  if (operator === "is_not_empty") return "不为空";
+  return "包含";
 }

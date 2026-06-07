@@ -10,7 +10,9 @@ export function attachRowIndexes(rows) {
   });
 }
 
-export function applyViewFilters(rows, query, filters) {
+const discreteScalarFieldTypes = new Set(["Select", "Relation"]);
+
+export function applyViewFilters(rows, query, filters, fieldTypes = {}) {
   const indexedRows = attachRowIndexes(rows);
   const normalizedQuery = normalizeText(query).toLowerCase();
   const rules = Array.isArray(filters?.rules) ? filters.rules : [];
@@ -18,20 +20,21 @@ export function applyViewFilters(rows, query, filters) {
   return indexedRows.filter((row) => {
     if (normalizedQuery && !rowMatchesQuery(row, normalizedQuery)) return false;
     if (!rules.length) return true;
-    return rules.every((rule) => matchesFilterRule(row, rule));
+    return rules.every((rule) => matchesFilterRule(row, rule, fieldTypes));
   });
 }
 
-export function matchesFilterRule(row, rule) {
+export function matchesFilterRule(row, rule, fieldTypes = {}) {
   if (!rule || typeof rule !== "object") return true;
   const value = row?.[rule.field];
+  const fieldType = fieldTypes?.[rule.field];
   switch (rule.operator) {
     case "contains":
       if (!hasExpectedValue(rule.value)) return true;
-      return containsValue(value, rule.value);
+      return containsValue(value, rule.value, fieldType);
     case "does_not_contain":
       if (!hasExpectedValue(rule.value)) return true;
-      return !containsValue(value, rule.value);
+      return !containsValue(value, rule.value, fieldType);
     case "is_empty":
       return isEmptyValue(value);
     case "is_not_empty":
@@ -59,10 +62,13 @@ function rowMatchesQuery(row, query) {
   });
 }
 
-function containsValue(value, expected) {
+function containsValue(value, expected, fieldType) {
   const expectedValues = Array.isArray(expected) ? expected : [expected];
   if (Array.isArray(value)) {
     return expectedValues.some((item) => value.some((entry) => valuesEqual(entry, item)));
+  }
+  if (discreteScalarFieldTypes.has(fieldType)) {
+    return expectedValues.some((item) => valuesEqual(value, item));
   }
   const actual = normalizeText(value).toLowerCase();
   return expectedValues.some((item) => actual.includes(normalizeText(item).toLowerCase()));

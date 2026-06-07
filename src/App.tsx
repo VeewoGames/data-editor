@@ -42,6 +42,7 @@ import { ViewTabs } from "./components/ViewTabs";
 import { ViewFilterBar } from "./components/ViewFilterBar";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
+import { icons } from "./components/icons";
 import { DataTable, type FieldConfig } from "./table/DataTable";
 import { DetailPanel } from "./detail/DetailPanel";
 import type { DataRecord, DocumentModel } from "./model/documentModel";
@@ -63,7 +64,9 @@ import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSele
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
 import { normalizeFileOrder } from "./file-order.mjs";
 import {
+  buildOptionConfigByOrder,
   removeMultiSelectOptionFromRows,
+  renameOptionConfigValue,
   removeSingleSelectOptionFromRows,
   renameMultiSelectOptionInRows,
   renameSingleSelectOptionInRows,
@@ -849,10 +852,6 @@ export function App() {
   );
   const activeViewLayoutId = activeSharedView?.id ?? null;
   const activeViewHasFilters = Boolean(activeView?.filters?.rules?.length);
-  const viewRows = useMemo(() => {
-    const filtered = applyViewFilters(rows, activeView?.query ?? "", activeView?.filters ?? { op: "and", rules: [] });
-    return applyViewSorts(filtered, activeView?.sorts ?? []);
-  }, [rows, activeView]);
   const activeViewSort = activeView?.sorts?.[0] ?? null;
   const dirtyViewIds = useMemo(() => {
     if (!activeCollectionKey) return new Set<string>();
@@ -868,7 +867,6 @@ export function App() {
   useEffect(() => {
     void loadMaintenanceInfo();
   }, [selectedPath, collectionPath, selectedRowIndex, selectedRow, viewConfig.relations, viewRevision]);
-  const viewModel = useMemo(() => model ? ({ ...model, root: replaceRowsForView(model, collectionPath, viewRows) } as DocumentModel) : null, [model, collectionPath, viewRows]);
   const fieldConfig = useMemo(
     () => buildFieldConfig(
       selectedPath,
@@ -922,6 +920,11 @@ export function App() {
     },
     [allFields, selectedPath, collectionPath, viewConfig.relations, relationOptions, viewFilterFieldTypes, rows, fieldViewConfigs],
   );
+  const viewRows = useMemo(() => {
+    const filtered = applyViewFilters(rows, activeView?.query ?? "", activeView?.filters ?? { op: "and", rules: [] }, viewFilterFieldTypes);
+    return applyViewSorts(filtered, activeView?.sorts ?? []);
+  }, [rows, activeView, viewFilterFieldTypes]);
+  const viewModel = useMemo(() => model ? ({ ...model, root: replaceRowsForView(model, collectionPath, viewRows) } as DocumentModel) : null, [model, collectionPath, viewRows]);
   const hiddenFields = useMemo(() => allFields.filter((field) => fieldConfig.hidden.has(field)), [allFields, fieldConfig.hidden]);
   const titleField = useMemo(
     () => model ? findTitleField(getMainColumns(model, collectionPath), rows) : null,
@@ -1300,6 +1303,7 @@ export function App() {
   function handleAddFilter(fieldName: string, fieldType: FieldDisplayType) {
     if (!activeView) return;
     const currentRules = activeView.filters?.rules ?? [];
+    if (currentRules.some((rule) => rule.field === fieldName)) return;
     const nextRule = createDefaultFilterRule(fieldName, fieldType, currentRules);
     setFilterBarVisible(true);
     setPendingOpenFilterRuleId(nextRule.id);
@@ -1313,11 +1317,10 @@ export function App() {
       const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
       if (!key) return;
       const current = ensureFieldViewConfig(draft, key);
-      const previous = current.multiSelectOptions[String(previousValue)];
-      const nextOptions = { ...current.multiSelectOptions };
-      delete nextOptions[String(previousValue)];
-      nextOptions[nextValue] = { label: nextValue, color: previous?.color ?? null };
-      draft.fields[key] = { ...current, multiSelectOptions: nextOptions };
+      draft.fields[key] = {
+        ...current,
+        multiSelectOptions: renameOptionConfigValue(current.multiSelectOptions, previousValue, nextValue) as typeof current.multiSelectOptions,
+      };
     });
   }
 
@@ -1328,11 +1331,10 @@ export function App() {
       const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
       if (!key) return;
       const current = ensureFieldViewConfig(draft, key);
-      const previous = current.selectOptions[String(previousValue)];
-      const nextOptions = { ...current.selectOptions };
-      delete nextOptions[String(previousValue)];
-      nextOptions[nextValue] = { label: nextValue, color: previous?.color ?? null };
-      draft.fields[key] = { ...current, selectOptions: nextOptions };
+      draft.fields[key] = {
+        ...current,
+        selectOptions: renameOptionConfigValue(current.selectOptions, previousValue, nextValue) as typeof current.selectOptions,
+      };
     });
   }
 
@@ -1346,6 +1348,18 @@ export function App() {
     });
   }
 
+  function handleReorderMultiSelectOptions(fieldName: string, orderedValues: string[]) {
+    mutateViewConfig((draft) => {
+      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
+      if (!key) return;
+      const current = ensureFieldViewConfig(draft, key);
+      draft.fields[key] = {
+        ...current,
+        multiSelectOptions: buildOptionConfigByOrder(current.multiSelectOptions, orderedValues) as typeof current.multiSelectOptions,
+      };
+    });
+  }
+
   function handleDeleteSelectOption(fieldName: string, optionValue: string | number) {
     if (!model) return;
     mutate(() => removeSingleSelectOptionFromRows(getRows(model, collectionPath) as DataRecord[], fieldName, optionValue));
@@ -1353,6 +1367,18 @@ export function App() {
       const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
       if (!key || !draft.fields[key]) return;
       delete draft.fields[key].selectOptions[String(optionValue)];
+    });
+  }
+
+  function handleReorderSelectOptions(fieldName: string, orderedValues: string[]) {
+    mutateViewConfig((draft) => {
+      const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
+      if (!key) return;
+      const current = ensureFieldViewConfig(draft, key);
+      draft.fields[key] = {
+        ...current,
+        selectOptions: buildOptionConfigByOrder(current.selectOptions, orderedValues) as typeof current.selectOptions,
+      };
     });
   }
 
@@ -2201,6 +2227,7 @@ export function App() {
           />
           {filterBarVisible ? (
             <ViewFilterBar
+              collectionKey={activeCollectionKey}
               view={activeView}
               fields={allFields}
               fieldConfig={fieldConfig}
@@ -2250,9 +2277,11 @@ export function App() {
             onRenameMultiSelectOption={handleRenameMultiSelectOption}
             onDeleteMultiSelectOption={handleDeleteMultiSelectOption}
             onSetMultiSelectOptionColor={handleSetMultiSelectOptionColor}
+            onReorderMultiSelectOptions={handleReorderMultiSelectOptions}
             onRenameSelectOption={handleRenameSelectOption}
             onDeleteSelectOption={handleDeleteSelectOption}
             onSetSelectOptionColor={handleSetSelectOptionColor}
+            onReorderSelectOptions={handleReorderSelectOptions}
             onChangeFieldType={handleChangeFieldType}
             onHideField={handleHideField}
             onToggleWrapField={handleToggleWrapField}
@@ -2292,9 +2321,11 @@ export function App() {
             onRenameMultiSelectOption={handleRenameMultiSelectOption}
             onDeleteMultiSelectOption={handleDeleteMultiSelectOption}
             onSetMultiSelectOptionColor={handleSetMultiSelectOptionColor}
+            onReorderMultiSelectOptions={handleReorderMultiSelectOptions}
             onRenameSelectOption={handleRenameSelectOption}
             onDeleteSelectOption={handleDeleteSelectOption}
             onSetSelectOptionColor={handleSetSelectOptionColor}
+            onReorderSelectOptions={handleReorderSelectOptions}
             onOpenBacklink={handleOpenBacklink}
             onRequestSyncSave={() => void persistChanges(true)}
             onOpenRelationTarget={handleOpenRelationTarget}
@@ -2405,7 +2436,7 @@ function AddFieldDialog(props: {
             <Select.Root value={props.fieldType} onValueChange={(value) => props.onFieldTypeChange(value as FieldDisplayType)}>
               <Select.Trigger className="select-trigger">
                 <Select.Value />
-                <Select.Icon />
+                <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
               </Select.Trigger>
               <Select.Portal>
                 <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
@@ -2635,7 +2666,7 @@ function PrimaryKeyCandidateDialog(props: {
               <Select.Root value={props.value} onValueChange={props.onValueChange}>
                 <Select.Trigger className="select-trigger">
                   <Select.Value />
-                  <Select.Icon />
+                  <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
                 </Select.Trigger>
                 <Select.Portal>
                   <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>

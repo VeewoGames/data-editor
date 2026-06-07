@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Select from "@radix-ui/react-select";
 import { loadDocument, type DataFile } from "../api/client";
+import { icons } from "./icons";
 import type { CollectionInfo, DataRecord, DocumentModel } from "../model/documentModel";
 import { getMainColumns, getRows } from "../model/documentModel";
 import type { RelationConfig, RelationMode } from "../model/viewConfig";
@@ -136,7 +137,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
                 setTargetFile(value);
               }}
             >
-              <Select.Trigger className="select-trigger"><Select.Value placeholder="选择目标文件" /><Select.Icon /></Select.Trigger>
+              <Select.Trigger className="select-trigger"><Select.Value placeholder="选择目标文件" /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
                 <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
@@ -151,7 +152,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
           <label className="dialog-field">
             <span>目标集合</span>
             <Select.Root value={targetCollection} onValueChange={setTargetCollection} disabled={!collections.length}>
-              <Select.Trigger className="select-trigger"><Select.Value placeholder="选择目标集合" /><Select.Icon /></Select.Trigger>
+              <Select.Trigger className="select-trigger"><Select.Value placeholder="选择目标集合" /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
                 <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
@@ -166,7 +167,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
           <label className="dialog-field">
             <span>目标主键</span>
             <Select.Root value={targetKey} onValueChange={setTargetKey} disabled={!targetFields.length}>
-              <Select.Trigger className="select-trigger"><Select.Value placeholder="选择主键字段" /><Select.Icon /></Select.Trigger>
+              <Select.Trigger className="select-trigger"><Select.Value placeholder="选择主键字段" /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
                 <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
@@ -181,7 +182,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
           <label className="dialog-field">
             <span>关系模式</span>
             <Select.Root value={mode} onValueChange={(value) => setMode(value as RelationMode)}>
-              <Select.Trigger className="select-trigger"><Select.Value /><Select.Icon /></Select.Trigger>
+              <Select.Trigger className="select-trigger"><Select.Value /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
                 <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>

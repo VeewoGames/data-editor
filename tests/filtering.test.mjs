@@ -6,6 +6,13 @@ import {
   matchesFilterRule,
 } from "../src/view/filtering.mjs";
 
+const discreteFieldTypes = {
+  category: "Select",
+  skill_id: "Relation",
+  tags: "Multi-select",
+  notes: "Text",
+};
+
 test("attachRowIndexes returns shallow copies with hidden runtime index", () => {
   const rows = [{ name: "Fire Rune" }, { name: "Water Rune" }];
   const indexed = attachRowIndexes(rows);
@@ -42,6 +49,33 @@ test("matchesFilterRule supports MultiSelect contains and does_not_contain", () 
   assert.equal(matchesFilterRule(row, { field: "tags", operator: "does_not_contain", value: "ice" }), true);
 });
 
+test("matchesFilterRule uses exact matching for discrete scalar fields when filter values are arrays", () => {
+  const row = {
+    category: "attack",
+    skill_id: "skill_slash",
+    notes: "attack skill",
+  };
+
+  assert.equal(matchesFilterRule(row, { field: "category", operator: "contains", value: ["attack"] }, discreteFieldTypes), true);
+  assert.equal(matchesFilterRule(row, { field: "category", operator: "contains", value: ["att"] }, discreteFieldTypes), false);
+  assert.equal(matchesFilterRule(row, { field: "skill_id", operator: "does_not_contain", value: ["skill"] }, discreteFieldTypes), true);
+  assert.equal(matchesFilterRule(row, { field: "notes", operator: "contains", value: "att" }, discreteFieldTypes), true);
+});
+
+test("matchesFilterRule keeps exact matching for persisted scalar values on Select and Relation filters", () => {
+  const row = {
+    category: "attack",
+    skill_id: "skill_slash",
+    notes: "skill_slash attack",
+  };
+
+  assert.equal(matchesFilterRule(row, { field: "category", operator: "contains", value: "attack" }, discreteFieldTypes), true);
+  assert.equal(matchesFilterRule(row, { field: "category", operator: "contains", value: "att" }, discreteFieldTypes), false);
+  assert.equal(matchesFilterRule(row, { field: "skill_id", operator: "contains", value: "skill_slash" }, discreteFieldTypes), true);
+  assert.equal(matchesFilterRule(row, { field: "skill_id", operator: "contains", value: "skill" }, discreteFieldTypes), false);
+  assert.equal(matchesFilterRule(row, { field: "notes", operator: "contains", value: "skill" }, discreteFieldTypes), true);
+});
+
 test("matchesFilterRule leaves new value-required filters inactive until a value is selected", () => {
   const rows = [
     { name: "Fire Rune", enabled: true, tags: ["fire"] },
@@ -51,8 +85,8 @@ test("matchesFilterRule leaves new value-required filters inactive until a value
   assert.deepEqual(applyViewFilters(rows, "", {
     op: "and",
     rules: [{ field: "tags", operator: "contains", value: [] }],
-  }).map((row) => row.name), ["Fire Rune", "Ice Rune"]);
-  assert.equal(matchesFilterRule(rows[0], { field: "tags", operator: "does_not_contain", value: [] }), true);
+  }, discreteFieldTypes).map((row) => row.name), ["Fire Rune", "Ice Rune"]);
+  assert.equal(matchesFilterRule(rows[0], { field: "tags", operator: "does_not_contain", value: [] }, discreteFieldTypes), true);
   assert.equal(matchesFilterRule(rows[1], { field: "enabled", operator: "is" }), true);
   assert.equal(matchesFilterRule(rows[1], { field: "enabled", operator: "is_not", value: "" }), true);
 });
@@ -75,7 +109,7 @@ test("applyViewFilters applies all rules and returns indexed shallow copies", ()
       { field: "enabled", operator: "is", value: true },
       { field: "tags", operator: "contains", value: "fire" },
     ],
-  });
+  }, discreteFieldTypes);
 
   assert.deepEqual(filtered.map((row) => ({ ...row })), [
     { name: "Fire Rune", enabled: true, tags: ["fire"] },
@@ -92,7 +126,7 @@ test("applyViewFilters preserves existing enumerable row indexes", () => {
   ];
 
   assert.deepEqual(
-    applyViewFilters(rows, "visible", { op: "and", rules: [] }).map((row) => row.__rowIndex),
+    applyViewFilters(rows, "visible", { op: "and", rules: [] }, discreteFieldTypes).map((row) => row.__rowIndex),
     [3],
   );
 });
@@ -110,5 +144,5 @@ test("applyViewFilters treats unsupported filter op values as AND", () => {
       { field: "enabled", operator: "is", value: true },
       { field: "tags", operator: "contains", value: "fire" },
     ],
-  }).map((row) => row.name), ["Fire Rune"]);
+  }, discreteFieldTypes).map((row) => row.name), ["Fire Rune"]);
 });

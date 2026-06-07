@@ -1,5 +1,6 @@
 import * as Select from "@radix-ui/react-select";
 import type { FilterGroup, FilterOperator, FilterRule } from "../../api/client";
+import { icons } from "../icons";
 import { FilterActionMenu } from "./FilterActionMenu";
 
 type TextFilterPopoverProps = {
@@ -30,48 +31,52 @@ export function TextFilterPopover({ filters, rule, onChangeFilters }: TextFilter
   }
 
   return (
-    <div className="filter-popover">
+    <div className="filter-popover filter-popover-shell">
       <div className="filter-popover-header">
         <strong>{rule.field}</strong>
         <FilterActionMenu onDelete={deleteRule} />
       </div>
-      <label className="filter-field-label">
-        <span>条件</span>
-        <Select.Root
-          value={activeOperator}
-          onValueChange={(value) => {
-            const operator = value as FilterOperator;
-            const nextConfig = textOperators.find((item) => item.value === operator);
-            updateRule(nextConfig?.needsValue ? { ...rule, operator, value: stringValue(rule.value) } : { id: rule.id, field: rule.field, operator });
-          }}
-        >
-          <Select.Trigger className="select-trigger filter-select-trigger" aria-label="筛选条件">
-            <Select.Value />
-            <Select.Icon />
-          </Select.Trigger>
-          <Select.Portal>
-            <Select.Content className="menu-content select-content filter-select-content" position="popper" sideOffset={6}>
-              <Select.Viewport>
-                {textOperators.map((operator) => (
-                  <Select.Item className="menu-item" key={operator.value} value={operator.value}>
-                    <Select.ItemText>{operator.label}</Select.ItemText>
-                  </Select.Item>
-                ))}
-              </Select.Viewport>
-            </Select.Content>
-          </Select.Portal>
-        </Select.Root>
-      </label>
-      {operatorConfig.needsValue ? (
+      <div className="filter-popover-section">
         <label className="filter-field-label">
-          <span>文本</span>
-          <input
-            className="filter-text-input"
-            value={stringValue(rule.value)}
-            onChange={(event) => updateRule({ ...rule, operator: activeOperator, value: event.target.value })}
-            placeholder="输入筛选文本"
-          />
+          <span>条件</span>
+          <Select.Root
+            value={activeOperator}
+            onValueChange={(value) => {
+              const operator = value as FilterOperator;
+              const nextConfig = textOperators.find((item) => item.value === operator);
+              updateRule(nextConfig?.needsValue ? { ...rule, operator, value: stringValue(rule.value) } : { id: rule.id, field: rule.field, operator });
+            }}
+          >
+            <Select.Trigger className="select-trigger filter-select-trigger" aria-label="筛选条件">
+              <Select.Value />
+              <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Content className="menu-content select-content filter-select-content" position="popper" sideOffset={6}>
+                <Select.Viewport>
+                  {textOperators.map((operator) => (
+                    <Select.Item className="menu-item" key={operator.value} value={operator.value}>
+                      <Select.ItemText>{operator.label}</Select.ItemText>
+                    </Select.Item>
+                  ))}
+                </Select.Viewport>
+              </Select.Content>
+            </Select.Portal>
+          </Select.Root>
         </label>
+      </div>
+      {operatorConfig.needsValue ? (
+        <div className="filter-popover-section">
+          <label className="filter-field-label">
+            <span>文本</span>
+            <input
+              className="filter-text-input"
+              value={stringValue(rule.value)}
+              onChange={(event) => updateRule({ ...rule, operator: activeOperator, value: event.target.value })}
+              placeholder="输入筛选文本"
+            />
+          </label>
+        </div>
       ) : null}
     </div>
   );
