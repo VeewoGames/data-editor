@@ -1625,7 +1625,8 @@ select {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-weight: 500;
-  height: 38px;
+  height: 34px;
+  padding: 0;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -1690,7 +1691,7 @@ select {
   display: flex;
   gap: 2px;
   height: 100%;
-  min-height: 38px;
+  min-height: 34px;
   position: relative;
   width: 100%;
 }
@@ -1710,13 +1711,13 @@ select {
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   background: transparent;
   color: inherit;
   flex: 1 1 auto;
-  justify-content: center;
+  justify-content: flex-start;
   min-width: 0;
-  padding: 0 18px 0 8px;
+  padding: 1px 18px 2px 8px;
   text-align: left;
   width: 100%;
   transition: background 120ms ease, opacity 120ms ease, transform 120ms ease;
@@ -1930,6 +1931,17 @@ th:hover .column-resize-handle::after,
   align-items: flex-start;
   min-width: 0;
   width: 100%;
+}
+
+.multi-select-trigger[data-wrap-mode="truncate"] .chips-cell {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.multi-select-trigger[data-wrap-mode="truncate"] .chips-cell > .chip,
+.multi-select-trigger[data-wrap-mode="truncate"] .chips-cell > .select-placeholder,
+.multi-select-trigger[data-wrap-mode="truncate"] .chips-cell > .relation-placeholder {
+  flex-shrink: 0;
 }
 
 .field-surface-table.cell-token-flow .chips-cell,

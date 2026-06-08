@@ -2584,6 +2584,22 @@ test("option field editor popover uses shared shell and scroll section from tabl
   await expect(page.locator('.data-table tbody tr[data-row-index="0"] td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
 });
 
+test("non-wrapped option field chips use a clipped single-line strip like notion", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const trigger = page.locator('.data-table tbody tr[data-row-index="1"] .multi-select-trigger');
+  const chipsCell = trigger.locator(".chips-cell");
+  await expect(trigger).toHaveAttribute("data-wrap-mode", "truncate");
+  await expect(chipsCell).toHaveCSS("flex-wrap", "nowrap");
+  await expect(chipsCell).toHaveCSS("overflow-x", "hidden");
+  await expect(chipsCell.locator(".chip").first()).toHaveCSS("flex-shrink", "0");
+});
+
 test("detail panel option field editors reuse the shared popover shell", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -3184,6 +3200,35 @@ test("select chip grows with column width", async ({ page }) => {
     window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: rect.left + rect.width / 2 + 180, clientY: rect.top + rect.height / 2 }));
   });
   await expect.poll(async () => chip.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(widthBefore + 40);
+});
+
+test("column header field type label stays top-aligned in a compact header", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  const headerCell = page.locator('th[data-column-field="category"]');
+  const trigger = page.locator('.column-trigger[title="category"]');
+  await expect(trigger.locator("small")).toContainText("单选");
+  await expect.poll(async () => Number.parseFloat(await headerCell.evaluate((element) => getComputedStyle(element).height))).toBeLessThanOrEqual(37);
+  await expect(trigger).toHaveCSS("justify-content", "flex-start");
+  const metrics = await trigger.evaluate((element) => {
+    const title = element.querySelector("span");
+    const subtitle = element.querySelector("small");
+    if (!(title instanceof HTMLElement) || !(subtitle instanceof HTMLElement)) return null;
+    const triggerRect = element.getBoundingClientRect();
+    const titleRect = title.getBoundingClientRect();
+    const subtitleRect = subtitle.getBoundingClientRect();
+    return {
+      titleTopGap: titleRect.top - triggerRect.top,
+      textGap: subtitleRect.top - titleRect.bottom,
+      subtitleBottomGap: triggerRect.bottom - subtitleRect.bottom,
+    };
+  });
+  expect(metrics).not.toBeNull();
+  expect(metrics!.subtitleBottomGap - metrics!.titleTopGap).toBeGreaterThanOrEqual(0.5);
+  expect(metrics!.textGap).toBeLessThanOrEqual(0.5);
 });
 
 test("switching from profile to local flushes pending profile changes", async ({ page }) => {
