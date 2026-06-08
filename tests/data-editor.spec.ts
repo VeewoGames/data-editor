@@ -124,6 +124,71 @@ async function dragOptionHandle(page: Page, sourceRowText: string, targetRowText
   await endOptionHandleDrag(page, sourceRowText, targetRowText);
 }
 
+async function dragSortRuleHandle(page: Page, sourceIndex: number, targetIndex: number) {
+  await beginSortRuleHandleDrag(page, sourceIndex);
+  await movePointerOverSortRule(page, targetIndex);
+  await endSortRuleHandleDrag(page, targetIndex);
+}
+
+async function beginSortRuleHandleDrag(page: Page, sourceIndex: number) {
+  const handle = page.locator(".sort-rule-row").nth(sourceIndex).locator(".sort-rule-drag-handle");
+  const box = await handle.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2 + 8, { steps: 3 });
+}
+
+async function movePointerOverSortRule(page: Page, targetIndex: number) {
+  const row = page.locator(".sort-rule-row").nth(targetIndex);
+  const box = await row.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height * 0.15, { steps: 10 });
+}
+
+async function endSortRuleHandleDrag(page: Page, targetIndex: number) {
+  const row = page.locator(".sort-rule-row").nth(targetIndex);
+  const box = await row.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height * 0.15, { steps: 2 });
+  await page.mouse.up();
+}
+
+async function cancelSortRuleHandleDrag(page: Page) {
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent("pointercancel", {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+    }));
+  });
+}
+
+async function releaseSortRuleHandleDragOverFieldTrigger(page: Page, targetIndex: number) {
+  const trigger = page.locator(".sort-rule-row").nth(targetIndex).locator(".sort-field-trigger");
+  const box = await trigger.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2, { steps: 4 });
+  await page.mouse.up();
+}
+
+async function getVisibleTableIds(page: Page) {
+  return page.locator(".data-table tbody tr").evaluateAll((rows) => (
+    rows.map((row) => row.children.item(2)?.textContent?.trim() ?? "").filter(Boolean)
+  ));
+}
+
+async function getSortRuleFields(page: Page) {
+  return page.locator(".sort-rule-row .sort-field-trigger").evaluateAll((items) => (
+    items.map((item) => item.textContent?.replace(/\s+/g, " ").trim() ?? "")
+  ));
+}
+
 async function beginOptionHandleDrag(page: Page, sourceRowText: string) {
   await page.evaluate((sourceText) => {
     const sourceHandle = [...document.querySelectorAll(".multi-select-option-row")]
@@ -552,6 +617,55 @@ test("shared view filter and sort drafts persist through save and reload", async
   }
 });
 
+test("duplicating a shared view copies the current filter snapshot and current user's local view layout without creating a dirty target draft", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/runes.json:$:all:description:hidden", "1");
+      localStorage.setItem("data-editor:data/runes.json:$:all:__order", "rune_name,description,description_zh");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator('col[data-column-field="description"]')).toHaveCount(0);
+
+    await page.getByRole("button", { name: "+ 筛选" }).click();
+    await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+    await page.locator(".add-filter-field-option").filter({ hasText: "rune_id" }).click();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-text-input").fill("fire");
+    await expect(page.locator(".view-tab-shell.active")).toHaveClass(/dirty/);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "fire" })).toBeVisible();
+
+    await page.locator(".view-tab-shell.active .view-tab").click();
+    await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+    await page.locator(".view-tab-menu-item").filter({ hasText: "创建视图副本" }).click();
+
+    const duplicateTab = page.locator(".view-tab-shell.active .view-tab").filter({ hasText: "全部 副本" });
+    await expect(duplicateTab).toBeVisible();
+    await expect(page.locator(".view-tab-shell.active")).not.toHaveClass(/dirty/);
+    await expect(page.locator('col[data-column-field="description"]')).toHaveCount(0);
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "fire" })).toBeVisible();
+
+    const sharedViews = await loadSharedViewsConfig(page);
+    const duplicatedView = sharedViews.collections[collectionKey].views.find((view) => view.name === "全部 副本");
+    expect(duplicatedView).toBeTruthy();
+    expect(filterValues(duplicatedView, "rune_id")).toContain("fire");
+    await expect.poll(async () => page.evaluate((viewId) => localStorage.getItem(`data-editor:data/runes.json:$:${viewId}:description:hidden`), duplicatedView!.id)).toBe("1");
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
 test("multi-select filter popover uses shared shell and scroll section", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -617,7 +731,7 @@ test("multi-select filter popover supports operator text, selected chips, search
 
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("包含任一");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("包含");
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("spell");
   await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
 
@@ -660,7 +774,7 @@ test("select filter restores cached values after empty operators hide the value 
   const filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含任一");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
   await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
 
@@ -671,7 +785,7 @@ test("select filter restores cached values after empty operators hide the value 
   await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
 
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "包含任一", exact: true }).click();
+  await page.getByRole("option", { name: "包含", exact: true }).click();
   await expect(filterPopover.locator(".filter-option-value-area")).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
@@ -743,13 +857,13 @@ test("value filter cache stays scoped per view and clears after delete and recre
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含任一");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
   await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(3);
 
   await filterPopover.locator(".filter-select-trigger").click();
   await page.getByRole("option", { name: "为空", exact: true }).click();
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "包含任一", exact: true }).click();
+  await page.getByRole("option", { name: "包含", exact: true }).click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
 
   await page.locator(".filter-action-trigger").click();
@@ -761,7 +875,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含任一");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
   await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(3);
 });
 
@@ -791,6 +905,53 @@ test("value filters support does_not_contain and is_not_empty with real row resu
   await page.getByRole("option", { name: "不为空", exact: true }).click();
   await expect(filterPopover.locator(".filter-option-value-area")).toHaveCount(0);
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("不为空");
+  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+});
+
+test("filter operator select stays above the filter popover surface", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+
+  const filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+
+  const operatorTrigger = filterPopover.locator(".filter-select-trigger");
+  await operatorTrigger.click();
+
+  const operatorMenu = page.locator(".filter-select-content");
+  await expect(operatorMenu).toBeVisible();
+  await expect(operatorMenu).toHaveCSS("z-index", "1700");
+  await expect(filterPopover).toHaveCSS("z-index", "1600");
+  await expect(operatorMenu.getByRole("option", { name: "不包含", exact: true })).toBeVisible();
+});
+
+test("select filter contains operator keeps multiple selected values", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.column-trigger[title="category"]').click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+
+  const filterPopover = page.locator(".filter-popover-content");
+  await expect(filterPopover).toBeVisible();
+  await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await filterPopover.locator(".filter-option-row").filter({ hasText: "attack" }).click();
+
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(2);
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
+  await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "attack" })).toBeVisible();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("attack");
   await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
 });
 
@@ -843,7 +1004,7 @@ test("relation filter keeps missing selected keys visible with fallback labels",
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
   const relationChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" });
-  await expect(relationChip).toContainText("包含任一");
+  await expect(relationChip).toContainText("包含");
   await expect(relationChip).toContainText("missing_skill");
   await relationChip.click();
 
@@ -962,6 +1123,307 @@ test("view tabs and filter bar buttons suppress text caret affordance", async ({
   await expect(sortButton).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
   await expect(addFilterButton).toHaveCSS("user-select", "none");
   await expect(addFilterButton).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
+});
+
+test("sort direction select stays above the sort popover surface", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+
+  await page.locator(".view-filter-sort-button").click();
+  const sortPopover = page.locator(".sort-popover-content");
+  await expect(sortPopover).toBeVisible();
+  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+
+  const directionTrigger = sortPopover.locator(".sort-direction-trigger").first();
+  await directionTrigger.click();
+  const directionMenu = page.locator(".sort-direction-content");
+  await expect(directionMenu).toBeVisible();
+  await expect(directionMenu).toHaveCSS("z-index", "50");
+  await expect(sortPopover).toHaveCSS("z-index", "30");
+  await expect(directionMenu.getByRole("option", { name: "降序", exact: true })).toBeVisible();
+});
+
+test("sort chip reuses the filter chip visual style", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+
+  await page.locator(".view-filter-sort-button").click();
+  const sortPopover = page.locator(".sort-popover-content");
+  await expect(sortPopover).toBeVisible();
+  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+
+  const fieldTrigger = sortPopover.locator(".sort-field-trigger").first();
+  await fieldTrigger.click();
+  await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
+
+  const directionTrigger = sortPopover.locator(".sort-direction-trigger").first();
+  await directionTrigger.click();
+  await page.locator(".sort-direction-content").getByRole("option", { name: "降序", exact: true }).click();
+
+  const sortChip = page.locator('.view-filter-chip.sort-chip[title="name desc"]');
+  const filterChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" });
+  await expect(sortChip).toBeVisible();
+  await expect(sortChip).toContainText("↓ name");
+  await expect(filterChip).toBeVisible();
+  const filterChipBorderRadius = await filterChip.evaluate((element) => getComputedStyle(element).borderRadius);
+  const filterChipFontSize = await filterChip.evaluate((element) => getComputedStyle(element).fontSize);
+  await expect(sortChip).toHaveCSS("border-radius", filterChipBorderRadius);
+  await expect(sortChip).toHaveCSS("font-size", filterChipFontSize);
+  await expect(sortChip.locator(".filter-chip-chevron")).toHaveCount(1);
+});
+
+test("sort popover drag handle reorders sort priority and updates the real table order", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  await writeFile(dataPath, JSON.stringify([
+    {
+      id: "a_row",
+      name: "Beta",
+      features: ["spell"],
+    },
+    {
+      id: "b_row",
+      name: "Alpha",
+      features: ["attack"],
+    },
+    {
+      id: "c_row",
+      name: "Alpha",
+      features: ["minion"],
+    },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await page.locator(".view-filter-sort-button").click();
+    const sortPopover = page.locator(".sort-popover-content");
+    await expect(sortPopover).toBeVisible();
+    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+
+    await sortPopover.locator(".sort-field-trigger").nth(0).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
+    await sortPopover.locator(".sort-field-trigger").nth(1).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "id", exact: true }).click();
+
+    await expect.poll(() => getVisibleTableIds(page)).toEqual(["b_row", "c_row", "a_row"]);
+
+    await beginSortRuleHandleDrag(page, 1);
+    await expect(sortPopover.locator(".sort-rule-drag-ghost")).toBeVisible();
+    await expect(sortPopover.locator(".sort-rule-drag-placeholder")).toBeVisible();
+    await movePointerOverSortRule(page, 0);
+    await endSortRuleHandleDrag(page, 0);
+    await expect(sortPopover.locator(".sort-field-trigger")).toHaveCount(2);
+    await expect.poll(() => getSortRuleFields(page)).toEqual(["id", "name"]);
+    await expect.poll(() => getVisibleTableIds(page)).toEqual(["a_row", "b_row", "c_row"]);
+
+    await sortPopover.locator(".sort-direction-trigger").nth(0).click();
+    await page.locator(".sort-direction-content").getByRole("option", { name: "降序", exact: true }).click();
+    await expect(sortPopover.locator(".sort-rule-row").nth(0).locator(".sort-direction-trigger")).toContainText("降序");
+
+    await sortPopover.locator('.sort-rule-row').nth(1).getByRole("button", { name: "删除排序" }).click();
+    await expect(sortPopover.locator(".sort-rule-row")).toHaveCount(1);
+  } finally {
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
+test("sort chip popover also supports drag reordering", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  await writeFile(dataPath, JSON.stringify([
+    {
+      id: "a_row",
+      name: "Beta",
+      features: ["spell"],
+    },
+    {
+      id: "b_row",
+      name: "Alpha",
+      features: ["attack"],
+    },
+    {
+      id: "c_row",
+      name: "Alpha",
+      features: ["minion"],
+    },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await page.locator(".view-filter-sort-button").click();
+    const firstSortPopover = page.locator(".sort-popover-content");
+    await firstSortPopover.getByRole("button", { name: "添加排序" }).click();
+    await firstSortPopover.getByRole("button", { name: "添加排序" }).click();
+    await firstSortPopover.locator(".sort-field-trigger").nth(0).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
+    await firstSortPopover.locator(".sort-field-trigger").nth(1).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "id", exact: true }).click();
+    await closePopoverByClickingOutside(page);
+
+    const sortChip = page.locator(".view-filter-chip.sort-chip");
+    await expect(sortChip).toHaveCount(1);
+    await expect(sortChip).toContainText("2 个排序");
+    await expect(sortChip).toHaveAttribute("title", "name asc, id asc");
+    await sortChip.click();
+    const chipPopover = page.locator(".sort-popover-content");
+    await expect(chipPopover).toBeVisible();
+
+    await dragSortRuleHandle(page, 1, 0);
+
+    await expect.poll(() => getSortRuleFields(page)).toEqual(["id", "name"]);
+    await expect.poll(() => getVisibleTableIds(page)).toEqual(["a_row", "b_row", "c_row"]);
+  } finally {
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
+test("multiple sorts merge into a single summary chip", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.locator(".view-filter-sort-button").click();
+  const sortPopover = page.locator(".sort-popover-content");
+  await expect(sortPopover).toBeVisible();
+  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+  await sortPopover.locator(".sort-field-trigger").first().click();
+  await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
+  await closePopoverByClickingOutside(page);
+
+  const singleSortChip = page.locator(".view-filter-chip.sort-chip");
+  await expect(singleSortChip).toHaveCount(1);
+  await expect(singleSortChip).toContainText("↑ name");
+  await expect(singleSortChip).toHaveAttribute("title", "name asc");
+
+  await singleSortChip.click();
+  await expect(sortPopover).toBeVisible();
+  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+  await sortPopover.locator(".sort-field-trigger").nth(1).click();
+  await page.locator(".sort-select-content").getByRole("option", { name: "id", exact: true }).click();
+  await closePopoverByClickingOutside(page);
+
+  const mergedSortChip = page.locator(".view-filter-chip.sort-chip");
+  await expect(mergedSortChip).toHaveCount(1);
+  await expect(mergedSortChip).toContainText("2 个排序");
+  await expect(mergedSortChip).toHaveAttribute("title", "name asc, id asc");
+});
+
+test("sort popover drag cancel rolls back preview without changing priority", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  await writeFile(dataPath, JSON.stringify([
+    { id: "a_row", name: "Beta", features: ["spell"] },
+    { id: "b_row", name: "Alpha", features: ["attack"] },
+    { id: "c_row", name: "Alpha", features: ["minion"] },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await page.locator(".view-filter-sort-button").click();
+    const sortPopover = page.locator(".sort-popover-content");
+    await expect(sortPopover).toBeVisible();
+    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+
+    await sortPopover.locator(".sort-field-trigger").nth(0).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
+    await sortPopover.locator(".sort-field-trigger").nth(1).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "id", exact: true }).click();
+
+    await expect.poll(() => getSortRuleFields(page)).toEqual(["name", "id"]);
+    await expect.poll(() => getVisibleTableIds(page)).toEqual(["b_row", "c_row", "a_row"]);
+
+    await beginSortRuleHandleDrag(page, 1);
+    await expect(sortPopover.locator(".sort-rule-drag-ghost")).toBeVisible();
+    await expect(sortPopover.locator(".sort-rule-drag-placeholder")).toBeVisible();
+
+    await cancelSortRuleHandleDrag(page);
+
+    await expect(sortPopover.locator(".sort-rule-drag-ghost")).toHaveCount(0);
+    await expect(sortPopover.locator(".sort-rule-drag-placeholder")).toHaveCount(0);
+    await expect.poll(() => getSortRuleFields(page)).toEqual(["name", "id"]);
+    await expect.poll(() => getVisibleTableIds(page)).toEqual(["b_row", "c_row", "a_row"]);
+  } finally {
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
+test("sort popover drag release over field trigger reorders without opening select", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  await writeFile(dataPath, JSON.stringify([
+    { id: "a_row", name: "Beta", features: ["spell"] },
+    { id: "b_row", name: "Alpha", features: ["attack"] },
+    { id: "c_row", name: "Alpha", features: ["minion"] },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await page.locator(".view-filter-sort-button").click();
+    const sortPopover = page.locator(".sort-popover-content");
+    await expect(sortPopover).toBeVisible();
+    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+
+    await sortPopover.locator(".sort-field-trigger").nth(0).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
+    await sortPopover.locator(".sort-field-trigger").nth(1).click();
+    await page.locator(".sort-select-content").getByRole("option", { name: "id", exact: true }).click();
+
+    await beginSortRuleHandleDrag(page, 1);
+    await movePointerOverSortRule(page, 0);
+    await releaseSortRuleHandleDragOverFieldTrigger(page, 0);
+
+    await expect.poll(() => getSortRuleFields(page)).toEqual(["id", "name"]);
+    await expect.poll(() => getVisibleTableIds(page)).toEqual(["a_row", "b_row", "c_row"]);
+    await expect(page.locator(".sort-select-content")).toHaveCount(0);
+    await expect(sortPopover.locator(".sort-rule-row")).toHaveCount(2);
+  } finally {
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
 });
 
 test("clickable drag surfaces use pointer by default and grabbing while dragging", async ({ page }) => {

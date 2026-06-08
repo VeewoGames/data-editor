@@ -179,11 +179,12 @@ export function ViewFilterBar({
         </Popover.Portal>
       </Popover.Root>
       <div className="view-chip-list">
-        {sorts.map((sort) => (
-          <Popover.Root key={sort.id}>
+        {sorts.length ? (
+          <Popover.Root>
             <Popover.Trigger asChild>
-              <button className="view-filter-chip sort-chip" type="button" title={`${sort.field} ${sort.direction}`}>
-                {sort.direction === "asc" ? "↑" : "↓"} {sort.field}
+              <button className="view-filter-chip filter-chip sort-chip" type="button" title={sortChipTitle(sorts)}>
+                <span className="filter-chip-label">{sortChipLabel(sorts)}</span>
+                <icons.chevronDown className="filter-chip-chevron" size={14} />
               </button>
             </Popover.Trigger>
             <Popover.Portal>
@@ -192,7 +193,7 @@ export function ViewFilterBar({
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-        ))}
+        ) : null}
         {visibleFilterRules.map((rule) => (
           <div className="filter-chip-wrap" key={rule.id} ref={(node) => { filterChipWrapRefs.current[rule.id] = node; }}>
             <button
@@ -269,7 +270,7 @@ function renderFilterPopover(
       <MultiSelectFilterPopover
         filters={filters}
         rule={rule}
-        mode={fieldType === "Multi-select" || fieldType === "Relation" ? "multi" : "single"}
+        mode="multi"
         options={optionsForField(rule.field, fieldType, fieldViewConfigs, relationFilterOptions)}
         cachedValues={cachedValues}
         onCachedValuesChange={onCachedValuesChange}
@@ -413,7 +414,7 @@ function valueOperatorLabel(operator: FilterRule["operator"]) {
   if (operator === "does_not_contain") return "不包含";
   if (operator === "is_empty") return "为空";
   if (operator === "is_not_empty") return "不为空";
-  return "包含任一";
+  return "包含";
 }
 
 function textOperatorLabel(operator: FilterRule["operator"]) {
@@ -423,4 +424,16 @@ function textOperatorLabel(operator: FilterRule["operator"]) {
   if (operator === "is_empty") return "为空";
   if (operator === "is_not_empty") return "不为空";
   return "包含";
+}
+
+function sortChipLabel(sorts: SortRule[]) {
+  if (sorts.length > 1) return `⇵ ${sorts.length} 个排序`;
+  const firstSort = sorts[0];
+  if (!firstSort) return "";
+  return `${firstSort.direction === "asc" ? "↑" : "↓"} ${firstSort.field}`;
+}
+
+function sortChipTitle(sorts: SortRule[]) {
+  if (!sorts.length) return "";
+  return sorts.map((sort) => `${sort.field} ${sort.direction}`).join(", ");
 }

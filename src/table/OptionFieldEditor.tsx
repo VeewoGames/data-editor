@@ -145,8 +145,8 @@ export function OptionFieldEditor({
     setLocalOptions,
   });
   const renderedOptions = useMemo(
-    () => filteredOptions.filter((option) => option.value !== dragPreview?.activeValue),
-    [dragPreview?.activeValue, filteredOptions],
+    () => filteredOptions.filter((option) => option.value !== dragPreview?.activeId),
+    [dragPreview?.activeId, filteredOptions],
   );
 
   useLayoutEffect(() => {

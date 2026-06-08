@@ -12,6 +12,7 @@ import {
   shouldStartOneDimensionalDrag,
 } from "../src/drag/one-dimensional-dnd.mjs";
 import { projectSidebarFileOrder } from "../src/drag/sidebar-file-dnd.mjs";
+import { reorderSortRulesById } from "../src/components/sort/reorder-sort-rules.mjs";
 
 test("drag gesture starts only after the shared pointer threshold is exceeded", () => {
   assert.equal(ONE_DIMENSIONAL_DRAG_THRESHOLD, 4);
@@ -168,4 +169,22 @@ test("sidebar file projection derives preview order without mutating the provide
 
   assert.deepEqual(previewOrder, ["gamma", "alpha", "beta", "delta"]);
   assert.deepEqual(baseOrder, ["alpha", "beta", "gamma", "delta"]);
+});
+
+test("reorderSortRulesById rebuilds sort rules from ordered ids without dropping metadata", () => {
+  const sorts = [
+    { id: "sort:name", field: "name", direction: "asc" },
+    { id: "sort:id", field: "id", direction: "desc" },
+    { id: "sort:rarity", field: "rarity", direction: "asc" },
+  ];
+
+  const reordered = reorderSortRulesById(sorts, ["sort:id", "sort:name", "sort:rarity"]);
+
+  assert.deepEqual(reordered, [
+    { id: "sort:id", field: "id", direction: "desc" },
+    { id: "sort:name", field: "name", direction: "asc" },
+    { id: "sort:rarity", field: "rarity", direction: "asc" },
+  ]);
+  assert.equal(reordered[0], sorts[1]);
+  assert.equal(reordered[1], sorts[0]);
 });

@@ -1188,10 +1188,6 @@ select {
   stroke-width: 2.5;
 }
 
-.sort-chip {
-  color: #2457b7;
-}
-
 .primary-button.compact,
 .ghost-button.compact {
   min-height: 28px;
@@ -1255,6 +1251,7 @@ select {
   display: grid;
   gap: 10px;
   min-width: 280px;
+  position: relative;
 }
 
 .filter-popover-shell {
@@ -1476,7 +1473,81 @@ select {
   align-items: center;
   display: grid;
   gap: 6px;
-  grid-template-columns: minmax(120px, 1fr) 96px 28px;
+  grid-template-columns: 24px minmax(120px, 1fr) 96px 28px;
+}
+
+.sort-rule-drag-handle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #8b8a86;
+  cursor: grab;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 24px;
+}
+
+.sort-rule-drag-handle:hover {
+  background: #efeeeb;
+  color: #37352f;
+}
+
+.sort-rule-drag-handle:active,
+.sort-rule-drag-handle.ghost {
+  cursor: grabbing;
+}
+
+.sort-rule-drag-placeholder {
+  background: #efeeeb;
+  border: 1px dashed #d3d0ca;
+  border-radius: 8px;
+}
+
+.sort-rule-drag-ghost {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d9d6d1;
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(15, 15, 15, 0.18);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 24px minmax(120px, 1fr) 96px 28px;
+  opacity: 0.96;
+  pointer-events: none;
+  position: absolute;
+  z-index: 30;
+}
+
+.sort-rule-ghost-field,
+.sort-rule-ghost-direction,
+.sort-rule-ghost-delete {
+  align-items: center;
+  display: inline-flex;
+  min-height: 32px;
+}
+
+.sort-rule-ghost-field {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  color: var(--color-text-strong);
+  padding: 6px 8px;
+}
+
+.sort-rule-ghost-direction {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  color: var(--color-text-strong);
+  justify-content: center;
+  padding: 6px 8px;
+}
+
+.sort-rule-ghost-delete {
+  color: #8b8a86;
+  justify-content: center;
 }
 
 .primary-key-candidate-banner {
@@ -2992,6 +3063,11 @@ th:hover .column-resize-handle::after,
 }
 
 .filter-select-content {
+  z-index: 1700;
+}
+
+.select-content.sort-select-content,
+.select-content.sort-direction-content {
   z-index: 50;
 }
 
