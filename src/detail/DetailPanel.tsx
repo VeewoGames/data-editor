@@ -17,6 +17,8 @@ import { SelectCellEditor } from "../table/SelectCellEditor";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
 import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
+import { AutoSizeTextarea } from "./AutoSizeTextarea";
+import { FieldTypeIcon } from "../components/FieldTypeIcon";
 
 type DetailPanelProps = {
   open: boolean;
@@ -364,10 +366,7 @@ export function DetailPanel({
                     />
                   ) : (
                     <section className="property-block">
-                      <div className="property-heading">
-                        <span>{key}</span>
-                        {issue ? <small className={issue.severity}>{issue.message}</small> : null}
-                      </div>
+                      <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} />
                       {renderValueEditor({
                         cellId: `detail:${rowIndex}:${key}`,
                         pathParts: [key],
@@ -588,9 +587,7 @@ function NestedObjectPanel(props: {
       <div className="property-list nested-property-list">
         {Object.entries(props.value).map(([key, value]) => (
           <section className="property-block" key={`${props.rootField}:${key}`}>
-            <div className="property-heading">
-              <span>{key}</span>
-            </div>
+            <PropertyHeading fieldName={key} fieldType={defaultTypeFor(value)} />
             {renderValueEditor({
               cellId: `nested-object:${props.rootField}:${key}`,
               pathParts: [props.rootField, ...props.basePath, key],
@@ -628,9 +625,7 @@ function renderNestedItemEditor(
   if (Array.isArray(item)) {
     return (
       <section className="property-block">
-        <div className="property-heading">
-          <span>value</span>
-        </div>
+        <PropertyHeading fieldName="value" fieldType="Nested" />
         <button className="nested-entry-button" onClick={() => onOpenNested(index, [], item)}>
           <icons.nested size={15} />
           <span>{summarizeArrayValue(item)}</span>
@@ -645,9 +640,7 @@ function renderNestedItemEditor(
       const nextPath = [key];
       return (
         <section className="property-block" key={`${index}:${key}`}>
-          <div className="property-heading">
-            <span>{key}</span>
-          </div>
+          <PropertyHeading fieldName={key} fieldType={defaultTypeFor(value)} />
           {relation && isRelationValue(value) ? (
             <RelationCellEditor
               cellId={`nested:${rootField}:${index}:${key}`}
@@ -670,9 +663,8 @@ function renderNestedItemEditor(
               onOpenNestedArray={(path, nestedValue) => onOpenNested(index, [key, ...path], nestedValue)}
             />
           ) : shouldUseMultilineEditor(key, value) ? (
-            <textarea
+            <AutoSizeTextarea
               className="detail-input detail-textarea"
-              rows={4}
               value={value == null ? "" : String(value)}
               onChange={(event) => onEditItem(index, { ...(item as Record<string, unknown>), [key]: event.target.value })}
             />
@@ -690,15 +682,27 @@ function renderNestedItemEditor(
 
   return (
     <section className="property-block">
-      <div className="property-heading">
-        <span>value</span>
-      </div>
+      <PropertyHeading fieldName="value" fieldType={defaultTypeFor(item)} />
       <input
         className="detail-input"
         value={item == null ? "" : String(item)}
         onChange={(event) => onEditItem(index, event.target.value)}
       />
     </section>
+  );
+}
+
+function PropertyHeading({ fieldName, fieldType, issue }: { fieldName: string; fieldType: FieldDisplayType; issue?: ValidationIssue | null }) {
+  return (
+    <div className="property-heading">
+      <span className="property-heading-label">
+        <span className="property-heading-icon" data-field-type-icon={fieldType}>
+          <FieldTypeIcon fieldType={fieldType} size={14} strokeWidth={2.2} />
+        </span>
+        <span>{fieldName}</span>
+      </span>
+      {issue ? <small className={issue.severity}>{issue.message}</small> : null}
+    </div>
   );
 }
 
@@ -812,11 +816,10 @@ function renderValueEditor(props: {
   }
   if (shouldUseMultilineEditor(props.fieldName, props.value)) {
     return (
-      <textarea
+      <AutoSizeTextarea
         key={`${props.fieldName}:${String(props.value ?? "")}`}
         className="detail-input detail-textarea"
         defaultValue={props.value == null ? "" : String(props.value)}
-        rows={4}
         onInput={(event) => props.onEditField(props.fieldName, (event.target as HTMLTextAreaElement).value)}
       />
     );

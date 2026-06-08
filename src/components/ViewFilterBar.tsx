@@ -5,6 +5,7 @@ import type { CollectionView, FilterGroup, FilterRule, SortRule } from "../api/c
 import type { FieldConfig } from "../table/DataTable";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import type { FieldViewConfig, MultiSelectOptionView } from "../model/viewConfig";
+import { FieldTypeIcon } from "./FieldTypeIcon";
 import { icons } from "./icons";
 import { BooleanFilterPopover } from "./filters/BooleanFilterPopover";
 import { MultiSelectFilterPopover } from "./filters/MultiSelectFilterPopover";
@@ -170,7 +171,9 @@ export function ViewFilterBar({
             <div className="add-filter-popover" role="menu" aria-label="选择筛选字段">
               {availableFilterFields.map((field) => (
                 <button className="add-filter-field-option" key={field} onClick={() => addFilter(field)} type="button" role="menuitem">
-                  <span className="add-filter-field-icon">{fieldTypeIcon(resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes))}</span>
+                  <span className="add-filter-field-icon" data-field-icon={resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes)}>
+                    <FieldTypeIcon fieldType={resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes)} size={14} strokeWidth={2.2} />
+                  </span>
                   <span className="add-filter-field-name">{field}</span>
                 </button>
               ))}
@@ -289,13 +292,6 @@ function resolveFieldType(
 ): FieldDisplayType {
   if (fieldTypes[field] === "Relation") return "Relation";
   return fieldConfig.displayTypes[field] ?? fieldTypes[field] ?? fieldViewConfigs[field]?.type ?? "Text";
-}
-
-function fieldTypeIcon(fieldType: FieldDisplayType) {
-  if (fieldType === "Checkbox") return "✓";
-  if (fieldType === "Multi-select" || fieldType === "Select") return "#";
-  if (fieldType === "Relation") return "↗";
-  return "T";
 }
 
 function optionsForField(

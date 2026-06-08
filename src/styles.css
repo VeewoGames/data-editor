@@ -1235,6 +1235,9 @@ select {
 
 .add-filter-field-icon {
   color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 18px;
   font-size: var(--font-size-sm);
   text-align: center;
@@ -2584,7 +2587,7 @@ th:hover .column-resize-handle::after,
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .detail-title-block {
@@ -2618,7 +2621,7 @@ th:hover .column-resize-handle::after,
 .panel-subtitle {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .property-list {
@@ -2746,6 +2749,21 @@ th:hover .column-resize-handle::after,
   justify-content: space-between;
 }
 
+.property-heading-label {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 600;
+  gap: 8px;
+  min-width: 0;
+}
+
+.property-heading-icon {
+  align-items: center;
+  color: #b3b1ad;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
 .detail-input,
 .json-editor textarea,
 .nested-list input,
@@ -2760,8 +2778,8 @@ th:hover .column-resize-handle::after,
 
 .detail-textarea {
   line-height: var(--line-height-loose);
-  min-height: 88px;
-  resize: vertical;
+  min-height: 30px;
+  resize: none;
   white-space: pre-wrap;
 }
 

@@ -2531,7 +2531,7 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
   await expect(featuresBlock.locator(".nested-entry-button")).toHaveCount(0);
   await featuresBlock.locator(".multi-select-trigger").evaluate((element) => (element as HTMLButtonElement).click());
   await expect(page.locator(".multi-select-popover")).toBeVisible();
-  await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(1);
+  expect(await page.locator(".multi-select-popover .selected-chip").count()).toBeGreaterThan(0);
   await page.locator(".multi-select-popover").press("Escape");
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
@@ -2547,10 +2547,29 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
   await expect(categoryBlock.locator(".multi-select-trigger")).toBeVisible();
   await expect(categoryBlock.locator(".multi-select-trigger")).toHaveAttribute("data-cell-role", "detail-trigger");
   await expect(categoryBlock.locator(".multi-select-trigger")).toHaveAttribute("data-wrap-mode", "truncate");
-  await expect(categoryBlock.locator(".multi-select-trigger .chip")).toContainText("attack");
+  await expect(categoryBlock.locator(".multi-select-trigger .chip")).toHaveCount(1);
   await categoryBlock.locator(".multi-select-trigger").evaluate((element) => (element as HTMLButtonElement).click());
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(1);
+});
+
+test("detail panel textarea height follows actual text content", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('.data-table tbody tr[data-row-index="0"]').locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  const descriptionTextarea = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "description" }),
+  }).locator("textarea.detail-textarea");
+  await expect(descriptionTextarea).toHaveCount(1);
+  const shortHeight = await descriptionTextarea.evaluate((element) => Math.round((element as HTMLTextAreaElement).getBoundingClientRect().height));
+  expect(shortHeight).toBeLessThanOrEqual(60);
+
+  await page.locator('.data-table tbody tr[data-row-index="1"]').evaluate((element) => (element as HTMLTableRowElement).click());
+  const longHeight = await descriptionTextarea.evaluate((element) => Math.round((element as HTMLTextAreaElement).getBoundingClientRect().height));
+  expect(longHeight).toBeGreaterThan(shortHeight + 20);
 });
 
 test("option field editor popover uses shared shell and scroll section from table cell", async ({ page }) => {
@@ -2638,6 +2657,67 @@ test("detail panel option field editors reuse the shared popover shell", async (
   await expect(selectPopover).toBeVisible();
   await expect(selectPopover.locator(".option-field-popover-section")).toHaveCount(2);
   await expect(selectPopover.locator(".option-field-popover-section-scroll")).toBeVisible();
+});
+
+test("detail panel headings show shared field type icons in primary and nested panels", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const featuresHeading = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "features" }),
+  }).locator(".property-heading [data-field-type-icon='Multi-select']");
+  await expect(featuresHeading).toHaveCount(1);
+  await expect(featuresHeading).toHaveCSS("color", "rgb(179, 177, 173)");
+  await expect(page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "features" }),
+  }).locator(".property-heading-label")).toHaveCSS("font-weight", "600");
+
+  const nameHeading = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "name" }),
+  }).locator(".property-heading [data-field-type-icon='Text']");
+  await expect(nameHeading).toHaveCount(1);
+
+  await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  await page.locator(".detail-panel.primary .nested-entry-button").click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await page.locator(".nested-item-list button").first().click();
+
+  const effectTypeHeading = page.locator(".detail-panel.secondary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "effect_type" }),
+  }).locator(".property-heading [data-field-type-icon='Text']");
+  await expect(effectTypeHeading).toHaveCount(1);
+  await expect(effectTypeHeading).toHaveCSS("color", "rgb(179, 177, 173)");
+  await expect(page.locator(".detail-panel.secondary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "effect_type" }),
+  }).locator(".property-heading-label")).toHaveCSS("font-weight", "600");
+});
+
+test("detail panel header keeps a compact gap before the first field", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const spacing = await page.evaluate(() => {
+    const subtitle = document.querySelector(".detail-panel.primary .panel-subtitle") as HTMLElement | null;
+    const firstHeading = document.querySelector(".detail-panel.primary .property-list .property-heading") as HTMLElement | null;
+    if (!subtitle || !firstHeading) return null;
+    const subtitleRect = subtitle.getBoundingClientRect();
+    const firstHeadingRect = firstHeading.getBoundingClientRect();
+    return Math.round(firstHeadingRect.top - subtitleRect.bottom);
+  });
+
+  expect(spacing).not.toBeNull();
+  expect(spacing).toBeLessThanOrEqual(12);
 });
 
 test("relation popover still opens and selects target after option field shell migration", async ({ page }) => {

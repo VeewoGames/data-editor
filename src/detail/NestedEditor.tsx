@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AutoSizeTextarea } from "./AutoSizeTextarea";
 
 type NestedEditorProps = {
   value: unknown;
@@ -55,9 +56,8 @@ function ObjectEditor(props: {
               onOpenNestedArray={props.onOpenNestedArray ? (path, nestedValue) => props.onOpenNestedArray?.([key, ...path], nestedValue) : undefined}
             />
           ) : shouldUseMultilineEditor(key, item) ? (
-            <textarea
+            <AutoSizeTextarea
               className="detail-input detail-textarea"
-              rows={4}
               value={item == null ? "" : String(item)}
               onChange={(event) => props.onChange({ ...props.value, [key]: event.target.value })}
             />
