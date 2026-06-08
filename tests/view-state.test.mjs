@@ -279,6 +279,32 @@ test("createSharedViewConfig inserts snapshot after active view without clearing
   assert.deepEqual(config.collections["data/runes.json:$"].views.map((view) => view.id), ["all", "damage"]);
 });
 
+test("createSharedViewConfig preserves an explicit duplicate name base and appends numeric suffixes on conflict", () => {
+  const config = {
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        views: [
+          { ...allView, id: "all", name: "全部" },
+          { ...allView, id: "damage", name: "构筑" },
+          { ...allView, id: "damage-copy", name: "构筑 副本" },
+        ],
+      },
+    },
+  };
+
+  const result = viewState.createSharedViewConfig(config, "data/runes.json:$", "damage", {
+    ...allView,
+    id: "damage",
+    name: "构筑",
+  }, {
+    nameBase: "构筑 副本",
+  });
+
+  assert.equal(result.view.name, "构筑 副本 2");
+});
+
 test("deleteSharedViewConfig refuses last view and selects adjacent replacement", () => {
   assert.equal(typeof viewState.deleteSharedViewConfig, "function");
   const config = {
@@ -626,6 +652,20 @@ test("ViewTabs and App block shared view draft mutations while saving", async ()
     appSource.indexOf("function handleReorderFiles"),
   );
   assert.match(updateActiveViewDraftSection, /if \(saving\) return;/);
+});
+
+test("duplicating a shared view copies the current user's personal layout and only drafts visible order when needed", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const duplicateSection = appSource.slice(
+    appSource.indexOf("async function handleDuplicateSharedView"),
+    appSource.indexOf("async function handleRenameSharedView"),
+  );
+
+  assert.match(duplicateSection, /copyViewLayoutState/);
+  assert.match(duplicateSection, /nameBase: duplicateNameBase/);
+  assert.match(duplicateSection, /insertViewIdAfter/);
+  assert.match(duplicateSection, /if \(nextViewOrderDrafts\[activeCollectionKey\]\?\.length\)/);
+  assert.doesNotMatch(duplicateSection, /\[result\.view\.id\]:/);
 });
 
 test("ViewTabs and ViewFilterBar expose shared view controls in the expected rows", async () => {

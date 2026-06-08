@@ -68,16 +68,17 @@ export function resetActiveSharedViewDraft(draftState, collectionKey, viewId) {
   };
 }
 
-export function createSharedViewConfig(sharedViewsConfig, collectionKey, activeViewId, activeViewSnapshot) {
+export function createSharedViewConfig(sharedViewsConfig, collectionKey, activeViewId, activeViewSnapshot, options = {}) {
   const config = cloneSharedViewsConfig(sharedViewsConfig);
   const collection = ensureSharedCollection(config, collectionKey);
   const views = collection.views.length ? collection.views : [defaultAllView()];
   const activeIndex = Math.max(0, views.findIndex((view) => view.id === activeViewId));
   const snapshot = normalizeCollectionView(activeViewSnapshot ?? views[activeIndex] ?? defaultAllView());
+  const duplicateNameBase = typeof options.nameBase === "string" ? options.nameBase.trim() : "";
   const nextView = {
     ...snapshot,
     id: uniqueViewId(views, snapshot.id || "view"),
-    name: uniqueViewName(views, snapshot.name || "View"),
+    name: uniqueViewName(views, duplicateNameBase || snapshot.name || "View", { preserveBase: Boolean(duplicateNameBase) }),
   };
   const nextViews = [...views];
   nextViews.splice(activeIndex + 1, 0, nextView);
@@ -255,12 +256,14 @@ function uniqueViewId(views, baseId) {
   return candidate;
 }
 
-function uniqueViewName(views, baseName) {
+function uniqueViewName(views, baseName, options = {}) {
+  const trimmedBaseName = String(baseName).trim() || "View";
   const existing = new Set(views.map((view) => view.name));
-  let candidate = `${baseName} copy`;
-  let index = 2;
+  if (options.preserveBase && !existing.has(trimmedBaseName)) return trimmedBaseName;
+  let candidate = options.preserveBase ? `${trimmedBaseName} 2` : `${trimmedBaseName} copy`;
+  let index = 3;
   while (existing.has(candidate)) {
-    candidate = `${baseName} copy ${index}`;
+    candidate = options.preserveBase ? `${trimmedBaseName} ${index}` : `${trimmedBaseName} copy ${index - 1}`;
     index += 1;
   }
   return candidate;

@@ -72,6 +72,7 @@ import {
   renameSingleSelectOptionInRows,
 } from "./multiselect-config.mjs";
 import {
+  copyViewLayoutState,
   emptyLocalViewState,
   emptyViewLayoutState,
   deleteLocalViewState,
@@ -1700,23 +1701,59 @@ export function App() {
   }
 
   async function handleDuplicateSharedView(viewId: string) {
-    if (saving || !activeCollectionKey) return;
+    if (saving || !activeCollectionKey || !selectedPath) return;
     const sourceView = orderedCollectionViews.find((view: CollectionView) => view.id === viewId);
     if (!sourceView) return;
     const draft = draftSource.viewDrafts?.[activeCollectionKey]?.[viewId];
     const snapshot = mergeSharedViewWithDraft(sourceView, draft) as CollectionView;
+    const duplicateNameBase = `${snapshot.name} 副本`.trim();
     setSaving(true);
     setStatus("");
     try {
-      const result = createSharedViewConfig(sharedViewsConfig, activeCollectionKey, viewId, snapshot);
+      const result = createSharedViewConfig(sharedViewsConfig, activeCollectionKey, viewId, snapshot, {
+        nameBase: duplicateNameBase,
+      });
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
       setSharedViewsConfig(nextConfig);
+      if (selectedViewProfileName) {
+        mutateSelectedViewProfile((draftProfile) => {
+          const copyResult = copyViewLayoutState({
+            mode: "profile",
+            path: selectedPath,
+            collectionPath,
+            sourceViewId: viewId,
+            targetViewId: result.view.id,
+            profile: draftProfile,
+            localStorage: null,
+          });
+          draftProfile.viewLayouts = copyResult.profile.viewLayouts;
+          draftProfile.collections = copyResult.profile.collections;
+        });
+      } else {
+        copyViewLayoutState({
+          mode: "local",
+          path: selectedPath,
+          collectionPath,
+          sourceViewId: viewId,
+          targetViewId: result.view.id,
+          profile: null,
+          localStorage: window.localStorage,
+        });
+      }
       const current = currentSharedViewDraftState();
+      const nextViewOrderDrafts = { ...current.viewOrderDrafts };
+      if (nextViewOrderDrafts[activeCollectionKey]?.length) {
+        nextViewOrderDrafts[activeCollectionKey] = insertViewIdAfter(
+          orderedCollectionViews.map((view: CollectionView) => view.id),
+          viewId,
+          result.view.id,
+        );
+      }
       updateSharedViewDraftState({
         lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
         viewDrafts: { ...current.viewDrafts },
-        viewOrderDrafts: { ...current.viewOrderDrafts },
+        viewOrderDrafts: nextViewOrderDrafts,
       });
       setStatus("已创建团队共享视图副本");
     } catch (error) {
@@ -3207,6 +3244,14 @@ function ensureViewLayout(profile: UserViewProfile, path: string, collectionPath
   profile.viewLayouts[key] ??= {};
   profile.viewLayouts[key][viewId] ??= emptyViewLayoutState();
   return profile.viewLayouts[key][viewId];
+}
+
+function insertViewIdAfter(viewIds: string[], sourceViewId: string, targetViewId: string) {
+  const normalized = viewIds.filter((viewId, index) => viewId && viewIds.indexOf(viewId) === index && viewId !== targetViewId);
+  const sourceIndex = normalized.indexOf(sourceViewId);
+  if (sourceIndex < 0) return [...normalized, targetViewId];
+  normalized.splice(sourceIndex + 1, 0, targetViewId);
+  return normalized;
 }
 
 function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, viewId: string | null, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[], appearance: UiPreferences): UserViewProfile {

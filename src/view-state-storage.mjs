@@ -232,6 +232,58 @@ export function deleteLocalViewLayoutState({ path, collectionPath, viewId, local
   }
 }
 
+export function copyViewLayoutState({
+  mode,
+  path,
+  collectionPath,
+  sourceViewId,
+  targetViewId,
+  profile,
+  localStorage,
+}) {
+  const normalizedSourceViewId = normalizeViewId(sourceViewId);
+  const normalizedTargetViewId = normalizeViewId(targetViewId);
+  if (!normalizedSourceViewId || !normalizedTargetViewId || normalizedSourceViewId === normalizedTargetViewId) {
+    return { profile, copied: false };
+  }
+  if (mode === "profile") {
+    const collectionKey = collectionConfigKey(path, collectionPath);
+    const sourceLayout = profile?.viewLayouts?.[collectionKey]?.[normalizedSourceViewId];
+    if (!sourceLayout) return { profile, copied: false };
+    const nextProfile = {
+      sidebarWidth: profile?.sidebarWidth ?? null,
+      detailPanelWidth: profile?.detailPanelWidth ?? null,
+      fileOrder: [...(profile?.fileOrder ?? [])],
+      lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
+      viewDrafts: { ...(profile?.viewDrafts ?? {}) },
+      viewOrderDrafts: { ...(profile?.viewOrderDrafts ?? {}) },
+      ...(profile?.appearance ? { appearance: profile.appearance } : {}),
+      viewLayouts: cloneNestedViewLayouts(profile?.viewLayouts),
+      collections: { ...(profile?.collections ?? {}) },
+    };
+    nextProfile.viewLayouts[collectionKey] ??= {};
+    nextProfile.viewLayouts[collectionKey][normalizedTargetViewId] = cloneCollectionViewState(sourceLayout);
+    return { profile: nextProfile, copied: true };
+  }
+  if (!hasLocalViewLayoutState({ path, collectionPath, viewId: normalizedSourceViewId, localStorage })) {
+    return { profile, copied: false };
+  }
+  const nextState = readLocalViewLayoutState({
+    path,
+    collectionPath,
+    viewId: normalizedSourceViewId,
+    localStorage,
+  });
+  writeLocalViewLayoutState({
+    path,
+    collectionPath,
+    viewId: normalizedTargetViewId,
+    state: nextState,
+    localStorage,
+  });
+  return { profile, copied: true };
+}
+
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) return [];
   const seen = new Set();
@@ -290,4 +342,15 @@ function cloneNestedViewLayouts(value) {
       ),
     ]),
   );
+}
+
+function hasLocalViewLayoutState({ path, collectionPath, viewId, localStorage }) {
+  const normalizedViewId = normalizeViewId(viewId);
+  if (!normalizedViewId) return false;
+  const prefix = viewStoragePrefix(path, collectionPath, normalizedViewId);
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) return true;
+  }
+  return false;
 }

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  copyViewLayoutState,
   deleteLocalViewState,
   emptyLocalViewState,
   emptyLocalSharedViewDrafts,
@@ -264,6 +265,135 @@ test("deleteLocalViewState removes only the targeted view layout keys", () => {
   assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden"), null);
   assert.equal(storage.getItem("data-editor:data/runes.json:$:all:description:hidden"), "1");
   assert.equal(storage.getItem("data-editor:data/other.json:$:all:name:hidden"), "1");
+});
+
+test("copyViewLayoutState duplicates the source profile layout into the target view only when a source layout exists", () => {
+  const result = copyViewLayoutState({
+    mode: "profile",
+    path: "data/runes.json",
+    collectionPath: "$",
+    sourceViewId: "all",
+    targetViewId: "all-copy",
+    profile: {
+      sidebarWidth: 280,
+      detailPanelWidth: 420,
+      fileOrder: ["data/runes.json"],
+      lastActiveViews: { "data/runes.json:$": "all" },
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      viewLayouts: {
+        "data/runes.json:$": {
+          all: {
+            hidden: ["description"],
+            wrapped: ["description"],
+            order: ["description", "rune_name"],
+            detailOrder: ["description"],
+            widths: { description: 260 },
+          },
+        },
+      },
+    },
+    localStorage: null,
+  });
+
+  assert.equal(result.copied, true);
+  assert.deepEqual(result.profile.viewLayouts["data/runes.json:$"]["all-copy"], {
+    hidden: ["description"],
+    wrapped: ["description"],
+    order: ["description", "rune_name"],
+    detailOrder: ["description"],
+    widths: { description: 260 },
+  });
+  assert.deepEqual(result.profile.viewLayouts["data/runes.json:$"].all, {
+    hidden: ["description"],
+    wrapped: ["description"],
+    order: ["description", "rune_name"],
+    detailOrder: ["description"],
+    widths: { description: 260 },
+  });
+});
+
+test("copyViewLayoutState skips creating a target layout when the source profile view has no layout record", () => {
+  const profile = {
+    sidebarWidth: 280,
+    detailPanelWidth: 420,
+    fileOrder: ["data/runes.json"],
+    lastActiveViews: { "data/runes.json:$": "all" },
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    viewLayouts: {
+      "data/runes.json:$": {
+        utility: emptyViewLayoutState(),
+      },
+    },
+  };
+
+  const result = copyViewLayoutState({
+    mode: "profile",
+    path: "data/runes.json",
+    collectionPath: "$",
+    sourceViewId: "all",
+    targetViewId: "all-copy",
+    profile,
+    localStorage: null,
+  });
+
+  assert.equal(result.copied, false);
+  assert.equal(result.profile, profile);
+  assert.equal(result.profile.viewLayouts["data/runes.json:$"]["all-copy"], undefined);
+});
+
+test("copyViewLayoutState duplicates only the targeted local view layout keys", () => {
+  const storage = createMemoryStorage({
+    "data-editor:data/runes.json:$:all:description:hidden": "1",
+    "data-editor:data/runes.json:$:all:description:wrapped": "1",
+    "data-editor:data/runes.json:$:all:description:width": "220",
+    "data-editor:data/runes.json:$:all:__order": "description,rune_name",
+    "data-editor:data/runes.json:$:all:__detail-order": "description",
+    "data-editor:data/runes.json:$:other:name:hidden": "1",
+    "data-editor:sidebar-width": "300",
+    "data-editor:detail-panel-width": "420",
+  });
+
+  const result = copyViewLayoutState({
+    mode: "local",
+    path: "data/runes.json",
+    collectionPath: "$",
+    sourceViewId: "all",
+    targetViewId: "all-copy",
+    profile: null,
+    localStorage: storage,
+  });
+
+  assert.equal(result.copied, true);
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:description:hidden"), "1");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:description:wrapped"), "1");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:description:width"), "220");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:__order"), "description,rune_name");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:__detail-order"), "description");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:other:name:hidden"), "1");
+  assert.equal(storage.getItem("data-editor:sidebar-width"), "300");
+  assert.equal(storage.getItem("data-editor:detail-panel-width"), "420");
+});
+
+test("copyViewLayoutState skips local target creation when the source view has no local layout keys", () => {
+  const storage = createMemoryStorage({
+    "data-editor:data/runes.json:$:other:name:hidden": "1",
+    "data-editor:sidebar-width": "300",
+  });
+
+  const result = copyViewLayoutState({
+    mode: "local",
+    path: "data/runes.json",
+    collectionPath: "$",
+    sourceViewId: "all",
+    targetViewId: "all-copy",
+    profile: null,
+    localStorage: storage,
+  });
+
+  assert.equal(result.copied, false);
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:name:hidden"), null);
 });
 
 test("readLocalFileOrder reads top-level file order independently of collection state", () => {
