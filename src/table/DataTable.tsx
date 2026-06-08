@@ -65,6 +65,9 @@ type DataTableProps = {
   sort: { field: string; direction: "asc" | "desc" } | null;
   issues: Record<string, ValidationIssue | null>;
   titleField: string | null;
+  scrollRestoreKey: string | null;
+  initialScrollPosition: { scrollTop: number; scrollLeft: number } | null;
+  onScrollPositionChange: (position: { scrollTop: number; scrollLeft: number }) => void;
   onSelectRow: (rowIndex: number) => void;
   onOpenDetail: (rowIndex: number) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
@@ -108,6 +111,7 @@ function DataTableComponent(props: DataTableProps) {
   const columnDragAutoScrollDirectionRef = useRef<-1 | 0 | 1>(0);
   const columnDragAutoScrollFrameRef = useRef<number | null>(null);
   const localWidthsRef = useRef<Record<string, number>>({ ...props.fieldConfig.widths });
+  const restoredScrollContextKeyRef = useRef<string | null>(null);
   const rows = getRows(props.model, props.collectionPath) as DataRecord[];
   const schemaModel = props.schemaModel ?? props.model;
   const nestedFieldSet = useMemo(
@@ -127,6 +131,23 @@ function DataTableComponent(props: DataTableProps) {
       scrollContainerRef.current.scrollLeft = 0;
     }
   }, [props.sourcePath, props.collectionPath]);
+  useEffect(() => {
+    if (!props.scrollRestoreKey) return;
+    if (restoredScrollContextKeyRef.current === props.scrollRestoreKey) return;
+    restoredScrollContextKeyRef.current = props.scrollRestoreKey;
+    const nextScrollTop = props.initialScrollPosition?.scrollTop ?? 0;
+    const nextScrollLeft = props.initialScrollPosition?.scrollLeft ?? 0;
+    scrollMetricsRef.current = {
+      scrollTop: nextScrollTop,
+      scrollLeft: nextScrollLeft,
+      viewportHeight: scrollMetricsRef.current.viewportHeight,
+    };
+    setScrollTop(nextScrollTop);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = nextScrollTop;
+      scrollContainerRef.current.scrollLeft = nextScrollLeft;
+    }
+  }, [props.scrollRestoreKey, props.initialScrollPosition]);
   useEffect(() => {
     columnDragStateRef.current = columnDragState;
   }, [columnDragState]);
@@ -487,6 +508,9 @@ function DataTableComponent(props: DataTableProps) {
           scrollMetricsRef.current = { scrollTop: nextScrollTop, scrollLeft: nextScrollLeft, viewportHeight: nextViewportHeight };
           if (current.scrollTop !== nextScrollTop) setScrollTop(nextScrollTop);
           if (current.viewportHeight !== nextViewportHeight) setViewportHeight(nextViewportHeight);
+          if (props.scrollRestoreKey) {
+            props.onScrollPositionChange({ scrollTop: nextScrollTop, scrollLeft: nextScrollLeft });
+          }
           if (columnDragPointerXRef.current != null && columnDragStateRef.current) {
             updateColumnDragPreview(columnDragStateRef.current.draggingField, columnDragPointerXRef.current);
           }
@@ -584,6 +608,9 @@ export const DataTable = memo(DataTableComponent, (previous, next) => {
     previous.sourcePath === next.sourcePath &&
     previous.collectionPath === next.collectionPath &&
     previous.titleField === next.titleField &&
+    previous.scrollRestoreKey === next.scrollRestoreKey &&
+    sameScrollPosition(previous.initialScrollPosition, next.initialScrollPosition) &&
+    previous.onScrollPositionChange === next.onScrollPositionChange &&
     sameBacklinkColumns(previous.backlinkColumns, next.backlinkColumns) &&
     sameBacklinkValues(previous.backlinkValuesByRowIndex, next.backlinkValuesByRowIndex) &&
     sameRelationOptions(previous.relationOptions, next.relationOptions) &&
@@ -605,6 +632,15 @@ function sameSort(previous: DataTableProps["sort"], next: DataTableProps["sort"]
   if (previous === next) return true;
   if (!previous || !next) return false;
   return previous.field === next.field && previous.direction === next.direction;
+}
+
+function sameScrollPosition(
+  previous: DataTableProps["initialScrollPosition"],
+  next: DataTableProps["initialScrollPosition"],
+) {
+  if (previous === next) return true;
+  if (!previous || !next) return false;
+  return previous.scrollTop === next.scrollTop && previous.scrollLeft === next.scrollLeft;
 }
 
 function sameRecord<T extends string | number>(previous: Record<string, T>, next: Record<string, T>) {

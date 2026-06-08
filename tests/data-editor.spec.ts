@@ -419,6 +419,76 @@ async function snapshotLocalStorage(page: Page) {
   });
 }
 
+async function getActiveProjectId(page: Page) {
+  return page.evaluate(async () => {
+    const response = await fetch("/api/projects");
+    if (!response.ok) throw new Error(await response.text());
+    const registry = await response.json() as { activeProjectId?: string | null };
+    return registry.activeProjectId ?? null;
+  });
+}
+
+async function getDefaultCollectionPath(page: Page, filePath: string, projectId?: string | null) {
+  return page.evaluate(async ({ currentFilePath, currentProjectId }) => {
+    const query = new URLSearchParams({ path: currentFilePath });
+    if (currentProjectId) query.set("projectId", currentProjectId);
+    const response = await fetch(`/api/document?${query.toString()}`);
+    if (!response.ok) throw new Error(await response.text());
+    const documentModel = await response.json() as {
+      collections?: Array<{ path?: string }>;
+    };
+    return documentModel.collections?.[0]?.path ?? "$";
+  }, { currentFilePath: filePath, currentProjectId: projectId ?? null });
+}
+
+async function waitForTableScrollReady(page: Page, options: { vertical?: boolean; horizontal?: boolean } = {}) {
+  const { vertical = true, horizontal = false } = options;
+  await expect.poll(async () => page.evaluate(() => {
+    const table = document.querySelector(".table-scroll") as HTMLElement | null;
+    if (!table) return null;
+    return {
+      vertical: table.scrollHeight > table.clientHeight,
+      horizontal: table.scrollWidth > table.clientWidth,
+    };
+  })).toEqual({ vertical, horizontal });
+}
+
+async function readTableScrollPosition(page: Page) {
+  return page.evaluate(() => {
+    const table = document.querySelector(".table-scroll") as HTMLElement | null;
+    if (!table) return null;
+    return {
+      scrollTop: table.scrollTop,
+      scrollLeft: table.scrollLeft,
+      clientHeight: table.clientHeight,
+      clientWidth: table.clientWidth,
+      scrollHeight: table.scrollHeight,
+      scrollWidth: table.scrollWidth,
+    };
+  });
+}
+
+async function setTableScrollPosition(page: Page, scrollTop: number, scrollLeft: number) {
+  await page.evaluate(({ nextScrollTop, nextScrollLeft }) => {
+    const table = document.querySelector(".table-scroll") as HTMLElement | null;
+    if (!table) return;
+    table.scrollTop = nextScrollTop;
+    table.scrollLeft = nextScrollLeft;
+    table.dispatchEvent(new Event("scroll", { bubbles: true }));
+  }, { nextScrollTop: scrollTop, nextScrollLeft: scrollLeft });
+  await expect.poll(async () => page.evaluate(() => {
+    const table = document.querySelector(".table-scroll") as HTMLElement | null;
+    if (!table) return null;
+    return {
+      scrollTop: table.scrollTop,
+      scrollLeft: table.scrollLeft,
+    };
+  })).toEqual({
+    scrollTop,
+    scrollLeft,
+  });
+}
+
 async function restoreLocalStorage(page: Page, snapshot: Record<string, string>) {
   await page.evaluate((nextSnapshot) => {
     localStorage.clear();
@@ -3444,6 +3514,168 @@ test("legacy selected profile without viewLayouts still allows switching shared 
   await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("构筑");
   await page.locator(".view-tab").filter({ hasText: "全部" }).click();
   await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("全部");
+});
+
+test("refresh preserves file view and table scroll", async ({ page }) => {
+  const collectionKey = "data/skills.json:skills";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      views: [
+        { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [] },
+        { id: "e2e-scroll-a", name: "E2E Scroll A", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [] },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/skills.json"]').click();
+    await expect(page.locator(".toolbar strong")).toContainText("data/skills.json");
+    await selectViewTab(page, "E2E Scroll A");
+    await waitForTableScrollReady(page, { vertical: true, horizontal: true });
+
+    await setTableScrollPosition(page, 640, 420);
+    const beforeReload = await readTableScrollPosition(page);
+    expect(beforeReload).not.toBeNull();
+    expect(beforeReload!.scrollTop).toBeGreaterThan(300);
+    expect(beforeReload!.scrollLeft).toBeGreaterThan(200);
+
+    await page.reload();
+
+    await expect(page.locator(".toolbar strong")).toContainText("data/skills.json");
+    await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("E2E Scroll A");
+    const afterReload = await readTableScrollPosition(page);
+    expect(afterReload).not.toBeNull();
+    expect(afterReload!.scrollTop).toBeGreaterThan(0);
+    expect(afterReload!.scrollLeft).toBeGreaterThan(0);
+    expect(Math.abs(afterReload!.scrollTop - beforeReload!.scrollTop)).toBeLessThanOrEqual(80);
+    expect(Math.abs(afterReload!.scrollLeft - beforeReload!.scrollLeft)).toBeLessThanOrEqual(80);
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("refresh keeps scroll scoped to active view", async ({ page }) => {
+  const collectionKey = "data/skills.json:skills";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      views: [
+        { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [] },
+        { id: "e2e-scroll-a", name: "E2E Scroll A", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [] },
+        { id: "e2e-scroll-b", name: "E2E Scroll B", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [] },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/skills.json"]').click();
+    await expect(page.locator(".toolbar strong")).toContainText("data/skills.json");
+    await waitForTableScrollReady(page, { vertical: true, horizontal: true });
+
+    await selectViewTab(page, "E2E Scroll A");
+    await setTableScrollPosition(page, 700, 440);
+    const buildScroll = await readTableScrollPosition(page);
+    expect(buildScroll).not.toBeNull();
+    expect(buildScroll!.scrollTop).toBeGreaterThan(350);
+    expect(buildScroll!.scrollLeft).toBeGreaterThan(200);
+
+    await selectViewTab(page, "E2E Scroll B");
+    await setTableScrollPosition(page, 180, 120);
+    const subScroll = await readTableScrollPosition(page);
+    expect(subScroll).not.toBeNull();
+    expect(subScroll!.scrollTop).toBeGreaterThan(80);
+    expect(subScroll!.scrollLeft).toBeGreaterThan(40);
+    expect(Math.abs(buildScroll!.scrollTop - subScroll!.scrollTop)).toBeGreaterThan(300);
+    expect(Math.abs(buildScroll!.scrollLeft - subScroll!.scrollLeft)).toBeGreaterThan(150);
+
+    await page.reload();
+
+    await expect(page.locator(".toolbar strong")).toContainText("data/skills.json");
+    await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("E2E Scroll B");
+    const afterReload = await readTableScrollPosition(page);
+    expect(afterReload).not.toBeNull();
+    expect(Math.abs(afterReload!.scrollTop - subScroll!.scrollTop)).toBeLessThanOrEqual(80);
+    expect(Math.abs(afterReload!.scrollLeft - subScroll!.scrollLeft)).toBeLessThanOrEqual(80);
+    expect(Math.abs(afterReload!.scrollTop - buildScroll!.scrollTop)).toBeGreaterThan(220);
+    expect(Math.abs(afterReload!.scrollLeft - buildScroll!.scrollLeft)).toBeGreaterThan(120);
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("refresh fallback ignores stale page context", async ({ page }) => {
+  await page.goto("/");
+  const activeProjectId = await getActiveProjectId(page);
+  expect(activeProjectId).toBeTruthy();
+
+  await page.evaluate(({ projectId }) => {
+    localStorage.clear();
+    localStorage.setItem("data-editor:page-context", JSON.stringify({
+      projects: {
+        [projectId]: {
+          selectedPath: "data/__missing_refresh_context__.json",
+          collectionPath: "__missing_collection__",
+          scrollByView: {
+            "data/__missing_refresh_context__.json:__missing_collection__:ghost": {
+              scrollTop: 999,
+              scrollLeft: 555,
+            },
+          },
+        },
+      },
+    }));
+  }, { projectId: activeProjectId });
+
+  await page.reload();
+
+  await expect(page.locator(".toolbar strong")).toBeVisible();
+  await expect(page.locator(".toolbar strong")).not.toContainText("__missing_refresh_context__");
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const currentSelectedPath = await page.locator(".toolbar strong").textContent();
+  expect(currentSelectedPath).toBeTruthy();
+  const defaultCollectionPath = await getDefaultCollectionPath(page, currentSelectedPath!, activeProjectId);
+  await expect.poll(async () => page.evaluate(({ projectId }) => {
+    const raw = localStorage.getItem("data-editor:page-context");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      projects?: Record<string, {
+        selectedPath?: string | null;
+        collectionPath?: string | null;
+      }>;
+    };
+    return parsed.projects?.[projectId] ?? null;
+  }, { projectId: activeProjectId! })).toMatchObject({
+    selectedPath: currentSelectedPath,
+    collectionPath: defaultCollectionPath,
+  });
+  const initialScroll = await readTableScrollPosition(page);
+  expect(initialScroll).not.toBeNull();
+  expect(initialScroll!.scrollTop).toBe(0);
+  expect(initialScroll!.scrollLeft).toBe(0);
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
 });
 
 test("close button switches to server closed page", async ({ page }) => {

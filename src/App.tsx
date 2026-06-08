@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Select from "@radix-ui/react-select";
@@ -71,6 +71,13 @@ import {
   renameMultiSelectOptionInRows,
   renameSingleSelectOptionInRows,
 } from "./multiselect-config.mjs";
+import {
+  buildScrollContextKey,
+  readPageContextState,
+  readProjectPageContext,
+  updatePageContextScroll,
+  updatePageContextSelection,
+} from "./page-context-storage";
 import {
   copyViewLayoutState,
   emptyLocalViewState,
@@ -165,6 +172,8 @@ export function App() {
   const [selectedViewProfileName, setSelectedViewProfileName] = useState<string | null>(() => localStorage.getItem(selectedViewProfileStorageKey));
   const [selectedViewProfile, setSelectedViewProfile] = useState<UserViewProfile>(emptyUserViewProfile());
   const [uiPreferences, setUiPreferences] = useState<UiPreferences>(() => readLocalUiPreferences(window.localStorage));
+  const [scrollRestoreKey, setScrollRestoreKey] = useState<string | null>(null);
+  const [initialScrollPosition, setInitialScrollPosition] = useState<{ scrollTop: number; scrollLeft: number } | null>(null);
   const [bridgePort, setBridgePort] = useState(defaultRecoveryBridgePort);
   const [newProfileOpen, setNewProfileOpen] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
@@ -327,11 +336,20 @@ export function App() {
       } else if (!profileNameForInitialOrder) {
         setUiPreferences(readLocalUiPreferences(window.localStorage));
       }
+      const currentPageContext = readProjectPageContext(readPageContextState(window.localStorage), projectId);
       const savedOrder = profileNameForInitialOrder
         ? (normalizeUserViewProfile(nextProfile).fileOrder ?? selectedViewProfileRef.current.fileOrder)
         : readLocalFileOrder(window.localStorage);
-      const preferredPath = resolvePreferredFilePath(nextFiles, savedOrder, selectedPathRef.current);
-      if (preferredPath) await openDocumentAt(preferredPath, undefined, undefined, false, projectId);
+      const preferredPath = resolvePreferredFilePath(
+        nextFiles,
+        savedOrder,
+        currentPageContext.selectedPath ?? selectedPathRef.current,
+      );
+      loadedProjectIdRef.current = projectId;
+      if (preferredPath) {
+        const targetCollection = preferredPath === currentPageContext.selectedPath ? currentPageContext.collectionPath : undefined;
+        await openDocumentAt(preferredPath, targetCollection, undefined, false, projectId);
+      }
       loadedProjectIdRef.current = projectId;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -341,6 +359,7 @@ export function App() {
   function resetWorkspaceState(options: { resetProfile?: boolean } = {}) {
     openRequestRef.current += 1;
     relationIndexRequestRef.current += 1;
+    loadedProjectIdRef.current = null;
     setFiles([]);
     setSelectedPath(null);
     setModel(null);
@@ -355,6 +374,8 @@ export function App() {
     setProfileDirty(false);
     profileDirtyRef.current = false;
     setViewDraftDirty(false);
+    setScrollRestoreKey(null);
+    setInitialScrollPosition(null);
     setAutosaveState("idle");
     autosaveStateRef.current = "idle";
     saveCoordinator.cancel();
@@ -909,7 +930,43 @@ export function App() {
     && draftSource.viewDrafts?.[activeCollectionKey]?.[activeSharedView.id],
   );
   const viewOrderDirty = Boolean(activeCollectionKey && draftSource.viewOrderDrafts?.[activeCollectionKey]?.length);
+  const handleTableScrollPositionChange = useCallback((position: { scrollTop: number; scrollLeft: number }) => {
+    if (!activeProjectId || !selectedPath || !activeViewLayoutId) return;
+    updatePageContextScroll(window.localStorage, activeProjectId, {
+      path: selectedPath,
+      collectionPath,
+      viewId: activeViewLayoutId,
+      scrollTop: position.scrollTop,
+      scrollLeft: position.scrollLeft,
+    });
+  }, [activeProjectId, selectedPath, collectionPath, activeViewLayoutId]);
   const selectedRow = selectedRowIndex == null ? null : rows[selectedRowIndex] ?? null;
+  useEffect(() => {
+    if (!activeProjectId || loadedProjectIdRef.current !== activeProjectId || !selectedPath || !model) {
+      setScrollRestoreKey(null);
+      setInitialScrollPosition(null);
+      return;
+    }
+    updatePageContextSelection(window.localStorage, activeProjectId, {
+      selectedPath,
+      collectionPath,
+    });
+    const nextPageContextState = readPageContextState(window.localStorage);
+    if (!activeViewLayoutId) {
+      setScrollRestoreKey(null);
+      setInitialScrollPosition(null);
+      return;
+    }
+    const nextScrollRestoreKey = buildScrollContextKey(selectedPath, collectionPath, activeViewLayoutId);
+    if (!nextScrollRestoreKey) {
+      setScrollRestoreKey(null);
+      setInitialScrollPosition(null);
+      return;
+    }
+    const nextProjectPageContext = readProjectPageContext(nextPageContextState, activeProjectId);
+    setScrollRestoreKey(nextScrollRestoreKey);
+    setInitialScrollPosition(nextProjectPageContext.scrollByView[nextScrollRestoreKey] ?? null);
+  }, [activeProjectId, selectedPath, collectionPath, model, activeViewLayoutId]);
   useEffect(() => {
     void loadMaintenanceInfo();
   }, [selectedPath, collectionPath, selectedRowIndex, selectedRow, viewConfig.relations, viewRevision]);
@@ -2319,6 +2376,9 @@ export function App() {
             sort={activeViewSort}
             issues={issues}
             titleField={titleField}
+            scrollRestoreKey={scrollRestoreKey}
+            initialScrollPosition={initialScrollPosition}
+            onScrollPositionChange={handleTableScrollPositionChange}
             onSelectRow={selectRow}
             onOpenDetail={openDetail}
             onOpenBacklink={handleOpenBacklink}
