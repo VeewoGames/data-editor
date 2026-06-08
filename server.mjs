@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { parseCsv, serializeCsv } from "./src/csv-codec.mjs";
 import { parseJson, serializeJson } from "./src/json-codec.mjs";
 import { buildDocumentModel } from "./src/document-model.mjs";
-import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFileWithBackup } from "./src/file-service.mjs";
+import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
 import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
@@ -90,8 +90,8 @@ async function handleSave(req, res) {
   const ext = path.extname(body.path).toLowerCase();
   if (![".json", ".csv"].includes(ext)) throw new Error(`Unsupported save extension: ${ext}`);
   const text = ext === ".csv" ? serializeCsv(body.root) : serializeJson(body.root);
-  const result = await writeTextFileWithBackup(projectContext, body.path, text);
-  sendJson(res, { ok: true, ...result });
+  await writeTextFile(projectContext, body.path, text);
+  sendJson(res, { ok: true });
 }
 
 async function handleSaveViewConfig(req, res) {

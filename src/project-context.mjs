@@ -2,11 +2,9 @@ import path from "node:path";
 
 export const legacySharedViewConfigPath = "tools/data-editor/view-config.json";
 export const legacyViewProfilesDir = "tools/data-editor/view-configs";
-export const legacyBackupsDir = "tools/data-editor/.backups";
 
 export const defaultSharedViewConfigPath = ".data-editor/view-config.json";
 export const defaultProjectViewProfilesDir = ".data-editor/view-configs";
-export const defaultBackupsDir = ".data-editor/backups";
 export const defaultRuntimeDir = ".data-editor/runtime";
 export const defaultLogsDir = ".data-editor/logs";
 export const defaultDataSourceId = "data";
@@ -32,8 +30,6 @@ export function createProjectContext(input = {}) {
     legacySharedViewConfigPath: input.legacySharedViewConfigPath ?? legacySharedViewConfigPath,
     userViewProfilesDir,
     legacyViewProfilesDir: input.legacyViewProfilesDir ?? legacyViewProfilesDir,
-    backupsDir: input.backupsDir ?? defaultBackupsDir,
-    legacyBackupsDir: input.legacyBackupsDir ?? legacyBackupsDir,
     runtimeDir: input.runtimeDir ?? defaultRuntimeDir,
     logsDir: input.logsDir ?? defaultLogsDir,
     filePolicy: input.filePolicy ?? {

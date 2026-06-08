@@ -9,7 +9,7 @@ test("saveDocumentsWith saves all documents in order", async () => {
     { path: "data/b.json", root: { b: 2 } },
   ], async (path, root) => {
     calls.push({ path, root });
-    return { backupPath: `${path}.bak` };
+    return { ok: true };
   });
 
   assert.equal(result.ok, true);
@@ -28,7 +28,7 @@ test("saveDocumentsWith stops on first failure and returns partial success", asy
   ], async (path) => {
     calls.push(path);
     if (path === "data/b.json") throw new Error("disk full");
-    return { backupPath: `${path}.bak` };
+    return { ok: true };
   });
 
   assert.equal(result.ok, false);

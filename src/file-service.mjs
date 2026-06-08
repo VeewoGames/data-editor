@@ -1,6 +1,6 @@
-import { copyFile, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
+import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
 
 const MAX_PREVIEW_BYTES = 20 * 1024 * 1024;
 
@@ -44,20 +44,14 @@ export async function readTextFile(projectContextOrRoot, relativePath) {
   return readFile(target, "utf8");
 }
 
-export async function writeTextFileWithBackup(projectContextOrRoot, relativePath, text) {
+export async function writeTextFile(projectContextOrRoot, relativePath, text) {
   const context = createProjectContext(projectContextOrRoot);
   if (!await isAllowedDataFile(context, relativePath)) {
     throw new Error(`Refusing to save file outside data-editor allowlist: ${relativePath}`);
   }
   const target = resolveDataFilePath(context, relativePath);
-  const backupDir = resolveInsideRoot(context.projectRoot, context.backupsDir);
-  await mkdir(backupDir, { recursive: true });
-  const stamp = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
-  const backupName = `${relativePath.replaceAll("/", "__")}.${stamp}.bak`;
-  const backupPath = path.join(backupDir, backupName);
-  await copyFile(target, backupPath);
   await writeFile(target, text, "utf8");
-  return { backupPath: displayProjectPath(context, backupPath) };
+  return { ok: true };
 }
 
 export function resolveDataFilePath(projectContextOrRoot, virtualPath) {

@@ -96,6 +96,7 @@ import {
 import { applyViewFilters } from "./view/filtering.mjs";
 import { createDefaultFilterRule, withRules } from "./view/filter-rules.mjs";
 import { applyViewSorts, updateHeaderSorts } from "./view/sorting.mjs";
+import { createSaveCoordinator, type AutosaveDomain, type AutosaveState } from "./save-coordinator";
 import {
   applyViewOrderDraft,
   collectionConfigKey,
@@ -127,8 +128,10 @@ export function App() {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [dataDirty, setDataDirty] = useState(false);
   const [viewConfigDirty, setViewConfigDirty] = useState(false);
+  const [profileDirty, setProfileDirty] = useState(false);
   const [viewDraftDirty, setViewDraftDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [autosaveState, setAutosaveState] = useState<AutosaveState>("idle");
   const [closing, setClosing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [serviceLifecycleState, setServiceLifecycleState] = useState<ServiceLifecycleState>("running");
@@ -170,17 +173,20 @@ export function App() {
   const [selectedPrimaryKeyCandidate, setSelectedPrimaryKeyCandidate] = useState<string>("");
   const openRequestRef = useRef(0);
   const maintenanceRequestRef = useRef(0);
+  const activeProjectIdRef = useRef<string | null>(null);
   const modelRef = useRef<DocumentModel | null>(null);
   const savedDocumentRootRef = useRef<unknown | null>(null);
   const selectedPathRef = useRef<string | null>(null);
   const dataDirtyRef = useRef(false);
   const viewConfigRef = useRef<ViewConfig>(emptyProjectViewConfig());
   const viewConfigDirtyRef = useRef(false);
+  const profileDirtyRef = useRef(false);
   const relationIndexRequestRef = useRef(0);
   const selectedViewProfileNameRef = useRef<string | null>(null);
   const selectedViewProfileRef = useRef<UserViewProfile>(emptyUserViewProfile());
   const bridgePortRef = useRef(defaultRecoveryBridgePort);
   const serviceLifecycleStateRef = useRef<ServiceLifecycleState>("running");
+  const detailOpenRef = useRef(false);
   const autoRecoverAttemptedRef = useRef(false);
   const disconnectFlowPromiseRef = useRef<Promise<void> | null>(null);
   const healthFailureCountRef = useRef(0);
@@ -189,14 +195,30 @@ export function App() {
   const [sidebarWidth, setSidebarWidth] = useState(() => readSidebarWidth());
   const [detailPanelWidth, setDetailPanelWidth] = useState(() => readDetailPanelWidth());
   const primaryKeySyncSnapshotRef = useRef<{ plan: PrimaryKeySyncPlan; pendingSaves: PendingDocumentSave[] } | null>(null);
-  const profileSaveTimerRef = useRef<number | null>(null);
+  const primaryKeySyncPlanRef = useRef<PrimaryKeySyncPlan | null>(null);
+  const autosaveStateRef = useRef<AutosaveState>("idle");
+  const savingRef = useRef(false);
+  const closingRef = useRef(false);
+  const rebuildingRef = useRef(false);
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
-  const profileSaveResolveRef = useRef<(() => void) | null>(null);
   const loadedProjectIdRef = useRef<string | null>(null);
   const viewDraftDirtyRef = useRef(false);
-  const toolbarDirty = dataDirty || viewConfigDirty;
+  const toolbarDirty = dataDirty || viewConfigDirty || profileDirty;
   const globalDirty = toolbarDirty || viewDraftDirty;
   const statusText = status || flashStatus;
+  const saveCoordinator = useMemo(
+    () => createSaveCoordinator({
+      delayMs: 800,
+      getSnapshot: () => ({
+        dirtyDomains: collectAutosaveDirtyDomains(),
+      }),
+      flush: async (reason, snapshot) => flushAutosaveTargets(reason, snapshot.dirtyDomains),
+      onStatusChange: (nextState) => {
+        setAutosaveState(nextState);
+      },
+    }),
+    [],
+  );
   const selectedCollectionKey = selectedPath ? buildCollectionKey(selectedPath, collectionPath) : null;
   const activeCollectionKey = selectedPath ? collectionConfigKey(selectedPath, collectionPath) : null;
   const orderedFiles = useMemo(() => {
@@ -207,15 +229,23 @@ export function App() {
   }, [files, selectedViewProfileName, selectedViewProfile.fileOrder, viewRevision]);
 
   useEffect(() => { modelRef.current = model; }, [model]);
+  useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
   useEffect(() => { selectedPathRef.current = selectedPath; }, [selectedPath]);
   useEffect(() => { dataDirtyRef.current = dataDirty; }, [dataDirty]);
   useEffect(() => { viewConfigRef.current = viewConfig; }, [viewConfig]);
   useEffect(() => { viewConfigDirtyRef.current = viewConfigDirty; }, [viewConfigDirty]);
+  useEffect(() => { profileDirtyRef.current = profileDirty; }, [profileDirty]);
   useEffect(() => { viewDraftDirtyRef.current = viewDraftDirty; }, [viewDraftDirty]);
   useEffect(() => { selectedViewProfileNameRef.current = selectedViewProfileName; }, [selectedViewProfileName]);
   useEffect(() => { selectedViewProfileRef.current = selectedViewProfile; }, [selectedViewProfile]);
   useEffect(() => { bridgePortRef.current = bridgePort; }, [bridgePort]);
   useEffect(() => { serviceLifecycleStateRef.current = serviceLifecycleState; }, [serviceLifecycleState]);
+  useEffect(() => { detailOpenRef.current = detailOpen; }, [detailOpen]);
+  useEffect(() => { primaryKeySyncPlanRef.current = primaryKeySyncPlan; }, [primaryKeySyncPlan]);
+  useEffect(() => { autosaveStateRef.current = autosaveState; }, [autosaveState]);
+  useEffect(() => { savingRef.current = saving; }, [saving]);
+  useEffect(() => { closingRef.current = closing; }, [closing]);
+  useEffect(() => { rebuildingRef.current = rebuilding; }, [rebuilding]);
   useEffect(() => {
     document.documentElement.dataset.theme = uiPreferences.activeThemeId;
     document.documentElement.dataset.fontSizeBase = String(uiPreferences.baseFontSize);
@@ -231,6 +261,7 @@ export function App() {
     if (!selectedCollectionKey) return;
     setDismissedCandidateKeys((current) => current.filter((key) => key !== selectedCollectionKey));
   }, [viewConfig.primaryKeys, selectedCollectionKey]);
+  useEffect(() => () => saveCoordinator.cancel(), [saveCoordinator]);
 
   useEffect(() => {
     listProjects()
@@ -268,23 +299,6 @@ export function App() {
       })
       .catch((error) => setStatus(error.message));
   }, [selectedViewProfileName, activeProjectId]);
-
-  useEffect(() => {
-    if (!selectedViewProfileName) return;
-    if (profileSaveTimerRef.current != null) window.clearTimeout(profileSaveTimerRef.current);
-    profileSavePromiseRef.current = new Promise((resolve) => {
-      profileSaveResolveRef.current = resolve;
-    });
-    profileSaveTimerRef.current = window.setTimeout(() => {
-      const profileName = selectedViewProfileNameRef.current;
-      const profile = selectedViewProfileRef.current;
-      if (!profileName) return;
-      void commitProfileSave(profileName, profile);
-    }, 250);
-    return () => {
-      if (profileSaveTimerRef.current != null) window.clearTimeout(profileSaveTimerRef.current);
-    };
-  }, [selectedViewProfile, selectedViewProfileName]);
 
   async function reloadProjectWorkspace(projectId: string, options: { resetProfile?: boolean } = {}) {
     resetWorkspaceState(options);
@@ -337,7 +351,12 @@ export function App() {
     dataDirtyRef.current = false;
     setViewConfigDirty(false);
     viewConfigDirtyRef.current = false;
+    setProfileDirty(false);
+    profileDirtyRef.current = false;
     setViewDraftDirty(false);
+    setAutosaveState("idle");
+    autosaveStateRef.current = "idle";
+    saveCoordinator.cancel();
     setViewConfig(emptyProjectViewConfig());
     viewConfigRef.current = emptyProjectViewConfig();
     setSharedViewsConfig(emptySharedViewsConfig());
@@ -372,7 +391,7 @@ export function App() {
     if (projectId === activeProjectId) return;
     if (globalDirty && !window.confirm("当前项目有未保存改动。放弃改动并切换项目？")) return;
     try {
-      await flushPendingProfileSave();
+      await saveCoordinator.flush("flush");
       await activateProject(projectId);
       setActiveProjectId(projectId);
     } catch (error) {
@@ -407,7 +426,7 @@ export function App() {
 
   useEffect(() => {
     function onPageHide() {
-      void flushPendingProfileSave();
+      void saveCoordinator.flush("flush");
     }
     window.addEventListener("pagehide", onPageHide);
     return () => window.removeEventListener("pagehide", onPageHide);
@@ -532,7 +551,15 @@ export function App() {
   }
 
   function hasUnsavedChanges() {
-    return dataDirtyRef.current || viewConfigDirtyRef.current || viewDraftDirtyRef.current;
+    return dataDirtyRef.current || viewConfigDirtyRef.current || profileDirtyRef.current || viewDraftDirtyRef.current;
+  }
+
+  function collectAutosaveDirtyDomains(): AutosaveDomain[] {
+    const dirtyDomains: AutosaveDomain[] = [];
+    if (dataDirtyRef.current) dirtyDomains.push("document");
+    if (viewConfigDirtyRef.current) dirtyDomains.push("project-config");
+    if (profileDirtyRef.current && selectedViewProfileNameRef.current) dirtyDomains.push("profile");
+    return dirtyDomains;
   }
 
   async function confirmUnexpectedDisconnect(initialMessage: string) {
@@ -971,6 +998,7 @@ export function App() {
     mutator();
     dataDirtyRef.current = true;
     setDataDirty(true);
+    saveCoordinator.markDirty("document");
     bump((value) => value + 1);
   }
 
@@ -978,11 +1006,13 @@ export function App() {
     setViewConfig((current) => {
       const next = cloneViewConfig(current);
       mutator(next);
+      next.backlinks = syncBacklinksWithRelations(next.relations, next.backlinks) as Record<string, BacklinkConfig>;
       viewConfigRef.current = next;
       return next;
     });
     viewConfigDirtyRef.current = true;
     setViewConfigDirty(true);
+    saveCoordinator.markDirty("project-config");
     bump((value) => value + 1);
   }
 
@@ -998,15 +1028,18 @@ export function App() {
       mutateData();
       dataDirtyRef.current = true;
       setDataDirty(true);
+      saveCoordinator.markDirty("document");
       changed = true;
     }
     if (mutateViewConfigDraft) {
       const nextViewConfig = cloneViewConfig(viewConfigRef.current);
       mutateViewConfigDraft(nextViewConfig);
+      nextViewConfig.backlinks = syncBacklinksWithRelations(nextViewConfig.relations, nextViewConfig.backlinks) as Record<string, BacklinkConfig>;
       viewConfigRef.current = nextViewConfig;
       setViewConfig(nextViewConfig);
       viewConfigDirtyRef.current = true;
       setViewConfigDirty(true);
+      saveCoordinator.markDirty("project-config");
       changed = true;
     }
     if (changed) bump((value) => value + 1);
@@ -1041,6 +1074,9 @@ export function App() {
     mutator(next);
     selectedViewProfileRef.current = next;
     setSelectedViewProfile(next);
+    profileDirtyRef.current = true;
+    setProfileDirty(true);
+    saveCoordinator.markDirty("profile");
     bump((value) => value + 1);
     return next;
   }
@@ -1056,7 +1092,6 @@ export function App() {
       });
       if (nextProfile) {
         setUiPreferences(nextPreferences);
-        void commitProfileSave(selectedViewProfileName, nextProfile);
       }
       return;
     }
@@ -1153,29 +1188,16 @@ export function App() {
   }
 
   async function commitProfileSave(name: string, profile: UserViewProfile) {
-    if (profileSaveTimerRef.current != null) {
-      window.clearTimeout(profileSaveTimerRef.current);
-      profileSaveTimerRef.current = null;
-    }
+    const task = saveViewProfile(name, profile, activeProjectIdRef.current);
+    profileSavePromiseRef.current = task;
     try {
-      await saveViewProfile(name, profile, activeProjectId);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-      throw error;
+      await task;
     } finally {
-      profileSaveResolveRef.current?.();
-      profileSaveResolveRef.current = null;
-      profileSavePromiseRef.current = null;
+      if (profileSavePromiseRef.current === task) profileSavePromiseRef.current = null;
     }
   }
 
   async function flushPendingProfileSave() {
-    const profileName = selectedViewProfileNameRef.current;
-    if (!profileName) return;
-    if (profileSaveTimerRef.current != null) {
-      await commitProfileSave(profileName, selectedViewProfileRef.current);
-      return;
-    }
     if (profileSavePromiseRef.current) await profileSavePromiseRef.current;
   }
 
@@ -1210,43 +1232,19 @@ export function App() {
   async function handleClearRelation(fieldName: string) {
     if (!selectedPath) return;
     const key = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
-    await saveViewConfigOnly((draft) => {
+    mutateViewConfig((draft) => {
       delete draft.relations[key];
     });
     setStatus(`已清除关联字段 ${fieldName}，对应反向关联列将自动隐藏`);
   }
 
-  async function confirmRelationConfig(config: RelationConfig) {
+  function confirmRelationConfig(config: RelationConfig) {
     if (!selectedPath || !relationConfigField) return;
     const key = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [relationConfigField] });
-    await saveViewConfigOnly((draft) => {
+    mutateViewConfig((draft) => {
       draft.relations[key] = config;
     });
     setRelationConfigField(null);
-  }
-
-  async function saveViewConfigOnly(mutator: (draft: ViewConfig) => void) {
-    if (saving) return;
-    const next = cloneViewConfig(viewConfigRef.current);
-    mutator(next);
-    next.backlinks = syncBacklinksWithRelations(next.relations, next.backlinks) as Record<string, BacklinkConfig>;
-    viewConfigRef.current = next;
-    setViewConfig(next);
-    setViewConfigDirty(true);
-    viewConfigDirtyRef.current = true;
-    bump((value) => value + 1);
-    setSaving(true);
-    setStatus("");
-    try {
-      await saveViewConfig(next, activeProjectId);
-      setViewConfigDirty(false);
-      viewConfigDirtyRef.current = false;
-      setStatus("已保存项目视图配置");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSaving(false);
-    }
   }
 
   function dismissPrimaryKeyCandidates() {
@@ -1262,9 +1260,9 @@ export function App() {
     setPrimaryKeyCandidateDialogOpen(true);
   }
 
-  async function confirmPrimaryKeyCandidate() {
+  function confirmPrimaryKeyCandidate() {
     if (!selectedPath || !selectedPrimaryKeyCandidate) return;
-    await saveViewConfigOnly((draft) => {
+    mutateViewConfig((draft) => {
       draft.primaryKeys[buildCollectionKey(selectedPath, collectionPath)] = selectedPrimaryKeyCandidate;
     });
     if (selectedCollectionKey) {
@@ -1409,7 +1407,7 @@ export function App() {
   }
 
   async function handleSelectViewProfile(name: string) {
-    await flushPendingProfileSave();
+    await saveCoordinator.flush("flush");
     setSelectedViewProfileName(name === localProfileOptionValue ? null : name);
   }
 
@@ -1833,12 +1831,13 @@ export function App() {
   }
 
   function shouldInterceptPrimaryKeySync(currentDataDirty: boolean, force = false) {
+    const currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
     return Boolean(
       currentDataDirty
-      && (force || detailOpen)
-      && primaryKeySyncPlan
-      && primaryKeySyncPlan.oldValue !== primaryKeySyncPlan.newValue
-      && (primaryKeySyncPlan.rewrites.length > 0 || primaryKeySyncPlan.blockingIssues.length > 0),
+      && (force || detailOpenRef.current)
+      && currentPrimaryKeySyncPlan
+      && currentPrimaryKeySyncPlan.oldValue !== currentPrimaryKeySyncPlan.newValue
+      && (currentPrimaryKeySyncPlan.rewrites.length > 0 || currentPrimaryKeySyncPlan.blockingIssues.length > 0),
     );
   }
 
@@ -1849,7 +1848,7 @@ export function App() {
     const sourceRoots = new Map<string, unknown>();
     for (const sourceFile of plan.sourceFiles) {
       if (sourceFile === currentPath) continue;
-      const documentModel = await loadDocument(sourceFile, activeProjectId);
+      const documentModel = await loadDocument(sourceFile, activeProjectIdRef.current);
       sourceRoots.set(sourceFile, cloneDataRoot(documentModel.root));
     }
     for (const rewrite of plan.rewrites) {
@@ -1886,35 +1885,76 @@ export function App() {
     return `${saved}${failed}${reason} 当前磁盘状态可能已部分更新。`;
   }
 
-  async function handleSave() {
-    if (!model || !selectedPath || saving) return;
+  async function flushAutosaveTargets(_reason: string, dirtyDomains: AutosaveDomain[]) {
+    const currentModel = modelRef.current;
+    const currentSelectedPath = selectedPathRef.current;
+    const currentDataDirty = dataDirtyRef.current;
+    const currentViewConfig = viewConfigRef.current;
+    const currentViewConfigDirty = viewConfigDirtyRef.current;
+    const currentProfileDirty = profileDirtyRef.current;
+    const currentProfileName = selectedViewProfileNameRef.current;
+    const currentProjectId = activeProjectIdRef.current;
+    const currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
+    if (!dirtyDomains.length) return { outcome: "idle" } as const;
+    if (savingRef.current || closingRef.current || rebuildingRef.current) return { outcome: "deferred" } as const;
+    if (currentDataDirty && currentModel && currentSelectedPath && shouldInterceptPrimaryKeySync(currentDataDirty, false)) {
+      if (currentPrimaryKeySyncPlan?.blockingIssues.length) {
+        setStatus(formatPrimaryKeySyncBlockingIssues(currentPrimaryKeySyncPlan));
+        return { outcome: "blocked-confirmation" } as const;
+      }
+      setSaving(true);
+      setStatus("");
+      try {
+        const snapshot = await preparePrimaryKeySyncSnapshot(currentPrimaryKeySyncPlan!, currentModel, currentSelectedPath);
+        primaryKeySyncSnapshotRef.current = snapshot;
+        setPrimaryKeySyncResult(null);
+        setPrimaryKeySyncDialogOpen(true);
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : String(error));
+        throw error;
+      } finally {
+        setSaving(false);
+      }
+      return { outcome: "blocked-confirmation" } as const;
+    }
     setSaving(true);
     setStatus("");
     try {
-      const result = await saveDocument(selectedPath, model.root, activeProjectId);
-      savedDocumentRootRef.current = cloneDataRoot(model.root);
-      setDataDirty(false);
-      setStatus(`已保存，备份：${result.backupPath}`);
+      if (dirtyDomains.includes("document") && currentDataDirty && currentModel && currentSelectedPath) {
+        await saveDocument(currentSelectedPath, currentModel.root, currentProjectId);
+        savedDocumentRootRef.current = cloneDataRoot(currentModel.root);
+        dataDirtyRef.current = false;
+        setDataDirty(false);
+      }
+      if (dirtyDomains.includes("project-config") && currentViewConfigDirty) {
+        await saveViewConfig(currentViewConfig, currentProjectId);
+        viewConfigDirtyRef.current = false;
+        setViewConfigDirty(false);
+      }
+      if (dirtyDomains.includes("profile") && currentProfileDirty && currentProfileName) {
+        await commitProfileSave(currentProfileName, selectedViewProfileRef.current);
+        profileDirtyRef.current = false;
+        setProfileDirty(false);
+      }
+      return { outcome: "saved" } as const;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
+      throw error;
     } finally {
       setSaving(false);
     }
   }
 
   async function persistChanges(forcePrimaryKeySync = false) {
-    const currentModel = modelRef.current;
-    const currentSelectedPath = selectedPathRef.current;
     const currentDataDirty = dataDirtyRef.current;
-    const currentViewConfig = viewConfigRef.current;
-    const currentViewConfigDirty = viewConfigDirtyRef.current;
-    const hasPersistableChanges = currentViewConfigDirty || Boolean(currentDataDirty && currentModel && currentSelectedPath);
-    if (!hasPersistableChanges || saving || closing || rebuilding) return;
-    if (currentDataDirty && currentModel && currentSelectedPath && shouldInterceptPrimaryKeySync(currentDataDirty, forcePrimaryKeySync)) {
+    if (forcePrimaryKeySync && currentDataDirty && shouldInterceptPrimaryKeySync(currentDataDirty, true)) {
       if (primaryKeySyncPlan?.blockingIssues.length) {
         setStatus(formatPrimaryKeySyncBlockingIssues(primaryKeySyncPlan));
         return;
       }
+      const currentModel = modelRef.current;
+      const currentSelectedPath = selectedPathRef.current;
+      if (!currentModel || !currentSelectedPath || saving || closing || rebuilding) return;
       setSaving(true);
       setStatus("");
       try {
@@ -1929,27 +1969,7 @@ export function App() {
       }
       return;
     }
-    setSaving(true);
-    setStatus("");
-    try {
-      let backupPath = "";
-      if (currentDataDirty && currentModel && currentSelectedPath) {
-        const result = await saveDocument(currentSelectedPath, currentModel.root, activeProjectId);
-        backupPath = result.backupPath;
-        savedDocumentRootRef.current = cloneDataRoot(currentModel.root);
-      }
-      if (currentViewConfigDirty) await saveViewConfig(currentViewConfig, activeProjectId);
-      await flushPendingProfileSave();
-      dataDirtyRef.current = false;
-      viewConfigDirtyRef.current = false;
-      setDataDirty(false);
-      setViewConfigDirty(false);
-      setStatus(backupPath ? `已保存，备份：${backupPath}` : "已保存项目视图配置。");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSaving(false);
-    }
+    await saveCoordinator.flush("flush");
   }
 
   async function confirmPrimaryKeySyncSave() {
@@ -1966,7 +1986,13 @@ export function App() {
         return;
       }
       if (viewConfigDirtyRef.current) await saveViewConfig(viewConfigRef.current, activeProjectId);
-      await flushPendingProfileSave();
+      if (profileDirtyRef.current && selectedViewProfileNameRef.current) {
+        await commitProfileSave(selectedViewProfileNameRef.current, selectedViewProfileRef.current);
+        profileDirtyRef.current = false;
+        setProfileDirty(false);
+      } else {
+        await flushPendingProfileSave();
+      }
       savedDocumentRootRef.current = cloneDataRoot(snapshot.pendingSaves[0]?.root ?? null);
       dataDirtyRef.current = false;
       viewConfigDirtyRef.current = false;
@@ -1974,6 +2000,7 @@ export function App() {
       setViewConfigDirty(false);
       setPrimaryKeySyncDialogOpen(false);
       primaryKeySyncSnapshotRef.current = null;
+      setAutosaveState("idle");
       setStatus(`已同步更新 ${snapshot.plan.rewrites.length} 条关联引用。`);
       await openDocumentAt(currentSelectedPath, collectionPath, selectedRowIndex ?? undefined, detailOpen);
     } catch (error) {
@@ -1989,7 +2016,7 @@ export function App() {
     setClosing(true);
     setStatus("");
     try {
-      await flushPendingProfileSave();
+      await saveCoordinator.flush("flush");
       manualClosedRef.current = true;
       await shutdownServer();
       autoRecoverAttemptedRef.current = false;
@@ -2007,7 +2034,7 @@ export function App() {
     setRebuilding(true);
     setStatus("");
     try {
-      await flushPendingProfileSave();
+      await saveCoordinator.flush("flush");
       await rebuildFrontend();
       rememberTransientStatus("构建成功，页面已刷新");
       window.location.reload();
@@ -2174,14 +2201,13 @@ export function App() {
           rowCount={rows.length}
           visibleCount={viewRows.length}
           query={activeView?.query ?? ""}
-          dirty={toolbarDirty}
+          autosaveState={autosaveState}
           saving={saving}
           closing={closing}
           rebuilding={rebuilding}
           status={statusText}
           hiddenFields={hiddenFields}
           onQueryChange={(value) => updateActiveViewDraft({ query: value })}
-          onSave={persistChanges}
           onRefreshBuild={handleRefreshBuild}
           onCloseServer={handleCloseServer}
           onResetView={handleResetView}

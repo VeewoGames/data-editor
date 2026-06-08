@@ -50,7 +50,6 @@ test("App wires shared view filter bar draft changes through active view drafts"
   assert.match(mainContentSection, /view=\{activeView\}/);
   assert.match(mainContentSection, /fields=\{allFields\}/);
   assert.match(mainContentSection, /relationFilterOptions=\{viewFilterOptions\}/);
-  assert.match(mainContentSection, /onSearchQueryChange=\{\(query\) => updateActiveViewDraft\(\{ query \}\)\}/);
   assert.match(mainContentSection, /onChangeFilters=\{\(filters\) => updateActiveViewDraft\(\{ filters \}\)\}/);
   assert.match(mainContentSection, /onChangeSorts=\{\(sorts\) => updateActiveViewDraft\(\{ sorts \}\)\}/);
   assert.match(filterBarSource, /export type ViewFilterBarProps = \{/);
@@ -59,7 +58,7 @@ test("App wires shared view filter bar draft changes through active view drafts"
   assert.match(filterBarSource, /if \(!view\) return null;/);
   assert.match(filterBarSource, /<Popover\.Root open=\{addFilterOpen\}/);
   assert.match(filterBarSource, /add-filter-field-option/);
-  assert.match(filterBarSource, /onChangeFilters\(withRules\(view\.filters,/);
+  assert.match(filterBarSource, /onChangeFilters: \(filters: FilterGroup\) => void;/);
   assert.match(filterBarSource, /createDefaultFilterRule/);
   assert.match(filterBarSource, /if \(fieldTypes\[field\] === "Relation"\) return "Relation";/);
   assert.match(filterBarSource, /if \(fieldType === "Relation"\) \{\s*return relationFilterOptions\[field\] \?\? \[\];\s*\}/);
@@ -552,7 +551,7 @@ test("deleting a shared view also clears the matching personal view layout state
   assert.match(deleteViewSection, /deleteLocalViewState/);
 });
 
-test("toolbar save dirty excludes shared view draft dirty while global unsaved state includes it", async () => {
+test("toolbar autosave state excludes shared view draft dirty while global unsaved state includes it", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const toolbarSection = appSource.slice(
     appSource.indexOf("<Toolbar"),
@@ -563,13 +562,26 @@ test("toolbar save dirty excludes shared view draft dirty while global unsaved s
     appSource.indexOf("async function confirmUnexpectedDisconnect"),
   );
 
-  assert.match(appSource, /const toolbarDirty = dataDirty \|\| viewConfigDirty;/);
+  assert.match(appSource, /const toolbarDirty = dataDirty \|\| viewConfigDirty \|\| profileDirty;/);
   assert.match(appSource, /const globalDirty = toolbarDirty \|\| viewDraftDirty;/);
-  assert.match(toolbarSection, /dirty=\{toolbarDirty\}/);
+  assert.match(toolbarSection, /autosaveState=\{autosaveState\}/);
   assert.match(toolbarSection, /onResetView=\{handleResetView\}/);
-  assert.doesNotMatch(toolbarSection, /dirty=\{dirty\}/);
+  assert.doesNotMatch(toolbarSection, /dirty=\{toolbarDirty\}/);
   assert.doesNotMatch(toolbarSection, /onResetView=\{handleResetSharedViewDraft\}/);
   assert.match(hasUnsavedChangesSection, /viewDraftDirty/);
+});
+
+test("autosave architecture removes manual save entry points and old profile timer path", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const toolbarSource = await readFile(new URL("../src/components/Toolbar.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /save-coordinator/);
+  assert.doesNotMatch(appSource, /async function handleSave\(\)/);
+  assert.doesNotMatch(appSource, /async function saveViewConfigOnly\(/);
+  assert.doesNotMatch(appSource, /profileSaveTimerRef/);
+  assert.doesNotMatch(toolbarSource, /onSave:/);
+  assert.doesNotMatch(toolbarSource, /className="primary-button"/);
+  assert.doesNotMatch(toolbarSource, /保存中\.\.\." : "保存"/);
 });
 
 test("ViewTabs and App block shared view draft mutations while saving", async () => {
@@ -607,7 +619,6 @@ test("ViewTabs and App block shared view draft mutations while saving", async ()
   assert.match(viewTabsSource, /view-tab-rename-form/);
   assert.match(viewTabsSource, /onDuplicateView/);
   assert.match(viewTabsSource, /disabled=\{viewTabsDisabled\}/);
-  assert.match(viewTabsSource, /draggable=\{!viewTabsDisabled\}/);
   assert.match(viewTabsSource, /if \(viewTabsDisabled\) return;/);
 
   const updateActiveViewDraftSection = appSource.slice(

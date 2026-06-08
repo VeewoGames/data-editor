@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as Select from "@radix-ui/react-select";
 import type { UiPreferences, UiTheme } from "../ui-preferences";
+import type { AutosaveState } from "../save-coordinator";
 import { icons } from "./icons";
 import { ExpandableSearch } from "./ExpandableSearch";
 
@@ -15,14 +16,13 @@ type ToolbarProps = {
   rowCount: number;
   visibleCount: number;
   query: string;
-  dirty: boolean;
+  autosaveState: AutosaveState;
   saving: boolean;
   closing: boolean;
   rebuilding: boolean;
   status: string;
   hiddenFields: string[];
   onQueryChange: (value: string) => void;
-  onSave: () => void;
   onRefreshBuild: () => void;
   onCloseServer: () => void;
   onResetView: () => void;
@@ -58,6 +58,16 @@ export function Toolbar(props: ToolbarProps) {
     document.documentElement.dataset.fontSizeBase = String(props.baseFontSize);
   }, [props.activeThemeId, props.baseFontSize]);
 
+  const autosaveLabel = props.autosaveState === "pending"
+    ? "待保存"
+    : props.autosaveState === "saving"
+      ? "保存中..."
+      : props.autosaveState === "error"
+        ? "保存失败"
+        : props.autosaveState === "blocked-confirmation"
+          ? "待确认"
+          : "";
+
   return (
     <header className="toolbar">
       <div className="toolbar-title">
@@ -92,10 +102,10 @@ export function Toolbar(props: ToolbarProps) {
       </div>
       <div className="toolbar-spacer" />
       <span className="row-count">Visible {props.visibleCount} / Total {props.rowCount}</span>
-      {props.dirty ? (
+      {autosaveLabel ? (
         <span className="dirty-pill">
           <icons.dirty size={14} />
-          Unsaved
+          {autosaveLabel}
         </span>
       ) : null}
       {props.status ? <span className="status-text">{props.status}</span> : null}
@@ -135,10 +145,6 @@ export function Toolbar(props: ToolbarProps) {
         type="button"
       >
         <icons.reset size={16} />
-      </button>
-      <button className="primary-button" disabled={!props.dirty || props.saving || props.closing || props.rebuilding} onClick={props.onSave} type="button">
-        <icons.save size={16} />
-        {props.saving ? "保存中..." : "保存"}
       </button>
       <Popover.Root>
         <Popover.Trigger asChild>

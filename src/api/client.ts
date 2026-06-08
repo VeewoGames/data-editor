@@ -30,6 +30,7 @@ export type ProjectRegistry = {
   projects: ProjectDefinition[];
 };
 export type PendingDocumentSave = { path: string; root: unknown };
+export type SaveDocumentResult = { ok: true };
 export type SaveDocumentsResult = {
   ok: boolean;
   savedPaths: string[];
@@ -160,7 +161,7 @@ export async function loadDocument(path: string, projectId?: string | null) {
   return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
 }
 
-export async function saveDocument(path: string, root: unknown, projectId?: string | null) {
+export async function saveDocument(path: string, root: unknown, projectId?: string | null): Promise<SaveDocumentResult> {
   return fetchJson("/api/save", {
     method: "POST",
     headers: { "content-type": "application/json" },

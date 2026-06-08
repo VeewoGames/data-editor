@@ -199,6 +199,32 @@ async function closePopoverByClickingOutside(page: Page) {
   await page.mouse.click(24, 24);
 }
 
+async function waitForAutosaveIdle(page: Page) {
+  const dirtyPill = page.locator(".dirty-pill");
+  await expect.poll(async () => {
+    if (await dirtyPill.count() === 0) return "idle";
+    return ((await dirtyPill.first().textContent()) ?? "").replace(/\s+/g, "");
+  }, {
+    message: "waiting for autosave dirty pill to clear",
+    timeout: 15_000,
+  }).toBe("idle");
+}
+
+async function waitForAutosaveWrite(page: Page, predicate: () => Promise<boolean>) {
+  await waitForAutosaveIdle(page);
+  await expect.poll(predicate, {
+    message: "waiting for autosave write to reach disk",
+    timeout: 15_000,
+  }).toBe(true);
+}
+
+async function waitForProjectConfigWrite(page: Page, predicate: (text: string) => boolean) {
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
+    return predicate(text);
+  });
+}
+
 async function getSidebarFileOrder(page: Page) {
   return page.locator(".sidebar-section").first().locator(".sidebar-file-item").evaluateAll((items) => (
     items.map((item) => item.getAttribute("title")).filter((title): title is string => Boolean(title))
@@ -482,7 +508,11 @@ test("shared view filter and sort drafts persist through save and reload", async
     const nameInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "name" }).locator(".detail-input").first();
     await expect(nameInput).toBeVisible();
     await nameInput.fill("Filtered original row edited");
-    await page.locator(".toolbar .primary-button").click();
+    await waitForAutosaveWrite(page, async () => {
+      const text = await readFile(dataPath, "utf8");
+      const rows = JSON.parse(text) as Array<{ name: string }>;
+      return rows.map((row) => row.name).join("|");
+    });
     await expect.poll(async () => {
       const text = await readFile(dataPath, "utf8");
       const rows = JSON.parse(text) as Array<{ name: string }>;
@@ -659,7 +689,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
 
   const sharedViews = await loadSharedViewsConfig(page);
   sharedViews.collections[collectionKey] = {
@@ -780,7 +810,7 @@ test("relation filter keeps missing selected keys visible with fallback labels",
     targetKey: "skill_id",
     mode: "single",
   });
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForProjectConfigWrite(page, (text) => text.includes('"skill_id"') && text.includes('"targetFile": "data/skills.json"'));
 
   const sharedViews = await loadSharedViewsConfig(page);
   if (!sharedViews.collections[collectionKey]) {
@@ -842,7 +872,7 @@ test("relation filter search matches title first and key fallback", async ({ pag
     targetKey: "skill_id",
     mode: "single",
   });
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForProjectConfigWrite(page, (text) => text.includes('"skill_id"') && text.includes('"targetFile": "data/skills.json"'));
 
   const sharedViews = await loadSharedViewsConfig(page);
   sharedViews.collections[collectionKey] = {
@@ -1001,11 +1031,10 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator(".nested-item-list button").nth(1).click();
   await page.locator(".detail-panel.secondary .detail-input").fill("e2e_nested");
   await expect(page.locator(".dirty-pill")).toBeVisible();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await expect.poll(async () => {
+  await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_mixed.json"), "utf8");
     return text.includes("e2e_nested");
-  }).toBe(true);
+  });
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
@@ -1028,19 +1057,18 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".chip")).toHaveCSS("background-color", "rgb(255, 217, 214)");
   await page.locator(".multi-select-option-row").filter({ hasText: "spell" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
   const featuresBlockAfterEdit = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "features" }),
   });
   await expect(featuresBlockAfterEdit.locator(".multi-select-trigger .chip")).toContainText(["strike", "custom_tag"]);
   await expect(featuresBlockAfterEdit.locator(".multi-select-trigger .chip").filter({ hasText: "strike" })).toBeVisible();
-  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await expect.poll(async () => {
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
+  await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_multiselect.json"), "utf8");
     return text.includes('"strike"') && !text.includes('"attack"') && !text.includes('"spell"');
-  }).toBe(true);
+  });
   await expect.poll(async () => {
     const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
     return text.includes('"strike"') && text.includes('"red"') && !text.includes('"attack"');
@@ -1054,18 +1082,17 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator('.column-menu-popup [data-field-type]')).toHaveCount(2);
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await expect(page.locator(".dirty-pill")).toBeVisible();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await expect.poll(async () => {
+  await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
     return text.includes('"data/e2e_select.json:$:category"') &&
       text.includes('"type": "Select"') &&
       text.includes('"attack"') &&
       text.includes('"spell"');
-  }).toBe(true);
+  });
   await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await page.locator(".multi-select-option").filter({ hasText: "spell" }).click();
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("spell");
   await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger .chip')).toBeVisible();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
@@ -1076,22 +1103,20 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-color-item").filter({ hasText: "蓝色" }).click();
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
   await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("spell");
-  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await expect.poll(async () => {
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
+  await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_select.json"), "utf8");
     return text.includes('"category": "spell"');
-  }).toBe(true);
+  });
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Text"]').click();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await expect.poll(async () => {
+  await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
     return text.includes('"type": "Text"') && text.includes('"strike"') && text.includes('"blue"') && text.includes('"spell"');
-  }).toBe(true);
+  });
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
@@ -1175,11 +1200,11 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".relation-popover")).toBeVisible();
   await page.locator(".relation-option").filter({ hasText: "专注" }).click();
   await page.locator(".relation-popover").press("Escape");
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await expect.poll(async () => {
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
+  await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_relation.json"), "utf8");
     return text.includes('"skill_id": "skill_heavy_slash"') && text.includes('"focus"');
-  }).toBe(true);
+  });
   const relationDataAfterEdit = await readFile(path.resolve("tests/.scratch/data/e2e_relation.json"), "utf8");
   await page.locator(".data-table tbody tr[data-row-index='0'] .relation-trigger").first().click();
   await expect(page.locator(".relation-popover")).toBeVisible();
@@ -1720,11 +1745,10 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     input.value = "e2e_edit_value";
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
-  await expect.poll(async () => {
+  await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/runes.json"), "utf8");
     return text.includes("e2e_edit_value");
-  }).toBe(true);
+  });
 
   const scratchRunes = JSON.parse(await readFile(path.resolve("tests/.scratch/data/runes.json"), "utf8"));
   expect(Array.isArray(scratchRunes)).toBe(true);
@@ -1734,6 +1758,24 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   const realRunesAfter = await readFile(fixtureRunesPath, "utf8");
   expect(realRunesAfter).toBe(realRunesBefore);
+});
+
+test("autosave persists scratch json edits without toolbar save button", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
+  await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await page.locator(".detail-panel.primary .nested-entry-button").click();
+  await page.locator(".nested-item-list button").nth(1).click();
+  await page.locator(".detail-panel.secondary .detail-input").fill("autosave_e2e");
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/data/e2e_mixed.json"), "utf8");
+    return text.includes("autosave_e2e");
+  });
 });
 
 test("select column dragged to the first position keeps select rendering when title falls back to first field", async ({ page }) => {
@@ -1756,7 +1798,7 @@ test("select column dragged to the first position keeps select rendering when ti
     await page.locator('.column-trigger[title="status"]').click();
     await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
     await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-    await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+    await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select_title_fallback.json:$:status"') && text.includes('"type": "Select"'));
 
     await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("review");
     await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger .chip')).toBeVisible();
@@ -1964,7 +2006,7 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -2034,7 +2076,7 @@ test("detail panel option field editors reuse the shared popover shell", async (
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
@@ -2110,9 +2152,10 @@ test("option field editor keeps create rename color and delete actions", async (
   await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" })).toHaveCount(0);
   await expect(page.locator(".multi-select-popover .selected-chip").filter({ hasText: "phase2_tag" })).toHaveCount(0);
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
-  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
+  await waitForAutosaveIdle(page);
   await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" })).toBeVisible();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" })).toHaveCount(0);
@@ -2153,11 +2196,10 @@ test("option field editor drag reorder updates visible chip order and persists a
   await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
   await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
 
-  const saveButton = page.locator(".toolbar .primary-button");
-  await expect(saveButton).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
 
   await endOptionHandleDrag(page, sourceValue, targetValue);
-  await expect(saveButton).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   const rowChipTextsAfterRelease = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(rowChipTextsAfterRelease.indexOf(sourceValue)).toBeLessThan(rowChipTextsAfterRelease.indexOf(targetValue));
   await closePopoverByClickingOutside(page);
@@ -2165,9 +2207,8 @@ test("option field editor drag reorder updates visible chip order and persists a
   const rowChipTexts = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(rowChipTexts.indexOf(sourceValue)).toBeLessThan(rowChipTexts.indexOf(targetValue));
 
-  await expect(saveButton).toBeEnabled();
-  await saveButton.evaluate((element) => (element as HTMLButtonElement).click());
-  await expect(saveButton).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
+  await waitForAutosaveIdle(page);
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
@@ -2205,7 +2246,7 @@ test("option field editor drag cancel rolls back preview and leaves the parent r
 
   const rowChipTextsAfterCancel = await secondRowTrigger.locator(".chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(rowChipTextsAfterCancel).toEqual(rowChipTextsBeforePreview);
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
 });
 
 test("option field editor drag reorder also persists for single-select options", async ({ page }) => {
@@ -2217,7 +2258,10 @@ test("option field editor drag reorder also persists for single-select options",
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
+    return text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"');
+  });
 
   const trigger = page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger');
   await trigger.click();
@@ -2233,7 +2277,7 @@ test("option field editor drag reorder also persists for single-select options",
   await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
   await expect(page.locator(".option-field-drag-placeholder")).toBeVisible();
   await endOptionHandleDrag(page, sourceValue, targetValue);
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await page.locator(".multi-select-popover").press("Escape");
   await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
   const optionTextsAfterCancel = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
@@ -2241,10 +2285,10 @@ test("option field editor drag reorder also persists for single-select options",
   await beginOptionHandleDrag(page, sourceValue);
   await movePointerOverOptionRow(page, targetValue);
   await endOptionHandleDrag(page, sourceValue, targetValue);
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
-  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
+  await waitForAutosaveIdle(page);
   await page.reload();
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
@@ -2263,7 +2307,7 @@ test("detail panel option field drag reorder commits only after parent close", a
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await page.locator('.data-table tbody tr[data-row-index="0"] [data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
@@ -2294,9 +2338,9 @@ test("detail panel option field drag reorder commits only after parent close", a
   expect(triggerChipTextsDuringPreview).toEqual(triggerChipTextsBefore);
 
   await page.mouse.up();
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
-  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
 });
 
 test("detail panel option field draft stays bound to the original row when navigating records", async ({ page }) => {
@@ -2308,7 +2352,7 @@ test("detail panel option field draft stays bound to the original row when navig
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await page.locator('.data-table tbody tr[data-row-index="0"] [data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
@@ -2319,11 +2363,11 @@ test("detail panel option field draft stays bound to the original row when navig
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
   await page.locator(".multi-select-input").fill("detail_row_commit_tag");
   await page.locator(".multi-select-input").press("Enter");
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
 
   await page.locator('.detail-panel.primary button[title="Next record"]').click();
   await expect(page.locator(".detail-panel.primary .panel-subtitle")).toContainText("Row 2");
-  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+  await expect(page.locator(".dirty-pill")).toContainText("待保存");
   await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("detail_row_commit_tag");
   await expect(page.locator('.data-table tbody tr[data-row-index="1"] .multi-select-trigger')).not.toContainText("detail_row_commit_tag");
 });
@@ -2410,11 +2454,11 @@ test("option field editor closes the popover cleanly when switching files", asyn
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
   await page.locator(".multi-select-input").fill("draft_discard_tag");
   await page.locator(".multi-select-input").press("Enter");
-  await expect(page.locator(".toolbar .primary-button")).toBeDisabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await expect(page.locator(".toolbar .primary-button")).toBeEnabled();
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
@@ -2754,14 +2798,13 @@ test("profile reset clears current collection without localStorage resurrection"
   await expect(page.locator('col[data-column-field="description"]')).toHaveCount(1);
 });
 
-test("toolbar renders settings, refresh, and close buttons after save", async ({ page }) => {
+test("toolbar renders settings, refresh, and close buttons without a save button", async ({ page }) => {
   await page.goto("/");
-  const saveButton = page.locator(".toolbar .primary-button").filter({ hasText: "保存" });
   const settingsButton = page.locator(".toolbar .toolbar-settings-button");
   const refreshButton = page.locator(".toolbar .toolbar-rebuild-button");
   const closeButton = page.locator(".toolbar .toolbar-close-button");
 
-  await expect(saveButton).toBeVisible();
+  await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
   await expect(settingsButton).toBeVisible();
   await expect(refreshButton).toBeVisible();
   await expect(closeButton).toBeVisible();
@@ -2769,12 +2812,10 @@ test("toolbar renders settings, refresh, and close buttons after save", async ({
   await expect(closeButton).not.toContainText("关闭");
 
   const orderIsCorrect = await page.locator(".toolbar").evaluate(() => {
-    const save = [...document.querySelectorAll(".toolbar button")]
-      .find((element) => element.classList.contains("primary-button") && element.textContent?.includes("保存"));
     const settings = document.querySelector(".toolbar-settings-button");
     const refresh = document.querySelector(".toolbar-rebuild-button");
     const close = document.querySelector(".toolbar-close-button");
-    return save?.nextElementSibling === settings && settings?.nextElementSibling === refresh && refresh?.nextElementSibling === close;
+    return settings?.nextElementSibling === refresh && refresh?.nextElementSibling === close;
   });
   expect(orderIsCorrect).toBe(true);
 });
@@ -2954,13 +2995,12 @@ test("close button switches to server closed page", async ({ page }) => {
 
   await page.goto("/");
   const closeButton = page.locator(".toolbar .toolbar-close-button");
-  const saveButton = page.locator(".toolbar .primary-button").filter({ hasText: "保存" });
 
   await expect(closeButton).toBeVisible();
   await closeButton.click();
   await expect(closeButton).toBeDisabled();
   await expect(closeButton).toContainText("关闭中...");
-  await expect(saveButton).toBeDisabled();
+  await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
 
   await expect(page.getByRole("heading", { name: "服务已关闭" })).toBeVisible();
   await expect(page.locator(".server-closed-state")).toContainText("需要重新打开才能继续");
@@ -3029,7 +3069,7 @@ test("single transient network failure does not trigger recovery", async ({ page
   await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
-  await page.locator(".toolbar .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(page.locator(".dirty-pill")).toContainText("保存失败");
 
   await page.waitForTimeout(1000);
   await expect(page.locator(".workspace")).toBeVisible();
