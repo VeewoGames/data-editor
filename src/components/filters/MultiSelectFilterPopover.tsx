@@ -17,7 +17,7 @@ type MultiSelectFilterPopoverProps = {
 };
 
 const multiValueOperators: Array<{ value: FilterOperator; label: string; needsValue: boolean }> = [
-  { value: "contains", label: "包含任一", needsValue: true },
+  { value: "contains", label: "包含", needsValue: true },
   { value: "does_not_contain", label: "不包含", needsValue: true },
   { value: "is_empty", label: "为空", needsValue: false },
   { value: "is_not_empty", label: "不为空", needsValue: false },
