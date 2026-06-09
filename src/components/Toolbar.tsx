@@ -74,7 +74,16 @@ export function Toolbar(props: ToolbarProps) {
         <strong>{props.currentPath ?? "No file selected"}</strong>
         <span>{props.collectionPath}</span>
       </div>
-      <ExpandableSearch className="search-box" value={props.query} onChange={props.onQueryChange} placeholder="Search" />
+      <ExpandableSearch className="search-box" value={props.query} alwaysExpanded onChange={props.onQueryChange} placeholder="搜索当前表格" />
+      <div className="toolbar-spacer" />
+      <span className="row-count">Visible {props.visibleCount} / Total {props.rowCount}</span>
+      {autosaveLabel ? (
+        <span className="dirty-pill">
+          <icons.dirty size={14} />
+          {autosaveLabel}
+        </span>
+      ) : null}
+      {props.status ? <span className="status-text">{props.status}</span> : null}
       <div className="toolbar-profile-picker">
         <Select.Root value={props.selectedViewProfileName ?? "__local__"} onValueChange={props.onSelectViewProfile}>
           <Select.Trigger className="select-trigger toolbar-profile-select-trigger" aria-label="View profile">
@@ -100,15 +109,6 @@ export function Toolbar(props: ToolbarProps) {
           <icons.addField size={16} />
         </button>
       </div>
-      <div className="toolbar-spacer" />
-      <span className="row-count">Visible {props.visibleCount} / Total {props.rowCount}</span>
-      {autosaveLabel ? (
-        <span className="dirty-pill">
-          <icons.dirty size={14} />
-          {autosaveLabel}
-        </span>
-      ) : null}
-      {props.status ? <span className="status-text">{props.status}</span> : null}
       <div className="toolbar-hidden-fields" ref={hiddenPanelRef}>
         <button
           aria-label={props.hiddenFields.length > 0 ? `Hidden fields (${props.hiddenFields.length})` : "Hidden fields"}

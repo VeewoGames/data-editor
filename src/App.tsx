@@ -2520,7 +2520,6 @@ export function App() {
                 filterBarVisible={filterBarVisible}
                 hasActiveFilters={activeViewHasFilters}
                 viewOrderDirty={viewOrderDirty}
-                searchQuery={activeView?.query ?? ""}
                 onSelectView={handleSelectSharedView}
                 onCreateView={handleCreateSharedView}
                 onRenameView={handleRenameSharedView}
@@ -2528,7 +2527,6 @@ export function App() {
                 onDuplicateView={handleDuplicateSharedView}
                 onReorderViews={handleReorderSharedViews}
                 onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
-                onSearchQueryChange={(query) => updateActiveViewDraft({ query })}
               />
               {filterBarVisible ? (
                 <ViewFilterBar
@@ -2648,7 +2646,6 @@ export function App() {
             filterBarVisible={filterBarVisible}
             hasActiveFilters={activeViewHasFilters}
             viewOrderDirty={viewOrderDirty}
-            searchQuery={activeView?.query ?? ""}
             onSelectView={handleSelectSharedView}
             onCreateView={handleCreateSharedView}
             onRenameView={handleRenameSharedView}
@@ -2656,7 +2653,6 @@ export function App() {
             onDuplicateView={handleDuplicateSharedView}
             onReorderViews={handleReorderSharedViews}
             onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
-            onSearchQueryChange={(query) => updateActiveViewDraft({ query })}
           />
           {filterBarVisible ? (
             <ViewFilterBar

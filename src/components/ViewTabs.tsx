@@ -1,7 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { CollectionView } from "../api/client";
-import { ExpandableSearch } from "./ExpandableSearch";
 import { icons } from "./icons";
 
 export type ViewTabsProps = {
@@ -12,7 +11,6 @@ export type ViewTabsProps = {
   filterBarVisible: boolean;
   hasActiveFilters: boolean;
   viewOrderDirty: boolean;
-  searchQuery: string;
   onSelectView: (viewId: string) => void;
   onCreateView: () => void;
   onRenameView: (viewId: string, name: string) => void;
@@ -20,7 +18,6 @@ export type ViewTabsProps = {
   onDuplicateView: (viewId: string) => void;
   onReorderViews: (viewIds: string[]) => void;
   onToggleFilterBar: () => void;
-  onSearchQueryChange: (query: string) => void;
 };
 
 export function ViewTabs({
@@ -31,7 +28,6 @@ export function ViewTabs({
   filterBarVisible,
   hasActiveFilters,
   viewOrderDirty,
-  searchQuery,
   onSelectView,
   onCreateView,
   onRenameView,
@@ -39,7 +35,6 @@ export function ViewTabs({
   onDuplicateView,
   onReorderViews,
   onToggleFilterBar,
-  onSearchQueryChange,
 }: ViewTabsProps) {
   const [draggingViewId, setDraggingViewId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ viewId: string; placement: "before" | "after" } | null>(null);
@@ -120,11 +115,11 @@ export function ViewTabs({
   }
 
   function handleEditView() {
-    const searchInput = document.querySelector<HTMLInputElement>(".view-tabs-search input");
+    const searchInput = document.querySelector<HTMLInputElement>(".search-box input");
     if (searchInput) {
       searchInput.focus();
     } else {
-      document.querySelector<HTMLButtonElement>(".view-tabs-search .expandable-search-icon")?.click();
+      document.querySelector<HTMLButtonElement>(".search-box .expandable-search-icon")?.click();
     }
     setOpenMenuViewId(null);
   }
@@ -331,7 +326,6 @@ export function ViewTabs({
         >
           筛选
         </button>
-        <ExpandableSearch className="view-tabs-search" value={searchQuery} onChange={onSearchQueryChange} placeholder="搜索当前视图" />
       </div>
       {viewOrderDirty ? <div className="view-order-dirty">视图顺序有未保存更改</div> : null}
       {dragGhost ? (

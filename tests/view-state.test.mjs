@@ -670,17 +670,22 @@ test("duplicating a shared view copies the current user's personal layout and on
 
 test("ViewTabs and ViewFilterBar expose shared view controls in the expected rows", async () => {
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+  const toolbarSource = await readFile(new URL("../src/components/Toolbar.tsx", import.meta.url), "utf8");
   const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
 
   assert.match(viewTabsSource, /onToggleFilterBar/);
   assert.match(viewTabsSource, /hasActiveFilters/);
   assert.match(viewTabsSource, /aria-pressed=\{filterBarVisible\}/);
   assert.match(viewTabsSource, /view-tabs-filter-toggle/);
-  assert.match(viewTabsSource, /<ExpandableSearch className="view-tabs-search"/);
+  assert.doesNotMatch(viewTabsSource, /view-tabs-search/);
   assert.doesNotMatch(viewTabsSource, /onSaveForEveryone/);
   assert.doesNotMatch(viewTabsSource, /onResetView/);
   assert.match(viewTabsSource, /创建视图副本/);
   assert.match(viewTabsSource, /拷贝视图链接/);
+
+  assert.match(toolbarSource, /<ExpandableSearch className="search-box"/);
+  assert.match(toolbarSource, /toolbar-profile-picker/);
+  assert.match(toolbarSource, /toolbar-hidden-fields/);
 
   assert.match(filterBarSource, /onSaveForEveryone/);
   assert.match(filterBarSource, /onResetView/);

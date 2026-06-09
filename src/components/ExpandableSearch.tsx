@@ -5,13 +5,14 @@ type ExpandableSearchProps = {
   value: string;
   placeholder: string;
   className?: string;
+  alwaysExpanded?: boolean;
   onChange: (value: string) => void;
 };
 
-export function ExpandableSearch({ value, placeholder, className = "", onChange }: ExpandableSearchProps) {
+export function ExpandableSearch({ value, placeholder, className = "", alwaysExpanded = false, onChange }: ExpandableSearchProps) {
   const [expanded, setExpanded] = useState(Boolean(value));
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const open = expanded || Boolean(value);
+  const open = alwaysExpanded || expanded || Boolean(value);
 
   useEffect(() => {
     if (expanded) inputRef.current?.focus();
@@ -32,7 +33,7 @@ export function ExpandableSearch({ value, placeholder, className = "", onChange 
           ref={inputRef}
           value={value}
           onBlur={() => {
-            if (!value) setExpanded(false);
+            if (!alwaysExpanded && !value) setExpanded(false);
           }}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}

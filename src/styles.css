@@ -482,14 +482,6 @@ select {
   padding: 0 0 2px;
 }
 
-.view-tabs-search {
-  flex: 0 0 auto;
-}
-
-.view-tabs-search.open {
-  width: min(390px, 34vw);
-}
-
 .view-tabs-filter-toggle {
   flex: 0 0 auto;
   margin-left: auto;
@@ -820,6 +812,11 @@ select {
 
 .search-box.open {
   width: min(320px, 30vw);
+}
+
+.search-box input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.45;
 }
 
 .toolbar-spacer {

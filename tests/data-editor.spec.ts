@@ -3427,6 +3427,20 @@ test("toolbar view profile picker uses the custom select surface", async ({ page
   await expect(page.getByRole("option", { name: "浏览器本地", exact: true })).toBeVisible();
 });
 
+test("toolbar search filters visible table rows, not just the counter", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const searchInput = page.locator("header").getByPlaceholder("搜索当前表格", { exact: true });
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill("Select Two");
+
+  await expect(page.getByText("Visible 1 / Total 3", { exact: true })).toBeVisible();
+  await expect.poll(() => getVisibleTableIds(page)).toEqual(["select_2"]);
+  await expect(page.getByRole("button", { name: "展开搜索" })).toHaveCount(1);
+});
+
 test("select chip grows with column width", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_select_long.json"]').click();
@@ -3638,6 +3652,22 @@ test("toolbar renders settings, refresh, and close buttons without a save button
     return settings?.nextElementSibling === refresh && refresh?.nextElementSibling === close;
   });
   expect(orderIsCorrect).toBe(true);
+});
+
+test("toolbar places view profile controls to the left of hidden fields", async ({ page }) => {
+  await page.goto("/");
+  const profilePicker = page.locator(".toolbar .toolbar-profile-picker");
+  const hiddenFields = page.locator(".toolbar .toolbar-hidden-fields");
+
+  await expect(profilePicker).toBeVisible();
+  await expect(hiddenFields).toBeVisible();
+
+  const profileBeforeHidden = await page.locator(".toolbar").evaluate(() => {
+    const profile = document.querySelector(".toolbar-profile-picker");
+    const hidden = document.querySelector(".toolbar-hidden-fields");
+    return profile?.nextElementSibling === hidden;
+  });
+  expect(profileBeforeHidden).toBe(true);
 });
 
 test("toolbar appearance settings toggles theme and base font size independently", async ({ page }) => {

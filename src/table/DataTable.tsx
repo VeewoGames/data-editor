@@ -604,7 +604,9 @@ function DataTableComponent(props: DataTableProps) {
 }
 
 export const DataTable = memo(DataTableComponent, (previous, next) => {
-  return previous.revision === next.revision &&
+  return previous.model === next.model &&
+    previous.schemaModel === next.schemaModel &&
+    previous.revision === next.revision &&
     previous.sourcePath === next.sourcePath &&
     previous.collectionPath === next.collectionPath &&
     previous.titleField === next.titleField &&
