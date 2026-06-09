@@ -1761,33 +1761,6 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   }).toBe(true);
   expect(await readFile(path.resolve("tests/.scratch/data/e2e_relation.json"), "utf8")).toBe(relationDataAfterEdit);
 
-  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
-  await expect(page.locator('.column-trigger[title="back_keyword_id"]')).toBeVisible();
-  await page.evaluate(() => {
-    localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:wrapped", "1");
-    localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:width", "120");
-  });
-  await page.reload();
-  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
-  const wrappedBacklinkCell = page.locator('td[data-column-field="back_keyword_id"][data-wrap-mode="wrap"] [data-cell-role="token-content"]').first();
-  await expect(wrappedBacklinkCell).toBeVisible();
-  const keywordBacklinkChip = page.locator('.data-table tbody .backlink-chip-button[title*="data/status_effects.json"]').first();
-  await expect(keywordBacklinkChip).toBeVisible();
-  await expect(keywordBacklinkChip).toHaveCSS("background-color", "rgb(233, 232, 229)");
-  const backlinkWrapResult = await wrappedBacklinkCell.evaluate((element) => {
-    const chip = element.querySelector(".backlink-chip-button") as HTMLElement | null;
-    return {
-      clientHeight: (element as HTMLElement).clientHeight,
-      scrollHeight: (element as HTMLElement).scrollHeight,
-      chipWhiteSpace: chip ? getComputedStyle(chip).whiteSpace : null,
-    };
-  });
-  expect(backlinkWrapResult.chipWhiteSpace).toBe("normal");
-  expect(backlinkWrapResult.scrollHeight).toBeLessThanOrEqual(backlinkWrapResult.clientHeight);
-  await keywordBacklinkChip.click();
-  await expect(page.locator(".toolbar strong")).toContainText("data/status_effects.json");
-  await expect(page.locator(".detail-panel.primary")).toBeVisible();
-
   await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_target.json"]').click();
   await expect(page.locator(".toolbar strong")).toContainText("data/e2e_primary_key_sync_target.json");
   await expect(page.locator(".primary-key-candidate-banner")).toBeVisible();
@@ -2100,6 +2073,167 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   expect(wrapResult.width).not.toBe(descriptionWidthBefore);
   expect(Math.max(...wrapResult.heights)).toBeGreaterThan(Math.min(...wrapResult.heights));
 
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
+
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  await page.locator(".detail-input").first().evaluate((element) => {
+    const input = element as HTMLInputElement;
+    input.value = "e2e_edit_value";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/data/runes.json"), "utf8");
+    return text.includes("e2e_edit_value");
+  });
+
+  const scratchRunes = JSON.parse(await readFile(path.resolve("tests/.scratch/data/runes.json"), "utf8"));
+  expect(Array.isArray(scratchRunes)).toBe(true);
+
+  await page.reload();
+  await expect(page.locator('.sidebar-item[title="data/runes.json"]')).toContainText("runes.json");
+
+  const realRunesAfter = await readFile(fixtureRunesPath, "utf8");
+  expect(realRunesAfter).toBe(realRunesBefore);
+});
+
+test("detail panel reorder emits profiling measures in profile mode", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    localStorage.setItem("data-editor:enable-detail-reorder-profiling", "1");
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "e2e_detail_profile_perf",
+        profile: {
+          sidebarWidth: null,
+          detailPanelWidth: null,
+          fileOrder: [],
+          lastActiveViews: {},
+          viewDrafts: {},
+          viewOrderDrafts: {},
+          appearance: null,
+          viewLayouts: {
+            "data/runes.json:$": {
+              all: {
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: ["sub_tags", "prototype_id", "title", "description"],
+                widths: {},
+              },
+            },
+          },
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "e2e_detail_profile_perf");
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const detailOrderBefore = await page.locator(".detail-panel.primary .detail-property-handle").evaluateAll(
+    (items) => items
+      .map((item) => item.getAttribute("aria-label")?.replace(/^Reorder\s+/, "").trim())
+      .filter((value): value is string => Boolean(value))
+      .slice(0, 4),
+  );
+  expect(detailOrderBefore.length).toBeGreaterThanOrEqual(2);
+
+  const draggedField = detailOrderBefore[1]!;
+  const targetField = detailOrderBefore[0]!;
+  const draggedHandle = await page.locator(`.detail-panel.primary .detail-property-handle[aria-label="Reorder ${draggedField}"]`).boundingBox();
+  const targetHandle = await page.locator(`.detail-panel.primary .detail-property-handle[aria-label="Reorder ${targetField}"]`).boundingBox();
+  const detailPanelBox = await page.locator(".detail-panel.primary").boundingBox();
+  const dragStart = { x: draggedHandle!.x + draggedHandle!.width / 2, y: draggedHandle!.y + draggedHandle!.height / 2 };
+  const dragMid = { x: dragStart.x, y: dragStart.y - 40 };
+  const dragEnd = { x: targetHandle!.x + targetHandle!.width / 2, y: detailPanelBox!.y + 96 };
+
+  await page.locator(`.detail-panel.primary .detail-property-handle[aria-label="Reorder ${draggedField}"]`).evaluate((element, point) => {
+    element.dispatchEvent(new MouseEvent("mousedown", {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      clientX: point.x,
+      clientY: point.y,
+    }));
+  }, dragStart);
+  await page.evaluate((point) => {
+    window.dispatchEvent(new MouseEvent("mousemove", {
+      bubbles: true,
+      buttons: 1,
+      clientX: point.x,
+      clientY: point.y,
+    }));
+  }, dragMid);
+  await page.evaluate((point) => {
+    window.dispatchEvent(new MouseEvent("mousemove", {
+      bubbles: true,
+      buttons: 1,
+      clientX: point.x,
+      clientY: point.y,
+    }));
+  }, dragEnd);
+  await page.evaluate((point) => {
+    window.dispatchEvent(new MouseEvent("mouseup", {
+      bubbles: true,
+      button: 0,
+      buttons: 0,
+      clientX: point.x,
+      clientY: point.y,
+    }));
+  }, dragEnd);
+
+  await expect.poll(async () => {
+    const labels = await page.locator(".detail-panel.primary .detail-property-handle").evaluateAll(
+      (items) => items
+        .map((item) => item.getAttribute("aria-label")?.replace(/^Reorder\s+/, "").trim())
+        .filter((value): value is string => Boolean(value))
+        .slice(0, 4),
+    );
+    return labels.indexOf(draggedField);
+  }).toBeLessThan(detailOrderBefore.indexOf(draggedField));
+
+  await expect.poll(async () => {
+    const detailReorderMeasures = await page.evaluate(() =>
+      performance.getEntriesByType("measure").map((entry) => ({
+        name: entry.name,
+        duration: Math.round(entry.duration * 100) / 100,
+      })),
+    );
+    return detailReorderMeasures.map((entry) => entry.name);
+  }).toEqual(expect.arrayContaining([
+    "detail-reorder:profile-update",
+    "detail-reorder:build-field-config",
+    "detail-reorder:build-issues",
+    "detail-reorder:react-main-content",
+    "detail-reorder:react-detail-panel",
+    "detail-reorder:total",
+  ]));
+  await expect.poll(async () => {
+    const detailReorderMeasures = await page.evaluate(() =>
+      performance.getEntriesByType("measure").map((entry) => entry.name),
+    );
+    return detailReorderMeasures.includes("detail-reorder:react-data-table");
+  }).toBe(false);
+
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/e2e_detail_profile_perf.json"), "utf8");
+    return text.includes("\"detailOrder\"") && text.includes(`\"${draggedField}\"`);
+  }).toBe(true);
+});
+
+test("nested detail panel renders object items without falling back to raw JSON", async ({ page }) => {
+  await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
@@ -2115,11 +2249,12 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".detail-panel.secondary")).toContainText("effect_type");
   await expect(page.locator(".detail-panel.secondary")).toContainText("params");
   await expect(page.locator(".detail-panel.secondary")).toContainText("timing");
+});
 
-  await page.locator('.sidebar-item[title="data/runes.json"]').click();
-  await expect(page.locator(".data-table")).toBeVisible();
-
+test("detail panel profile layout persists reorder and nested table widths", async ({ page }) => {
+  await page.goto("/");
   await page.evaluate(async () => {
+    localStorage.clear();
     await fetch("/api/view-profile", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -2133,16 +2268,20 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     });
     localStorage.setItem("data-editor:selected-view-profile", "e2e_detail_profile");
   });
+
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
   await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
-  const detailOrderBefore = await page.locator(".detail-panel.primary .detail-property-item .property-heading span:first-child").evaluateAll(
-    (items) => items.slice(0, 4).map((item) => item.textContent?.trim()).filter(Boolean),
+  const detailOrderBefore = await page.locator(".detail-panel.primary .detail-property-handle").evaluateAll(
+    (items) => items
+      .map((item) => item.getAttribute("aria-label")?.replace(/^Reorder\s+/, "").trim())
+      .filter((value): value is string => Boolean(value))
+      .slice(0, 4),
   );
-  expect(detailOrderBefore.length).toBeGreaterThanOrEqual(3);
-  const draggedField = detailOrderBefore[2]!;
+  expect(detailOrderBefore.length).toBeGreaterThanOrEqual(2);
+  const draggedField = detailOrderBefore[1]!;
   const targetField = detailOrderBefore[0]!;
   const draggedHandle = await page.locator(`.detail-panel.primary .detail-property-handle[aria-label="Reorder ${draggedField}"]`).boundingBox();
   const targetHandle = await page.locator(`.detail-panel.primary .detail-property-handle[aria-label="Reorder ${targetField}"]`).boundingBox();
@@ -2185,8 +2324,11 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     }));
   }, dragEnd);
   await expect.poll(async () => {
-    const labels = await page.locator(".detail-panel.primary .detail-property-item .property-heading span:first-child").evaluateAll(
-      (items) => items.slice(0, 4).map((item) => item.textContent?.trim()).filter(Boolean),
+    const labels = await page.locator(".detail-panel.primary .detail-property-handle").evaluateAll(
+      (items) => items
+        .map((item) => item.getAttribute("aria-label")?.replace(/^Reorder\s+/, "").trim())
+        .filter((value): value is string => Boolean(value))
+        .slice(0, 4),
     );
     return labels.indexOf(draggedField);
   }).toBeLessThan(detailOrderBefore.indexOf(draggedField));
@@ -2265,31 +2407,52 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator('.sidebar-item[title="data/status_effects.json"]').click();
   await expect(page.locator('col[data-column-field="buildup"]')).toHaveCount(1);
   await expect.poll(async () => page.evaluate(() => (document.querySelector("col[data-column-field=\"buildup\"]") as HTMLTableColElement).style.width)).not.toBe("180px");
+});
 
-  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+test("keyword backlink columns support wrapped chip layout after reload", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
-
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
-  await expect(page.locator(".detail-panel.primary")).toBeVisible();
-  await page.locator(".detail-input").first().evaluate((element) => {
-    const input = element as HTMLInputElement;
-    input.value = "e2e_edit_value";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+  await ensurePrimaryKeySelection(page, "id");
+  await configureRelation(page, "keywords", {
+    targetFile: "data/keywords.json",
+    targetCollection: "$",
+    targetKey: "keyword_id",
+    mode: "multi",
   });
-  await waitForAutosaveWrite(page, async () => {
-    const text = await readFile(path.resolve("tests/.scratch/data/runes.json"), "utf8");
-    return text.includes("e2e_edit_value");
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
+    return text.includes('"data/e2e_relation.json:$:keywords"') &&
+      text.includes('"data/keywords.json:$:back_keywords"');
+  }).toBe(true);
+
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  await expect(page.locator('.column-trigger[title="back_keyword_id"]')).toBeVisible();
+  await page.evaluate(() => {
+    localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:wrapped", "1");
+    localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:width", "120");
   });
-
-  const scratchRunes = JSON.parse(await readFile(path.resolve("tests/.scratch/data/runes.json"), "utf8"));
-  expect(Array.isArray(scratchRunes)).toBe(true);
-
   await page.reload();
-  await expect(page.locator('.sidebar-item[title="data/runes.json"]')).toContainText("runes.json");
-
-  const realRunesAfter = await readFile(fixtureRunesPath, "utf8");
-  expect(realRunesAfter).toBe(realRunesBefore);
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  await expect(page.locator('.column-trigger[title="back_keyword_id"]')).toBeVisible();
+  const wrappedBacklinkCell = page.locator('td[data-column-field="back_keyword_id"][data-wrap-mode="wrap"] [data-cell-role="token-content"]').first();
+  await expect(wrappedBacklinkCell).toBeVisible();
+  const keywordBacklinkChip = page.locator('.data-table tbody .backlink-chip-button[title*="data/status_effects.json"]').first();
+  await expect(keywordBacklinkChip).toBeVisible();
+  await expect(keywordBacklinkChip).toHaveCSS("background-color", "rgb(233, 232, 229)");
+  const backlinkWrapResult = await wrappedBacklinkCell.evaluate((element) => {
+    const chip = element.querySelector(".backlink-chip-button") as HTMLElement | null;
+    return {
+      clientHeight: (element as HTMLElement).clientHeight,
+      scrollHeight: (element as HTMLElement).scrollHeight,
+      chipWhiteSpace: chip ? getComputedStyle(chip).whiteSpace : null,
+    };
+  });
+  expect(backlinkWrapResult.chipWhiteSpace).toBe("normal");
+  expect(backlinkWrapResult.scrollHeight).toBeLessThanOrEqual(backlinkWrapResult.clientHeight);
+  await keywordBacklinkChip.click();
+  await expect(page.locator(".toolbar strong")).toContainText("data/status_effects.json");
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
 });
 
 test("autosave persists scratch json edits without toolbar save button", async ({ page }) => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { Profiler, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Select from "@radix-ui/react-select";
@@ -124,6 +124,33 @@ import {
 type ServiceLifecycleState = "running" | "closed" | "recovering" | "disconnected" | "recoveredPendingReload" | "bridgeUnavailable";
 type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts">;
 const defaultRecoveryBridgePort = 8791;
+const detailReorderReactProfilingStorageKey = "data-editor:enable-detail-reorder-profiling";
+
+function markPerf(name: string) {
+  if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
+  performance.mark(name);
+}
+
+function measurePerf(name: string, start: string, end: string) {
+  if (typeof performance === "undefined" || typeof performance.measure !== "function") return;
+  try {
+    performance.measure(name, start, end);
+  } catch {
+    // Ignore missing marks during ad-hoc profiling.
+  }
+}
+
+function recordPerfDuration(name: string, duration: number) {
+  if (typeof performance === "undefined" || typeof performance.measure !== "function") return;
+  try {
+    performance.measure(name, {
+      start: Math.max(0, performance.now() - duration),
+      duration,
+    });
+  } catch {
+    // Ignore unsupported measure options during ad-hoc profiling.
+  }
+}
 
 export function App() {
   const [files, setFiles] = useState<DataFile[]>([]);
@@ -164,7 +191,9 @@ export function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
   const [pendingOpenFilterRuleId, setPendingOpenFilterRuleId] = useState<string | null>(null);
-  const [viewRevision, bump] = useState(0);
+  const [uiRevision, bumpUiRevision] = useState(0);
+  const [layoutRevision, bumpLayoutRevision] = useState(0);
+  const [tableRevision, bumpTableRevision] = useState(0);
   const [viewConfig, setViewConfig] = useState<ViewConfig>(emptyProjectViewConfig());
   const [sharedViewsConfig, setSharedViewsConfig] = useState<SharedViewsConfig>(emptySharedViewsConfig());
   const [localSharedViewDrafts, setLocalSharedViewDrafts] = useState<SharedViewDraftState>(() => readLocalSharedViewDrafts(window.localStorage));
@@ -213,9 +242,24 @@ export function App() {
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
   const loadedProjectIdRef = useRef<string | null>(null);
   const viewDraftDirtyRef = useRef(false);
+  const detailReorderPerfRef = useRef({
+    active: false,
+    awaitingRows: false,
+    awaitingFieldConfig: false,
+    awaitingViewRows: false,
+    awaitingViewModel: false,
+    awaitingIssues: false,
+    awaitingBacklinks: false,
+    awaitingMaintenance: false,
+    awaitingMainContentRender: false,
+    awaitingTableRender: false,
+    awaitingDetailPanelRender: false,
+  });
   const toolbarDirty = dataDirty || viewConfigDirty || profileDirty;
   const globalDirty = toolbarDirty || viewDraftDirty;
   const statusText = status || flashStatus;
+  const detailReorderReactProfilingEnabled = typeof window !== "undefined"
+    && window.localStorage.getItem(detailReorderReactProfilingStorageKey) === "1";
   const saveCoordinator = useMemo(
     () => createSaveCoordinator({
       delayMs: 800,
@@ -236,7 +280,7 @@ export function App() {
     const order = normalizeFileOrder(files, savedOrder);
     const byPath = new Map(files.map((file) => [file.path, file]));
     return order.map((path) => byPath.get(path)).filter((file): file is DataFile => Boolean(file));
-  }, [files, selectedViewProfileName, selectedViewProfile.fileOrder, viewRevision]);
+  }, [files, selectedViewProfileName, selectedViewProfile.fileOrder, uiRevision]);
 
   useEffect(() => { modelRef.current = model; }, [model]);
   useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
@@ -305,7 +349,6 @@ export function App() {
         setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
         setSidebarWidth(clampSidebarWidth(normalizedProfile.sidebarWidth ?? defaultSidebarWidth));
         setDetailPanelWidth(clampDetailPanelWidth(normalizedProfile.detailPanelWidth ?? defaultDetailPanelWidth));
-        bump((value) => value + 1);
       })
       .catch((error) => setStatus(error.message));
   }, [selectedViewProfileName, activeProjectId]);
@@ -480,7 +523,7 @@ export function App() {
 
   useEffect(() => {
     void loadBacklinkGridData();
-  }, [selectedPath, collectionPath, model, viewConfig.relations, viewConfig.backlinks, viewConfig.primaryKeys, viewRevision]);
+  }, [selectedPath, collectionPath, model, viewConfig.relations, viewConfig.backlinks, viewConfig.primaryKeys, tableRevision]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -677,13 +720,56 @@ export function App() {
     setStatus("");
   }
 
+  function finalizeDetailReorderAsyncSegment(segment: "backlinks" | "maintenance") {
+    const perfState = detailReorderPerfRef.current;
+    if (!perfState.active) return;
+    if (segment === "backlinks" && perfState.awaitingBacklinks) {
+      markPerf("detail-reorder:after-backlinks");
+      measurePerf("detail-reorder:backlinks", "detail-reorder:before-backlinks", "detail-reorder:after-backlinks");
+      perfState.awaitingBacklinks = false;
+    }
+    if (segment === "maintenance" && perfState.awaitingMaintenance) {
+      markPerf("detail-reorder:after-maintenance");
+      measurePerf("detail-reorder:maintenance", "detail-reorder:before-maintenance", "detail-reorder:after-maintenance");
+      perfState.awaitingMaintenance = false;
+    }
+  }
+
+  const handleDetailReorderProfilerRender = useCallback((
+    id: string,
+    phase: "mount" | "update" | "nested-update",
+    actualDuration: number,
+  ) => {
+    const perfState = detailReorderPerfRef.current;
+    if (!perfState.active || phase === "mount") return;
+    if (id === "main-content" && perfState.awaitingMainContentRender) {
+      recordPerfDuration("detail-reorder:react-main-content", actualDuration);
+      perfState.awaitingMainContentRender = false;
+      return;
+    }
+    if (id === "data-table" && perfState.awaitingTableRender) {
+      recordPerfDuration("detail-reorder:react-data-table", actualDuration);
+      perfState.awaitingTableRender = false;
+      return;
+    }
+    if (id === "detail-panel" && perfState.awaitingDetailPanelRender) {
+      recordPerfDuration("detail-reorder:react-detail-panel", actualDuration);
+      perfState.awaitingDetailPanelRender = false;
+    }
+  }, []);
+
   async function loadMaintenanceInfo() {
+    const perfState = detailReorderPerfRef.current;
+    if (perfState.active && perfState.awaitingMaintenance) {
+      markPerf("detail-reorder:before-maintenance");
+    }
     const requestId = maintenanceRequestRef.current + 1;
     maintenanceRequestRef.current = requestId;
     if (!selectedPath || !selectedRow) {
       setRelationBacklinks([]);
       setPrimaryKeyImpacts({});
       setPrimaryKeySyncPlan(null);
+      finalizeDetailReorderAsyncSegment("maintenance");
       return;
     }
     const primaryKeyField = getPrimaryKeyField(viewConfig, selectedPath, collectionPath);
@@ -691,6 +777,7 @@ export function App() {
       setRelationBacklinks([]);
       setPrimaryKeyImpacts({});
       setPrimaryKeySyncPlan(null);
+      finalizeDetailReorderAsyncSegment("maintenance");
       return;
     }
     const savedRoot = savedDocumentRootRef.current;
@@ -706,6 +793,7 @@ export function App() {
       setRelationBacklinks([]);
       setPrimaryKeyImpacts({});
       setPrimaryKeySyncPlan(null);
+      finalizeDetailReorderAsyncSegment("maintenance");
       return;
     }
     const activeRelations = Object.fromEntries(Object.entries(viewConfig.relations).filter(([, relationConfig]) => (
@@ -718,6 +806,7 @@ export function App() {
       setRelationBacklinks([]);
       setPrimaryKeyImpacts({});
       setPrimaryKeySyncPlan(null);
+      finalizeDetailReorderAsyncSegment("maintenance");
       return;
     }
     const sourceFiles = [...new Set(activeRelationKeys.map((key) => parseRelationKey(key)?.sourceFile).filter(Boolean))] as string[];
@@ -729,7 +818,10 @@ export function App() {
         // Missing source files are surfaced by buildPrimaryKeySyncPlan blocking issues.
       }
     }));
-    if (requestId !== maintenanceRequestRef.current) return;
+    if (requestId !== maintenanceRequestRef.current) {
+      finalizeDetailReorderAsyncSegment("maintenance");
+      return;
+    }
     const backlinks = collectRelationBacklinks({
       targetFile: selectedPath,
       targetCollection: collectionPath,
@@ -764,12 +856,18 @@ export function App() {
     setRelationBacklinks(backlinks);
     setPrimaryKeyImpacts(impacts);
     setPrimaryKeySyncPlan(syncPlan);
+    finalizeDetailReorderAsyncSegment("maintenance");
   }
 
   async function loadBacklinkGridData() {
+    const perfState = detailReorderPerfRef.current;
+    if (perfState.active && perfState.awaitingBacklinks) {
+      markPerf("detail-reorder:before-backlinks");
+    }
     if (!selectedPath || !model) {
       setBacklinkColumns([]);
       setBacklinkValuesByRowIndex({});
+      finalizeDetailReorderAsyncSegment("backlinks");
       return;
     }
     const rows = getRows(model, collectionPath) as DataRecord[];
@@ -781,6 +879,7 @@ export function App() {
     if (!columns.length) {
       setBacklinkColumns([]);
       setBacklinkValuesByRowIndex({});
+      finalizeDetailReorderAsyncSegment("backlinks");
       return;
     }
     const sourceFiles = [...new Set(columns.map((column) => column.sourceRelation.split(":")[0]).filter(Boolean))];
@@ -801,6 +900,7 @@ export function App() {
     });
     setBacklinkColumns(grid.columns as BacklinkGridColumn[]);
     setBacklinkValuesByRowIndex(grid.valuesByRowIndex as Record<number, Record<string, RelationBacklink[]>>);
+    finalizeDetailReorderAsyncSegment("backlinks");
   }
 
   async function handleOpenRelationTarget(config: RelationConfig, value: string | number) {
@@ -845,7 +945,19 @@ export function App() {
     setRelationOptions(optionsByKey);
   }
 
-  const rows = useMemo(() => model ? (getRows(model, collectionPath) as DataRecord[]) : [], [model, collectionPath, viewRevision]);
+  const rows = useMemo(() => {
+    const perfState = detailReorderPerfRef.current;
+    if (perfState.active && perfState.awaitingRows) {
+      markPerf("detail-reorder:before-rows");
+    }
+    const nextRows = model ? (getRows(model, collectionPath) as DataRecord[]) : [];
+    if (perfState.active && perfState.awaitingRows) {
+      markPerf("detail-reorder:after-rows");
+      measurePerf("detail-reorder:rows", "detail-reorder:before-rows", "detail-reorder:after-rows");
+      perfState.awaitingRows = false;
+    }
+    return nextRows;
+  }, [model, collectionPath, tableRevision]);
   const primaryKeyCandidateAnalyses = useMemo<Record<string, PrimaryKeyCandidateAnalysis>>(() => {
     if (!model || !selectedPath) return {};
     return Object.fromEntries(model.collections.map((collection) => {
@@ -969,19 +1081,31 @@ export function App() {
   }, [activeProjectId, selectedPath, collectionPath, model, activeViewLayoutId]);
   useEffect(() => {
     void loadMaintenanceInfo();
-  }, [selectedPath, collectionPath, selectedRowIndex, selectedRow, viewConfig.relations, viewRevision]);
+  }, [selectedPath, collectionPath, selectedRowIndex, selectedRow, viewConfig.relations, tableRevision]);
   const fieldConfig = useMemo(
-    () => buildFieldConfig(
-      selectedPath,
-      collectionPath,
-      activeViewLayoutId,
-      model,
-      viewConfig,
-      selectedViewProfileName ? "profile" : "local",
-      selectedViewProfileName ? selectedViewProfile : null,
-      backlinkColumns.map((column) => column.fieldName),
-    ),
-    [selectedPath, collectionPath, activeViewLayoutId, model, viewConfig, selectedViewProfile, selectedViewProfileName, viewRevision, backlinkColumns],
+    () => {
+      const perfState = detailReorderPerfRef.current;
+      if (perfState.active && perfState.awaitingFieldConfig) {
+        markPerf("detail-reorder:before-build-field-config");
+      }
+      const nextFieldConfig = buildFieldConfig(
+        selectedPath,
+        collectionPath,
+        activeViewLayoutId,
+        model,
+        viewConfig,
+        selectedViewProfileName ? "profile" : "local",
+        selectedViewProfileName ? selectedViewProfile : null,
+        backlinkColumns.map((column) => column.fieldName),
+      );
+      if (perfState.active && perfState.awaitingFieldConfig) {
+        markPerf("detail-reorder:after-build-field-config");
+        measurePerf("detail-reorder:build-field-config", "detail-reorder:before-build-field-config", "detail-reorder:after-build-field-config");
+        perfState.awaitingFieldConfig = false;
+      }
+      return nextFieldConfig;
+    },
+    [selectedPath, collectionPath, activeViewLayoutId, model, viewConfig, selectedViewProfile, selectedViewProfileName, layoutRevision, backlinkColumns],
   );
   const allFields = useMemo(
     () => model ? getOrderedFields(model, collectionPath, fieldConfig.order, backlinkColumns.map((column) => column.fieldName)) : [],
@@ -1024,10 +1148,32 @@ export function App() {
     [allFields, selectedPath, collectionPath, viewConfig.relations, relationOptions, viewFilterFieldTypes, rows, fieldViewConfigs],
   );
   const viewRows = useMemo(() => {
+    const perfState = detailReorderPerfRef.current;
+    if (perfState.active && perfState.awaitingViewRows) {
+      markPerf("detail-reorder:before-view-rows");
+    }
     const filtered = applyViewFilters(rows, activeView?.query ?? "", activeView?.filters ?? { op: "and", rules: [] }, viewFilterFieldTypes);
-    return applyViewSorts(filtered, activeView?.sorts ?? []);
+    const nextViewRows = applyViewSorts(filtered, activeView?.sorts ?? []);
+    if (perfState.active && perfState.awaitingViewRows) {
+      markPerf("detail-reorder:after-view-rows");
+      measurePerf("detail-reorder:view-rows", "detail-reorder:before-view-rows", "detail-reorder:after-view-rows");
+      perfState.awaitingViewRows = false;
+    }
+    return nextViewRows;
   }, [rows, activeView, viewFilterFieldTypes]);
-  const viewModel = useMemo(() => model ? ({ ...model, root: replaceRowsForView(model, collectionPath, viewRows) } as DocumentModel) : null, [model, collectionPath, viewRows]);
+  const viewModel = useMemo(() => {
+    const perfState = detailReorderPerfRef.current;
+    if (perfState.active && perfState.awaitingViewModel) {
+      markPerf("detail-reorder:before-view-model");
+    }
+    const nextViewModel = model ? ({ ...model, root: replaceRowsForView(model, collectionPath, viewRows) } as DocumentModel) : null;
+    if (perfState.active && perfState.awaitingViewModel) {
+      markPerf("detail-reorder:after-view-model");
+      measurePerf("detail-reorder:view-model", "detail-reorder:before-view-model", "detail-reorder:after-view-model");
+      perfState.awaitingViewModel = false;
+    }
+    return nextViewModel;
+  }, [model, collectionPath, viewRows]);
   const hiddenFields = useMemo(() => allFields.filter((field) => fieldConfig.hidden.has(field)), [allFields, fieldConfig.hidden]);
   const titleField = useMemo(
     () => model ? findTitleField(getMainColumns(model, collectionPath), rows) : null,
@@ -1041,10 +1187,44 @@ export function App() {
   );
   const relationConfigForDialog = relationConfigKey ? (viewConfig.relations[relationConfigKey] ?? null) : null;
   const issues = useMemo(
-    () => model && selectedPath ? buildValidationIssues(rows, fieldConfig, relationIndexes, viewConfig, selectedPath, collectionPath) : {},
+    () => {
+      const perfState = detailReorderPerfRef.current;
+      if (perfState.active && perfState.awaitingIssues) {
+        markPerf("detail-reorder:before-build-issues");
+      }
+      const nextIssues = model && selectedPath
+        ? buildValidationIssues(rows, fieldConfig, relationIndexes, viewConfig, selectedPath, collectionPath)
+        : {};
+      if (perfState.active && perfState.awaitingIssues) {
+        markPerf("detail-reorder:after-build-issues");
+        measurePerf("detail-reorder:build-issues", "detail-reorder:before-build-issues", "detail-reorder:after-build-issues");
+        perfState.awaitingIssues = false;
+      }
+      return nextIssues;
+    },
     [model, rows, fieldConfig, relationIndexes, viewConfig, selectedPath, collectionPath],
   );
   const appFrameStyle = useMemo(() => ({ "--sidebar-width": `${sidebarWidth}px` }) as CSSProperties, [sidebarWidth]);
+
+  useEffect(() => {
+    const perfState = detailReorderPerfRef.current;
+    if (
+      !perfState.active
+      || perfState.awaitingRows
+      || perfState.awaitingFieldConfig
+      || perfState.awaitingViewRows
+      || perfState.awaitingViewModel
+      || perfState.awaitingIssues
+      || perfState.awaitingBacklinks
+      || perfState.awaitingMaintenance
+      || perfState.awaitingMainContentRender
+      || perfState.awaitingTableRender
+      || perfState.awaitingDetailPanelRender
+    ) return;
+    markPerf("detail-reorder:stable");
+    measurePerf("detail-reorder:total", "detail-reorder:start", "detail-reorder:stable");
+    perfState.active = false;
+  }, [fieldConfig, issues]);
 
   useEffect(() => {
     document.querySelectorAll(".data-table tbody tr.selected-row").forEach((row) => row.classList.remove("selected-row"));
@@ -1057,7 +1237,7 @@ export function App() {
     dataDirtyRef.current = true;
     setDataDirty(true);
     saveCoordinator.markDirty("document");
-    bump((value) => value + 1);
+    bumpTableRevision((value) => value + 1);
   }
 
   function mutateViewConfig(mutator: (draft: ViewConfig) => void) {
@@ -1071,7 +1251,7 @@ export function App() {
     viewConfigDirtyRef.current = true;
     setViewConfigDirty(true);
     saveCoordinator.markDirty("project-config");
-    bump((value) => value + 1);
+    bumpTableRevision((value) => value + 1);
   }
 
   function mutateOptionFieldTransaction({
@@ -1100,7 +1280,7 @@ export function App() {
       saveCoordinator.markDirty("project-config");
       changed = true;
     }
-    if (changed) bump((value) => value + 1);
+    if (changed) bumpTableRevision((value) => value + 1);
   }
 
   function mutateSelectedViewProfile(mutator: (draft: UserViewProfile) => void) {
@@ -1130,12 +1310,15 @@ export function App() {
       collections: { ...(current.collections ?? {}) },
     };
     mutator(next);
+    if (detailReorderPerfRef.current.active) {
+      markPerf("detail-reorder:after-profile-update");
+      measurePerf("detail-reorder:profile-update", "detail-reorder:before-profile-update", "detail-reorder:after-profile-update");
+    }
     selectedViewProfileRef.current = next;
     setSelectedViewProfile(next);
     profileDirtyRef.current = true;
     setProfileDirty(true);
     saveCoordinator.markDirty("profile");
-    bump((value) => value + 1);
     return next;
   }
 
@@ -1174,7 +1357,7 @@ export function App() {
     });
   }
 
-  function updateActiveViewLayout(mutator: (draft: UserViewLayoutState) => void) {
+  function updateActiveViewLayout(mutator: (draft: UserViewLayoutState) => void, options: { affectsTable?: boolean } = {}) {
     if (!selectedPath || !activeViewLayoutId) return;
     if (mutateSelectedViewProfile((draft) => {
       const viewLayout = ensureViewLayout(draft, selectedPath, collectionPath, activeViewLayoutId);
@@ -1194,7 +1377,10 @@ export function App() {
       state: next,
       localStorage: window.localStorage,
     });
-    bump((value) => value + 1);
+    bumpLayoutRevision((value) => value + 1);
+    if (options.affectsTable ?? true) {
+      bumpTableRevision((value) => value + 1);
+    }
   }
 
   function updateActiveViewDraft(patch: Partial<CollectionView>) {
@@ -1233,7 +1419,6 @@ export function App() {
       return next;
     });
     setViewDraftDirty(true);
-    bump((value) => value + 1);
   }
 
   function handleReorderFiles(fileOrder: string[]) {
@@ -1242,7 +1427,7 @@ export function App() {
       draft.fileOrder = nextOrder;
     })) return;
     writeLocalFileOrder(window.localStorage, nextOrder);
-    bump((value) => value + 1);
+    bumpUiRevision((value) => value + 1);
   }
 
   async function commitProfileSave(name: string, profile: UserViewProfile) {
@@ -1391,9 +1576,22 @@ export function App() {
 
   function handleReorderDetailFields(nextOrder: string[]) {
     if (!selectedPath) return;
+    detailReorderPerfRef.current.active = true;
+    detailReorderPerfRef.current.awaitingRows = false;
+    detailReorderPerfRef.current.awaitingFieldConfig = true;
+    detailReorderPerfRef.current.awaitingViewRows = false;
+    detailReorderPerfRef.current.awaitingViewModel = false;
+    detailReorderPerfRef.current.awaitingIssues = true;
+    detailReorderPerfRef.current.awaitingBacklinks = false;
+    detailReorderPerfRef.current.awaitingMaintenance = false;
+    detailReorderPerfRef.current.awaitingMainContentRender = detailReorderReactProfilingEnabled;
+    detailReorderPerfRef.current.awaitingTableRender = false;
+    detailReorderPerfRef.current.awaitingDetailPanelRender = detailReorderReactProfilingEnabled;
+    markPerf("detail-reorder:start");
+    markPerf("detail-reorder:before-profile-update");
     updateActiveViewLayout((draft) => {
       draft.detailOrder = [...nextOrder];
-    });
+    }, { affectsTable: false });
   }
 
   function handleSort(fieldName: string, direction: "asc" | "desc" | null) {
@@ -1694,7 +1892,8 @@ export function App() {
     });
     setSidebarWidth(readSidebarWidth());
     setDetailPanelWidth(readDetailPanelWidth());
-    bump((value) => value + 1);
+    bumpLayoutRevision((value) => value + 1);
+    bumpTableRevision((value) => value + 1);
   }
 
   function updateSharedViewDraftState(next: SharedViewDraftState) {
@@ -1715,7 +1914,6 @@ export function App() {
     setLocalSharedViewDrafts(next);
     writeLocalSharedViewDrafts(window.localStorage, next);
     setViewDraftDirty(hasSharedDrafts(next));
-    bump((value) => value + 1);
   }
 
   function currentSharedViewDraftState(): SharedViewDraftState {
@@ -1901,7 +2099,6 @@ export function App() {
       setViewDraftDirty(result.dirty);
       return result.draftState;
     });
-    bump((value) => value + 1);
   }
 
   async function handleSaveViewForEveryone() {
@@ -2312,7 +2509,137 @@ export function App() {
           onUnhideField={handleUnhideField}
           onUnhideAllFields={handleUnhideAllFields}
         />
-        <div className="main-content">
+        {detailReorderReactProfilingEnabled ? (
+          <Profiler id="main-content" onRender={handleDetailReorderProfilerRender}>
+            <div className="main-content">
+              <ViewTabs
+                views={orderedCollectionViews}
+                activeViewId={activeSharedView?.id ?? null}
+                dirtyViewIds={dirtyViewIds}
+                saving={saving}
+                filterBarVisible={filterBarVisible}
+                hasActiveFilters={activeViewHasFilters}
+                viewOrderDirty={viewOrderDirty}
+                searchQuery={activeView?.query ?? ""}
+                onSelectView={handleSelectSharedView}
+                onCreateView={handleCreateSharedView}
+                onRenameView={handleRenameSharedView}
+                onDeleteView={handleDeleteSharedView}
+                onDuplicateView={handleDuplicateSharedView}
+                onReorderViews={handleReorderSharedViews}
+                onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
+                onSearchQueryChange={(query) => updateActiveViewDraft({ query })}
+              />
+              {filterBarVisible ? (
+                <ViewFilterBar
+                  collectionKey={activeCollectionKey}
+                  view={activeView}
+                  fields={allFields}
+                  fieldConfig={fieldConfig}
+                  fieldViewConfigs={fieldViewConfigs}
+                  fieldTypes={viewFilterFieldTypes}
+                  relationFilterOptions={viewFilterOptions}
+                  dirty={activeViewDirty}
+                  viewOrderDirty={viewOrderDirty}
+                  saving={saving}
+                  autoOpenRuleId={pendingOpenFilterRuleId}
+                  onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
+                  onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
+                  onAddFilter={handleAddFilter}
+                  onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
+                  onResetView={handleResetSharedViewDraft}
+                  onSaveForEveryone={() => void handleSaveViewForEveryone()}
+                />
+              ) : null}
+              {showPrimaryKeyCandidateBanner && selectedPath ? (
+                <PrimaryKeyCandidateBanner
+                  filePath={selectedPath}
+                  collectionPath={collectionPath}
+                  candidates={activePrimaryKeyCandidates}
+                  onConfirm={openPrimaryKeyCandidateDialog}
+                  onDismiss={dismissPrimaryKeyCandidates}
+                />
+              ) : null}
+              <Profiler id="data-table" onRender={handleDetailReorderProfilerRender}>
+                <DataTable
+                  model={viewModel!}
+                  schemaModel={model}
+                  sourcePath={selectedPath}
+                  collectionPath={collectionPath}
+                  fieldConfig={fieldConfig}
+                  fieldViewConfigs={fieldViewConfigs}
+                  backlinkColumns={backlinkColumns}
+                  backlinkValuesByRowIndex={backlinkValuesByRowIndex}
+                  relationOptions={relationOptions}
+                  relationConfigs={viewConfig.relations}
+                  revision={tableRevision}
+                  sort={activeViewSort}
+                  issues={issues}
+                  titleField={titleField}
+                  scrollRestoreKey={scrollRestoreKey}
+                  initialScrollPosition={initialScrollPosition}
+                  onScrollPositionChange={handleTableScrollPositionChange}
+                  onSelectRow={selectRow}
+                  onOpenDetail={openDetail}
+                  onOpenBacklink={handleOpenBacklink}
+                  onEditCell={handleEditCell}
+                  onCommitMultiSelectDraft={handleCommitMultiSelectOptionFieldDraft}
+                  onCommitSelectDraft={handleCommitSelectOptionFieldDraft}
+                  onChangeFieldType={handleChangeFieldType}
+                  onHideField={handleHideField}
+                  onToggleWrapField={handleToggleWrapField}
+                  onResizeField={handleResizeField}
+                  onMoveField={handleMoveField}
+                  onReorderFields={handleReorderFields}
+                  onSort={handleSort}
+                  onAddFilter={handleAddFilter}
+                  onConfigureRelation={handleConfigureRelation}
+                  onClearRelation={handleClearRelation}
+                  onOpenRelationTarget={handleOpenRelationTarget}
+                  onAddRow={handleAddRow}
+                  onDeleteRow={handleDeleteRow}
+                  onAddField={handleAddField}
+                  onDeleteField={handleDeleteField}
+                />
+              </Profiler>
+              <Profiler id="detail-panel" onRender={handleDetailReorderProfilerRender}>
+                <DetailPanel
+                  open={detailOpen}
+                  panelWidth={detailPanelWidth}
+                  row={selectedRow}
+                  rowIndex={selectedRowIndex}
+                  rowCount={rows.length}
+                  sourcePath={selectedPath}
+                  collectionPath={collectionPath}
+                  titleField={titleField}
+                  detailOrder={fieldConfig.detailOrder}
+                  displayTypes={fieldConfig.displayTypes}
+                  fieldViewConfigs={fieldViewConfigs}
+                  issues={issues}
+                  relationOptions={relationOptions}
+                  relationConfigs={viewConfig.relations}
+                  relationBacklinks={relationBacklinks}
+                  primaryKeyImpacts={primaryKeyImpacts}
+                  primaryKeySyncPlan={primaryKeySyncPlan}
+                  primaryKeySyncResult={primaryKeySyncResult}
+                  saving={saving}
+                  onCommitMultiSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitMultiSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
+                  onCommitSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
+                  onOpenBacklink={handleOpenBacklink}
+                  onRequestSyncSave={() => void persistChanges(true)}
+                  onOpenRelationTarget={handleOpenRelationTarget}
+                  onSelectRow={selectRow}
+                  onClose={() => setDetailOpen(false)}
+                  onPanelWidthChange={handleDetailPanelWidthChange}
+                  onPanelWidthCommit={commitDetailPanelWidth}
+                  onEditField={(fieldName, value) => selectedRowIndex != null && handleEditCell(selectedRowIndex, fieldName, value)}
+                  onReorderFields={handleReorderDetailFields}
+                />
+              </Profiler>
+            </div>
+          </Profiler>
+        ) : (
+          <div className="main-content">
           <ViewTabs
             views={orderedCollectionViews}
             activeViewId={activeSharedView?.id ?? null}
@@ -2372,7 +2699,7 @@ export function App() {
             backlinkValuesByRowIndex={backlinkValuesByRowIndex}
             relationOptions={relationOptions}
             relationConfigs={viewConfig.relations}
-            revision={viewRevision}
+            revision={tableRevision}
             sort={activeViewSort}
             issues={issues}
             titleField={titleField}
@@ -2434,6 +2761,7 @@ export function App() {
             onReorderFields={handleReorderDetailFields}
           />
         </div>
+        )}
       </section>
       <AddFieldDialog
         open={addFieldOpen}
