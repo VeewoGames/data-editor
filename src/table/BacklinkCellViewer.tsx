@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { chipStyleForValue } from "./chipColors";
 import type { RelationBacklink } from "../model/relationMaintenance";
 
@@ -9,7 +10,7 @@ type BacklinkCellViewerProps = {
   onOpen: (item: RelationBacklink) => void;
 };
 
-export function BacklinkCellViewer({ items, status = "active", message, wrapped = false, onOpen }: BacklinkCellViewerProps) {
+function BacklinkCellViewerComponent({ items, status = "active", message, wrapped = false, onOpen }: BacklinkCellViewerProps) {
   if (!items.length) {
     const placeholder = status === "missing-source" ? "关联失效" : "-";
     return (
@@ -44,3 +45,11 @@ export function BacklinkCellViewer({ items, status = "active", message, wrapped 
     </div>
   );
 }
+
+export const BacklinkCellViewer = memo(BacklinkCellViewerComponent, (previous, next) =>
+  previous.items === next.items &&
+  previous.status === next.status &&
+  previous.message === next.message &&
+  previous.wrapped === next.wrapped &&
+  previous.onOpen === next.onOpen,
+);

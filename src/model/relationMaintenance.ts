@@ -20,6 +20,7 @@ export type RelationBacklink = {
   sourceCollection: string;
   fieldPath: string[];
   rowIndex: number;
+  rowId?: string | null;
   title: string;
 };
 
@@ -39,6 +40,7 @@ export type RelationRewriteItem = {
   sourceCollection: string;
   fieldPath: string[];
   rowIndex: number;
+  rowId?: string | null;
   rowLabel: string;
   oldValue: string;
   newValue: string;
@@ -68,7 +70,7 @@ export const findTargetRecord = findTargetRecordCore as (
   rows: Record<string, unknown>[],
   targetKey: string,
   targetId: string | number,
-) => { rowIndex: number; row: Record<string, unknown> } | null;
+) => { rowIndex: number; rowId?: string | null; row: Record<string, unknown> } | null;
 export const collectRelationBacklinks = collectRelationBacklinksCore as (input: {
   targetFile: string;
   targetCollection: string;

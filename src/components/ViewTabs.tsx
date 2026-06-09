@@ -4,13 +4,7 @@ import type { CollectionView } from "../api/client";
 import { icons } from "./icons";
 
 export type ViewTabsProps = {
-  views: CollectionView[];
-  activeViewId: string | null;
-  dirtyViewIds: Set<string>;
-  saving: boolean;
-  filterBarVisible: boolean;
-  hasActiveFilters: boolean;
-  viewOrderDirty: boolean;
+  snapshot: ViewTabsSnapshot;
   onSelectView: (viewId: string) => void;
   onCreateView: () => void;
   onRenameView: (viewId: string, name: string) => void;
@@ -20,14 +14,18 @@ export type ViewTabsProps = {
   onToggleFilterBar: () => void;
 };
 
+export type ViewTabsSnapshot = {
+  views: CollectionView[];
+  activeViewId: string | null;
+  dirtyViewIds: Set<string>;
+  saving: boolean;
+  filterBarVisible: boolean;
+  hasActiveFilters: boolean;
+  viewOrderDirty: boolean;
+};
+
 export function ViewTabs({
-  views,
-  activeViewId,
-  dirtyViewIds,
-  saving,
-  filterBarVisible,
-  hasActiveFilters,
-  viewOrderDirty,
+  snapshot,
   onSelectView,
   onCreateView,
   onRenameView,
@@ -36,6 +34,15 @@ export function ViewTabs({
   onReorderViews,
   onToggleFilterBar,
 }: ViewTabsProps) {
+  const {
+    views,
+    activeViewId,
+    dirtyViewIds,
+    saving,
+    filterBarVisible,
+    hasActiveFilters,
+    viewOrderDirty,
+  } = snapshot;
   const [draggingViewId, setDraggingViewId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ viewId: string; placement: "before" | "after" } | null>(null);
   const [openMenuViewId, setOpenMenuViewId] = useState<string | null>(null);

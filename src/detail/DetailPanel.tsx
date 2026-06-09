@@ -19,20 +19,26 @@ import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../
 import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
 import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { FieldTypeIcon } from "../components/FieldTypeIcon";
+import { resolveValidationIssue } from "../validation/issue-lookup.mjs";
+import type { ValidationSnapshot } from "../validation/issue-map";
 
-type DetailPanelProps = {
+export type DetailSnapshot = {
   open: boolean;
   panelWidth: number;
   row: DataRecord | null;
-  rowIndex: number | null;
+  rowId: string | null;
+  sourceRowIndex: number | null;
   rowCount: number;
+  visibleRowPosition: number | null;
+  previousRowTarget: { sourceRowIndex: number; rowId: string | null } | null;
+  nextRowTarget: { sourceRowIndex: number; rowId: string | null } | null;
   sourcePath: string | null;
   collectionPath: string;
   titleField: string | null;
   detailOrder: string[];
   displayTypes: Record<string, FieldDisplayType>;
   fieldViewConfigs: Record<string, FieldViewConfig>;
-  issues: Record<string, ValidationIssue | null>;
+  validation: ValidationSnapshot;
   relationOptions: Record<string, RelationOption[]>;
   relationConfigs?: Record<string, RelationConfig>;
   relationBacklinks: RelationBacklink[];
@@ -40,12 +46,16 @@ type DetailPanelProps = {
   primaryKeySyncPlan: PrimaryKeySyncPlan | null;
   primaryKeySyncResult: SaveDocumentsResult | null;
   saving: boolean;
+};
+
+type DetailPanelProps = {
+  snapshot: DetailSnapshot;
   onCommitMultiSelectDraft: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onCommitSelectDraft: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
   onRequestSyncSave: () => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
-  onSelectRow: (rowIndex: number) => void;
+  onSelectRow: (rowId: string | null, sourceRowIndex?: number | null) => void;
   onClose: () => void;
   onPanelWidthChange: (width: number) => void;
   onPanelWidthCommit: (width: number) => void;
@@ -63,25 +73,7 @@ type NestedPanelState = {
 };
 
 export function DetailPanel({
-  open,
-  panelWidth,
-  row,
-  rowIndex,
-  rowCount,
-  sourcePath,
-  collectionPath,
-  titleField,
-  detailOrder,
-  displayTypes,
-  fieldViewConfigs,
-  issues,
-  relationOptions,
-  relationConfigs,
-  relationBacklinks,
-  primaryKeyImpacts,
-  primaryKeySyncPlan,
-  primaryKeySyncResult,
-  saving,
+  snapshot,
   onCommitMultiSelectDraft,
   onCommitSelectDraft,
   onOpenBacklink,
@@ -94,6 +86,31 @@ export function DetailPanel({
   onEditField,
   onReorderFields,
 }: DetailPanelProps) {
+  const {
+    open,
+    panelWidth,
+    row,
+    rowId,
+    sourceRowIndex,
+    rowCount,
+    visibleRowPosition,
+    previousRowTarget,
+    nextRowTarget,
+    sourcePath,
+    collectionPath,
+    titleField,
+    detailOrder,
+    displayTypes,
+    fieldViewConfigs,
+    validation,
+    relationOptions,
+    relationConfigs,
+    relationBacklinks,
+    primaryKeyImpacts,
+    primaryKeySyncPlan,
+    primaryKeySyncResult,
+    saving,
+  } = snapshot;
   const panelRef = useRef<HTMLElement | null>(null);
   const nestedPanelRef = useRef<HTMLElement | null>(null);
   const propertyItemRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -113,16 +130,16 @@ export function DetailPanel({
   useEffect(() => {
     panelRef.current?.scrollTo({ top: 0 });
     nestedPanelRef.current?.scrollTo({ top: 0 });
-  }, [rowIndex]);
+  }, [rowId]);
 
   useEffect(() => {
     setNestedStack([]);
-  }, [rowIndex, open]);
+  }, [rowId, open]);
 
   useEffect(() => {
     setPressedField(null);
     setDragState(null);
-  }, [rowIndex, detailOrder]);
+  }, [rowId, detailOrder]);
 
   useEffect(() => {
     if (!open) return;
@@ -185,7 +202,7 @@ export function DetailPanel({
     window.addEventListener("pointercancel", onPointerCancel);
   }
 
-  if (!row || rowIndex == null) {
+  if (!row) {
     return (
       <>
         <aside className={`detail-panel primary empty ${open ? "open" : ""}`} ref={panelRef} style={primaryPanelStyle}>
@@ -198,10 +215,10 @@ export function DetailPanel({
     );
   }
 
-  const title = getRecordTitle(row, titleField ? [titleField] : [], rowIndex);
+  const title = getRecordTitle(row, titleField ? [titleField] : [], sourceRowIndex ?? null);
   const currentRow = row;
-  const canGoPrevious = rowIndex > 0;
-  const canGoNext = rowIndex < rowCount - 1;
+  const canGoPrevious = previousRowTarget != null;
+  const canGoNext = nextRowTarget != null;
   const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""}`;
   const naturalFieldOrder = Object.keys(row).filter((key) => key !== "__rowIndex");
   const orderedFields = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
@@ -321,13 +338,25 @@ export function DetailPanel({
           <div className="detail-title-block">
             <div className="panel-kicker">Record detail</div>
             <div className="panel-title">{String(title)}</div>
-            <div className="panel-subtitle">Row {rowIndex + 1} of {rowCount}</div>
+            <div className="panel-subtitle">
+              {visibleRowPosition == null ? "Row hidden by current view" : `Row ${visibleRowPosition + 1} of ${rowCount}`}
+            </div>
           </div>
           <div className="detail-nav">
-            <button className="icon-button" disabled={!canGoPrevious} onClick={() => onSelectRow(rowIndex - 1)} title="Previous record">
+            <button
+              className="icon-button"
+              disabled={!canGoPrevious}
+              onClick={() => previousRowTarget && onSelectRow(previousRowTarget.rowId, previousRowTarget.sourceRowIndex)}
+              title="Previous record"
+            >
               <icons.previous size={16} />
             </button>
-            <button className="icon-button" disabled={!canGoNext} onClick={() => onSelectRow(rowIndex + 1)} title="Next record">
+            <button
+              className="icon-button"
+              disabled={!canGoNext}
+              onClick={() => nextRowTarget && onSelectRow(nextRowTarget.rowId, nextRowTarget.sourceRowIndex)}
+              title="Next record"
+            >
               <icons.next size={16} />
             </button>
             <button className="icon-button" onClick={onClose} title="Close detail">
@@ -338,11 +367,11 @@ export function DetailPanel({
         <div className="property-list">
           {orderedFields.map((key, index) => {
             const value = row[key];
-            const issue = issues[`${rowIndex}:${key}`];
+            const issue = resolveValidationIssue(validation, rowId, sourceRowIndex, key);
             const isDragged = dragState?.field === key;
             const visibleIndex = dragState ? dragState.restOrder.indexOf(key) : index;
             return (
-              <Fragment key={`${rowIndex}:${key}`}>
+              <Fragment key={`${rowId ?? sourceRowIndex ?? "detail"}:${key}`}>
                 {!isDragged && dragState && dragState.targetIndex === visibleIndex ? (
                   <div className="detail-drop-indicator" />
                 ) : null}
@@ -368,7 +397,7 @@ export function DetailPanel({
                     <section className="property-block">
                       <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} />
                       {renderValueEditor({
-                        cellId: `detail:${rowIndex}:${key}`,
+                        cellId: `detail:${rowId ?? sourceRowIndex ?? "detail"}:${key}`,
                         pathParts: [key],
                         fieldName: key,
                         displayType: displayTypes[key] ?? defaultTypeFor(value),

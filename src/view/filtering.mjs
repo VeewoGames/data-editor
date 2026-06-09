@@ -1,6 +1,7 @@
 export function attachRowIndexes(rows) {
   return rows.map((row, index) => {
     const copy = { ...row };
+    copyHiddenRuntimeProperty(row, copy, "__viewRowId");
     Object.defineProperty(copy, "__rowIndex", {
       value: typeof row?.__rowIndex === "number" ? row.__rowIndex : index,
       enumerable: false,
@@ -13,9 +14,10 @@ export function attachRowIndexes(rows) {
 const discreteScalarFieldTypes = new Set(["Select", "Relation"]);
 
 export function applyViewFilters(rows, query, filters, fieldTypes = {}) {
-  const indexedRows = attachRowIndexes(rows);
   const normalizedQuery = normalizeText(query).toLowerCase();
   const rules = Array.isArray(filters?.rules) ? filters.rules : [];
+  if (!normalizedQuery && rules.length === 0) return rows;
+  const indexedRows = attachRowIndexes(rows);
 
   return indexedRows.filter((row) => {
     if (normalizedQuery && !rowMatchesQuery(row, normalizedQuery)) return false;
@@ -95,4 +97,13 @@ function normalizeText(value) {
   if (Array.isArray(value)) return value.join(" ");
   if (value == null) return "";
   return String(value);
+}
+
+function copyHiddenRuntimeProperty(source, target, key) {
+  if (!Object.prototype.hasOwnProperty.call(source ?? {}, key)) return;
+  Object.defineProperty(target, key, {
+    value: source[key],
+    enumerable: false,
+    configurable: true,
+  });
 }

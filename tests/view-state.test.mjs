@@ -45,11 +45,12 @@ test("App wires shared view filter bar draft changes through active view drafts"
     appSource.indexOf("<DataTable"),
   );
 
-  assert.match(appSource, /import \{ ViewFilterBar \} from "\.\/components\/ViewFilterBar";/);
+  assert.match(appSource, /import \{ ViewFilterBar, type ViewFilterBarSnapshot \} from "\.\/components\/ViewFilterBar";/);
   assert.match(mainContentSection, /<ViewFilterBar/);
-  assert.match(mainContentSection, /view=\{activeView\}/);
-  assert.match(mainContentSection, /fields=\{allFields\}/);
-  assert.match(mainContentSection, /relationFilterOptions=\{viewFilterOptions\}/);
+  assert.match(appSource, /const viewFilterBarSnapshot = useMemo<ViewFilterBarSnapshot>\(\(\) => \(\{/);
+  assert.match(appSource, /view: activeView,/);
+  assert.match(appSource, /fields: allFields,/);
+  assert.match(appSource, /relationFilterOptions: viewFilterOptions,/);
   assert.match(mainContentSection, /onChangeFilters=\{\(filters\) => updateActiveViewDraft\(\{ filters \}\)\}/);
   assert.match(mainContentSection, /onChangeSorts=\{\(sorts\) => updateActiveViewDraft\(\{ sorts \}\)\}/);
   assert.match(filterBarSource, /export type ViewFilterBarProps = \{/);
@@ -590,7 +591,8 @@ test("toolbar autosave state excludes shared view draft dirty while global unsav
 
   assert.match(appSource, /const toolbarDirty = dataDirty \|\| viewConfigDirty \|\| profileDirty;/);
   assert.match(appSource, /const globalDirty = toolbarDirty \|\| viewDraftDirty;/);
-  assert.match(toolbarSection, /autosaveState=\{autosaveState\}/);
+  assert.match(appSource, /const toolbarSnapshot = useMemo<ToolbarSnapshot>\(\(\) => \(\{/);
+  assert.match(appSource, /autosaveState,/);
   assert.match(toolbarSection, /onResetView=\{handleResetView\}/);
   assert.doesNotMatch(toolbarSection, /dirty=\{toolbarDirty\}/);
   assert.doesNotMatch(toolbarSection, /onResetView=\{handleResetSharedViewDraft\}/);
@@ -706,8 +708,8 @@ test("project reload lets openDocumentAt choose the first valid collection", asy
     appSource.indexOf("async function loadMaintenanceInfo"),
   );
 
-  assert.match(reloadSection, /resolvePreferredFilePath\(nextFiles, savedOrder, selectedPathRef\.current\)/);
-  assert.match(reloadSection, /openDocumentAt\(preferredPath, undefined, undefined, false, projectId\)/);
+  assert.match(reloadSection, /resolvePreferredFilePath\(\s*nextFiles,\s*savedOrder,\s*currentPageContext\.selectedPath \?\? selectedPathRef\.current,\s*\)/);
+  assert.match(reloadSection, /openDocumentAt\(preferredPath, targetCollection, undefined, false, projectId\)/);
   assert.doesNotMatch(reloadSection, /openDocumentAt\(preferredPath, "\$"/);
   assert.match(openDocumentSection, /resolveDocumentCollection\(documentModel, targetCollection\)/);
   assert.match(appSource, /function resolveDocumentCollection\(model: DocumentModel, targetCollection\?: string\)/);
@@ -725,8 +727,9 @@ test("project reload and document open both guard against stale file paths befor
   );
 
   assert.match(appSource, /import \{ normalizeFileOrder, resolvePreferredFilePath \} from "\.\/file-order\.mjs";/);
-  assert.match(reloadSection, /const preferredPath = resolvePreferredFilePath\(nextFiles, savedOrder, selectedPathRef\.current\);/);
-  assert.match(reloadSection, /if \(preferredPath\) await openDocumentAt\(preferredPath, undefined, undefined, false, projectId\);/);
+  assert.match(reloadSection, /const preferredPath = resolvePreferredFilePath\(\s*nextFiles,\s*savedOrder,\s*currentPageContext\.selectedPath \?\? selectedPathRef\.current,\s*\);/);
+  assert.match(reloadSection, /const targetCollection = preferredPath === currentPageContext\.selectedPath \? currentPageContext\.collectionPath : undefined;/);
+  assert.match(reloadSection, /await openDocumentAt\(preferredPath, targetCollection, undefined, false, projectId\);/);
   assert.match(
     openDocumentSection,
     /const fallbackPath = resolvePreferredFilePath\(\s*files,\s*selectedViewProfileNameRef\.current \? selectedViewProfileRef\.current\.fileOrder : readLocalFileOrder\(window\.localStorage\),\s*path,\s*\);/,

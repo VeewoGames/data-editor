@@ -2,7 +2,6 @@ import * as Popover from "@radix-ui/react-popover";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CollectionView, FilterGroup, FilterRule, SortRule } from "../api/client";
-import type { FieldConfig } from "../table/DataTable";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import type { FieldViewConfig, MultiSelectOptionView } from "../model/viewConfig";
 import { FieldTypeIcon } from "./FieldTypeIcon";
@@ -14,17 +13,7 @@ import { SortPopover } from "./sort/SortPopover";
 import { createDefaultFilterRule } from "../view/filter-rules.mjs";
 
 export type ViewFilterBarProps = {
-  collectionKey?: string | null;
-  view: CollectionView | null;
-  fields: string[];
-  fieldConfig: FieldConfig;
-  fieldViewConfigs: Record<string, FieldViewConfig>;
-  fieldTypes?: Record<string, FieldDisplayType>;
-  relationFilterOptions?: Record<string, MultiSelectOptionView[]>;
-  dirty: boolean;
-  viewOrderDirty: boolean;
-  saving: boolean;
-  autoOpenRuleId: string | null;
+  snapshot: ViewFilterBarSnapshot;
   onChangeFilters: (filters: FilterGroup) => void;
   onChangeSorts: (sorts: SortRule[]) => void;
   onAddFilter: (field: string, fieldType: FieldDisplayType) => void;
@@ -33,18 +22,22 @@ export type ViewFilterBarProps = {
   onSaveForEveryone: () => void;
 };
 
+export type ViewFilterBarSnapshot = {
+  collectionKey?: string | null;
+  view: CollectionView | null;
+  fields: string[];
+  displayTypes: Record<string, FieldDisplayType>;
+  fieldViewConfigs: Record<string, FieldViewConfig>;
+  fieldTypes?: Record<string, FieldDisplayType>;
+  relationFilterOptions?: Record<string, MultiSelectOptionView[]>;
+  dirty: boolean;
+  viewOrderDirty: boolean;
+  saving: boolean;
+  autoOpenRuleId: string | null;
+};
+
 export function ViewFilterBar({
-  collectionKey = null,
-  view,
-  fields,
-  fieldConfig,
-  fieldViewConfigs,
-  fieldTypes = {},
-  relationFilterOptions = {},
-  dirty,
-  viewOrderDirty,
-  saving,
-  autoOpenRuleId,
+  snapshot,
   onChangeFilters,
   onChangeSorts,
   onAddFilter,
@@ -52,6 +45,19 @@ export function ViewFilterBar({
   onResetView,
   onSaveForEveryone,
 }: ViewFilterBarProps) {
+  const {
+    collectionKey = null,
+    view,
+    fields,
+    displayTypes,
+    fieldViewConfigs,
+    fieldTypes = {},
+    relationFilterOptions = {},
+    dirty,
+    viewOrderDirty,
+    saving,
+    autoOpenRuleId,
+  } = snapshot;
   const [addFilterOpen, setAddFilterOpen] = useState(false);
   const [openRuleId, setOpenRuleId] = useState<string | null>(null);
   const [openRuleRect, setOpenRuleRect] = useState<{ left: number; top: number } | null>(null);
@@ -133,7 +139,7 @@ export function ViewFilterBar({
       setAddFilterOpen(false);
       return;
     }
-    const fieldType = resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes);
+    const fieldType = resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes);
     const nextRule = createDefaultFilterRule(field, fieldType, visibleFilterRules);
     suppressCloseRuleIdRef.current = nextRule.id;
     setOpenRuleId(nextRule.id);
@@ -171,8 +177,8 @@ export function ViewFilterBar({
             <div className="add-filter-popover" role="menu" aria-label="选择筛选字段">
               {availableFilterFields.map((field) => (
                 <button className="add-filter-field-option" key={field} onClick={() => addFilter(field)} type="button" role="menuitem">
-                  <span className="add-filter-field-icon" data-field-icon={resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes)}>
-                    <FieldTypeIcon fieldType={resolveFieldType(field, fieldConfig, fieldViewConfigs, fieldTypes)} size={14} strokeWidth={2.2} />
+                  <span className="add-filter-field-icon" data-field-icon={resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes)}>
+                    <FieldTypeIcon fieldType={resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes)} size={14} strokeWidth={2.2} />
                   </span>
                   <span className="add-filter-field-name">{field}</span>
                 </button>
@@ -202,13 +208,13 @@ export function ViewFilterBar({
             <button
               className="view-filter-chip filter-chip"
               type="button"
-              title={filterChipTitle(rule, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions)}
+              title={filterChipTitle(rule, displayTypes, fieldViewConfigs, fieldTypes, relationFilterOptions)}
               onClick={() => {
                 if (suppressCloseRuleIdRef.current === rule.id) return;
                 setOpenRuleId((current) => current === rule.id ? null : rule.id);
               }}
             >
-              <span className="filter-chip-label">{filterChipLabel(rule, fieldConfig, fieldViewConfigs, fieldTypes, relationFilterOptions)}</span>
+              <span className="filter-chip-label">{filterChipLabel(rule, displayTypes, fieldViewConfigs, fieldTypes, relationFilterOptions)}</span>
               <icons.chevronDown className="filter-chip-chevron" size={14} />
             </button>
             {openRuleId === rule.id && openRuleRect && typeof document !== "undefined"
@@ -220,7 +226,7 @@ export function ViewFilterBar({
                   {renderFilterPopover(
                     rule,
                     view.filters,
-                    fieldConfig,
+                    displayTypes,
                     fieldViewConfigs,
                     fieldTypes,
                     relationFilterOptions,
@@ -256,7 +262,7 @@ export function ViewFilterBar({
 function renderFilterPopover(
   rule: FilterRule,
   filters: FilterGroup,
-  fieldConfig: FieldConfig,
+  displayTypes: Record<string, FieldDisplayType>,
   fieldViewConfigs: Record<string, FieldViewConfig>,
   fieldTypes: Record<string, FieldDisplayType>,
   relationFilterOptions: Record<string, MultiSelectOptionView[]>,
@@ -264,7 +270,7 @@ function renderFilterPopover(
   onCachedValuesChange: (values: string[] | null) => void,
   onChangeFilters: (filters: FilterGroup) => void,
 ) {
-  const fieldType = resolveFieldType(rule.field, fieldConfig, fieldViewConfigs, fieldTypes);
+  const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
   if (fieldType === "Checkbox") {
     return <BooleanFilterPopover filters={filters} rule={rule} onChangeFilters={onChangeFilters} />;
   }
@@ -286,12 +292,12 @@ function renderFilterPopover(
 
 function resolveFieldType(
   field: string,
-  fieldConfig: FieldConfig,
+  displayTypes: Record<string, FieldDisplayType>,
   fieldViewConfigs: Record<string, FieldViewConfig>,
   fieldTypes: Record<string, FieldDisplayType>,
 ): FieldDisplayType {
   if (fieldTypes[field] === "Relation") return "Relation";
-  return fieldConfig.displayTypes[field] ?? fieldTypes[field] ?? fieldViewConfigs[field]?.type ?? "Text";
+  return displayTypes[field] ?? fieldTypes[field] ?? fieldViewConfigs[field]?.type ?? "Text";
 }
 
 function optionsForField(
@@ -319,12 +325,12 @@ function optionsForField(
 
 function filterChipLabel(
   rule: FilterRule,
-  fieldConfig: FieldConfig,
+  displayTypes: Record<string, FieldDisplayType>,
   fieldViewConfigs: Record<string, FieldViewConfig>,
   fieldTypes: Record<string, FieldDisplayType>,
   relationFilterOptions: Record<string, MultiSelectOptionView[]> = {},
 ) {
-  const fieldType = resolveFieldType(rule.field, fieldConfig, fieldViewConfigs, fieldTypes);
+  const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
   if (fieldType === "Checkbox") {
     const label = booleanLabel(rule);
     return label ? `${rule.field}: ${label}` : rule.field;
@@ -344,12 +350,12 @@ function filterChipLabel(
 
 function filterChipTitle(
   rule: FilterRule,
-  fieldConfig: FieldConfig,
+  displayTypes: Record<string, FieldDisplayType>,
   fieldViewConfigs: Record<string, FieldViewConfig>,
   fieldTypes: Record<string, FieldDisplayType>,
   relationFilterOptions: Record<string, MultiSelectOptionView[]> = {},
 ) {
-  const fieldType = resolveFieldType(rule.field, fieldConfig, fieldViewConfigs, fieldTypes);
+  const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
   if (fieldType === "Checkbox") {
     const label = booleanLabel(rule);
     return label ? `${rule.field}: ${label}` : rule.field;

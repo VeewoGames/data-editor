@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { buildDocumentModel } from "../src/document-model.mjs";
+import { buildDocumentStore } from "../src/model/document-store.mjs";
 import { buildBacklinkGrid, getBacklinkColumnsForView } from "../src/model/backlink-grid.mjs";
 
 test("getBacklinkColumnsForView returns derived backlink columns for target view", () => {
@@ -130,4 +132,46 @@ test("buildBacklinkGrid marks backlink column invalid when source document is mi
     message: "来源文件缺失：data/status_effects.json",
   }]);
   assert.deepEqual(result.valuesByRowIndex[0].back_keyword_id, []);
+});
+
+test("buildBacklinkGrid carries source rowId on backlink items", () => {
+  const sourceModel = buildDocumentModel([
+    { effect_id: "focus_buff", name: "聚焦", keyword_id: "focus" },
+    { effect_id: "focus_echo", name: "回响", keyword_id: "focus" },
+  ], "json", "data/status_effects.json");
+  buildDocumentStore({ documentId: "status_effects", model: sourceModel });
+
+  const result = buildBacklinkGrid({
+    targetFile: "data/keywords.json",
+    targetCollection: "$",
+    rows: [
+      { keyword_id: "focus", name: "专注" },
+    ],
+    viewConfig: {
+      fields: {},
+      primaryKeys: {
+        "data/keywords.json:$": "keyword_id",
+      },
+      backlinks: {},
+      relations: {
+        "data/status_effects.json:$:keyword_id": {
+          targetFile: "data/keywords.json",
+          targetCollection: "$",
+          targetKey: "keyword_id",
+          mode: "single",
+          titleFields: ["name"],
+          allowMissing: false,
+        },
+      },
+      relationsVersion: 3,
+    },
+    documentsByPath: {
+      "data/status_effects.json": sourceModel,
+    },
+  });
+
+  assert.deepEqual(result.valuesByRowIndex[0].back_keyword_id.map((item) => item.rowId), [
+    "status_effects:$:0",
+    "status_effects:$:1",
+  ]);
 });

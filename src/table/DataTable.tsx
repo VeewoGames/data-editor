@@ -1,6 +1,5 @@
-import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
-import { memo, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { ColumnHeader } from "./ColumnHeader";
+import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
   buildPreviewOrderFromSlots,
   collectColumnSlots,
@@ -8,30 +7,35 @@ import {
   resolveAutoScrollDirection,
   scrollColumnContainer,
 } from "./column-dnd.mjs";
-import { BacklinkCellViewer } from "./BacklinkCellViewer";
-import { CellRenderer } from "./CellRenderer";
 import type { OptionFieldDraftCommit } from "./OptionFieldEditor";
+import { buildTableColumns, TableColumnsRuntimeProvider } from "./table-columns";
+import { buildTableColumnModels, getColumnModelDisplayType } from "./table-column-models.mjs";
+import { buildTableColumnModelsSignature } from "./table-column-signatures.mjs";
+import { buildVisibleTableRenderContract } from "./table-render-contract.mjs";
 import type { DataRecord, DocumentModel } from "../model/documentModel";
-import { getMainColumns, getNestedFields, getRows, summarizeNested } from "../model/documentModel";
+import type { TableRowView } from "../model/document-store";
+import { getMainColumns, getNestedFields } from "../model/documentModel";
 import type { FieldDisplayType } from "../model/fieldTypes";
-import { defaultTypeFor } from "../model/fieldTypes";
 import type { RelationOption } from "../model/relations";
-import { buildRelationKey } from "../model/relationPath";
-import { resolveFieldRole, type ResolvedFieldRole } from "../model/fieldRole";
-import type { ValidationIssue } from "../model/validation";
 import { icons } from "../components/icons";
 import { findTitleField } from "../model/titleField";
 import type { BacklinkGridColumn } from "../model/backlinkGrid";
 import type { RelationBacklink } from "../model/relationMaintenance";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
-import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
+import type { ValidationSnapshot } from "../validation/issue-map";
+import { mergeMeasuredRowHeights, resolveRowHeight as resolveMeasuredRowHeight } from "./row-height-index.mjs";
+import { buildTableRuntimeDeps } from "./table-runtime-deps.mjs";
+import { buildVariableRowWindow } from "./variable-row-window.mjs";
 
-export type FieldConfig = {
+export type TableFieldConfig = {
   displayTypes: Record<string, FieldDisplayType>;
   hidden: Set<string>;
   wrapped: Set<string>;
   widths: Record<string, number>;
   order: string[];
+};
+
+export type FieldConfig = TableFieldConfig & {
   detailOrder: string[];
 };
 
@@ -46,34 +50,39 @@ export type SelectFieldOptionConfig = {
 };
 
 const compactRowHeight = 36;
+const estimatedWrappedRowHeight = 72;
 const rowOverscan = 8;
 const rowActionColumnWidth = 42;
 const addColumnWidth = 44;
 
-type DataTableProps = {
-  model: DocumentModel;
-  schemaModel?: DocumentModel | null;
+export type TableSnapshot = {
+  schemaModel: DocumentModel;
   sourcePath: string | null;
   collectionPath: string;
-  fieldConfig: FieldConfig;
+  rowViews: TableRowView[];
+  fieldConfig: TableFieldConfig;
   fieldViewConfigs: Record<string, FieldViewConfig>;
   backlinkColumns: BacklinkGridColumn[];
-  backlinkValuesByRowIndex: Record<number, Record<string, RelationBacklink[]>>;
+  backlinkValuesByRowId: Record<string, Record<string, RelationBacklink[]>>;
   relationOptions: Record<string, RelationOption[]>;
   relationConfigs: Record<string, RelationConfig>;
   revision: number;
   sort: { field: string; direction: "asc" | "desc" } | null;
-  issues: Record<string, ValidationIssue | null>;
+  validation: ValidationSnapshot;
   titleField: string | null;
   scrollRestoreKey: string | null;
   initialScrollPosition: { scrollTop: number; scrollLeft: number } | null;
+};
+
+type DataTableProps = {
+  snapshot: TableSnapshot;
   onScrollPositionChange: (position: { scrollTop: number; scrollLeft: number }) => void;
-  onSelectRow: (rowIndex: number) => void;
-  onOpenDetail: (rowIndex: number) => void;
+  onSelectRow: (rowIndex: number, rowId: string | null) => void;
+  onOpenDetail: (rowIndex: number, rowId: string | null) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
-  onEditCell: (rowIndex: number, fieldName: string, value: unknown) => void;
-  onCommitMultiSelectDraft: (rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) => void;
-  onCommitSelectDraft: (rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) => void;
+  onEditCell: (rowIndex: number, rowId: string | null, fieldName: string, value: unknown) => void;
+  onCommitMultiSelectDraft: (rowIndex: number, rowId: string | null, fieldName: string, patch: OptionFieldDraftCommit) => void;
+  onCommitSelectDraft: (rowIndex: number, rowId: string | null, fieldName: string, patch: OptionFieldDraftCommit) => void;
   onChangeFieldType: (fieldName: string, displayType: FieldDisplayType) => void;
   onHideField: (fieldName: string) => void;
   onToggleWrapField: (fieldName: string) => void;
@@ -86,12 +95,13 @@ type DataTableProps = {
   onClearRelation: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onAddRow: () => void;
-  onDeleteRow: (rowIndex: number) => void;
+  onDeleteRow: (rowIndex: number, rowId: string | null) => void;
   onAddField: () => void;
   onDeleteField: (fieldName: string) => void;
 };
 
 function DataTableComponent(props: DataTableProps) {
+  const { snapshot } = props;
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(720);
   const [pressedField, setPressedField] = useState<string | null>(null);
@@ -110,18 +120,43 @@ function DataTableComponent(props: DataTableProps) {
   const columnDragPointerXRef = useRef<number | null>(null);
   const columnDragAutoScrollDirectionRef = useRef<-1 | 0 | 1>(0);
   const columnDragAutoScrollFrameRef = useRef<number | null>(null);
-  const localWidthsRef = useRef<Record<string, number>>({ ...props.fieldConfig.widths });
+  const localWidthsRef = useRef<Record<string, number>>({ ...snapshot.fieldConfig.widths });
+  const rowElementRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const previousTableRenderContractRef = useRef<ReturnType<typeof buildVisibleTableRenderContract> | null>(null);
+  const runtimeActionRef = useRef({
+    onSort: props.onSort,
+    onAddFilter: props.onAddFilter,
+    onHideField: props.onHideField,
+    onMoveField: props.onMoveField,
+    onToggleWrapField: props.onToggleWrapField,
+    onChangeFieldType: props.onChangeFieldType,
+    onConfigureRelation: props.onConfigureRelation,
+    onClearRelation: props.onClearRelation,
+    onDeleteField: props.onDeleteField,
+    onOpenRelationTarget: props.onOpenRelationTarget,
+    onSelectRow: props.onSelectRow,
+    onOpenDetail: props.onOpenDetail,
+    onOpenBacklink: props.onOpenBacklink,
+    onEditCell: props.onEditCell,
+    onCommitMultiSelectDraft: props.onCommitMultiSelectDraft,
+    onCommitSelectDraft: props.onCommitSelectDraft,
+    onResizeField: props.onResizeField,
+    onReorderFields: props.onReorderFields,
+  });
   const restoredScrollContextKeyRef = useRef<string | null>(null);
-  const rows = getRows(props.model, props.collectionPath) as DataRecord[];
-  const schemaModel = props.schemaModel ?? props.model;
+  const [measuredRowHeights, setMeasuredRowHeights] = useState<Record<string, number>>({});
+  const rowViews = snapshot.rowViews;
+  const rowIds = useMemo(() => rowViews.map((view) => view.rowId), [rowViews]);
+  const rows = useMemo(() => rowViews.map((view) => view.row), [rowViews]);
+  const schemaModel = snapshot.schemaModel;
   const nestedFieldSet = useMemo(
-    () => new Set(getNestedFields(schemaModel, props.collectionPath)),
-    [schemaModel, props.collectionPath],
+    () => new Set(getNestedFields(schemaModel, snapshot.collectionPath)),
+    [schemaModel, snapshot.collectionPath],
   );
 
   useEffect(() => {
-    localWidthsRef.current = { ...props.fieldConfig.widths };
-  }, [props.sourcePath, props.collectionPath, props.revision, props.fieldConfig.widths]);
+    localWidthsRef.current = { ...snapshot.fieldConfig.widths };
+  }, [snapshot.sourcePath, snapshot.collectionPath, snapshot.revision, snapshot.fieldConfig.widths]);
 
   useEffect(() => {
     setScrollTop(0);
@@ -130,13 +165,13 @@ function DataTableComponent(props: DataTableProps) {
       scrollContainerRef.current.scrollTop = 0;
       scrollContainerRef.current.scrollLeft = 0;
     }
-  }, [props.sourcePath, props.collectionPath]);
+  }, [snapshot.sourcePath, snapshot.collectionPath]);
   useEffect(() => {
-    if (!props.scrollRestoreKey) return;
-    if (restoredScrollContextKeyRef.current === props.scrollRestoreKey) return;
-    restoredScrollContextKeyRef.current = props.scrollRestoreKey;
-    const nextScrollTop = props.initialScrollPosition?.scrollTop ?? 0;
-    const nextScrollLeft = props.initialScrollPosition?.scrollLeft ?? 0;
+    if (!snapshot.scrollRestoreKey) return;
+    if (restoredScrollContextKeyRef.current === snapshot.scrollRestoreKey) return;
+    restoredScrollContextKeyRef.current = snapshot.scrollRestoreKey;
+    const nextScrollTop = snapshot.initialScrollPosition?.scrollTop ?? 0;
+    const nextScrollLeft = snapshot.initialScrollPosition?.scrollLeft ?? 0;
     scrollMetricsRef.current = {
       scrollTop: nextScrollTop,
       scrollLeft: nextScrollLeft,
@@ -147,272 +182,240 @@ function DataTableComponent(props: DataTableProps) {
       scrollContainerRef.current.scrollTop = nextScrollTop;
       scrollContainerRef.current.scrollLeft = nextScrollLeft;
     }
-  }, [props.scrollRestoreKey, props.initialScrollPosition]);
+  }, [snapshot.scrollRestoreKey, snapshot.initialScrollPosition]);
   useEffect(() => {
     columnDragStateRef.current = columnDragState;
   }, [columnDragState]);
   useEffect(() => () => stopColumnAutoScroll(), []);
   const allColumns = useMemo(() => orderColumns([
-    ...getMainColumns(schemaModel, props.collectionPath),
+    ...getMainColumns(schemaModel, snapshot.collectionPath),
     ...nestedFieldSet,
-    ...props.backlinkColumns.map((column) => column.fieldName),
-  ], props.fieldConfig.order), [schemaModel, props.collectionPath, props.fieldConfig.order, nestedFieldSet, props.backlinkColumns]);
+    ...snapshot.backlinkColumns.map((column) => column.fieldName),
+  ], snapshot.fieldConfig.order), [schemaModel, snapshot.collectionPath, snapshot.fieldConfig.order, nestedFieldSet, snapshot.backlinkColumns]);
 
-  const detectedTitleField = props.titleField ?? findTitleField(allColumns, rows);
-  const visibleBaseFields = useMemo(() => allColumns.filter((field) => !props.fieldConfig.hidden.has(field)), [allColumns, props.fieldConfig.hidden]);
+  const detectedTitleField = snapshot.titleField ?? findTitleField(allColumns, rows);
+  const visibleBaseFields = useMemo(() => allColumns.filter((field) => !snapshot.fieldConfig.hidden.has(field)), [allColumns, snapshot.fieldConfig.hidden]);
   const baseVisibleFields = useMemo(
-    () => props.fieldConfig.order.length ? visibleBaseFields : moveTitleFirst(visibleBaseFields, detectedTitleField),
-    [visibleBaseFields, detectedTitleField, props.fieldConfig.order.length],
+    () => snapshot.fieldConfig.order.length ? visibleBaseFields : moveTitleFirst(visibleBaseFields, detectedTitleField),
+    [visibleBaseFields, detectedTitleField, snapshot.fieldConfig.order.length],
   );
   const visibleFields = columnDragState?.order ?? baseVisibleFields;
-  const hasWrappedField = useMemo(() => visibleFields.some((field) => props.fieldConfig.wrapped.has(field)), [visibleFields, props.fieldConfig.wrapped]);
-  const fieldOptions = useMemo(() => {
-    const options: Record<string, MultiSelectFieldOptionConfig> = {};
-    for (const fieldName of visibleFields) {
-      const unique = new Map<string, string | number>();
-      for (const row of rows) {
-        const value = row[fieldName];
-        if (!Array.isArray(value)) continue;
-        for (const item of value) {
-          if (item == null || (typeof item !== "string" && typeof item !== "number")) continue;
-          unique.set(String(item), item);
-        }
-      }
-      options[fieldName] = buildMultiSelectFieldConfig([...unique.values()], props.fieldViewConfigs[fieldName]);
-    }
-    return options;
-  }, [rows, visibleFields, props.fieldViewConfigs]);
-  const selectOptions = useMemo(() => {
-    const options: Record<string, SelectFieldOptionConfig> = {};
-    for (const fieldName of visibleFields) {
-      const storedOptions = props.fieldViewConfigs[fieldName]?.selectOptions ?? {};
-      const merged = new Map<string, MultiSelectOptionView>();
-      for (const [value, option] of Object.entries(storedOptions)) {
-        merged.set(value, { value, label: option.label, color: option.color ?? null });
-      }
-      const currentDisplayType = props.fieldConfig.displayTypes[fieldName];
-      if (currentDisplayType === "Select") {
-        for (const row of rows) {
-          const value = row[fieldName];
-          if (value == null) continue;
-          const normalized = String(value).trim();
-          if (!normalized) continue;
-          if (!merged.has(normalized)) merged.set(normalized, { value: normalized, label: normalized, color: null });
-        }
-      }
-      const normalizedOptions = [...merged.values()];
-      options[fieldName] = {
-        options: normalizedOptions,
-        optionMap: Object.fromEntries(normalizedOptions.map((option) => [option.value, option])),
-      };
-    }
-    return options;
-  }, [rows, visibleFields, props.fieldConfig.displayTypes, props.fieldViewConfigs]);
-  const relationOptionsByField = useMemo(() => {
-    const options: Record<string, RelationOption[]> = {};
-    for (const fieldName of visibleFields) {
-      const role = getFieldRole(props.sourcePath, props.collectionPath, fieldName, props.relationConfigs);
-      options[fieldName] = role.kind === "relation"
-        ? (props.relationOptions[role.relationKey] ?? [])
-        : [];
-    }
-    return options;
-  }, [props.collectionPath, props.relationConfigs, props.relationOptions, props.sourcePath, visibleFields]);
-  const relationConfigByField = useMemo(() => {
-    const configs: Record<string, RelationConfig | null> = {};
-    for (const fieldName of visibleFields) {
-      const role = getFieldRole(props.sourcePath, props.collectionPath, fieldName, props.relationConfigs);
-      configs[fieldName] = role.kind === "relation" ? role.config : null;
-    }
-    return configs;
-  }, [props.collectionPath, props.relationConfigs, props.sourcePath, visibleFields]);
-  const windowSize = hasWrappedField ? rows.length : Math.ceil(viewportHeight / compactRowHeight) + rowOverscan * 2;
+  const hasWrappedField = useMemo(() => visibleFields.some((field) => snapshot.fieldConfig.wrapped.has(field)), [visibleFields, snapshot.fieldConfig.wrapped]);
+  const variableRowWindow = useMemo(() => hasWrappedField
+    ? buildVariableRowWindow({
+      rowIds,
+      viewportHeight,
+      scrollTop,
+      overscan: rowOverscan,
+      getRowHeight: (rowId) => resolveMeasuredRowHeight(rowId, measuredRowHeights, estimatedWrappedRowHeight),
+    })
+    : null, [hasWrappedField, rowIds, viewportHeight, scrollTop, measuredRowHeights]);
+  const {
+    fieldOptions,
+    selectOptions,
+    relationOptionsByField,
+    relationConfigByField,
+  } = useMemo(() => buildTableRuntimeDeps({
+    visibleFields,
+    rows,
+    sourcePath: snapshot.sourcePath,
+    collectionPath: snapshot.collectionPath,
+    displayTypes: snapshot.fieldConfig.displayTypes,
+    fieldViewConfigs: snapshot.fieldViewConfigs,
+    relationConfigs: snapshot.relationConfigs,
+    relationOptions: snapshot.relationOptions,
+  }), [
+    visibleFields,
+    rows,
+    snapshot.sourcePath,
+    snapshot.collectionPath,
+    snapshot.fieldConfig.displayTypes,
+    snapshot.fieldViewConfigs,
+    snapshot.relationConfigs,
+    snapshot.relationOptions,
+  ]);
+  const windowSize = hasWrappedField ? (variableRowWindow?.windowEnd ?? rows.length) - (variableRowWindow?.windowStart ?? 0) : Math.ceil(viewportHeight / compactRowHeight) + rowOverscan * 2;
   const rawWindowStart = Math.max(0, Math.floor(scrollTop / compactRowHeight) - rowOverscan);
   const maxWindowStart = Math.max(0, rows.length - windowSize);
-  const windowStart = hasWrappedField ? 0 : Math.min(rawWindowStart, maxWindowStart);
-  const windowEnd = Math.min(rows.length, windowStart + windowSize);
-  const data = useMemo(() => rows.slice(windowStart, windowEnd), [rows, windowStart, windowEnd]);
-  const topSpacerHeight = hasWrappedField ? 0 : windowStart * compactRowHeight;
-  const bottomSpacerHeight = hasWrappedField ? 0 : Math.max(0, (rows.length - windowEnd) * compactRowHeight);
+  const windowStart = hasWrappedField ? (variableRowWindow?.windowStart ?? 0) : Math.min(rawWindowStart, maxWindowStart);
+  const windowEnd = hasWrappedField ? (variableRowWindow?.windowEnd ?? rows.length) : Math.min(rows.length, windowStart + windowSize);
+  const data = useMemo(() => rowViews.slice(windowStart, windowEnd), [rowViews, windowStart, windowEnd]);
+  const topSpacerHeight = hasWrappedField ? (variableRowWindow?.topSpacerHeight ?? 0) : windowStart * compactRowHeight;
+  const bottomSpacerHeight = hasWrappedField ? (variableRowWindow?.bottomSpacerHeight ?? 0) : Math.max(0, (rows.length - windowEnd) * compactRowHeight);
   const tableColumnCount = visibleFields.length + 2;
   const tableWidth = useMemo(() => {
     return rowActionColumnWidth + addColumnWidth + visibleFields.reduce((total, fieldName) => total + getColumnWidth(fieldName), 0);
-  }, [visibleFields, props.fieldConfig.widths]);
-  const tableData = useMemo(() => data.map((row, index) => ({ ...row, __rowIndex: Number(row.__rowIndex ?? windowStart + index) })), [data, windowStart]);
-  const columns = useMemo<ColumnDef<DataRecord>[]>(() => visibleFields.map((fieldName) => ({
-    id: fieldName,
-    accessorFn: (row) => row[fieldName],
-    size: getColumnWidth(fieldName),
-    header: () => {
-      const backlinkColumn = props.backlinkColumns.find((column) => column.fieldName === fieldName);
-      const displayType = backlinkColumn
-        ? "Backlink"
-        : relationConfigByField[fieldName] ? "Relation" : inferColumnDisplayType(fieldName, rows, nestedFieldSet, props.fieldConfig.displayTypes);
-      const relationConfigured = Boolean(relationConfigByField[fieldName]);
-      return (
-        <ColumnHeader
-          fieldName={fieldName}
-          roleKind={backlinkColumn ? "backlink" : relationConfigured ? "relation" : "normal"}
-          allowTypeChange={!nestedFieldSet.has(fieldName) && !backlinkColumn}
-          displayType={displayType}
-          relationConfigured={relationConfigured}
-          sortDirection={props.sort?.field === fieldName ? props.sort.direction : null}
-          wrapped={props.fieldConfig.wrapped.has(fieldName)}
-          width={getColumnWidth(fieldName)}
-          pressed={pressedField === fieldName}
-          onSort={(direction) => props.onSort(fieldName, direction)}
-          onAddFilter={() => props.onAddFilter(fieldName, displayType)}
-          onHide={() => props.onHideField(fieldName)}
-          onResize={(width) => resizeField(fieldName, width)}
-          onMove={(direction) => props.onMoveField(fieldName, direction)}
-          isDragging={columnDragState?.draggingField === fieldName}
-          onDragStart={handleColumnDragStart}
-          onDragMove={handleColumnDragMove}
-          onDragEnd={handleColumnDragEnd}
-          onPressChange={handlePressChange}
-          onToggleWrap={() => props.onToggleWrapField(fieldName)}
-          onChangeFieldType={(type) => props.onChangeFieldType(fieldName, type)}
-          onConfigureRelation={() => props.onConfigureRelation(fieldName)}
-          onClearRelation={() => props.onClearRelation(fieldName)}
-          onDeleteField={() => props.onDeleteField(fieldName)}
-        />
-      );
-    },
-    cell: (ctx) => {
-      const value = ctx.getValue();
-      const rowIndex = ctx.row.index;
-      const originalRowIndex = Number(ctx.row.original.__rowIndex ?? rowIndex);
-      const backlinkColumn = props.backlinkColumns.find((column) => column.fieldName === fieldName);
-      if (backlinkColumn) {
-        return (
-          <BacklinkCellViewer
-            items={props.backlinkValuesByRowIndex[originalRowIndex]?.[fieldName] ?? []}
-            status={backlinkColumn.status}
-            message={backlinkColumn.message}
-            wrapped={props.fieldConfig.wrapped.has(fieldName)}
-            onOpen={props.onOpenBacklink}
-          />
-        );
-      }
-      if (nestedFieldSet.has(fieldName)) {
-        return (
-          <button className="nested-summary" onClick={() => props.onSelectRow(originalRowIndex)}>
-            {summarizeNestedValue(value)}
-          </button>
-        );
-      }
-      const displayType = nestedFieldSet.has(fieldName)
-        ? "Nested"
-        : relationConfigByField[fieldName] ? "Relation" : props.fieldConfig.displayTypes[fieldName] ?? defaultTypeFor(value);
-      if (fieldName === detectedTitleField) {
-        const wrapped = props.fieldConfig.wrapped.has(fieldName);
-        return (
-          <button
-            type="button"
-            className={`title-cell title-cell-button cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
-            data-cell-role="title-action"
-            data-wrap-mode={wrapped ? "wrap" : "truncate"}
-            onClick={(event) => {
-              event.stopPropagation();
-              props.onOpenDetail(originalRowIndex);
-            }}
-            title="Open detail"
-          >
-            <span className="title-cell-text" data-cell-role="title-text">{value == null ? "" : String(value)}</span>
-          </button>
-        );
-      }
-      return (
-        <CellRenderer
-          cellId={`${originalRowIndex}:${fieldName}`}
-          value={value}
-          displayType={displayType}
-          wrapped={props.fieldConfig.wrapped.has(fieldName)}
-          multiSelectConfig={fieldOptions[fieldName]}
-          selectConfig={selectOptions[fieldName]}
-          relationOptions={relationOptionsByField[fieldName]}
-          relationConfigured={Boolean(relationConfigByField[fieldName])}
-          relationMode={relationConfigByField[fieldName]?.mode}
-          onOpenRelationTarget={relationConfigByField[fieldName] ? (value) => props.onOpenRelationTarget(relationConfigByField[fieldName]!, value) : undefined}
-          issue={props.issues[`${originalRowIndex}:${fieldName}`]}
-          onEdit={(next) => props.onEditCell(originalRowIndex, fieldName, next)}
-          onCommitMultiSelectDraft={(patch) => props.onCommitMultiSelectDraft(originalRowIndex, fieldName, patch)}
-          onCommitSelectDraft={(patch) => props.onCommitSelectDraft(originalRowIndex, fieldName, patch)}
-        />
-      );
-    },
-  })), [
-    baseVisibleFields,
-    visibleFields,
-    pressedField,
-    columnDragState,
-    rows,
-    detectedTitleField,
-    props.fieldConfig.displayTypes,
-    props.fieldConfig.wrapped,
-    fieldOptions,
-    props.backlinkColumns,
-    props.backlinkValuesByRowIndex,
-    nestedFieldSet,
-    relationOptionsByField,
-    relationConfigByField,
-    props.sort,
-    props.issues,
-    props.fieldViewConfigs,
-    selectOptions,
-    props.relationConfigs,
-    props.sourcePath,
-    props.collectionPath,
+  }, [visibleFields, snapshot.fieldConfig.widths]);
+  const tableRenderContract = useMemo(
+    () => buildVisibleTableRenderContract({
+      rowViews: data,
+      windowStart,
+      previousContract: previousTableRenderContractRef.current,
+    }),
+    [data, windowStart],
+  );
+  useEffect(() => {
+    previousTableRenderContractRef.current = tableRenderContract;
+  }, [tableRenderContract]);
+  useEffect(() => {
+    runtimeActionRef.current = {
+      onSort: props.onSort,
+      onAddFilter: props.onAddFilter,
+      onHideField: props.onHideField,
+      onMoveField: props.onMoveField,
+      onToggleWrapField: props.onToggleWrapField,
+      onChangeFieldType: props.onChangeFieldType,
+      onConfigureRelation: props.onConfigureRelation,
+      onClearRelation: props.onClearRelation,
+      onDeleteField: props.onDeleteField,
+      onOpenRelationTarget: props.onOpenRelationTarget,
+      onSelectRow: props.onSelectRow,
+      onOpenDetail: props.onOpenDetail,
+      onOpenBacklink: props.onOpenBacklink,
+      onEditCell: props.onEditCell,
+      onCommitMultiSelectDraft: props.onCommitMultiSelectDraft,
+      onCommitSelectDraft: props.onCommitSelectDraft,
+      onResizeField: props.onResizeField,
+      onReorderFields: props.onReorderFields,
+    };
+  }, [
     props.onSort,
+    props.onAddFilter,
     props.onHideField,
     props.onMoveField,
     props.onToggleWrapField,
     props.onChangeFieldType,
     props.onConfigureRelation,
     props.onClearRelation,
-    props.onOpenRelationTarget,
     props.onDeleteField,
-    props.onResizeField,
-    props.onReorderFields,
+    props.onOpenRelationTarget,
     props.onSelectRow,
     props.onOpenDetail,
     props.onOpenBacklink,
     props.onEditCell,
     props.onCommitMultiSelectDraft,
     props.onCommitSelectDraft,
+    props.onResizeField,
+    props.onReorderFields,
   ]);
+  const tableData = tableRenderContract.rows;
+  const columnModelSignature = useMemo(() => buildTableColumnModelsSignature({
+    visibleFields,
+    rows,
+    nestedFieldSet,
+    displayTypes: snapshot.fieldConfig.displayTypes,
+    wrappedFields: snapshot.fieldConfig.wrapped,
+    detectedTitleField,
+    backlinkColumns: snapshot.backlinkColumns,
+    relationOptionsByField,
+    relationConfigByField,
+    fieldOptions,
+    selectOptions,
+    widths: snapshot.fieldConfig.widths,
+  }), [
+    visibleFields,
+    rows,
+    nestedFieldSet,
+    snapshot.fieldConfig.displayTypes,
+    snapshot.fieldConfig.wrapped,
+    detectedTitleField,
+    snapshot.backlinkColumns,
+    relationOptionsByField,
+    relationConfigByField,
+    fieldOptions,
+    selectOptions,
+    snapshot.fieldConfig.widths,
+  ]);
+  const columnModels = useMemo(() => buildTableColumnModels({
+    visibleFields,
+    rows,
+    nestedFieldSet,
+    displayTypes: snapshot.fieldConfig.displayTypes,
+    wrappedFields: snapshot.fieldConfig.wrapped,
+    detectedTitleField,
+    backlinkColumns: snapshot.backlinkColumns,
+    relationOptionsByField,
+    relationConfigByField,
+    fieldOptions,
+    selectOptions,
+    getColumnWidth,
+  }), [columnModelSignature]);
+  const columns = useMemo(() => buildTableColumns(columnModels), [columnModels]);
+  const handleSort = useCallback((fieldName: string, direction: "asc" | "desc" | null) => {
+    runtimeActionRef.current.onSort(fieldName, direction);
+  }, []);
+  const handleAddFilter = useCallback((fieldName: string, displayType: FieldDisplayType) => {
+    runtimeActionRef.current.onAddFilter(fieldName, displayType);
+  }, []);
+  const handleHideField = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onHideField(fieldName);
+  }, []);
+  const handleMoveField = useCallback((fieldName: string, direction: "left" | "right") => {
+    runtimeActionRef.current.onMoveField(fieldName, direction);
+  }, []);
+  const handleToggleWrapField = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onToggleWrapField(fieldName);
+  }, []);
+  const handleChangeFieldType = useCallback((fieldName: string, displayType: FieldDisplayType) => {
+    runtimeActionRef.current.onChangeFieldType(fieldName, displayType);
+  }, []);
+  const handleConfigureRelation = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onConfigureRelation(fieldName);
+  }, []);
+  const handleClearRelation = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onClearRelation(fieldName);
+  }, []);
+  const handleDeleteField = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onDeleteField(fieldName);
+  }, []);
+  const handleOpenRelationTarget = useCallback((config: RelationConfig, value: string | number) => {
+    runtimeActionRef.current.onOpenRelationTarget(config, value);
+  }, []);
+  const handleOpenBacklink = useCallback((backlink: RelationBacklink) => {
+    runtimeActionRef.current.onOpenBacklink(backlink);
+  }, []);
+  const handleEditCell = useCallback((rowIndex: number, rowId: string, fieldName: string, next: unknown) => {
+    runtimeActionRef.current.onEditCell(rowIndex, rowId, fieldName, next);
+  }, []);
+  const handleCommitMultiSelectDraft = useCallback((rowIndex: number, rowId: string, fieldName: string, patch: OptionFieldDraftCommit) => {
+    runtimeActionRef.current.onCommitMultiSelectDraft(rowIndex, rowId, fieldName, patch);
+  }, []);
+  const handleCommitSelectDraft = useCallback((rowIndex: number, rowId: string, fieldName: string, patch: OptionFieldDraftCommit) => {
+    runtimeActionRef.current.onCommitSelectDraft(rowIndex, rowId, fieldName, patch);
+  }, []);
 
-  const table = useReactTable({
-    data: tableData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getRowId: (row) => String(row.__rowIndex),
-  });
+  const selectRowByRuntime = useCallback((rowIndex: number, rowId: string | null) => {
+    runtimeActionRef.current.onSelectRow(rowIndex, rowId);
+  }, []);
 
-  function selectRow(event: ReactMouseEvent<HTMLTableRowElement>, rowIndex: number) {
+  const openDetailByRuntime = useCallback((rowIndex: number, rowId: string | null) => {
+    runtimeActionRef.current.onOpenDetail(rowIndex, rowId);
+  }, []);
+
+  const selectRow = useCallback((event: ReactMouseEvent<HTMLTableRowElement>, rowIndex: number, rowId: string | null) => {
     const rowElement = event.currentTarget;
     rowElement.closest("tbody")?.querySelectorAll("tr.selected-row").forEach((row) => row.classList.remove("selected-row"));
     rowElement.classList.add("selected-row");
-    props.onSelectRow(rowIndex);
-  }
+    selectRowByRuntime(rowIndex, rowId);
+  }, [selectRowByRuntime]);
 
-  function resizeField(fieldName: string, width: number) {
+  const resizeField = useCallback((fieldName: string, width: number) => {
     localWidthsRef.current = { ...localWidthsRef.current, [fieldName]: width };
-    props.onResizeField(fieldName, width);
-  }
+    runtimeActionRef.current.onResizeField(fieldName, width);
+  }, []);
 
   function getColumnWidth(fieldName: string) {
     return localWidthsRef.current[fieldName] ?? 180;
   }
 
-  function handlePressChange(fieldName: string, pressed: boolean) {
+  const handlePressChange = useCallback((fieldName: string, pressed: boolean) => {
     setPressedField((current) => {
       if (pressed) return fieldName;
       return current === fieldName ? null : current;
     });
-  }
+  }, []);
 
-  function handleColumnDragStart(fieldName: string, rect: DOMRect, pointerOffsetX: number) {
+  const handleColumnDragStart = useCallback((fieldName: string, rect: DOMRect, pointerOffsetX: number) => {
     setPressedField(null);
     columnDragPointerXRef.current = rect.left + pointerOffsetX;
     columnDragAutoScrollDirectionRef.current = 0;
@@ -426,27 +429,115 @@ function DataTableComponent(props: DataTableProps) {
       height: rect.height,
       pointerOffsetX,
     });
-  }
+  }, [baseVisibleFields]);
 
-  function handleColumnDragMove(fieldName: string, clientX: number) {
+  const handleColumnDragMove = useCallback((fieldName: string, clientX: number) => {
     columnDragPointerXRef.current = clientX;
     columnDragAutoScrollDirectionRef.current = resolveAutoScrollDirection(scrollContainerRef.current, clientX);
     if (columnDragAutoScrollDirectionRef.current !== 0) scheduleColumnAutoScroll();
     else stopColumnAutoScroll();
     updateColumnDragPreview(fieldName, clientX);
-  }
+  }, []);
 
-  function handleColumnDragEnd(fieldName: string) {
+  const handleColumnDragEnd = useCallback((fieldName: string) => {
     setPressedField(null);
     columnDragPointerXRef.current = null;
     columnDragAutoScrollDirectionRef.current = 0;
     stopColumnAutoScroll();
     setColumnDragState((current) => {
       if (!current || current.draggingField !== fieldName) return null;
-      props.onReorderFields(current.order);
+      runtimeActionRef.current.onReorderFields(current.order);
       return null;
     });
-  }
+  }, []);
+
+  const tableColumnsRuntime = useMemo(() => ({
+    backlinkValuesByRowId: snapshot.backlinkValuesByRowId,
+    validation: snapshot.validation,
+    sortField: snapshot.sort?.field ?? null,
+    sortDirection: snapshot.sort?.direction ?? null,
+    pressedField,
+    columnDragState,
+    onSort: handleSort,
+    onAddFilter: handleAddFilter,
+    onHideField: handleHideField,
+    onResizeField: resizeField,
+    onMoveField: handleMoveField,
+    onDragStart: handleColumnDragStart,
+    onDragMove: handleColumnDragMove,
+    onDragEnd: handleColumnDragEnd,
+    onPressChange: handlePressChange,
+    onToggleWrapField: handleToggleWrapField,
+    onChangeFieldType: handleChangeFieldType,
+    onConfigureRelation: handleConfigureRelation,
+    onClearRelation: handleClearRelation,
+    onDeleteField: handleDeleteField,
+    onOpenRelationTarget: handleOpenRelationTarget,
+    onSelectRow: selectRowByRuntime,
+    onOpenDetail: openDetailByRuntime,
+    onOpenBacklink: handleOpenBacklink,
+    onEditCell: handleEditCell,
+    onCommitMultiSelectDraft: handleCommitMultiSelectDraft,
+    onCommitSelectDraft: handleCommitSelectDraft,
+  }), [
+    snapshot.backlinkValuesByRowId,
+    snapshot.validation,
+    snapshot.sort,
+    pressedField,
+    columnDragState,
+    handleSort,
+    handleAddFilter,
+    handleHideField,
+    resizeField,
+    handleMoveField,
+    handleColumnDragStart,
+    handleColumnDragMove,
+    handleColumnDragEnd,
+    handlePressChange,
+    handleToggleWrapField,
+    handleChangeFieldType,
+    handleConfigureRelation,
+    handleClearRelation,
+    handleDeleteField,
+    handleOpenRelationTarget,
+    selectRowByRuntime,
+    openDetailByRuntime,
+    handleOpenBacklink,
+    handleEditCell,
+    handleCommitMultiSelectDraft,
+    handleCommitSelectDraft,
+  ]);
+
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => String(row.__rowId ?? row.__rowIndex),
+  });
+
+  useEffect(() => {
+    setMeasuredRowHeights({});
+    rowElementRefs.current = {};
+  }, [
+    snapshot.sourcePath,
+    snapshot.collectionPath,
+    snapshot.revision,
+    snapshot.fieldConfig.wrapped,
+    snapshot.fieldConfig.widths,
+    visibleFields,
+    hasWrappedField,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!hasWrappedField) return;
+    const nextMeasurements: Record<string, number> = {};
+    for (const rowView of data) {
+      const element = rowElementRefs.current[rowView.rowId];
+      if (!element) continue;
+      nextMeasurements[rowView.rowId] = element.getBoundingClientRect().height;
+    }
+    setMeasuredRowHeights((current) => mergeMeasuredRowHeights(current, nextMeasurements));
+  }, [hasWrappedField, data, visibleFields, snapshot.fieldConfig.widths]);
 
   function updateColumnDragPreview(fieldName: string, clientX: number) {
     const scrollContainer = scrollContainerRef.current;
@@ -495,28 +586,29 @@ function DataTableComponent(props: DataTableProps) {
 
   return (
     <section className="table-shell">
-      <div
-        className="table-scroll"
-        ref={scrollContainerRef}
-        onScroll={(event) => {
-          const element = event.currentTarget;
-          const nextScrollTop = element.scrollTop;
-          const nextScrollLeft = element.scrollLeft;
-          const nextViewportHeight = element.clientHeight;
-          const current = scrollMetricsRef.current;
-          if (current.scrollTop === nextScrollTop && current.scrollLeft === nextScrollLeft && current.viewportHeight === nextViewportHeight) return;
-          scrollMetricsRef.current = { scrollTop: nextScrollTop, scrollLeft: nextScrollLeft, viewportHeight: nextViewportHeight };
-          if (current.scrollTop !== nextScrollTop) setScrollTop(nextScrollTop);
-          if (current.viewportHeight !== nextViewportHeight) setViewportHeight(nextViewportHeight);
-          if (props.scrollRestoreKey) {
-            props.onScrollPositionChange({ scrollTop: nextScrollTop, scrollLeft: nextScrollLeft });
-          }
-          if (columnDragPointerXRef.current != null && columnDragStateRef.current) {
-            updateColumnDragPreview(columnDragStateRef.current.draggingField, columnDragPointerXRef.current);
-          }
-        }}
-      >
-        <table className="data-table" style={{ width: tableWidth, minWidth: tableWidth }}>
+      <TableColumnsRuntimeProvider value={tableColumnsRuntime}>
+        <div
+          className="table-scroll"
+          ref={scrollContainerRef}
+          onScroll={(event) => {
+            const element = event.currentTarget;
+            const nextScrollTop = element.scrollTop;
+            const nextScrollLeft = element.scrollLeft;
+            const nextViewportHeight = element.clientHeight;
+            const current = scrollMetricsRef.current;
+            if (current.scrollTop === nextScrollTop && current.scrollLeft === nextScrollLeft && current.viewportHeight === nextViewportHeight) return;
+            scrollMetricsRef.current = { scrollTop: nextScrollTop, scrollLeft: nextScrollLeft, viewportHeight: nextViewportHeight };
+            if (current.scrollTop !== nextScrollTop) setScrollTop(nextScrollTop);
+            if (current.viewportHeight !== nextViewportHeight) setViewportHeight(nextViewportHeight);
+            if (snapshot.scrollRestoreKey) {
+              props.onScrollPositionChange({ scrollTop: nextScrollTop, scrollLeft: nextScrollLeft });
+            }
+            if (columnDragPointerXRef.current != null && columnDragStateRef.current) {
+              updateColumnDragPreview(columnDragStateRef.current.draggingField, columnDragPointerXRef.current);
+            }
+          }}
+        >
+          <table className="data-table" style={{ width: tableWidth, minWidth: tableWidth }}>
           <colgroup>
             <col className="row-action-col" />
             {visibleFields.map((fieldName) => {
@@ -549,14 +641,16 @@ function DataTableComponent(props: DataTableProps) {
             {table.getRowModel().rows.map((row) => {
               const rowIndex = row.index;
               const originalRowIndex = Number(row.original.__rowIndex ?? rowIndex);
+              const rowId = String(row.original.__rowId ?? originalRowIndex);
               return (
                 <tr
                   key={row.id}
-                  data-row-index={originalRowIndex}
-                  onClick={(event) => selectRow(event, originalRowIndex)}
+                  data-row-id={rowId}
+                  ref={(element) => { rowElementRefs.current[rowId] = element; }}
+                  onClick={(event) => selectRow(event, originalRowIndex, rowId)}
                 >
                   <td className="row-action-cell" data-cell-kind="row-action">
-                    <button className="icon-button danger" onClick={(event) => { event.stopPropagation(); props.onDeleteRow(originalRowIndex); }} title="Delete row">
+                    <button className="icon-button danger" onClick={(event) => { event.stopPropagation(); props.onDeleteRow(originalRowIndex, rowId); }} title="Delete row">
                       <icons.delete size={14} />
                     </button>
                   </td>
@@ -566,7 +660,7 @@ function DataTableComponent(props: DataTableProps) {
                       className="data-cell"
                       data-cell-kind="data"
                       data-column-field={cell.column.id}
-                      data-wrap-mode={props.fieldConfig.wrapped.has(cell.column.id) ? "wrap" : "truncate"}
+                      data-wrap-mode={snapshot.fieldConfig.wrapped.has(cell.column.id) ? "wrap" : "truncate"}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
@@ -577,8 +671,9 @@ function DataTableComponent(props: DataTableProps) {
             })}
             {bottomSpacerHeight > 0 ? <tr className="virtual-spacer-row"><td colSpan={tableColumnCount} style={{ height: bottomSpacerHeight }} /></tr> : null}
           </tbody>
-        </table>
-      </div>
+          </table>
+        </div>
+      </TableColumnsRuntimeProvider>
       <button className="new-row-button" onClick={props.onAddRow}>
         <icons.addRow size={16} />
         New row
@@ -595,7 +690,7 @@ function DataTableComponent(props: DataTableProps) {
         >
           <div className="column-drag-ghost-name">{columnDragState.draggingField}</div>
           <div className="column-drag-ghost-type">
-            {displayTypeForField(columnDragState.draggingField, rows, props.fieldConfig.displayTypes, nestedFieldSet)}
+            {getColumnModelDisplayType(columnDragState.draggingField, columnModels) ?? "Text"}
           </div>
         </div>
       ) : null}
@@ -604,24 +699,30 @@ function DataTableComponent(props: DataTableProps) {
 }
 
 export const DataTable = memo(DataTableComponent, (previous, next) => {
-  return previous.model === next.model &&
-    previous.schemaModel === next.schemaModel &&
+  return sameTableSnapshot(previous.snapshot, next.snapshot) &&
+    previous.onScrollPositionChange === next.onScrollPositionChange;
+});
+
+function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
+  return previous.schemaModel === next.schemaModel &&
     previous.revision === next.revision &&
     previous.sourcePath === next.sourcePath &&
     previous.collectionPath === next.collectionPath &&
     previous.titleField === next.titleField &&
+    previous.rowViews === next.rowViews &&
     previous.scrollRestoreKey === next.scrollRestoreKey &&
     sameScrollPosition(previous.initialScrollPosition, next.initialScrollPosition) &&
-    previous.onScrollPositionChange === next.onScrollPositionChange &&
     sameBacklinkColumns(previous.backlinkColumns, next.backlinkColumns) &&
-    sameBacklinkValues(previous.backlinkValuesByRowIndex, next.backlinkValuesByRowIndex) &&
+    sameBacklinkValues(previous.backlinkValuesByRowId, next.backlinkValuesByRowId) &&
     sameRelationOptions(previous.relationOptions, next.relationOptions) &&
     sameRelationConfigs(previous.relationConfigs, next.relationConfigs) &&
     sameFieldConfig(previous.fieldConfig, next.fieldConfig) &&
-    sameSort(previous.sort, next.sort);
-});
+    sameSort(previous.sort, next.sort) &&
+    previous.validation === next.validation &&
+    sameFieldViewConfigs(previous.fieldViewConfigs, next.fieldViewConfigs);
+}
 
-function sameFieldConfig(previous: FieldConfig, next: FieldConfig) {
+function sameFieldConfig(previous: TableFieldConfig, next: TableFieldConfig) {
   return sameRecord(previous.displayTypes, next.displayTypes) &&
     sameSet(previous.hidden, next.hidden) &&
     sameSet(previous.wrapped, next.wrapped) &&
@@ -630,15 +731,15 @@ function sameFieldConfig(previous: FieldConfig, next: FieldConfig) {
     previous.order.every((field, index) => next.order[index] === field);
 }
 
-function sameSort(previous: DataTableProps["sort"], next: DataTableProps["sort"]) {
+function sameSort(previous: TableSnapshot["sort"], next: TableSnapshot["sort"]) {
   if (previous === next) return true;
   if (!previous || !next) return false;
   return previous.field === next.field && previous.direction === next.direction;
 }
 
 function sameScrollPosition(
-  previous: DataTableProps["initialScrollPosition"],
-  next: DataTableProps["initialScrollPosition"],
+  previous: TableSnapshot["initialScrollPosition"],
+  next: TableSnapshot["initialScrollPosition"],
 ) {
   if (previous === next) return true;
   if (!previous || !next) return false;
@@ -670,7 +771,7 @@ function sameRelationOptions(previous: Record<string, RelationOption[]>, next: R
   });
 }
 
-function sameRelationConfigs(previous: DataTableProps["relationConfigs"], next: DataTableProps["relationConfigs"]) {
+function sameRelationConfigs(previous: TableSnapshot["relationConfigs"], next: TableSnapshot["relationConfigs"]) {
   const previousKeys = Object.keys(previous);
   const nextKeys = Object.keys(next);
   if (previousKeys.length !== nextKeys.length) return false;
@@ -688,6 +789,13 @@ function sameRelationConfigs(previous: DataTableProps["relationConfigs"], next: 
   });
 }
 
+function sameFieldViewConfigs(previous: Record<string, FieldViewConfig>, next: Record<string, FieldViewConfig>) {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  if (previousKeys.length !== nextKeys.length) return false;
+  return previousKeys.every((key) => previous[key] === next[key]);
+}
+
 function sameBacklinkColumns(previous: BacklinkGridColumn[], next: BacklinkGridColumn[]) {
   return previous.length === next.length && previous.every((column, index) => {
     const candidate = next[index];
@@ -701,13 +809,16 @@ function sameBacklinkColumns(previous: BacklinkGridColumn[], next: BacklinkGridC
   });
 }
 
-function sameBacklinkValues(previous: Record<number, Record<string, RelationBacklink[]>>, next: Record<number, Record<string, RelationBacklink[]>>) {
+function sameBacklinkValues(
+  previous: Record<number | string, Record<string, RelationBacklink[]>>,
+  next: Record<number | string, Record<string, RelationBacklink[]>>,
+) {
   const previousRows = Object.keys(previous);
   const nextRows = Object.keys(next);
   if (previousRows.length !== nextRows.length) return false;
   return previousRows.every((rowKey) => {
-    const previousFields = previous[Number(rowKey)] ?? {};
-    const nextFields = next[Number(rowKey)] ?? {};
+    const previousFields = previous[rowKey] ?? {};
+    const nextFields = next[rowKey] ?? {};
     const previousFieldKeys = Object.keys(previousFields);
     const nextFieldKeys = Object.keys(nextFields);
     if (previousFieldKeys.length !== nextFieldKeys.length) return false;
@@ -738,45 +849,3 @@ function orderColumns(columns: string[], order: string[]) {
   return [...known, ...rest];
 }
 
-function displayTypeForField(fieldName: string, rows: DataRecord[], displayTypes: Record<string, FieldDisplayType>, nestedFieldSet: Set<string>) {
-  return inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
-}
-
-function inferColumnDisplayType(
-  fieldName: string,
-  rows: DataRecord[],
-  nestedFieldSet: Set<string>,
-  displayTypes: Record<string, FieldDisplayType>,
-): FieldDisplayType {
-  if (nestedFieldSet.has(fieldName)) return "Nested";
-  if (displayTypes[fieldName]) return displayTypes[fieldName];
-  const sample = rows.find((row) => row[fieldName] !== undefined && row[fieldName] !== null)?.[fieldName]
-    ?? rows.find((row) => row[fieldName] !== undefined)?.[fieldName];
-  return defaultTypeFor(sample);
-}
-
-function summarizeNestedValue(value: unknown) {
-  if (value == null) return "未设置";
-  return summarizeNested(value);
-}
-
-function getFieldRole(
-  sourcePath: string | null,
-  collectionPath: string,
-  fieldName: string,
-  relationConfigs: Record<string, RelationConfig>,
-): ResolvedFieldRole {
-  if (!sourcePath) return { kind: "normal" };
-  return resolveFieldRole({
-    sourceFile: sourcePath,
-    sourceCollection: collectionPath,
-    fieldName,
-    viewConfig: {
-      fields: {},
-      primaryKeys: {},
-      backlinks: {},
-      relations: relationConfigs,
-      relationsVersion: 0,
-    },
-  }) as ResolvedFieldRole;
-}

@@ -36,6 +36,17 @@ test("applyViewFilters query scans values case-insensitively and ignores __rowIn
   assert.deepEqual(applyViewFilters(rows, "match-only-index", { op: "and", rules: [] }), []);
 });
 
+test("applyViewFilters returns original rows when query and filters are empty", () => {
+  const rows = [
+    { name: "Fire Rune" },
+    { name: "Water Rune" },
+  ];
+
+  const filtered = applyViewFilters(rows, "", { op: "and", rules: [] }, discreteFieldTypes);
+  assert.equal(filtered, rows);
+  assert.equal(filtered[0], rows[0]);
+});
+
 test("matchesFilterRule supports boolean is and is_not semantics", () => {
   assert.equal(matchesFilterRule({ enabled: true }, { field: "enabled", operator: "is", value: "true" }), true);
   assert.equal(matchesFilterRule({ enabled: false }, { field: "enabled", operator: "is_not", value: true }), true);

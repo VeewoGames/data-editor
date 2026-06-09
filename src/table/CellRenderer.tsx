@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { icons } from "../components/icons";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import { isCompatible } from "../model/fieldTypes";
@@ -27,7 +28,7 @@ type CellRendererProps = {
   onCommitSelectDraft?: (patch: OptionFieldDraftCommit) => void;
 };
 
-export function CellRenderer({
+function CellRendererComponent({
   cellId = "",
   value,
   displayType,
@@ -126,6 +127,23 @@ export function CellRenderer({
     </div>
   );
 }
+
+export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
+  previous.cellId === next.cellId &&
+  previous.value === next.value &&
+  previous.displayType === next.displayType &&
+  previous.issue === next.issue &&
+  previous.wrapped === next.wrapped &&
+  previous.multiSelectConfig === next.multiSelectConfig &&
+  previous.selectConfig === next.selectConfig &&
+  previous.relationOptions === next.relationOptions &&
+  previous.relationConfigured === next.relationConfigured &&
+  previous.relationMode === next.relationMode &&
+  previous.onEdit === next.onEdit &&
+  previous.onOpenRelationTarget === next.onOpenRelationTarget &&
+  previous.onCommitMultiSelectDraft === next.onCommitMultiSelectDraft &&
+  previous.onCommitSelectDraft === next.onCommitSelectDraft,
+);
 
 function shouldSuppressRelationIssue(displayType: FieldDisplayType, value: unknown) {
   if (displayType !== "Relation") return false;

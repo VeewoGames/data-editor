@@ -1,5 +1,6 @@
 import { getRows } from "../document-model.mjs";
 import { buildBacklinkFieldName, deriveBacklinkConfigs } from "./field-role.mjs";
+import { readRowId } from "./row-id.mjs";
 
 export function getBacklinkColumnsForView({ targetFile, targetCollection, viewConfig }) {
   const derived = deriveBacklinkConfigs(viewConfig);
@@ -57,6 +58,7 @@ export function buildBacklinkGrid({ targetFile, targetCollection, rows, viewConf
           sourceCollection: parsedRelation.sourceCollection,
           fieldPath: parsedRelation.fieldPath,
           rowIndex,
+          rowId: readRowId(row),
           title,
           value: key,
         });

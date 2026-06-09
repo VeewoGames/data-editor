@@ -13,6 +13,7 @@ export type BacklinkGridItem = {
   sourceCollection: string;
   fieldPath: string[];
   rowIndex: number;
+  rowId?: string | null;
   title: string;
   value: string;
 };

@@ -1,4 +1,5 @@
 import { getRows } from "../document-model.mjs";
+import { readRowId } from "./row-id.mjs";
 
 export function parseRelationKey(relationKey) {
   const parts = String(relationKey).split(":");
@@ -12,7 +13,7 @@ export function parseRelationKey(relationKey) {
 export function findTargetRecord(rows, targetKey, targetId) {
   const needle = String(targetId);
   const rowIndex = rows.findIndex((row) => String(row?.[targetKey] ?? "") === needle);
-  return rowIndex >= 0 ? { rowIndex, row: rows[rowIndex] } : null;
+  return rowIndex >= 0 ? { rowIndex, rowId: readRowId(rows[rowIndex]), row: rows[rowIndex] } : null;
 }
 
 export function collectRelationBacklinks({ targetFile, targetCollection, targetKey, targetId, relations, documentsByPath }) {
@@ -33,6 +34,7 @@ export function collectRelationBacklinks({ targetFile, targetCollection, targetK
         sourceCollection: parsed.sourceCollection,
         fieldPath: parsed.fieldPath,
         rowIndex,
+        rowId: readRowId(row),
         title: getBacklinkTitle(row, rowIndex),
       });
     });
@@ -118,6 +120,7 @@ export function buildPrimaryKeySyncPlan({
         sourceCollection: parsed.sourceCollection,
         fieldPath: parsed.fieldPath,
         rowIndex,
+        rowId: readRowId(row),
         rowLabel: getBacklinkTitle(row, rowIndex),
         oldValue: normalizedOldValue,
         newValue: normalizedNewValue,

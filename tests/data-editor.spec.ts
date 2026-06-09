@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+﻿import { expect, test, type Page } from "@playwright/test";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -181,6 +181,14 @@ async function getVisibleTableIds(page: Page) {
   return page.locator(".data-table tbody tr").evaluateAll((rows) => (
     rows.map((row) => row.children.item(2)?.textContent?.trim() ?? "").filter(Boolean)
   ));
+}
+
+function tableRows(page: Page) {
+  return page.locator('.data-table tbody tr[data-row-id]');
+}
+
+function tableRow(page: Page, index: number) {
+  return tableRows(page).nth(index);
 }
 
 async function getSortRuleFields(page: Page) {
@@ -527,7 +535,7 @@ test("column header menu copies the field name to the clipboard", async ({ page,
   await expect(page.locator(".data-table")).toBeVisible();
 
   await page.locator('.column-trigger[title="category"]').click();
-  const copyAction = page.locator(".column-menu-popup .menu-item").filter({ hasText: "复制字段文本" });
+  const copyAction = page.locator(".column-menu-popup .menu-item").filter({ hasText: "澶嶅埗瀛楁鏂囨湰" });
   await expect(copyAction).toBeVisible();
   await copyAction.click();
 
@@ -600,14 +608,14 @@ test("shared view filter and sort drafts persist through save and reload", async
     await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toBeVisible();
     await expect(page.locator(".filter-popover-content")).toBeVisible();
-    await page.locator(".filter-checkbox-item").filter({ hasText: "attack" }).click();
+    await page.locator(".filter-option-row").filter({ hasText: "attack" }).click();
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" })).toBeVisible();
     await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
     await expect(page.locator(".view-tab-shell.dirty .view-tab")).toContainText(activeViewName);
     await expect(page.locator(".dirty-pill")).toHaveCount(0);
     await expect(page.locator(".view-filter-actions .save-shared")).toBeEnabled();
-    await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
-    await expect(page.locator(".data-table tbody tr[data-row-index]").first()).toHaveAttribute("data-row-index", "1");
+    await expect(tableRows(page)).toHaveCount(1);
+    await expect(tableRow(page, 0)).toContainText("multi_2");
 
     await page.locator(".filter-popover-content").press("Escape");
     await page.locator('.column-trigger[title="id"]').click();
@@ -636,17 +644,17 @@ test("shared view filter and sort drafts persist through save and reload", async
     await selectViewTab(page, activeViewName);
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" })).toBeVisible();
     await expect(page.locator('.view-filter-chip.sort-chip[title="name desc"]')).toBeVisible();
-    await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
-    await expect(page.locator(".data-table tbody tr[data-row-index]").first()).toHaveAttribute("data-row-index", "1");
+    await expect(tableRows(page)).toHaveCount(1);
+    await expect(tableRow(page, 0)).toContainText("multi_2");
 
-    await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
     const nameInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "name" }).locator(".detail-input").first();
     await expect(nameInput).toBeVisible();
     await nameInput.fill("Filtered original row edited");
     await waitForAutosaveWrite(page, async () => {
       const text = await readFile(dataPath, "utf8");
       const rows = JSON.parse(text) as Array<{ name: string }>;
-      return rows.map((row) => row.name).join("|");
+      return rows.map((row) => row.name).includes("Filtered original row edited");
     });
     await expect.poll(async () => {
       const text = await readFile(dataPath, "utf8");
@@ -782,10 +790,10 @@ test("multi-select filter popover supports operator text, selected chips, search
 
   const filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+  await expect(tableRows(page)).toHaveCount(2);
   await expect(filterPopover.locator(".filter-option-search-input")).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(filterPopover).not.toContainText("未选择");
+  await expect(filterPopover).not.toContainText("鏈€夋嫨");
   await expect(filterPopover.locator(".filter-popover-section-scroll")).toHaveCSS("max-height", "500px");
   await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("min-height", "36px");
   await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("align-items", "center");
@@ -801,13 +809,13 @@ test("multi-select filter popover supports operator text, selected chips, search
 
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("包含");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("鍖呭惈");
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("spell");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(1);
 
-  await filterPopover.locator('.filter-selected-chip-list .selected-chip-remove[aria-label="移除 spell"]').click();
+  await filterPopover.locator('.filter-selected-chip-list .selected-chip-remove[aria-label="绉婚櫎 spell"]').click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toHaveCount(0);
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+  await expect(tableRows(page)).toHaveCount(2);
 });
 
 test("add filter menu hides fields that already have a rule in the current view", async ({ page }) => {
@@ -844,22 +852,22 @@ test("select filter restores cached values after empty operators hide the value 
   const filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("鍖呭惈");
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(1);
 
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "为空", exact: true }).click();
+  await page.getByRole("option", { name: "涓虹┖", exact: true }).click();
   await expect(filterPopover.locator(".filter-option-value-area")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("为空");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("涓虹┖");
+  await expect(tableRows(page)).toHaveCount(1);
 
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "包含", exact: true }).click();
+  await page.getByRole("option", { name: "鍖呭惈", exact: true }).click();
   await expect(filterPopover.locator(".filter-option-value-area")).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(1);
 });
 
 test("value filter cache stays scoped per view and clears after delete and recreate", async ({ page }) => {
@@ -894,7 +902,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
       },
       {
         id: "second",
-        name: "第二视图",
+        name: "绗簩瑙嗗浘",
         type: "table",
         query: "",
         filters: { op: "and", rules: [] },
@@ -917,23 +925,23 @@ test("value filter cache stays scoped per view and clears after delete and recre
   await expect(filterPopover).toBeVisible();
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "为空", exact: true }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("为空");
+  await page.getByRole("option", { name: "涓虹┖", exact: true }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("涓虹┖");
 
-  await page.locator(".view-tab").filter({ hasText: "第二视图" }).click();
-  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("第二视图");
+  await page.locator(".view-tab").filter({ hasText: "绗簩瑙嗗浘" }).click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("绗簩瑙嗗浘");
   await page.getByRole("button", { name: "+ 筛选" }).click();
   await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(3);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("鍖呭惈");
+  await expect(tableRows(page)).toHaveCount(3);
 
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "为空", exact: true }).click();
+  await page.getByRole("option", { name: "涓虹┖", exact: true }).click();
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "包含", exact: true }).click();
+  await page.getByRole("option", { name: "鍖呭惈", exact: true }).click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
 
   await page.locator(".filter-action-trigger").click();
@@ -945,8 +953,8 @@ test("value filter cache stays scoped per view and clears after delete and recre
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(3);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("鍖呭惈");
+  await expect(tableRows(page)).toHaveCount(3);
 });
 
 test("value filters support does_not_contain and is_not_empty with real row results", async ({ page }) => {
@@ -964,18 +972,18 @@ test("value filters support does_not_contain and is_not_empty with real row resu
   const filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(1);
 
   await filterPopover.locator(".filter-select-trigger").click();
   await page.getByRole("option", { name: "不包含", exact: true }).click();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("不包含");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+  await expect(tableRows(page)).toHaveCount(2);
 
   await filterPopover.locator(".filter-select-trigger").click();
   await page.getByRole("option", { name: "不为空", exact: true }).click();
   await expect(filterPopover.locator(".filter-option-value-area")).toHaveCount(0);
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("不为空");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+  await expect(tableRows(page)).toHaveCount(2);
 });
 
 test("filter operator select stays above the filter popover surface", async ({ page }) => {
@@ -1022,7 +1030,7 @@ test("select filter contains operator keeps multiple selected values", async ({ 
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "attack" })).toBeVisible();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("attack");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(2);
+  await expect(tableRows(page)).toHaveCount(2);
 });
 
 test("relation filter keeps missing selected keys visible with fallback labels", async ({ page }) => {
@@ -1074,7 +1082,7 @@ test("relation filter keeps missing selected keys visible with fallback labels",
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
   const relationChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" });
-  await expect(relationChip).toContainText("包含");
+  await expect(relationChip).toContainText("鍖呭惈");
   await expect(relationChip).toContainText("missing_skill");
   await relationChip.click();
 
@@ -1125,17 +1133,17 @@ test("relation filter search matches title first and key fallback", async ({ pag
   await page.getByRole("button", { name: "+ 筛选" }).click();
   await page.locator(".add-filter-field-option").filter({ hasText: "skill_id" }).click();
   const filterPopover = page.locator(".filter-popover-content");
-  const slashRow = filterPopover.locator(".filter-option-row").filter({ has: page.locator(".filter-option-label", { hasText: /^斩击$/ }) });
+  const slashRow = filterPopover.locator(".filter-option-row").filter({ has: page.locator(".filter-option-label", { hasText: /^鏂╁嚮$/ }) });
   await expect(filterPopover).toBeVisible();
 
-  await filterPopover.locator(".filter-option-search-input").fill("斩击");
+  await filterPopover.locator(".filter-option-search-input").fill("鏂╁嚮");
   await expect(slashRow).toBeVisible();
   await filterPopover.locator(".filter-option-search-input").fill("skill_slash");
   await expect(slashRow).toBeVisible();
 
   await slashRow.click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" })).toContainText("斩击");
-  await expect(page.locator(".data-table tbody tr[data-row-index]")).toHaveCount(1);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" })).toContainText("鏂╁嚮");
+  await expect(tableRows(page)).toHaveCount(1);
 });
 
 test("text filter popover keeps shared shell without scroll section", async ({ page }) => {
@@ -1206,7 +1214,7 @@ test("sort direction select stays above the sort popover surface", async ({ page
   await page.locator(".view-filter-sort-button").click();
   const sortPopover = page.locator(".sort-popover-content");
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
 
   const directionTrigger = sortPopover.locator(".sort-direction-trigger").first();
   await directionTrigger.click();
@@ -1231,7 +1239,7 @@ test("sort chip reuses the filter chip visual style", async ({ page }) => {
   await page.locator(".view-filter-sort-button").click();
   const sortPopover = page.locator(".sort-popover-content");
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
 
   const fieldTrigger = sortPopover.locator(".sort-field-trigger").first();
   await fieldTrigger.click();
@@ -1244,7 +1252,7 @@ test("sort chip reuses the filter chip visual style", async ({ page }) => {
   const sortChip = page.locator('.view-filter-chip.sort-chip[title="name desc"]');
   const filterChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" });
   await expect(sortChip).toBeVisible();
-  await expect(sortChip).toContainText("↓ name");
+  await expect(sortChip).toContainText("鈫?name");
   await expect(filterChip).toBeVisible();
   const filterChipBorderRadius = await filterChip.evaluate((element) => getComputedStyle(element).borderRadius);
   const filterChipFontSize = await filterChip.evaluate((element) => getComputedStyle(element).fontSize);
@@ -1286,8 +1294,8 @@ test("sort popover drag handle reorders sort priority and updates the real table
     await page.locator(".view-filter-sort-button").click();
     const sortPopover = page.locator(".sort-popover-content");
     await expect(sortPopover).toBeVisible();
-    await sortPopover.getByRole("button", { name: "添加排序" }).click();
-    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
 
     await sortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
@@ -1348,8 +1356,8 @@ test("sort chip popover also supports drag reordering", async ({ page }) => {
 
     await page.locator(".view-filter-sort-button").click();
     const firstSortPopover = page.locator(".sort-popover-content");
-    await firstSortPopover.getByRole("button", { name: "添加排序" }).click();
-    await firstSortPopover.getByRole("button", { name: "添加排序" }).click();
+    await firstSortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await firstSortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
     await firstSortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
     await firstSortPopover.locator(".sort-field-trigger").nth(1).click();
@@ -1384,19 +1392,19 @@ test("multiple sorts merge into a single summary chip", async ({ page }) => {
   await page.locator(".view-filter-sort-button").click();
   const sortPopover = page.locator(".sort-popover-content");
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
   await sortPopover.locator(".sort-field-trigger").first().click();
   await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
   await closePopoverByClickingOutside(page);
 
   const singleSortChip = page.locator(".view-filter-chip.sort-chip");
   await expect(singleSortChip).toHaveCount(1);
-  await expect(singleSortChip).toContainText("↑ name");
+  await expect(singleSortChip).toContainText("鈫?name");
   await expect(singleSortChip).toHaveAttribute("title", "name asc");
 
   await singleSortChip.click();
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "添加排序" }).click();
+  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
   await sortPopover.locator(".sort-field-trigger").nth(1).click();
   await page.locator(".sort-select-content").getByRole("option", { name: "id", exact: true }).click();
   await closePopoverByClickingOutside(page);
@@ -1428,8 +1436,8 @@ test("sort popover drag cancel rolls back preview without changing priority", as
     await page.locator(".view-filter-sort-button").click();
     const sortPopover = page.locator(".sort-popover-content");
     await expect(sortPopover).toBeVisible();
-    await sortPopover.getByRole("button", { name: "添加排序" }).click();
-    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
 
     await sortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
@@ -1475,8 +1483,8 @@ test("sort popover drag release over field trigger reorders without opening sele
     await page.locator(".view-filter-sort-button").click();
     const sortPopover = page.locator(".sort-popover-content");
     await expect(sortPopover).toBeVisible();
-    await sortPopover.getByRole("button", { name: "添加排序" }).click();
-    await sortPopover.getByRole("button", { name: "添加排序" }).click();
+    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
 
     await sortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
@@ -1555,7 +1563,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await expect(page.locator('.sidebar-item[title="data/e2e_mixed.json"]')).toContainText("e2e_mixed.json");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary .nested-entry-button")).toContainText("mixed");
   await page.locator(".detail-panel.primary .nested-entry-button").click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
@@ -1570,7 +1578,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").last().click();
+  await tableRow(page, 0).locator(".multi-select-trigger").last().click();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await expect(page.locator(".multi-select-popover .selected-chip")).toContainText("minion");
   await page.locator(".multi-select-option").filter({ hasText: "attack" }).click();
@@ -1585,7 +1593,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator(".multi-select-option-name-input").press("Enter");
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".option-menu-trigger").click();
-  await page.locator(".multi-select-color-item").filter({ hasText: "红色" }).click();
+  await page.locator(".multi-select-color-item").filter({ hasText: "绾㈣壊" }).click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".chip")).toHaveCSS("background-color", "rgb(255, 217, 214)");
   await page.locator(".multi-select-option-row").filter({ hasText: "spell" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
@@ -1621,12 +1629,12 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
       text.includes('"attack"') &&
       text.includes('"spell"');
   });
-  await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
+  await tableRow(page, 0).locator(".multi-select-trigger").click();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await page.locator(".multi-select-option").filter({ hasText: "spell" }).click();
   await expect(page.locator(".dirty-pill")).toHaveCount(0);
-  await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("spell");
-  await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger .chip')).toBeVisible();
+  await expect(tableRow(page, 0).locator(".multi-select-trigger")).toContainText("spell");
+  await expect(tableRow(page, 0).locator(".multi-select-trigger .chip")).toBeVisible();
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "attack" }).locator(".option-menu-trigger").click();
   await expect(page.locator(".multi-select-option-editor")).toBeVisible();
@@ -1634,10 +1642,10 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator(".multi-select-option-name-input").press("Enter");
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".option-menu-trigger").click();
-  await page.locator(".multi-select-color-item").filter({ hasText: "蓝色" }).click();
+  await page.locator(".multi-select-color-item").filter({ hasText: "钃濊壊" }).click();
   await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
-  await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("spell");
+  await expect(tableRow(page, 0).locator(".multi-select-trigger")).toContainText("spell");
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
   await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_select.json"), "utf8");
@@ -1652,10 +1660,10 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").last().click();
+  await tableRow(page, 0).locator(".multi-select-trigger").last().click();
   await page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".option-menu-trigger").click();
-  const pinkItem = page.locator(".multi-select-color-item").filter({ hasText: "粉色" });
-  const redItem = page.locator(".multi-select-color-item").filter({ hasText: "红色" });
+  const pinkItem = page.locator(".multi-select-color-item").filter({ hasText: "绮夎壊" });
+  const redItem = page.locator(".multi-select-color-item").filter({ hasText: "绾㈣壊" });
   await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-width", "0px");
   await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(247, 216, 238)");
   await expect(redItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(255, 217, 214)");
@@ -1723,14 +1731,14 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
       text.includes('"data/keywords.json:$:back_keywords"');
   }).toBe(true);
   expect(await readFile(path.resolve("tests/.scratch/data/e2e_relation.json"), "utf8")).toBe(relationDataBeforeConfig);
-  await expect(page.locator(".data-table tbody tr[data-row-index='1'] .issue.warning")).toHaveCount(2);
-  await page.locator(".data-table tbody tr[data-row-index='0'] .relation-trigger").first().click();
+  await expect(tableRow(page, 1).locator(".issue.warning")).toHaveCount(2);
+  await tableRow(page, 0).locator(".relation-trigger").first().click();
   await expect(page.locator(".relation-popover")).toBeVisible();
   await page.locator(".relation-option").filter({ hasText: "skill_heavy_slash" }).click();
   await page.locator(".relation-popover").press("Escape");
-  await page.locator(".data-table tbody tr[data-row-index='0'] .relation-trigger").nth(1).click();
+  await tableRow(page, 0).locator(".relation-trigger").nth(1).click();
   await expect(page.locator(".relation-popover")).toBeVisible();
-  await page.locator(".relation-option").filter({ hasText: "专注" }).click();
+  await page.locator(".relation-option").filter({ hasText: "涓撴敞" }).click();
   await page.locator(".relation-popover").press("Escape");
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
   await waitForAutosaveWrite(page, async () => {
@@ -1738,7 +1746,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     return text.includes('"skill_id": "skill_heavy_slash"') && text.includes('"focus"');
   });
   const relationDataAfterEdit = await readFile(path.resolve("tests/.scratch/data/e2e_relation.json"), "utf8");
-  await page.locator(".data-table tbody tr[data-row-index='0'] .relation-trigger").first().click();
+  await tableRow(page, 0).locator(".relation-trigger").first().click();
   await expect(page.locator(".relation-popover")).toBeVisible();
   await page.locator(".relation-option").filter({ hasText: "skill_heavy_slash" }).locator(".relation-open-target").evaluate((element) => {
     element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, buttons: 1 }));
@@ -1788,7 +1796,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   }).toBe(true);
 
   await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_target.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   const targetIdInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "target_id" }).locator(".detail-input").first();
   await targetIdInput.fill("focus_sync");
   await expect(page.locator(".relation-maintenance-panel")).toContainText("保存并同步引用");
@@ -1981,7 +1989,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   const nowrapDescriptionResult = await page.evaluate(() => {
     const col = document.querySelector("col[data-column-field=\"description\"]") as HTMLTableColElement;
     const colIndex = [...document.querySelectorAll("col")].findIndex((item) => (item as HTMLTableColElement).dataset.columnField === "description");
-    const td = document.querySelector(`tbody tr[data-row-index] td:nth-child(${colIndex + 1})`) as HTMLTableCellElement;
+    const td = document.querySelector(`tbody tr[data-row-id] td:nth-child(${colIndex + 1})`) as HTMLTableCellElement;
     const span = td.querySelector(".cell-display span") as HTMLElement;
     return {
       colWidth: col.getBoundingClientRect().width,
@@ -2055,7 +2063,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     const content = document.querySelector('td[data-column-field="description"][data-wrap-mode="wrap"] [data-cell-role="content"]') as HTMLElement;
     const span = document.querySelector('td[data-column-field="description"][data-wrap-mode="wrap"] [data-cell-role="content"] span') as HTMLElement;
     const titleSpan = document.querySelector('td[data-cell-kind="data"][data-wrap-mode="wrap"] [data-cell-role="title-text"]') as HTMLElement;
-    const heights = [...document.querySelectorAll("tbody tr[data-row-index]")].map((row) => (row as HTMLTableRowElement).getBoundingClientRect().height);
+    const heights = [...document.querySelectorAll("tbody tr[data-row-id]")].map((row) => (row as HTMLTableRowElement).getBoundingClientRect().height);
     return {
       contentClientHeight: content?.clientHeight ?? null,
       contentScrollHeight: content?.scrollHeight ?? null,
@@ -2077,7 +2085,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
 
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   await page.locator(".detail-input").first().evaluate((element) => {
     const input = element as HTMLInputElement;
@@ -2138,7 +2146,7 @@ test("detail panel reorder emits profiling measures in profile mode", async ({ p
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const detailOrderBefore = await page.locator(".detail-panel.primary .detail-property-handle").evaluateAll(
@@ -2236,7 +2244,7 @@ test("nested detail panel renders object items without falling back to raw JSON"
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   await expect(page.locator(".detail-panel.primary .nested-entry-button")).toContainText("effects");
   await expect(page.locator(".detail-panel.primary .json-editor textarea")).toHaveCount(0);
@@ -2272,7 +2280,7 @@ test("detail panel profile layout persists reorder and nested table widths", asy
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const detailOrderBefore = await page.locator(".detail-panel.primary .detail-property-handle").evaluateAll(
     (items) => items
@@ -2337,18 +2345,18 @@ test("detail panel profile layout persists reorder and nested table widths", asy
     return text.includes("\"detailOrder\"") && text.includes(`\"${draggedField}\"`);
   }).toBe(true);
 
-  await page.locator(".data-table tbody tr[data-row-index]").nth(0).locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   const firstDetailTitle = await page.locator(".detail-panel.primary .panel-title").textContent();
   await expect(page.locator(".detail-panel.primary .property-block").filter({ hasText: "description" }).locator("textarea.detail-textarea").first()).toBeVisible();
   await expect(page.locator(".detail-panel.primary .property-block").filter({ hasText: "rune_id" }).locator(".relation-trigger")).toHaveCount(0);
-  await page.locator(".data-table tbody tr[data-row-index]").nth(1).evaluate((element) => (element as HTMLTableRowElement).click());
+  await tableRow(page, 1).evaluate((element) => (element as HTMLTableRowElement).click());
   const secondDetailTitle = await page.locator(".detail-panel.primary .panel-title").textContent();
   expect(secondDetailTitle).not.toBe(firstDetailTitle);
 
   await page.locator('.sidebar-item[title="data/status_effects.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator('col[data-column-field="control"]')).toHaveCount(1);
-  await page.locator('.data-table tbody tr[data-row-index="20"]').locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 20).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const controlBlock = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "control" }),
@@ -2462,7 +2470,7 @@ test("autosave persists scratch json edits without toolbar save button", async (
 
   await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .nested-entry-button").click();
   await page.locator(".nested-item-list button").nth(1).click();
   await page.locator(".detail-panel.secondary .detail-input").fill("autosave_e2e");
@@ -2495,13 +2503,13 @@ test("select column dragged to the first position keeps select rendering when ti
     await page.locator('.column-menu-popup [data-field-type="Select"]').click();
     await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select_title_fallback.json:$:status"') && text.includes('"type": "Select"'));
 
-    await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("review");
-    await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger .chip')).toBeVisible();
+    await expect(tableRow(page, 0).locator(".multi-select-trigger")).toContainText("review");
+    await expect(tableRow(page, 0).locator(".multi-select-trigger .chip")).toBeVisible();
 
     await dragColumnHeader(page, "status", "id");
 
     await expect(page.locator(".column-trigger").first()).toHaveAttribute("title", "status");
-    const firstDataCell = page.locator('.data-table tbody tr[data-row-index="0"] td[data-column-field="status"]');
+    const firstDataCell = tableRow(page, 0).locator('td[data-column-field="status"]');
     await expect(firstDataCell.locator(".multi-select-trigger")).toContainText("review");
     await expect(firstDataCell.locator(".multi-select-trigger .chip")).toBeVisible();
     await expect(firstDataCell.locator('[data-cell-role="title"]')).toHaveCount(0);
@@ -2531,7 +2539,7 @@ test("detail panel width can be resized and property spacing stays compact", asy
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const spacingBeforeDrag = await page.evaluate(() => {
@@ -2611,7 +2619,7 @@ test("detail panel width persists in selected profile after reload", async ({ pa
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const handleBefore = await page.locator(".detail-panel-resize-handle").boundingBox();
@@ -2656,7 +2664,7 @@ test("detail panel width persists in selected profile after reload", async ({ pa
 
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   await expect.poll(async () => page.locator(".detail-panel.primary").evaluate((element) => Math.round(element.getBoundingClientRect().width))).toBe(widthAfterResize);
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:detail-panel-width"))).toBe(null);
@@ -2666,7 +2674,7 @@ test("clicking outside detail panels closes primary and nested detail panels", a
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary.open")).toBeVisible();
   await page.locator(".detail-panel.primary .nested-entry-button").click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
@@ -2683,7 +2691,7 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const featuresBlock = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "features" }),
@@ -2702,7 +2710,7 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "category" }),
@@ -2721,7 +2729,7 @@ test("detail panel textarea height follows actual text content", async ({ page }
 
   await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.data-table tbody tr[data-row-index="0"]').locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   const descriptionTextarea = page.locator(".detail-panel.primary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "description" }),
@@ -2730,7 +2738,7 @@ test("detail panel textarea height follows actual text content", async ({ page }
   const shortHeight = await descriptionTextarea.evaluate((element) => Math.round((element as HTMLTextAreaElement).getBoundingClientRect().height));
   expect(shortHeight).toBeLessThanOrEqual(60);
 
-  await page.locator('.data-table tbody tr[data-row-index="1"]').evaluate((element) => (element as HTMLTableRowElement).click());
+  await tableRow(page, 1).evaluate((element) => (element as HTMLTableRowElement).click());
   const longHeight = await descriptionTextarea.evaluate((element) => Math.round((element as HTMLTextAreaElement).getBoundingClientRect().height));
   expect(longHeight).toBeGreaterThan(shortHeight + 20);
 });
@@ -2746,7 +2754,7 @@ test("option field editor popover uses shared shell and scroll section from tabl
     return [...document.querySelectorAll("th[data-column-field]")].findIndex((header) => header.getAttribute("data-column-field") === "dev_tags");
   });
   expect(devTagsColumnIndex).toBeGreaterThanOrEqual(0);
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator("td").nth(devTagsColumnIndex + 1).locator(".multi-select-trigger").click();
+  await tableRow(page, 0).locator("td").nth(devTagsColumnIndex + 1).locator(".multi-select-trigger").click();
 
   const popover = page.locator(".multi-select-popover.option-field-popover-shell");
   const selectedSection = popover.locator(".option-field-popover-section").first();
@@ -2763,7 +2771,7 @@ test("option field editor popover uses shared shell and scroll section from tabl
     };
   });
   expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
-  await expect(page.locator('.data-table tbody tr[data-row-index="0"] td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
+  await expect(tableRow(page, 0).locator('td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
 });
 
 test("non-wrapped option field chips use a clipped single-line strip like notion", async ({ page }) => {
@@ -2774,7 +2782,7 @@ test("non-wrapped option field chips use a clipped single-line strip like notion
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  const trigger = page.locator('.data-table tbody tr[data-row-index="1"] .multi-select-trigger');
+  const trigger = tableRow(page, 1).locator(".multi-select-trigger");
   const chipsCell = trigger.locator(".chips-cell");
   await expect(trigger).toHaveAttribute("data-wrap-mode", "truncate");
   await expect(chipsCell).toHaveCSS("flex-wrap", "nowrap");
@@ -2789,7 +2797,7 @@ test("detail panel option field editors reuse the shared popover shell", async (
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const featuresBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -2807,7 +2815,7 @@ test("detail panel option field editors reuse the shared popover shell", async (
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -2827,7 +2835,7 @@ test("detail panel headings show shared field type icons in primary and nested p
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const featuresHeading = page.locator(".detail-panel.primary .property-block").filter({
@@ -2846,7 +2854,7 @@ test("detail panel headings show shared field type icons in primary and nested p
 
   await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
   await page.locator(".detail-panel.primary .nested-entry-button").click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
@@ -2867,7 +2875,7 @@ test("detail panel header keeps a compact gap before the first field", async ({ 
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const spacing = await page.evaluate(() => {
@@ -2899,7 +2907,7 @@ test("relation popover still opens and selects target after option field shell m
     mode: "single",
   });
 
-  const relationTrigger = page.locator(".data-table tbody tr[data-row-index='0'] .relation-trigger").first();
+  const relationTrigger = tableRow(page, 0).locator(".relation-trigger").first();
   const initialRelationText = ((await relationTrigger.textContent()) ?? "").trim();
   await relationTrigger.click();
   const relationPopover = page.locator(".relation-popover");
@@ -2917,7 +2925,7 @@ test("option field editor keeps create rename color and delete actions", async (
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").click();
+  await tableRow(page, 0).locator(".multi-select-trigger").click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
 
   await page.locator(".multi-select-input").fill("phase2_tag");
@@ -2936,7 +2944,7 @@ test("option field editor keeps create rename color and delete actions", async (
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" })).toBeVisible();
 
   await page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" }).locator(".option-menu-trigger").click();
-  await page.locator(".multi-select-color-item").filter({ hasText: "蓝色" }).click();
+  await page.locator(".multi-select-color-item").filter({ hasText: "钃濊壊" }).click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" }).locator(".chip")).toHaveCSS("background-color", "rgb(219, 234, 254)");
 
   await page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" }).locator(".option-menu-trigger").click();
@@ -2947,7 +2955,7 @@ test("option field editor keeps create rename color and delete actions", async (
   await closePopoverByClickingOutside(page);
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
   await waitForAutosaveIdle(page);
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator(".multi-select-trigger").click();
+  await tableRow(page, 0).locator(".multi-select-trigger").click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" })).toBeVisible();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" })).toHaveCount(0);
 });
@@ -2960,7 +2968,7 @@ test("option field editor drag reorder updates visible chip order and persists a
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  const secondRowTrigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  const secondRowTrigger = tableRow(page, 1).locator(".multi-select-trigger");
   await secondRowTrigger.click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
 
@@ -3004,7 +3012,7 @@ test("option field editor drag reorder updates visible chip order and persists a
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  const rowChipTextsAfterReload = await page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
+  const rowChipTextsAfterReload = await tableRow(page, 1).locator(".multi-select-trigger .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(rowChipTextsAfterReload.indexOf(sourceValue)).toBeLessThan(rowChipTextsAfterReload.indexOf(targetValue));
 });
 
@@ -3016,7 +3024,7 @@ test("option field editor drag cancel rolls back preview and leaves the parent r
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  const secondRowTrigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  const secondRowTrigger = tableRow(page, 1).locator(".multi-select-trigger");
   await secondRowTrigger.click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
 
@@ -3054,7 +3062,7 @@ test("option field editor drag reorder also persists for single-select options",
     return text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"');
   });
 
-  const trigger = page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger');
+  const trigger = tableRow(page, 0).locator(".multi-select-trigger");
   await trigger.click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
 
@@ -3070,7 +3078,7 @@ test("option field editor drag reorder also persists for single-select options",
   await endOptionHandleDrag(page, sourceValue, targetValue);
   await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await page.locator(".multi-select-popover").press("Escape");
-  await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
+  await tableRow(page, 0).locator(".multi-select-trigger").click();
   const optionTextsAfterCancel = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(optionTextsAfterCancel.indexOf(sourceValue)).toBeGreaterThan(optionTextsAfterCancel.indexOf(targetValue));
   await beginOptionHandleDrag(page, sourceValue);
@@ -3084,7 +3092,7 @@ test("option field editor drag reorder also persists for single-select options",
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger').click();
+  await tableRow(page, 0).locator(".multi-select-trigger").click();
   const optionTextsAfterReload = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => items.map((item) => item.textContent?.trim()).filter(Boolean));
   expect(optionTextsAfterReload.indexOf(sourceValue)).toBeLessThan(optionTextsAfterReload.indexOf(targetValue));
 });
@@ -3099,7 +3107,7 @@ test("detail panel option field drag reorder commits only after parent close", a
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
-  await page.locator('.data-table tbody tr[data-row-index="0"] [data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -3144,7 +3152,7 @@ test("detail panel option field draft stays bound to the original row when navig
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
-  await page.locator('.data-table tbody tr[data-row-index="0"] [data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 
   const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
@@ -3159,8 +3167,8 @@ test("detail panel option field draft stays bound to the original row when navig
   await page.locator('.detail-panel.primary button[title="Next record"]').click();
   await expect(page.locator(".detail-panel.primary .panel-subtitle")).toContainText("Row 2");
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
-  await expect(page.locator('.data-table tbody tr[data-row-index="0"] .multi-select-trigger')).toContainText("detail_row_commit_tag");
-  await expect(page.locator('.data-table tbody tr[data-row-index="1"] .multi-select-trigger')).not.toContainText("detail_row_commit_tag");
+  await expect(tableRow(page, 0).locator(".multi-select-trigger")).toContainText("detail_row_commit_tag");
+  await expect(tableRow(page, 1).locator(".multi-select-trigger")).not.toContainText("detail_row_commit_tag");
 });
 
 test("option field editor drag preview uses a ghost and placeholder instead of moving the live row", async ({ page }) => {
@@ -3171,7 +3179,7 @@ test("option field editor drag preview uses a ghost and placeholder instead of m
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  const trigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  const trigger = tableRow(page, 1).locator(".multi-select-trigger");
   await trigger.click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
 
@@ -3205,7 +3213,7 @@ test("option field editor drag reorder works after filtering visible options", a
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  const trigger = page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger");
+  const trigger = tableRow(page, 1).locator(".multi-select-trigger");
   await trigger.click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
 
@@ -3241,7 +3249,7 @@ test("option field editor closes the popover cleanly when switching files", asyn
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger").click();
+  await tableRow(page, 1).locator(".multi-select-trigger").click();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
   await page.locator(".multi-select-input").fill("draft_discard_tag");
   await page.locator(".multi-select-input").press("Enter");
@@ -3254,7 +3262,7 @@ test("option field editor closes the popover cleanly when switching files", asyn
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toHaveCount(0);
-  await expect(page.locator(".data-table tbody tr[data-row-index='1'] .multi-select-trigger")).not.toContainText("draft_discard_tag");
+  await expect(tableRow(page, 1).locator(".multi-select-trigger")).not.toContainText("draft_discard_tag");
 });
 
 test("profile file order controls initial open and ignores stale local file order", async ({ page }) => {
@@ -3441,12 +3449,35 @@ test("toolbar search filters visible table rows, not just the counter", async ({
   await expect(page.getByRole("button", { name: "展开搜索" })).toHaveCount(1);
 });
 
+test("detail keeps the selected record when search hides it from the current view", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  await expect(page.locator(".detail-panel.primary .panel-title")).toContainText("Select One");
+  await expect(page.locator(".detail-panel.primary .panel-subtitle")).toContainText("Row 1 of 3");
+  await expect(page.locator(".data-table tbody tr.selected-row")).toHaveCount(1);
+
+  const searchInput = page.locator("header").getByPlaceholder("搜索当前表格", { exact: true });
+  await searchInput.fill("Select Two");
+
+  await expect(page.getByText("Visible 1 / Total 3", { exact: true })).toBeVisible();
+  await expect.poll(() => getVisibleTableIds(page)).toEqual(["select_2"]);
+  await expect(page.locator(".detail-panel.primary .panel-title")).toContainText("Select One");
+  await expect(page.locator(".detail-panel.primary .panel-subtitle")).toContainText("Row hidden by current view");
+  await expect(page.locator(".detail-panel.primary button[title=\"Previous record\"]")).toBeDisabled();
+  await expect(page.locator(".detail-panel.primary button[title=\"Next record\"]")).toBeDisabled();
+  await expect(page.locator(".data-table tbody tr.selected-row")).toHaveCount(0);
+});
+
 test("select chip grows with column width", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_select_long.json"]').click();
   await page.locator('.column-trigger[title="category"]').click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
-  const chip = page.locator('.data-table tbody tr[data-row-index="0"] .chip').first();
+  const chip = tableRow(page, 0).locator(".chip").first();
   await expect(chip).toBeVisible();
   const widthBefore = await chip.evaluate((element) => element.getBoundingClientRect().width);
   await page.evaluate(() => {
@@ -3992,7 +4023,7 @@ test("refresh fallback ignores stale page context", async ({ page }) => {
   expect(initialScroll).not.toBeNull();
   expect(initialScroll!.scrollTop).toBe(0);
   expect(initialScroll!.scrollLeft).toBe(0);
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 });
 
@@ -4031,7 +4062,7 @@ test("close button asks for confirmation when unsaved changes would be lost", as
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
 
@@ -4078,7 +4109,7 @@ test("single transient network failure does not trigger recovery", async ({ page
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
   await expect(page.locator(".dirty-pill")).toContainText("保存失败");
@@ -4179,7 +4210,7 @@ test("unexpected disconnect waits for manual reload after recovery when unsaved 
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
 
@@ -4337,7 +4368,7 @@ test("refresh build asks for confirmation when unsaved changes would be lost", a
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await page.locator(".data-table tbody tr[data-row-index]").first().locator('[data-cell-role="title-action"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
 
@@ -4393,3 +4424,4 @@ test("project settings opens from the empty workspace state", async ({ page }) =
   await expect(page.getByRole("dialog", { name: "Project Settings" })).toBeVisible();
   await expect(page.locator(".project-settings-dialog textarea")).toContainText("data|Data|relative|data");
 });
+

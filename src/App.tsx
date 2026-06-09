@@ -25,7 +25,6 @@ import {
   saveViewProfile,
   updateProject,
   type DataFile,
-  type PendingDocumentSave,
   type ProjectDefinition,
   type SaveDocumentsResult,
   type CollectionView,
@@ -37,27 +36,36 @@ import {
   type ViewConfig,
 } from "./api/client";
 import { Sidebar } from "./components/Sidebar";
-import { Toolbar } from "./components/Toolbar";
-import { ViewTabs } from "./components/ViewTabs";
-import { ViewFilterBar } from "./components/ViewFilterBar";
+import { Toolbar, type ToolbarSnapshot } from "./components/Toolbar";
+import { ViewTabs, type ViewTabsSnapshot } from "./components/ViewTabs";
+import { ViewFilterBar, type ViewFilterBarSnapshot } from "./components/ViewFilterBar";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
 import { icons } from "./components/icons";
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
-import { DataTable, type FieldConfig } from "./table/DataTable";
-import { DetailPanel } from "./detail/DetailPanel";
+import { DataTable, type FieldConfig, type TableFieldConfig, type TableSnapshot } from "./table/DataTable";
+import { DetailPanel, type DetailSnapshot } from "./detail/DetailPanel";
+import { buildDetailSelectionState, resolveDetailSelectionSync } from "./detail/selection-state.mjs";
+import { stabilizeViewResult } from "./view/stable-view-result.mjs";
+import { buildStableViewEngineRows } from "./view/stable-view-engine-rows.mjs";
 import type { DataRecord, DocumentModel } from "./model/documentModel";
 import { addField, addRow, buildDocumentModel, deleteField, deleteRow, getMainColumns, getNestedFields, getRows, setCellValue } from "./model/documentModel";
 import type { FieldDisplayType } from "./model/fieldTypes";
 import { defaultTypeFor, isCompatible } from "./model/fieldTypes";
 import type { RelationOption } from "./model/relations";
-import type { ValidationIssue } from "./model/validation";
-import { buildRelationIndex, validateRelationValueTyped, validateRequiredTyped, validateUniqueTyped } from "./model/validation";
-import { buildRelationOptions } from "./model/relations";
-import { buildBacklinkGrid, getBacklinkColumnsForView } from "./model/backlinkGrid";
+import { buildRelationLookupState } from "./model/relation-lookup.mjs";
+import { buildBacklinkLookupState } from "./model/backlink-lookup.mjs";
+import { buildMaintenanceLookupState } from "./model/maintenance-lookup.mjs";
+import { resolveRelationTargetSelection } from "./model/relation-target-lookup.mjs";
+import {
+  buildPrimaryKeySyncSaveSnapshot,
+  describePrimaryKeySyncBlockingIssues,
+  describePrimaryKeySyncSaveResult,
+} from "./model/primary-key-sync-save.mjs";
+import type { PrimaryKeySyncSaveSnapshot } from "./model/primary-key-sync-save";
 import { buildRelationKey } from "./model/relationPath";
-import { analyzePrimaryKeyChange, buildPrimaryKeySyncPlan, collectRelationBacklinks, findTargetRecord, parseRelationKey, type PrimaryKeyImpact, type PrimaryKeySyncPlan, type RelationBacklink } from "./model/relationMaintenance";
-import { deriveBacklinkConfigs, getPrimaryKeyField, syncBacklinksWithRelations } from "./model/fieldRole";
+import { parseRelationKey, type PrimaryKeyImpact, type PrimaryKeySyncPlan, type RelationBacklink } from "./model/relationMaintenance";
+import { deriveBacklinkConfigs, syncBacklinksWithRelations } from "./model/fieldRole";
 import { analyzePrimaryKeyCandidates, buildCollectionKey, type FilteredPrimaryKeyCandidate, type PrimaryKeyCandidate, type PrimaryKeyCandidateAnalysis } from "./model/primaryKeyCandidate";
 import { findTitleField, getRecordTitle } from "./model/titleField";
 import type { BacklinkGridColumn } from "./model/backlinkGrid";
@@ -101,10 +109,15 @@ import {
   type UiPreferences,
   type UiTheme,
 } from "./ui-preferences";
-import { applyViewFilters } from "./view/filtering.mjs";
 import { createDefaultFilterRule, withRules } from "./view/filter-rules.mjs";
-import { applyViewSorts, updateHeaderSorts } from "./view/sorting.mjs";
+import { updateHeaderSorts } from "./view/sorting.mjs";
+import { runView } from "./view/view-engine.mjs";
+import type { ViewEngineRow, ViewInput, ViewResult } from "./view/contracts";
+import { buildValidationSnapshot, patchValidationSnapshotForField, patchValidationSnapshotForRowField } from "./validation/issue-map.mjs";
+import type { ValidationFieldConfig as ValidationFieldConfigType, ValidationRuleConfig as ValidationRuleConfigType, ValidationSnapshot as ValidationSnapshotType } from "./validation/issue-map";
 import { createSaveCoordinator, type AutosaveDomain, type AutosaveState } from "./save-coordinator";
+import { buildDocumentStore, type CollectionStore, type DocumentStore, type TableRowView } from "./model/document-store";
+import { addFieldByRowId, deleteRowByRowId, setCellValueByRowId } from "./model/writeback-adapter";
 import {
   applyViewOrderDraft,
   collectionConfigKey,
@@ -125,6 +138,14 @@ type ServiceLifecycleState = "running" | "closed" | "recovering" | "disconnected
 type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts">;
 const defaultRecoveryBridgePort = 8791;
 const detailReorderReactProfilingStorageKey = "data-editor:enable-detail-reorder-profiling";
+const emptyFilterGroup: FilterGroup = { op: "and", rules: [] };
+const emptySortRules: SortRule[] = [];
+const buildDocumentStoreTyped = buildDocumentStore as (input: {
+  documentId: string;
+  model: DocumentModel;
+  previousStore?: DocumentStore | null;
+}) => DocumentStore;
+const runViewTyped = runView as (input: ViewInput) => ViewResult;
 
 function markPerf(name: string) {
   if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
@@ -161,6 +182,7 @@ export function App() {
   const [model, setModel] = useState<DocumentModel | null>(null);
   const [collectionPath, setCollectionPath] = useState("$");
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const [selectedRowIdState, setSelectedRowIdState] = useState<string | null>(null);
   const [dataDirty, setDataDirty] = useState(false);
   const [viewConfigDirty, setViewConfigDirty] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
@@ -174,10 +196,11 @@ export function App() {
   const [flashStatus, setFlashStatus] = useState(() => consumeTransientStatus());
   const [status, setStatus] = useState("");
   const [relationIndexes, setRelationIndexes] = useState<Record<string, Set<string> | null>>({});
+  const [dataRevision, bumpDataRevision] = useState(0);
   const [relationOptions, setRelationOptions] = useState<Record<string, RelationOption[]>>({});
   const [relationBacklinks, setRelationBacklinks] = useState<RelationBacklink[]>([]);
   const [backlinkColumns, setBacklinkColumns] = useState<BacklinkGridColumn[]>([]);
-  const [backlinkValuesByRowIndex, setBacklinkValuesByRowIndex] = useState<Record<number, Record<string, RelationBacklink[]>>>({});
+  const [backlinkValuesByRowIdState, setBacklinkValuesByRowIdState] = useState<Record<string, Record<string, RelationBacklink[]>>>({});
   const [primaryKeyImpacts, setPrimaryKeyImpacts] = useState<Record<string, PrimaryKeyImpact>>({});
   const [primaryKeySyncPlan, setPrimaryKeySyncPlan] = useState<PrimaryKeySyncPlan | null>(null);
   const [primaryKeySyncDialogOpen, setPrimaryKeySyncDialogOpen] = useState(false);
@@ -187,6 +210,7 @@ export function App() {
   const [newFieldType, setNewFieldType] = useState<FieldDisplayType>("Text");
   const [newFieldApplyAll, setNewFieldApplyAll] = useState(false);
   const [pendingDeleteRow, setPendingDeleteRow] = useState<number | null>(null);
+  const [pendingDeleteRowId, setPendingDeleteRowId] = useState<string | null>(null);
   const [pendingDeleteField, setPendingDeleteField] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
@@ -226,6 +250,21 @@ export function App() {
   const bridgePortRef = useRef(defaultRecoveryBridgePort);
   const serviceLifecycleStateRef = useRef<ServiceLifecycleState>("running");
   const detailOpenRef = useRef(false);
+  const documentStoreRef = useRef<DocumentStore | null>(null);
+  const prebuiltDocumentStoreRef = useRef<{ documentId: string; model: DocumentModel; store: DocumentStore } | null>(null);
+  const validationSnapshotRef = useRef<{
+    snapshot: ValidationSnapshotType;
+    fieldConfig: ValidationFieldConfigType | null;
+    ruleConfig: ValidationRuleConfigType | null;
+    relationIndexes: Record<string, Set<string> | null> | null;
+    sourcePath: string | null;
+    collectionPath: string | null;
+  } | null>(null);
+  const validationInvalidationRef = useRef<
+    { type: "full" }
+    | { type: "row-field"; rowId: string | null; rowIndex: number | null; fieldName: string }
+    | { type: "field"; fieldName: string }
+  >({ type: "full" });
   const autoRecoverAttemptedRef = useRef(false);
   const disconnectFlowPromiseRef = useRef<Promise<void> | null>(null);
   const healthFailureCountRef = useRef(0);
@@ -233,7 +272,7 @@ export function App() {
   const manualClosedRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => readSidebarWidth());
   const [detailPanelWidth, setDetailPanelWidth] = useState(() => readDetailPanelWidth());
-  const primaryKeySyncSnapshotRef = useRef<{ plan: PrimaryKeySyncPlan; pendingSaves: PendingDocumentSave[] } | null>(null);
+  const primaryKeySyncSnapshotRef = useRef<PrimaryKeySyncSaveSnapshot | null>(null);
   const primaryKeySyncPlanRef = useRef<PrimaryKeySyncPlan | null>(null);
   const autosaveStateRef = useRef<AutosaveState>("idle");
   const savingRef = useRef(false);
@@ -247,13 +286,15 @@ export function App() {
     awaitingRows: false,
     awaitingFieldConfig: false,
     awaitingViewRows: false,
-    awaitingViewModel: false,
     awaitingIssues: false,
     awaitingBacklinks: false,
     awaitingMaintenance: false,
     awaitingMainContentRender: false,
     awaitingTableRender: false,
     awaitingDetailPanelRender: false,
+    awaitingViewTabsRender: false,
+    awaitingFilterBarRender: false,
+    awaitingPrimaryKeyBannerRender: false,
   });
   const toolbarDirty = dataDirty || viewConfigDirty || profileDirty;
   const globalDirty = toolbarDirty || viewDraftDirty;
@@ -409,6 +450,7 @@ export function App() {
     savedDocumentRootRef.current = null;
     setCollectionPath("$");
     setSelectedRowIndex(null);
+    setSelectedRowIdState(null);
     setDetailOpen(false);
     setDataDirty(false);
     dataDirtyRef.current = false;
@@ -438,7 +480,7 @@ export function App() {
     setRelationOptions({});
     setRelationBacklinks([]);
     setBacklinkColumns([]);
-    setBacklinkValuesByRowIndex({});
+    setBacklinkValuesByRowIdState({});
     setPrimaryKeyImpacts({});
     setPrimaryKeySyncPlan(null);
     setPrimaryKeySyncDialogOpen(false);
@@ -675,7 +717,14 @@ export function App() {
     return flow;
   }
 
-  async function openDocumentAt(path: string, targetCollection?: string, targetRowIndex?: number, openDetailPanel = false, projectId = activeProjectId) {
+  async function openDocumentAt(
+    path: string,
+    targetCollection?: string,
+    targetRowIndex?: number,
+    openDetailPanel = false,
+    projectId = activeProjectId,
+    targetRowId?: string | null,
+  ) {
     const requestId = openRequestRef.current + 1;
     openRequestRef.current = requestId;
     selectedPathRef.current = path;
@@ -685,6 +734,7 @@ export function App() {
     savedDocumentRootRef.current = null;
     setCollectionPath("$");
     setSelectedRowIndex(null);
+    setSelectedRowIdState(null);
     setDetailOpen(false);
     setStatus(`Loading ${path}...`);
     let documentModel: DocumentModel;
@@ -709,11 +759,24 @@ export function App() {
     if (requestId !== openRequestRef.current) return;
     const nextCollection = resolveDocumentCollection(documentModel, targetCollection);
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
+    const nextStore = buildDocumentStoreTyped({ documentId: path, model: documentModel });
+    prebuiltDocumentStoreRef.current = {
+      documentId: path,
+      model: documentModel,
+      store: nextStore,
+    };
+    const targetSourceIndex = targetRowId
+      ? (nextStore.collections.get(nextCollection)?.sourceIndexByRowId.get(targetRowId) ?? null)
+      : null;
+    const nextSelectedRowIndex = targetSourceIndex ?? targetRowIndex ?? (nextRows.length ? 0 : null);
+    const nextSelectedRowId = targetRowId
+      ?? (nextSelectedRowIndex == null ? null : (nextStore.collections.get(nextCollection)?.rowViews[nextSelectedRowIndex]?.rowId ?? null));
     modelRef.current = documentModel;
     savedDocumentRootRef.current = cloneDataRoot(documentModel.root);
     setModel(documentModel);
     setCollectionPath(nextCollection);
-    setSelectedRowIndex(targetRowIndex ?? (nextRows.length ? 0 : null));
+    setSelectedRowIndex(nextSelectedRowIndex);
+    setSelectedRowIdState(nextSelectedRowId);
     setDetailOpen(openDetailPanel);
     setDataDirty(false);
     dataDirtyRef.current = false;
@@ -742,6 +805,24 @@ export function App() {
   ) => {
     const perfState = detailReorderPerfRef.current;
     if (!perfState.active || phase === "mount") return;
+    if (id === "main-content") {
+      recordPerfDuration("detail-reorder:react-main-content:sample", actualDuration);
+    }
+    if (id === "data-table") {
+      recordPerfDuration("detail-reorder:react-data-table:sample", actualDuration);
+    }
+    if (id === "detail-panel") {
+      recordPerfDuration("detail-reorder:react-detail-panel:sample", actualDuration);
+    }
+    if (id === "view-tabs") {
+      recordPerfDuration("detail-reorder:react-view-tabs:sample", actualDuration);
+    }
+    if (id === "view-filter-bar") {
+      recordPerfDuration("detail-reorder:react-view-filter-bar:sample", actualDuration);
+    }
+    if (id === "primary-key-banner") {
+      recordPerfDuration("detail-reorder:react-primary-key-banner:sample", actualDuration);
+    }
     if (id === "main-content" && perfState.awaitingMainContentRender) {
       recordPerfDuration("detail-reorder:react-main-content", actualDuration);
       perfState.awaitingMainContentRender = false;
@@ -755,6 +836,21 @@ export function App() {
     if (id === "detail-panel" && perfState.awaitingDetailPanelRender) {
       recordPerfDuration("detail-reorder:react-detail-panel", actualDuration);
       perfState.awaitingDetailPanelRender = false;
+      return;
+    }
+    if (id === "view-tabs" && perfState.awaitingViewTabsRender) {
+      recordPerfDuration("detail-reorder:react-view-tabs", actualDuration);
+      perfState.awaitingViewTabsRender = false;
+      return;
+    }
+    if (id === "view-filter-bar" && perfState.awaitingFilterBarRender) {
+      recordPerfDuration("detail-reorder:react-view-filter-bar", actualDuration);
+      perfState.awaitingFilterBarRender = false;
+      return;
+    }
+    if (id === "primary-key-banner" && perfState.awaitingPrimaryKeyBannerRender) {
+      recordPerfDuration("detail-reorder:react-primary-key-banner", actualDuration);
+      perfState.awaitingPrimaryKeyBannerRender = false;
     }
   }, []);
 
@@ -765,97 +861,26 @@ export function App() {
     }
     const requestId = maintenanceRequestRef.current + 1;
     maintenanceRequestRef.current = requestId;
-    if (!selectedPath || !selectedRow) {
-      setRelationBacklinks([]);
-      setPrimaryKeyImpacts({});
-      setPrimaryKeySyncPlan(null);
-      finalizeDetailReorderAsyncSegment("maintenance");
-      return;
-    }
-    const primaryKeyField = getPrimaryKeyField(viewConfig, selectedPath, collectionPath);
-    if (!primaryKeyField) {
-      setRelationBacklinks([]);
-      setPrimaryKeyImpacts({});
-      setPrimaryKeySyncPlan(null);
-      finalizeDetailReorderAsyncSegment("maintenance");
-      return;
-    }
-    const savedRoot = savedDocumentRootRef.current;
-    const savedDocumentModel = savedRoot != null && model ? buildDocumentModel(savedRoot, model.format, selectedPath) : null;
-    const savedRows = savedDocumentModel ? (getRows(savedDocumentModel, collectionPath) as DataRecord[]) : [];
-    const savedRow = selectedRowIndex == null ? null : savedRows[selectedRowIndex] ?? null;
-    const previousPrimaryKeyValue = savedRow?.[primaryKeyField];
-    const currentPrimaryKeyValue = selectedRow[primaryKeyField];
-    if (
-      (previousPrimaryKeyValue == null || previousPrimaryKeyValue === "")
-      && (currentPrimaryKeyValue == null || currentPrimaryKeyValue === "")
-    ) {
-      setRelationBacklinks([]);
-      setPrimaryKeyImpacts({});
-      setPrimaryKeySyncPlan(null);
-      finalizeDetailReorderAsyncSegment("maintenance");
-      return;
-    }
-    const activeRelations = Object.fromEntries(Object.entries(viewConfig.relations).filter(([, relationConfig]) => (
-      relationConfig.targetFile === selectedPath
-      && relationConfig.targetCollection === collectionPath
-      && relationConfig.targetKey === primaryKeyField
-    )));
-    const activeRelationKeys = Object.keys(activeRelations);
-    if (!activeRelationKeys.length) {
-      setRelationBacklinks([]);
-      setPrimaryKeyImpacts({});
-      setPrimaryKeySyncPlan(null);
-      finalizeDetailReorderAsyncSegment("maintenance");
-      return;
-    }
-    const sourceFiles = [...new Set(activeRelationKeys.map((key) => parseRelationKey(key)?.sourceFile).filter(Boolean))] as string[];
-    const documentsByPath: Record<string, DocumentModel> = {};
-    await Promise.all(sourceFiles.map(async (path) => {
-      try {
-        documentsByPath[path] = path === selectedPath && model ? model : await loadDocument(path, activeProjectId);
-      } catch {
-        // Missing source files are surfaced by buildPrimaryKeySyncPlan blocking issues.
-      }
-    }));
+    const nextState = await buildMaintenanceLookupState({
+      selectedPath,
+      collectionPath,
+      selectedRow,
+      selectedSourceRowIndex,
+      selectedRowLabel: getRecordTitle(selectedRow, titleField ? [titleField] : [], selectedSourceRowIndex ?? null),
+      model,
+      rows,
+      savedRoot: savedDocumentRootRef.current,
+      viewConfig,
+      activeProjectId,
+      loadDocument: (path) => loadDocument(path, activeProjectId),
+    });
     if (requestId !== maintenanceRequestRef.current) {
       finalizeDetailReorderAsyncSegment("maintenance");
       return;
     }
-    const backlinks = collectRelationBacklinks({
-      targetFile: selectedPath,
-      targetCollection: collectionPath,
-      targetKey: primaryKeyField,
-      targetId: (previousPrimaryKeyValue ?? currentPrimaryKeyValue) as string | number,
-      relations: activeRelations,
-      documentsByPath,
-    });
-    const impacts: Record<string, PrimaryKeyImpact> = {
-      [primaryKeyField]: analyzePrimaryKeyChange({
-        targetFile: selectedPath,
-        targetCollection: collectionPath,
-        targetKey: primaryKeyField,
-        oldValue: previousPrimaryKeyValue,
-        newValue: currentPrimaryKeyValue,
-        relations: activeRelations,
-        documentsByPath,
-      }),
-    };
-    const syncPlan = buildPrimaryKeySyncPlan({
-      targetFile: selectedPath,
-      targetCollection: collectionPath,
-      targetKey: primaryKeyField,
-      targetRowLabel: getRecordTitle(selectedRow, titleField ? [titleField] : [], selectedRowIndex),
-      targetRowIndex: selectedRowIndex,
-      oldValue: previousPrimaryKeyValue,
-      newValue: currentPrimaryKeyValue,
-      relations: activeRelations,
-      documentsByPath,
-      targetRows: rows,
-    });
-    setRelationBacklinks(backlinks);
-    setPrimaryKeyImpacts(impacts);
-    setPrimaryKeySyncPlan(syncPlan);
+    setRelationBacklinks(nextState.relationBacklinks);
+    setPrimaryKeyImpacts(nextState.primaryKeyImpacts);
+    setPrimaryKeySyncPlan(nextState.primaryKeySyncPlan);
     finalizeDetailReorderAsyncSegment("maintenance");
   }
 
@@ -866,83 +891,62 @@ export function App() {
     }
     if (!selectedPath || !model) {
       setBacklinkColumns([]);
-      setBacklinkValuesByRowIndex({});
+      setBacklinkValuesByRowIdState({});
       finalizeDetailReorderAsyncSegment("backlinks");
       return;
     }
     const rows = getRows(model, collectionPath) as DataRecord[];
-    const columns = getBacklinkColumnsForView({
-      targetFile: selectedPath,
-      targetCollection: collectionPath,
-      viewConfig,
-    }) as BacklinkGridColumn[];
-    if (!columns.length) {
-      setBacklinkColumns([]);
-      setBacklinkValuesByRowIndex({});
-      finalizeDetailReorderAsyncSegment("backlinks");
-      return;
-    }
-    const sourceFiles = [...new Set(columns.map((column) => column.sourceRelation.split(":")[0]).filter(Boolean))];
-    const documentsByPath: Record<string, DocumentModel> = {};
-    await Promise.all(sourceFiles.map(async (path) => {
-      try {
-        documentsByPath[path] = path === selectedPath ? model : await loadDocument(path, activeProjectId);
-      } catch {
-        // Ignore missing source documents and leave their backlink columns empty.
-      }
-    }));
-    const grid = buildBacklinkGrid({
+    const {
+      backlinkColumns,
+      backlinkValuesByRowId,
+    } = await buildBacklinkLookupState({
       targetFile: selectedPath,
       targetCollection: collectionPath,
       rows,
       viewConfig,
-      documentsByPath,
+      activeModel: model,
+      loadDocument: (path) => loadDocument(path, activeProjectId),
     });
-    setBacklinkColumns(grid.columns as BacklinkGridColumn[]);
-    setBacklinkValuesByRowIndex(grid.valuesByRowIndex as Record<number, Record<string, RelationBacklink[]>>);
+    setBacklinkColumns(backlinkColumns as BacklinkGridColumn[]);
+    setBacklinkValuesByRowIdState(backlinkValuesByRowId);
     finalizeDetailReorderAsyncSegment("backlinks");
   }
 
   async function handleOpenRelationTarget(config: RelationConfig, value: string | number) {
     try {
-      const targetDocument = await loadDocument(config.targetFile, activeProjectId);
-      const targetRows = getRows(targetDocument, config.targetCollection) as DataRecord[];
-      const target = findTargetRecord(targetRows, config.targetKey, value);
+      const target = await resolveRelationTargetSelection({
+        relationConfig: config,
+        targetValue: value,
+        activeFilePath: selectedPath,
+        activeModel: model,
+        loadDocument: (path) => loadDocument(path, activeProjectId),
+      });
       if (!target) {
         setStatus(`引用缺失：${String(value)}`);
         return;
       }
-      await openDocumentAt(config.targetFile, config.targetCollection, target.rowIndex, true);
+      await openDocumentAt(target.targetFile, target.targetCollection, target.rowIndex, true, activeProjectId, target.rowId ?? undefined);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
   }
 
   async function handleOpenBacklink(backlink: RelationBacklink) {
-    await openDocumentAt(backlink.sourceFile, backlink.sourceCollection, backlink.rowIndex, true);
+    await openDocumentAt(backlink.sourceFile, backlink.sourceCollection, backlink.rowIndex, true, activeProjectId, backlink.rowId ?? undefined);
   }
 
   async function loadRelationIndexes(config: ViewConfig) {
     const requestId = relationIndexRequestRef.current + 1;
     relationIndexRequestRef.current = requestId;
-    const indexes: Record<string, Set<string> | null> = {};
-    const optionsByKey: Record<string, RelationOption[]> = {};
-    for (const [relationKey, target] of Object.entries(config.relations)) {
-      try {
-        const reference = await loadDocument(target.targetFile, activeProjectId);
-        const referenceRows = getRows(reference, target.targetCollection) as DataRecord[];
-        indexes[relationKey] = buildRelationIndex(referenceRows, target.targetKey);
-        optionsByKey[relationKey] = buildRelationOptions(referenceRows, target.targetKey, target.titleFields);
-        indexes[target.targetKey] ??= indexes[relationKey];
-        optionsByKey[target.targetKey] ??= optionsByKey[relationKey];
-      } catch {
-        indexes[relationKey] = null;
-        optionsByKey[relationKey] = [];
-      }
-    }
+    const { relationIndexes: indexes, relationOptions: optionsByKey } = await buildRelationLookupState({
+      relations: config.relations,
+      activeFilePath: selectedPath,
+      activeModel: model,
+      loadDocument: (path: string) => loadDocument(path, activeProjectId),
+    });
     if (requestId !== relationIndexRequestRef.current) return;
-    setRelationIndexes(indexes);
-    setRelationOptions(optionsByKey);
+    setRelationIndexes((current) => sameRelationIndexMap(current, indexes) ? current : indexes);
+    setRelationOptions((current) => sameRelationOptionMap(current, optionsByKey) ? current : optionsByKey);
   }
 
   const rows = useMemo(() => {
@@ -957,7 +961,7 @@ export function App() {
       perfState.awaitingRows = false;
     }
     return nextRows;
-  }, [model, collectionPath, tableRevision]);
+  }, [model, collectionPath, dataRevision]);
   const primaryKeyCandidateAnalyses = useMemo<Record<string, PrimaryKeyCandidateAnalysis>>(() => {
     if (!model || !selectedPath) return {};
     return Object.fromEntries(model.collections.map((collection) => {
@@ -1029,9 +1033,31 @@ export function App() {
       : null,
     [activeCollectionKey, activeSharedView, draftSource],
   );
+  const previousVisibleRowViewsRef = useRef<TableRowView[] | null>(null);
+  const previousViewResultRef = useRef<ViewResult | null>(null);
+  const previousViewEngineRowsRef = useRef<ViewEngineRow[] | null>(null);
+  const stableActiveViewRenderStateRef = useRef<{ query: string; filters: FilterGroup; sorts: SortRule[] } | null>(null);
   const activeViewLayoutId = activeSharedView?.id ?? null;
   const activeViewHasFilters = Boolean(activeView?.filters?.rules?.length);
   const activeViewSort = activeView?.sorts?.[0] ?? null;
+  const activeViewRenderState = useMemo(() => {
+    const nextState = {
+      query: activeView?.query ?? "",
+      filters: activeView?.filters ?? emptyFilterGroup,
+      sorts: activeView?.sorts ?? emptySortRules,
+    };
+    const previous = stableActiveViewRenderStateRef.current;
+    if (
+      previous
+      && previous.query === nextState.query
+      && sameFilterGroup(previous.filters, nextState.filters)
+      && sameSortRules(previous.sorts, nextState.sorts)
+    ) {
+      return previous;
+    }
+    stableActiveViewRenderStateRef.current = nextState;
+    return nextState;
+  }, [activeView?.query, activeView?.filters, activeView?.sorts]);
   const dirtyViewIds = useMemo(() => {
     if (!activeCollectionKey) return new Set<string>();
     return new Set(Object.keys(draftSource.viewDrafts?.[activeCollectionKey] ?? {}));
@@ -1052,7 +1078,34 @@ export function App() {
       scrollLeft: position.scrollLeft,
     });
   }, [activeProjectId, selectedPath, collectionPath, activeViewLayoutId]);
-  const selectedRow = selectedRowIndex == null ? null : rows[selectedRowIndex] ?? null;
+  const documentStore = useMemo(() => {
+    if (!model) {
+      documentStoreRef.current = null;
+      prebuiltDocumentStoreRef.current = null;
+      return null;
+    }
+    const prebuiltStore = prebuiltDocumentStoreRef.current;
+    if (
+      prebuiltStore &&
+      prebuiltStore.documentId === (selectedPath ?? "document") &&
+      prebuiltStore.model === model
+    ) {
+      documentStoreRef.current = prebuiltStore.store;
+      prebuiltDocumentStoreRef.current = null;
+      return prebuiltStore.store;
+    }
+    const nextStore = buildDocumentStoreTyped({
+      documentId: selectedPath ?? "document",
+      model,
+      previousStore: documentStoreRef.current ?? undefined,
+    });
+    documentStoreRef.current = nextStore;
+    return nextStore;
+  }, [model, selectedPath, dataRevision]);
+  const collectionStore = useMemo<CollectionStore | null>(
+    () => documentStore?.collections.get(collectionPath) ?? null,
+    [documentStore, collectionPath],
+  );
   useEffect(() => {
     if (!activeProjectId || loadedProjectIdRef.current !== activeProjectId || !selectedPath || !model) {
       setScrollRestoreKey(null);
@@ -1079,9 +1132,6 @@ export function App() {
     setScrollRestoreKey(nextScrollRestoreKey);
     setInitialScrollPosition(nextProjectPageContext.scrollByView[nextScrollRestoreKey] ?? null);
   }, [activeProjectId, selectedPath, collectionPath, model, activeViewLayoutId]);
-  useEffect(() => {
-    void loadMaintenanceInfo();
-  }, [selectedPath, collectionPath, selectedRowIndex, selectedRow, viewConfig.relations, tableRevision]);
   const fieldConfig = useMemo(
     () => {
       const perfState = detailReorderPerfRef.current;
@@ -1107,9 +1157,56 @@ export function App() {
     },
     [selectedPath, collectionPath, activeViewLayoutId, model, viewConfig, selectedViewProfile, selectedViewProfileName, layoutRevision, backlinkColumns],
   );
+  const stableTableFieldConfigRef = useRef<TableFieldConfig | null>(null);
+  const tableFieldConfig = useMemo<TableFieldConfig>(() => {
+    const nextConfig = {
+      displayTypes: fieldConfig.displayTypes,
+      hidden: fieldConfig.hidden,
+      wrapped: fieldConfig.wrapped,
+      widths: fieldConfig.widths,
+      order: fieldConfig.order,
+    };
+    const previous = stableTableFieldConfigRef.current;
+    if (
+      previous
+      && sameRecord(previous.displayTypes, nextConfig.displayTypes)
+      && sameSet(previous.hidden, nextConfig.hidden)
+      && sameSet(previous.wrapped, nextConfig.wrapped)
+      && sameRecord(previous.widths, nextConfig.widths)
+      && sameStringArray(previous.order, nextConfig.order)
+    ) {
+      return previous;
+    }
+    stableTableFieldConfigRef.current = nextConfig;
+    return nextConfig;
+  }, [fieldConfig.displayTypes, fieldConfig.hidden, fieldConfig.wrapped, fieldConfig.widths, fieldConfig.order]);
+  const validationFieldConfig = useMemo(
+    () => ({
+      displayTypes: tableFieldConfig.displayTypes,
+      isCompatible,
+    }),
+    [tableFieldConfig.displayTypes],
+  );
+  const validationRuleConfig = useMemo(
+    () => ({
+      primaryKeys: viewConfig.primaryKeys,
+      relations: viewConfig.relations,
+    }),
+    [viewConfig.primaryKeys, viewConfig.relations],
+  );
+  const activeValidationPrimaryKeyField = useMemo(
+    () => selectedPath ? (validationRuleConfig.primaryKeys[buildCollectionKey(selectedPath, collectionPath)] ?? null) : null,
+    [selectedPath, collectionPath, validationRuleConfig],
+  );
+  function resolveValidationInvalidation(fieldName: string, rowId: string | null, rowIndex: number | null) {
+    if (fieldName === activeValidationPrimaryKeyField) {
+      return { type: "field" as const, fieldName };
+    }
+    return { type: "row-field" as const, rowId, rowIndex, fieldName };
+  }
   const allFields = useMemo(
-    () => model ? getOrderedFields(model, collectionPath, fieldConfig.order, backlinkColumns.map((column) => column.fieldName)) : [],
-    [model, collectionPath, fieldConfig.order, backlinkColumns],
+    () => model ? getOrderedFields(model, collectionPath, tableFieldConfig.order, backlinkColumns.map((column) => column.fieldName)) : [],
+    [model, collectionPath, tableFieldConfig.order, backlinkColumns],
   );
   const fieldViewConfigs = useMemo(
     () => model ? buildFieldViewConfigs(selectedPath, collectionPath, model, viewConfig) : {},
@@ -1120,9 +1217,9 @@ export function App() {
       field,
       selectedPath && viewConfig.relations[buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [field] })]
         ? "Relation"
-        : inferViewFilterFieldType(field, rows, fieldConfig.displayTypes),
+        : inferViewFilterFieldType(field, rows, tableFieldConfig.displayTypes),
     ])) as Record<string, FieldDisplayType>,
-    [allFields, rows, fieldConfig.displayTypes, selectedPath, collectionPath, viewConfig.relations],
+    [allFields, rows, tableFieldConfig.displayTypes, selectedPath, collectionPath, viewConfig.relations],
   );
   const viewFilterOptions = useMemo(
     () => {
@@ -1147,34 +1244,69 @@ export function App() {
     },
     [allFields, selectedPath, collectionPath, viewConfig.relations, relationOptions, viewFilterFieldTypes, rows, fieldViewConfigs],
   );
-  const viewRows = useMemo(() => {
+  const viewEngineRows = useMemo<ViewEngineRow[]>(() => {
+    return buildStableViewEngineRows(collectionStore, previousViewEngineRowsRef.current);
+  }, [collectionStore]);
+  useEffect(() => {
+    previousViewEngineRowsRef.current = viewEngineRows;
+  }, [viewEngineRows]);
+  const viewResult = useMemo(() => {
     const perfState = detailReorderPerfRef.current;
     if (perfState.active && perfState.awaitingViewRows) {
       markPerf("detail-reorder:before-view-rows");
     }
-    const filtered = applyViewFilters(rows, activeView?.query ?? "", activeView?.filters ?? { op: "and", rules: [] }, viewFilterFieldTypes);
-    const nextViewRows = applyViewSorts(filtered, activeView?.sorts ?? []);
+    const nextViewResult = runViewTyped({
+      rows: viewEngineRows,
+      query: activeViewRenderState.query,
+      candidateRowIds: null,
+      filters: activeViewRenderState.filters,
+      sorts: activeViewRenderState.sorts,
+      fieldTypes: viewFilterFieldTypes,
+    });
     if (perfState.active && perfState.awaitingViewRows) {
       markPerf("detail-reorder:after-view-rows");
       measurePerf("detail-reorder:view-rows", "detail-reorder:before-view-rows", "detail-reorder:after-view-rows");
       perfState.awaitingViewRows = false;
     }
-    return nextViewRows;
-  }, [rows, activeView, viewFilterFieldTypes]);
-  const viewModel = useMemo(() => {
-    const perfState = detailReorderPerfRef.current;
-    if (perfState.active && perfState.awaitingViewModel) {
-      markPerf("detail-reorder:before-view-model");
-    }
-    const nextViewModel = model ? ({ ...model, root: replaceRowsForView(model, collectionPath, viewRows) } as DocumentModel) : null;
-    if (perfState.active && perfState.awaitingViewModel) {
-      markPerf("detail-reorder:after-view-model");
-      measurePerf("detail-reorder:view-model", "detail-reorder:before-view-model", "detail-reorder:after-view-model");
-      perfState.awaitingViewModel = false;
-    }
-    return nextViewModel;
-  }, [model, collectionPath, viewRows]);
-  const hiddenFields = useMemo(() => allFields.filter((field) => fieldConfig.hidden.has(field)), [allFields, fieldConfig.hidden]);
+    return stabilizeViewResult(previousViewResultRef.current, nextViewResult);
+  }, [viewEngineRows, activeViewRenderState, viewFilterFieldTypes]);
+  useEffect(() => {
+    previousViewResultRef.current = viewResult;
+  }, [viewResult]);
+  const visibleRowIds = viewResult.visibleRowIds;
+  const detailSelectionState = useMemo(() => buildDetailSelectionState({
+    collectionStore,
+    visibleRowIds,
+    selectedRowId: selectedRowIdState,
+    selectedRowIndex,
+    previousVisibleRowViews: previousVisibleRowViewsRef.current,
+  }), [collectionStore, visibleRowIds, selectedRowIdState, selectedRowIndex]);
+  const {
+    visibleRowViews,
+    selectedRow,
+    resolvedRowId: selectedRowId,
+    resolvedSourceRowIndex: selectedSourceRowIndex,
+    selectedVisibleRowPosition,
+    previousRowTarget: previousVisibleRowTarget,
+    nextRowTarget: nextVisibleRowTarget,
+  } = detailSelectionState;
+  useEffect(() => {
+    previousVisibleRowViewsRef.current = visibleRowViews;
+  }, [visibleRowViews]);
+  useEffect(() => {
+    const nextSelection = resolveDetailSelectionSync({
+      collectionStore,
+      selectedRowId: selectedRowIdState,
+      selectedRowIndex,
+    });
+    if (!nextSelection) return;
+    if (nextSelection.nextRowIndex !== selectedRowIndex) setSelectedRowIndex(nextSelection.nextRowIndex);
+    if (nextSelection.nextRowId !== selectedRowIdState) setSelectedRowIdState(nextSelection.nextRowId);
+  }, [collectionStore, selectedRowIdState, selectedRowIndex]);
+  useEffect(() => {
+    void loadMaintenanceInfo();
+  }, [selectedPath, collectionPath, selectedRowId, selectedSourceRowIndex, selectedRow, viewConfig.relations, tableRevision]);
+  const hiddenFields = useMemo(() => allFields.filter((field) => tableFieldConfig.hidden.has(field)), [allFields, tableFieldConfig.hidden]);
   const titleField = useMemo(
     () => model ? findTitleField(getMainColumns(model, collectionPath), rows) : null,
     [model, collectionPath, rows],
@@ -1186,24 +1318,266 @@ export function App() {
     [selectedPath, collectionPath, relationConfigField],
   );
   const relationConfigForDialog = relationConfigKey ? (viewConfig.relations[relationConfigKey] ?? null) : null;
-  const issues = useMemo(
+  const validationSnapshot = useMemo(
     () => {
       const perfState = detailReorderPerfRef.current;
       if (perfState.active && perfState.awaitingIssues) {
         markPerf("detail-reorder:before-build-issues");
       }
-      const nextIssues = model && selectedPath
-        ? buildValidationIssues(rows, fieldConfig, relationIndexes, viewConfig, selectedPath, collectionPath)
-        : {};
+      const previousValidationState = validationSnapshotRef.current;
+      const nextValidationSnapshot = model && selectedPath
+        ? (
+          previousValidationState
+          && previousValidationState.fieldConfig === validationFieldConfig
+          && previousValidationState.ruleConfig === validationRuleConfig
+          && previousValidationState.relationIndexes === relationIndexes
+          && previousValidationState.sourcePath === selectedPath
+          && previousValidationState.collectionPath === collectionPath
+          && validationInvalidationRef.current.type !== "full"
+            ? (
+              (
+                validationInvalidationRef.current.type === "row-field"
+                  ? patchValidationSnapshotForRowField({
+                    previousSnapshot: previousValidationState.snapshot,
+                    invalidation: validationInvalidationRef.current,
+                    rows,
+                    collectionStore,
+                    fieldConfig: validationFieldConfig,
+                    relationIndexes,
+                    validationConfig: validationRuleConfig,
+                    sourcePath: selectedPath,
+                    collectionPath,
+                  })
+                  : validationInvalidationRef.current.type === "field"
+                    ? patchValidationSnapshotForField({
+                      previousSnapshot: previousValidationState.snapshot,
+                      invalidation: validationInvalidationRef.current,
+                      rows,
+                      collectionStore,
+                      fieldConfig: validationFieldConfig,
+                      relationIndexes,
+                      validationConfig: validationRuleConfig,
+                      sourcePath: selectedPath,
+                      collectionPath,
+                    })
+                    : null
+              ) ?? (
+                previousValidationState.relationIndexes
+                && previousValidationState.relationIndexes !== relationIndexes
+                ? patchValidationSnapshotForChangedRelationFields({
+                  previousSnapshot: previousValidationState.snapshot,
+                  previousRelationIndexes: previousValidationState.relationIndexes,
+                  nextRelationIndexes: relationIndexes,
+                  sourcePath: selectedPath,
+                  collectionPath,
+                  rows,
+                  collectionStore,
+                  fieldConfig: validationFieldConfig,
+                  validationConfig: validationRuleConfig,
+                })
+                : null
+              ) ?? buildValidationSnapshot({
+                rows,
+                collectionStore,
+                fieldConfig: validationFieldConfig,
+                relationIndexes,
+                validationConfig: validationRuleConfig,
+                sourcePath: selectedPath,
+                collectionPath,
+              })
+            )
+            : buildValidationSnapshot({
+              rows,
+              collectionStore,
+              fieldConfig: validationFieldConfig,
+              relationIndexes,
+              validationConfig: validationRuleConfig,
+              sourcePath: selectedPath,
+              collectionPath,
+            })
+        )
+        : {
+          byRowId: Object.create(null),
+          byRowIndex: Object.create(null),
+          collectionIssues: Object.create(null),
+        };
+      validationSnapshotRef.current = {
+        snapshot: nextValidationSnapshot,
+        fieldConfig: validationFieldConfig,
+        ruleConfig: validationRuleConfig,
+        relationIndexes,
+        sourcePath: selectedPath,
+        collectionPath,
+      };
+      validationInvalidationRef.current = { type: "full" };
       if (perfState.active && perfState.awaitingIssues) {
         markPerf("detail-reorder:after-build-issues");
         measurePerf("detail-reorder:build-issues", "detail-reorder:before-build-issues", "detail-reorder:after-build-issues");
         perfState.awaitingIssues = false;
       }
-      return nextIssues;
+      return nextValidationSnapshot;
     },
-    [model, rows, fieldConfig, relationIndexes, viewConfig, selectedPath, collectionPath],
+    [model, rows, collectionStore, validationFieldConfig, relationIndexes, validationRuleConfig, selectedPath, collectionPath],
   );
+  const tableSnapshot = useMemo<TableSnapshot>(() => ({
+    schemaModel: model!,
+    sourcePath: selectedPath,
+    collectionPath,
+    rowViews: visibleRowViews,
+    fieldConfig: tableFieldConfig,
+    fieldViewConfigs,
+    backlinkColumns,
+    backlinkValuesByRowId: backlinkValuesByRowIdState,
+    relationOptions,
+    relationConfigs: viewConfig.relations,
+    revision: tableRevision,
+    sort: activeViewSort,
+    validation: validationSnapshot,
+    titleField,
+    scrollRestoreKey,
+    initialScrollPosition,
+  }), [
+    model,
+    selectedPath,
+    collectionPath,
+    visibleRowViews,
+    tableFieldConfig,
+    fieldViewConfigs,
+    backlinkColumns,
+    backlinkValuesByRowIdState,
+    relationOptions,
+    viewConfig.relations,
+    tableRevision,
+    activeViewSort,
+    validationSnapshot,
+    titleField,
+    scrollRestoreKey,
+    initialScrollPosition,
+  ]);
+  const detailSnapshot = useMemo<DetailSnapshot>(() => ({
+    open: detailOpen,
+    panelWidth: detailPanelWidth,
+    row: selectedRow,
+    rowId: selectedRowId,
+    sourceRowIndex: selectedSourceRowIndex,
+    rowCount: visibleRowViews.length,
+    visibleRowPosition: selectedVisibleRowPosition,
+    previousRowTarget: previousVisibleRowTarget,
+    nextRowTarget: nextVisibleRowTarget,
+    sourcePath: selectedPath,
+    collectionPath,
+    titleField,
+    detailOrder: fieldConfig.detailOrder,
+    displayTypes: fieldConfig.displayTypes,
+    fieldViewConfigs,
+    validation: validationSnapshot,
+    relationOptions,
+    relationConfigs: viewConfig.relations,
+    relationBacklinks,
+    primaryKeyImpacts,
+    primaryKeySyncPlan,
+    primaryKeySyncResult,
+    saving,
+  }), [
+    detailOpen,
+    detailPanelWidth,
+    selectedRow,
+    selectedRowId,
+    selectedSourceRowIndex,
+    visibleRowViews.length,
+    selectedVisibleRowPosition,
+    previousVisibleRowTarget,
+    nextVisibleRowTarget,
+    selectedPath,
+    collectionPath,
+    titleField,
+    fieldConfig.detailOrder,
+    fieldConfig.displayTypes,
+    fieldViewConfigs,
+    validationSnapshot,
+    relationOptions,
+    viewConfig.relations,
+    relationBacklinks,
+    primaryKeyImpacts,
+    primaryKeySyncPlan,
+    primaryKeySyncResult,
+    saving,
+  ]);
+  const toolbarSnapshot = useMemo<ToolbarSnapshot>(() => ({
+    currentPath: selectedPath,
+    collectionPath,
+    viewProfiles,
+    selectedViewProfileName,
+    activeThemeId: uiPreferences.activeThemeId,
+    baseFontSize: uiPreferences.baseFontSize,
+    rowCount: rows.length,
+    visibleCount: visibleRowViews.length,
+    query: activeViewRenderState.query,
+    autosaveState,
+    saving,
+    closing,
+    rebuilding,
+    status: statusText,
+    hiddenFields,
+  }), [
+    selectedPath,
+    collectionPath,
+    viewProfiles,
+    selectedViewProfileName,
+    uiPreferences.activeThemeId,
+    uiPreferences.baseFontSize,
+    rows.length,
+    visibleRowViews.length,
+    activeViewRenderState.query,
+    autosaveState,
+    saving,
+    closing,
+    rebuilding,
+    statusText,
+    hiddenFields,
+  ]);
+  const viewTabsSnapshot = useMemo<ViewTabsSnapshot>(() => ({
+    views: orderedCollectionViews,
+    activeViewId: activeSharedView?.id ?? null,
+    dirtyViewIds,
+    saving,
+    filterBarVisible,
+    hasActiveFilters: activeViewHasFilters,
+    viewOrderDirty,
+  }), [
+    orderedCollectionViews,
+    activeSharedView,
+    dirtyViewIds,
+    saving,
+    filterBarVisible,
+    activeViewHasFilters,
+    viewOrderDirty,
+  ]);
+  const viewFilterBarSnapshot = useMemo<ViewFilterBarSnapshot>(() => ({
+    collectionKey: activeCollectionKey,
+    view: activeView,
+    fields: allFields,
+    displayTypes: tableFieldConfig.displayTypes,
+    fieldViewConfigs,
+    fieldTypes: viewFilterFieldTypes,
+    relationFilterOptions: viewFilterOptions,
+    dirty: activeViewDirty,
+    viewOrderDirty,
+    saving,
+    autoOpenRuleId: pendingOpenFilterRuleId,
+  }), [
+    activeCollectionKey,
+    activeView,
+    allFields,
+    tableFieldConfig.displayTypes,
+    fieldViewConfigs,
+    viewFilterFieldTypes,
+    viewFilterOptions,
+    activeViewDirty,
+    viewOrderDirty,
+    saving,
+    pendingOpenFilterRuleId,
+  ]);
   const appFrameStyle = useMemo(() => ({ "--sidebar-width": `${sidebarWidth}px` }) as CSSProperties, [sidebarWidth]);
 
   useEffect(() => {
@@ -1213,7 +1587,6 @@ export function App() {
       || perfState.awaitingRows
       || perfState.awaitingFieldConfig
       || perfState.awaitingViewRows
-      || perfState.awaitingViewModel
       || perfState.awaitingIssues
       || perfState.awaitingBacklinks
       || perfState.awaitingMaintenance
@@ -1224,23 +1597,28 @@ export function App() {
     markPerf("detail-reorder:stable");
     measurePerf("detail-reorder:total", "detail-reorder:start", "detail-reorder:stable");
     perfState.active = false;
-  }, [fieldConfig, issues]);
+  }, [fieldConfig, validationSnapshot]);
 
   useEffect(() => {
     document.querySelectorAll(".data-table tbody tr.selected-row").forEach((row) => row.classList.remove("selected-row"));
-    if (selectedRowIndex == null) return;
-    document.querySelector(`.data-table tbody tr[data-row-index="${selectedRowIndex}"]`)?.classList.add("selected-row");
-  }, [selectedRowIndex, collectionPath, viewModel]);
+    if (!selectedRowId) return;
+    document.querySelector(`.data-table tbody tr[data-row-id="${selectedRowId}"]`)?.classList.add("selected-row");
+  }, [selectedRowId, collectionPath, visibleRowIds]);
 
   function mutate(mutator: () => void) {
+    if (validationInvalidationRef.current.type !== "row-field") {
+      validationInvalidationRef.current = { type: "full" };
+    }
     mutator();
     dataDirtyRef.current = true;
     setDataDirty(true);
     saveCoordinator.markDirty("document");
+    bumpDataRevision((value) => value + 1);
     bumpTableRevision((value) => value + 1);
   }
 
   function mutateViewConfig(mutator: (draft: ViewConfig) => void) {
+    validationInvalidationRef.current = { type: "full" };
     setViewConfig((current) => {
       const next = cloneViewConfig(current);
       mutator(next);
@@ -1261,12 +1639,18 @@ export function App() {
     mutateData?: () => void;
     mutateViewConfigDraft?: (draft: ViewConfig) => void;
   }) {
+    if (mutateViewConfigDraft) {
+      validationInvalidationRef.current = { type: "full" };
+    } else if (validationInvalidationRef.current.type !== "row-field") {
+      validationInvalidationRef.current = { type: "full" };
+    }
     let changed = false;
     if (mutateData) {
       mutateData();
       dataDirtyRef.current = true;
       setDataDirty(true);
       saveCoordinator.markDirty("document");
+      bumpDataRevision((value) => value + 1);
       changed = true;
     }
     if (mutateViewConfigDraft) {
@@ -1444,9 +1828,49 @@ export function App() {
     if (profileSavePromiseRef.current) await profileSavePromiseRef.current;
   }
 
+  function getRowIdAtSourceIndex(sourceIndex: number | null, store = collectionStore) {
+    if (sourceIndex == null || !store) return null;
+    return store.rowViews[sourceIndex]?.rowId ?? null;
+  }
+
+  function setSelectedSourceRow(sourceIndex: number | null, rowId: string | null = getRowIdAtSourceIndex(sourceIndex)) {
+    setSelectedRowIndex(sourceIndex);
+    setSelectedRowIdState(rowId);
+  }
+
+  function flushSelectedSourceRow(sourceIndex: number | null, rowId: string | null = getRowIdAtSourceIndex(sourceIndex)) {
+    flushSync(() => {
+      setSelectedRowIndex(sourceIndex);
+      setSelectedRowIdState(rowId);
+    });
+  }
+
+  function resolveSourceIndexFromRowId(rowId: string | null, fallbackSourceIndex: number | null = null, store = collectionStore) {
+    if (rowId && store) {
+      const resolved = store.sourceIndexByRowId.get(rowId);
+      if (resolved != null) return resolved;
+    }
+    return fallbackSourceIndex;
+  }
+
   function handleEditCell(rowIndex: number, fieldName: string, value: unknown) {
     if (!model) return;
+    validationInvalidationRef.current = resolveValidationInvalidation(fieldName, null, rowIndex);
     mutate(() => setCellValue(model, collectionPath, rowIndex, fieldName, value));
+  }
+
+  function handleEditCellByRowId(rowId: string, fieldName: string, value: unknown) {
+    if (!model || !documentStore) return;
+    validationInvalidationRef.current = resolveValidationInvalidation(fieldName, rowId, null);
+    mutate(() => setCellValueByRowId({ model, store: documentStore, collectionPath, rowId, fieldName, value }));
+  }
+
+  function handleTableEditCell(rowIndex: number, rowId: string | null, fieldName: string, value: unknown) {
+    if (rowId) {
+      handleEditCellByRowId(rowId, fieldName, value);
+      return;
+    }
+    handleEditCell(rowIndex, fieldName, value);
   }
 
   function handleChangeFieldType(fieldName: string, displayType: FieldDisplayType) {
@@ -1580,13 +2004,15 @@ export function App() {
     detailReorderPerfRef.current.awaitingRows = false;
     detailReorderPerfRef.current.awaitingFieldConfig = true;
     detailReorderPerfRef.current.awaitingViewRows = false;
-    detailReorderPerfRef.current.awaitingViewModel = false;
     detailReorderPerfRef.current.awaitingIssues = true;
     detailReorderPerfRef.current.awaitingBacklinks = false;
     detailReorderPerfRef.current.awaitingMaintenance = false;
     detailReorderPerfRef.current.awaitingMainContentRender = detailReorderReactProfilingEnabled;
     detailReorderPerfRef.current.awaitingTableRender = false;
     detailReorderPerfRef.current.awaitingDetailPanelRender = detailReorderReactProfilingEnabled;
+    detailReorderPerfRef.current.awaitingViewTabsRender = detailReorderReactProfilingEnabled;
+    detailReorderPerfRef.current.awaitingFilterBarRender = detailReorderReactProfilingEnabled && filterBarVisible;
+    detailReorderPerfRef.current.awaitingPrimaryKeyBannerRender = detailReorderReactProfilingEnabled && showPrimaryKeyCandidateBanner && Boolean(selectedPath);
     markPerf("detail-reorder:start");
     markPerf("detail-reorder:before-profile-update");
     updateActiveViewLayout((draft) => {
@@ -1612,6 +2038,13 @@ export function App() {
     if (!model) return;
     const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
     const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
+    validationInvalidationRef.current = !needsViewConfigMutation && needsDataMutation
+      ? (
+        patch.renamedOptions.length === 0 && patch.deletedOptionValues.length === 0
+          ? resolveValidationInvalidation(fieldName, null, rowIndex)
+          : { type: "field", fieldName }
+      )
+      : { type: "full" };
     mutateOptionFieldTransaction({
       mutateData: needsDataMutation ? () => {
         const rows = getRows(model, collectionPath) as DataRecord[];
@@ -1639,6 +2072,13 @@ export function App() {
     if (!model) return;
     const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
     const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
+    validationInvalidationRef.current = !needsViewConfigMutation && needsDataMutation
+      ? (
+        patch.renamedOptions.length === 0 && patch.deletedOptionValues.length === 0
+          ? resolveValidationInvalidation(fieldName, null, rowIndex)
+          : { type: "field", fieldName }
+      )
+      : { type: "full" };
     mutateOptionFieldTransaction({
       mutateData: needsDataMutation ? () => {
         const rows = getRows(model, collectionPath) as DataRecord[];
@@ -1660,6 +2100,19 @@ export function App() {
         };
       } : undefined,
     });
+  }
+
+  function handleTableCommitSelectOptionFieldDraft(
+    rowIndex: number,
+    rowId: string | null,
+    fieldName: string,
+    patch: OptionFieldDraftCommit,
+  ) {
+    if (rowId) {
+      handleCommitSelectOptionFieldDraftByRowId(rowId, fieldName, patch);
+      return;
+    }
+    handleCommitSelectOptionFieldDraft(rowIndex, fieldName, patch);
   }
 
   async function handleSelectViewProfile(name: string) {
@@ -1708,8 +2161,13 @@ export function App() {
     }
   }
 
-  function selectRow(rowIndex: number) {
-    flushSync(() => setSelectedRowIndex(rowIndex));
+  function selectRow(rowIndex: number, rowId: string | null = null) {
+    flushSelectedSourceRow(rowIndex, rowId ?? getRowIdAtSourceIndex(rowIndex));
+  }
+
+  function selectRowById(rowId: string | null, sourceRowIndex: number | null = null) {
+    const resolvedSourceIndex = resolveSourceIndexFromRowId(rowId, sourceRowIndex);
+    flushSelectedSourceRow(resolvedSourceIndex, rowId ?? getRowIdAtSourceIndex(resolvedSourceIndex));
   }
 
   function beginSidebarResize(event: ReactPointerEvent<HTMLDivElement>) {
@@ -1800,6 +2258,16 @@ export function App() {
   function openDetail(rowIndex: number) {
     flushSync(() => {
       setSelectedRowIndex(rowIndex);
+      setSelectedRowIdState(getRowIdAtSourceIndex(rowIndex));
+      setDetailOpen(true);
+    });
+  }
+
+  function openDetailForRow(rowIndex: number, rowId: string | null) {
+    const resolvedSourceIndex = resolveSourceIndexFromRowId(rowId, rowIndex);
+    flushSync(() => {
+      setSelectedRowIndex(resolvedSourceIndex);
+      setSelectedRowIdState(rowId ?? getRowIdAtSourceIndex(resolvedSourceIndex));
       setDetailOpen(true);
     });
   }
@@ -1811,21 +2279,29 @@ export function App() {
     for (const fieldName of columns) nextRow[fieldName] = defaultEmptyValue(fieldConfig.displayTypes[fieldName]);
     mutate(() => {
       addRow(model, collectionPath, nextRow);
-      setSelectedRowIndex(rows.length);
+      setSelectedSourceRow(rows.length, null);
     });
   }
 
-  function handleDeleteRow(rowIndex: number) {
+  function handleDeleteRow(rowIndex: number, rowId: string | null = null) {
     setPendingDeleteRow(rowIndex);
+    setPendingDeleteRowId(rowId);
   }
 
   function confirmDeleteRow() {
     if (!model || pendingDeleteRow == null) return;
+    const pendingRowId = pendingDeleteRowId ?? collectionStore?.rowViews[pendingDeleteRow]?.rowId ?? null;
     mutate(() => {
-      deleteRow(model, collectionPath, pendingDeleteRow);
-      setSelectedRowIndex(Math.min(pendingDeleteRow, Math.max(0, rows.length - 2)));
+      if (pendingRowId && documentStore) {
+        deleteRowByRowId({ model, store: documentStore, collectionPath, rowId: pendingRowId });
+      } else {
+        deleteRow(model, collectionPath, pendingDeleteRow);
+      }
+      const nextSelectedRowIndex = rows.length <= 1 ? null : Math.min(pendingDeleteRow, rows.length - 2);
+      setSelectedSourceRow(nextSelectedRowIndex, pendingRowId);
     });
     setPendingDeleteRow(null);
+    setPendingDeleteRowId(null);
   }
 
   function handleAddField() {
@@ -1836,9 +2312,24 @@ export function App() {
   }
 
   function confirmAddField() {
-    if (!model || selectedRowIndex == null || !newFieldName.trim()) return;
+    if (!model || selectedSourceRowIndex == null || !newFieldName.trim()) return;
     const fieldName = newFieldName.trim();
-    mutate(() => addField(model, collectionPath, selectedRowIndex, fieldName, defaultEmptyValue(newFieldType), newFieldApplyAll));
+    const currentSelectedRowId = selectedRowId;
+    mutate(() => {
+      if (currentSelectedRowId && documentStore) {
+        addFieldByRowId({
+          model,
+          store: documentStore,
+          collectionPath,
+          rowId: currentSelectedRowId,
+          fieldName,
+          value: defaultEmptyValue(newFieldType),
+          applyToAll: newFieldApplyAll,
+        });
+        return;
+      }
+      addField(model, collectionPath, selectedSourceRowIndex, fieldName, defaultEmptyValue(newFieldType), newFieldApplyAll);
+    });
     if (selectedPath && (newFieldType === "Text" || newFieldType === "Select")) {
       mutateViewConfig((draft) => {
         const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
@@ -1928,7 +2419,7 @@ export function App() {
       viewDrafts: { ...current.viewDrafts },
       viewOrderDrafts: { ...current.viewOrderDrafts },
     });
-    setSelectedRowIndex(0);
+    setSelectedSourceRow(0);
     setDetailOpen(false);
   }
 
@@ -2068,7 +2559,7 @@ export function App() {
         });
       }
       updateSharedViewDraftState(result.draftState);
-      setSelectedRowIndex(0);
+      setSelectedSourceRow(0);
       setDetailOpen(false);
       setStatus("已删除团队共享视图");
     } catch (error) {
@@ -2099,6 +2590,87 @@ export function App() {
       setViewDraftDirty(result.dirty);
       return result.draftState;
     });
+  }
+
+  function handleCommitSelectOptionFieldDraftByRowId(rowId: string, fieldName: string, patch: OptionFieldDraftCommit) {
+    if (!model || !documentStore) return;
+    const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
+    const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
+    validationInvalidationRef.current = !needsViewConfigMutation && needsDataMutation
+      ? (
+        patch.renamedOptions.length === 0 && patch.deletedOptionValues.length === 0
+          ? resolveValidationInvalidation(fieldName, rowId, null)
+          : { type: "field", fieldName }
+      )
+      : { type: "full" };
+    mutateOptionFieldTransaction({
+      mutateData: needsDataMutation ? () => {
+        const rows = getRows(model, collectionPath) as DataRecord[];
+        for (const rename of patch.renamedOptions) {
+          renameSingleSelectOptionInRows(rows, fieldName, rename.previousValue, rename.nextValue);
+        }
+        for (const optionValue of patch.deletedOptionValues) {
+          removeSingleSelectOptionFromRows(rows, fieldName, optionValue);
+        }
+        setCellValueByRowId({ model, store: documentStore, collectionPath, rowId, fieldName, value: patch.nextSelectedValues[0] ?? null });
+      } : undefined,
+      mutateViewConfigDraft: needsViewConfigMutation ? (draft) => {
+        const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
+        if (!key) return;
+        const current = ensureFieldViewConfig(draft, key);
+        draft.fields[key] = {
+          ...current,
+          selectOptions: buildOptionConfigFromOptions(patch.nextOptions) as typeof current.selectOptions,
+        };
+      } : undefined,
+    });
+  }
+
+  function handleCommitMultiSelectOptionFieldDraftByRowId(rowId: string, fieldName: string, patch: OptionFieldDraftCommit) {
+    if (!model || !documentStore) return;
+    const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
+    const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
+    validationInvalidationRef.current = !needsViewConfigMutation && needsDataMutation
+      ? (
+        patch.renamedOptions.length === 0 && patch.deletedOptionValues.length === 0
+          ? resolveValidationInvalidation(fieldName, rowId, null)
+          : { type: "field", fieldName }
+      )
+      : { type: "full" };
+    mutateOptionFieldTransaction({
+      mutateData: needsDataMutation ? () => {
+        const rows = getRows(model, collectionPath) as DataRecord[];
+        for (const rename of patch.renamedOptions) {
+          renameMultiSelectOptionInRows(rows, fieldName, rename.previousValue, rename.nextValue);
+        }
+        for (const optionValue of patch.deletedOptionValues) {
+          removeMultiSelectOptionFromRows(rows, fieldName, optionValue);
+        }
+        setCellValueByRowId({ model, store: documentStore, collectionPath, rowId, fieldName, value: patch.nextSelectedValues });
+      } : undefined,
+      mutateViewConfigDraft: needsViewConfigMutation ? (draft) => {
+        const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
+        if (!key) return;
+        const current = ensureFieldViewConfig(draft, key);
+        draft.fields[key] = {
+          ...current,
+          multiSelectOptions: buildOptionConfigFromOptions(patch.nextOptions) as typeof current.multiSelectOptions,
+        };
+      } : undefined,
+    });
+  }
+
+  function handleTableCommitMultiSelectOptionFieldDraft(
+    rowIndex: number,
+    rowId: string | null,
+    fieldName: string,
+    patch: OptionFieldDraftCommit,
+  ) {
+    if (rowId) {
+      handleCommitMultiSelectOptionFieldDraftByRowId(rowId, fieldName, patch);
+      return;
+    }
+    handleCommitMultiSelectOptionFieldDraft(rowIndex, fieldName, patch);
   }
 
   async function handleSaveViewForEveryone() {
@@ -2132,50 +2704,6 @@ export function App() {
     );
   }
 
-  async function preparePrimaryKeySyncSnapshot(plan: PrimaryKeySyncPlan, currentModel: DocumentModel, currentPath: string) {
-    const pendingSaves: PendingDocumentSave[] = [
-      { path: currentPath, root: cloneDataRoot(currentModel.root) },
-    ];
-    const sourceRoots = new Map<string, unknown>();
-    for (const sourceFile of plan.sourceFiles) {
-      if (sourceFile === currentPath) continue;
-      const documentModel = await loadDocument(sourceFile, activeProjectIdRef.current);
-      sourceRoots.set(sourceFile, cloneDataRoot(documentModel.root));
-    }
-    for (const rewrite of plan.rewrites) {
-      if (rewrite.sourceFile === currentPath) continue;
-      const root = sourceRoots.get(rewrite.sourceFile);
-      if (!root) throw new Error(`无法加载来源文件：${rewrite.sourceFile}`);
-      const sourceModel = buildDocumentModel(root, "json", rewrite.sourceFile);
-      const rows = getRows(sourceModel, rewrite.sourceCollection) as DataRecord[];
-      const row = rows[rewrite.rowIndex];
-      if (row && rewrite.fieldPath.length === 1) row[rewrite.fieldPath[0]] = rewrite.newValue;
-    }
-    for (const [path, root] of sourceRoots.entries()) {
-      pendingSaves.push({ path, root });
-    }
-    return { plan, pendingSaves };
-  }
-
-  function formatPrimaryKeySyncBlockingIssues(plan: PrimaryKeySyncPlan) {
-    return plan.blockingIssues.map((issue) => {
-      if (issue === "unchanged-primary-key") return "主键值没有发生变化。";
-      if (issue === "empty-primary-key") return "新主键不能为空。";
-      if (issue === "duplicate-primary-key") return "新主键与当前集合中的已有主键冲突。";
-      if (issue === "source-document-load-failed") return "存在来源文件读取失败，当前不能执行同步保存。";
-      if (issue === "invalid-relation-config") return "存在损坏的 relation 配置，当前不能执行同步保存。";
-      return issue;
-    }).join(" ");
-  }
-
-  function formatPrimaryKeySyncSaveResult(result: SaveDocumentsResult) {
-    if (result.ok) return `已同步保存 ${result.savedPaths.length} 个文件。`;
-    const saved = result.savedPaths.length ? `已成功：${result.savedPaths.join("、")}。` : "尚未成功写入任何文件。";
-    const failed = result.failedPath ? `失败文件：${result.failedPath}。` : "";
-    const reason = result.errorMessage ? `原因：${result.errorMessage}` : "";
-    return `${saved}${failed}${reason} 当前磁盘状态可能已部分更新。`;
-  }
-
   async function flushAutosaveTargets(_reason: string, dirtyDomains: AutosaveDomain[]) {
     const currentModel = modelRef.current;
     const currentSelectedPath = selectedPathRef.current;
@@ -2190,13 +2718,18 @@ export function App() {
     if (savingRef.current || closingRef.current || rebuildingRef.current) return { outcome: "deferred" } as const;
     if (currentDataDirty && currentModel && currentSelectedPath && shouldInterceptPrimaryKeySync(currentDataDirty, false)) {
       if (currentPrimaryKeySyncPlan?.blockingIssues.length) {
-        setStatus(formatPrimaryKeySyncBlockingIssues(currentPrimaryKeySyncPlan));
+        setStatus(describePrimaryKeySyncBlockingIssues(currentPrimaryKeySyncPlan));
         return { outcome: "blocked-confirmation" } as const;
       }
       setSaving(true);
       setStatus("");
       try {
-        const snapshot = await preparePrimaryKeySyncSnapshot(currentPrimaryKeySyncPlan!, currentModel, currentSelectedPath);
+        const snapshot = await buildPrimaryKeySyncSaveSnapshot({
+          plan: currentPrimaryKeySyncPlan!,
+          currentModel,
+          currentPath: currentSelectedPath,
+          loadDocument: (path) => loadDocument(path, activeProjectIdRef.current),
+        });
         primaryKeySyncSnapshotRef.current = snapshot;
         setPrimaryKeySyncResult(null);
         setPrimaryKeySyncDialogOpen(true);
@@ -2240,7 +2773,7 @@ export function App() {
     const currentDataDirty = dataDirtyRef.current;
     if (forcePrimaryKeySync && currentDataDirty && shouldInterceptPrimaryKeySync(currentDataDirty, true)) {
       if (primaryKeySyncPlan?.blockingIssues.length) {
-        setStatus(formatPrimaryKeySyncBlockingIssues(primaryKeySyncPlan));
+        setStatus(describePrimaryKeySyncBlockingIssues(primaryKeySyncPlan));
         return;
       }
       const currentModel = modelRef.current;
@@ -2249,7 +2782,12 @@ export function App() {
       setSaving(true);
       setStatus("");
       try {
-        const snapshot = await preparePrimaryKeySyncSnapshot(primaryKeySyncPlan!, currentModel, currentSelectedPath);
+        const snapshot = await buildPrimaryKeySyncSaveSnapshot({
+          plan: primaryKeySyncPlan!,
+          currentModel,
+          currentPath: currentSelectedPath,
+          loadDocument: (path) => loadDocument(path, activeProjectIdRef.current),
+        });
         primaryKeySyncSnapshotRef.current = snapshot;
         setPrimaryKeySyncResult(null);
         setPrimaryKeySyncDialogOpen(true);
@@ -2273,7 +2811,7 @@ export function App() {
       const result = await saveDocuments(snapshot.pendingSaves, activeProjectId);
       setPrimaryKeySyncResult(result);
       if (!result.ok) {
-        setStatus(formatPrimaryKeySyncSaveResult(result));
+        setStatus(describePrimaryKeySyncSaveResult(result));
         return;
       }
       if (viewConfigDirtyRef.current) await saveViewConfig(viewConfigRef.current, activeProjectId);
@@ -2293,7 +2831,7 @@ export function App() {
       primaryKeySyncSnapshotRef.current = null;
       setAutosaveState("idle");
       setStatus(`已同步更新 ${snapshot.plan.rewrites.length} 条关联引用。`);
-      await openDocumentAt(currentSelectedPath, collectionPath, selectedRowIndex ?? undefined, detailOpen);
+      await openDocumentAt(currentSelectedPath, collectionPath, selectedSourceRowIndex ?? undefined, detailOpen, activeProjectId, selectedRowId ?? undefined);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
@@ -2445,7 +2983,10 @@ export function App() {
           metadata={[]}
           onSelectFile={openFile}
           onReorderFiles={handleReorderFiles}
-          onSelectCollection={setCollectionPath}
+          onSelectCollection={(path) => {
+            setCollectionPath(path);
+            setSelectedSourceRow(0, null);
+          }}
           onSelectProject={selectProject}
           onOpenProjectSettings={() => setProjectSettingsOpen(true)}
         />
@@ -2476,28 +3017,18 @@ export function App() {
         metadata={model.metadata ?? []}
         onSelectFile={openFile}
         onReorderFiles={handleReorderFiles}
-        onSelectCollection={(path) => { setCollectionPath(path); setSelectedRowIndex(0); setDetailOpen(false); }}
+        onSelectCollection={(path) => {
+          setCollectionPath(path);
+          setSelectedSourceRow(0, null);
+          setDetailOpen(false);
+        }}
         onSelectProject={selectProject}
         onOpenProjectSettings={() => setProjectSettingsOpen(true)}
       />
       <div className="sidebar-resize-handle" onPointerDown={beginSidebarResize} aria-label="调整左侧栏宽度" role="separator" />
       <section className="workspace">
         <Toolbar
-          currentPath={selectedPath}
-          collectionPath={collectionPath}
-          viewProfiles={viewProfiles}
-          selectedViewProfileName={selectedViewProfileName}
-          activeThemeId={uiPreferences.activeThemeId}
-          baseFontSize={uiPreferences.baseFontSize}
-          rowCount={rows.length}
-          visibleCount={viewRows.length}
-          query={activeView?.query ?? ""}
-          autosaveState={autosaveState}
-          saving={saving}
-          closing={closing}
-          rebuilding={rebuilding}
-          status={statusText}
-          hiddenFields={hiddenFields}
+          snapshot={toolbarSnapshot}
           onQueryChange={(value) => updateActiveViewDraft({ query: value })}
           onRefreshBuild={handleRefreshBuild}
           onCloseServer={handleCloseServer}
@@ -2512,77 +3043,52 @@ export function App() {
         {detailReorderReactProfilingEnabled ? (
           <Profiler id="main-content" onRender={handleDetailReorderProfilerRender}>
             <div className="main-content">
-              <ViewTabs
-                views={orderedCollectionViews}
-                activeViewId={activeSharedView?.id ?? null}
-                dirtyViewIds={dirtyViewIds}
-                saving={saving}
-                filterBarVisible={filterBarVisible}
-                hasActiveFilters={activeViewHasFilters}
-                viewOrderDirty={viewOrderDirty}
-                onSelectView={handleSelectSharedView}
-                onCreateView={handleCreateSharedView}
-                onRenameView={handleRenameSharedView}
-                onDeleteView={handleDeleteSharedView}
-                onDuplicateView={handleDuplicateSharedView}
-                onReorderViews={handleReorderSharedViews}
-                onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
-              />
-              {filterBarVisible ? (
-                <ViewFilterBar
-                  collectionKey={activeCollectionKey}
-                  view={activeView}
-                  fields={allFields}
-                  fieldConfig={fieldConfig}
-                  fieldViewConfigs={fieldViewConfigs}
-                  fieldTypes={viewFilterFieldTypes}
-                  relationFilterOptions={viewFilterOptions}
-                  dirty={activeViewDirty}
-                  viewOrderDirty={viewOrderDirty}
-                  saving={saving}
-                  autoOpenRuleId={pendingOpenFilterRuleId}
-                  onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
-                  onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
-                  onAddFilter={handleAddFilter}
-                  onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
-                  onResetView={handleResetSharedViewDraft}
-                  onSaveForEveryone={() => void handleSaveViewForEveryone()}
+              <Profiler id="view-tabs" onRender={handleDetailReorderProfilerRender}>
+                <ViewTabs
+                  snapshot={viewTabsSnapshot}
+                  onSelectView={handleSelectSharedView}
+                  onCreateView={handleCreateSharedView}
+                  onRenameView={handleRenameSharedView}
+                  onDeleteView={handleDeleteSharedView}
+                  onDuplicateView={handleDuplicateSharedView}
+                  onReorderViews={handleReorderSharedViews}
+                  onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
                 />
+              </Profiler>
+              {filterBarVisible ? (
+                <Profiler id="view-filter-bar" onRender={handleDetailReorderProfilerRender}>
+                  <ViewFilterBar
+                    snapshot={viewFilterBarSnapshot}
+                    onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
+                    onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
+                    onAddFilter={handleAddFilter}
+                    onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
+                    onResetView={handleResetSharedViewDraft}
+                    onSaveForEveryone={() => void handleSaveViewForEveryone()}
+                  />
+                </Profiler>
               ) : null}
               {showPrimaryKeyCandidateBanner && selectedPath ? (
-                <PrimaryKeyCandidateBanner
-                  filePath={selectedPath}
-                  collectionPath={collectionPath}
-                  candidates={activePrimaryKeyCandidates}
-                  onConfirm={openPrimaryKeyCandidateDialog}
-                  onDismiss={dismissPrimaryKeyCandidates}
-                />
+                <Profiler id="primary-key-banner" onRender={handleDetailReorderProfilerRender}>
+                  <PrimaryKeyCandidateBanner
+                    filePath={selectedPath}
+                    collectionPath={collectionPath}
+                    candidates={activePrimaryKeyCandidates}
+                    onConfirm={openPrimaryKeyCandidateDialog}
+                    onDismiss={dismissPrimaryKeyCandidates}
+                  />
+                </Profiler>
               ) : null}
               <Profiler id="data-table" onRender={handleDetailReorderProfilerRender}>
                 <DataTable
-                  model={viewModel!}
-                  schemaModel={model}
-                  sourcePath={selectedPath}
-                  collectionPath={collectionPath}
-                  fieldConfig={fieldConfig}
-                  fieldViewConfigs={fieldViewConfigs}
-                  backlinkColumns={backlinkColumns}
-                  backlinkValuesByRowIndex={backlinkValuesByRowIndex}
-                  relationOptions={relationOptions}
-                  relationConfigs={viewConfig.relations}
-                  revision={tableRevision}
-                  sort={activeViewSort}
-                  issues={issues}
-                  titleField={titleField}
-                  scrollRestoreKey={scrollRestoreKey}
-                  initialScrollPosition={initialScrollPosition}
+                  snapshot={tableSnapshot}
                   onScrollPositionChange={handleTableScrollPositionChange}
                   onSelectRow={selectRow}
-                  onOpenDetail={openDetail}
+                  onOpenDetail={openDetailForRow}
                   onOpenBacklink={handleOpenBacklink}
-                  onEditCell={handleEditCell}
-                  onCommitMultiSelectDraft={handleCommitMultiSelectOptionFieldDraft}
-                  onCommitSelectDraft={handleCommitSelectOptionFieldDraft}
+                  onEditCell={handleTableEditCell}
+                  onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
+                  onCommitSelectDraft={handleTableCommitSelectOptionFieldDraft}
                   onChangeFieldType={handleChangeFieldType}
                   onHideField={handleHideField}
                   onToggleWrapField={handleToggleWrapField}
@@ -2602,35 +3108,17 @@ export function App() {
               </Profiler>
               <Profiler id="detail-panel" onRender={handleDetailReorderProfilerRender}>
                 <DetailPanel
-                  open={detailOpen}
-                  panelWidth={detailPanelWidth}
-                  row={selectedRow}
-                  rowIndex={selectedRowIndex}
-                  rowCount={rows.length}
-                  sourcePath={selectedPath}
-                  collectionPath={collectionPath}
-                  titleField={titleField}
-                  detailOrder={fieldConfig.detailOrder}
-                  displayTypes={fieldConfig.displayTypes}
-                  fieldViewConfigs={fieldViewConfigs}
-                  issues={issues}
-                  relationOptions={relationOptions}
-                  relationConfigs={viewConfig.relations}
-                  relationBacklinks={relationBacklinks}
-                  primaryKeyImpacts={primaryKeyImpacts}
-                  primaryKeySyncPlan={primaryKeySyncPlan}
-                  primaryKeySyncResult={primaryKeySyncResult}
-                  saving={saving}
-                  onCommitMultiSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitMultiSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
-                  onCommitSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
+                  snapshot={detailSnapshot}
+                  onCommitMultiSelectDraft={(fieldName, patch) => selectedRowId && handleCommitMultiSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
+                  onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
                   onOpenBacklink={handleOpenBacklink}
                   onRequestSyncSave={() => void persistChanges(true)}
                   onOpenRelationTarget={handleOpenRelationTarget}
-                  onSelectRow={selectRow}
+                  onSelectRow={selectRowById}
                   onClose={() => setDetailOpen(false)}
                   onPanelWidthChange={handleDetailPanelWidthChange}
                   onPanelWidthCommit={commitDetailPanelWidth}
-                  onEditField={(fieldName, value) => selectedRowIndex != null && handleEditCell(selectedRowIndex, fieldName, value)}
+                  onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
                   onReorderFields={handleReorderDetailFields}
                 />
               </Profiler>
@@ -2639,13 +3127,7 @@ export function App() {
         ) : (
           <div className="main-content">
           <ViewTabs
-            views={orderedCollectionViews}
-            activeViewId={activeSharedView?.id ?? null}
-            dirtyViewIds={dirtyViewIds}
-            saving={saving}
-            filterBarVisible={filterBarVisible}
-            hasActiveFilters={activeViewHasFilters}
-            viewOrderDirty={viewOrderDirty}
+            snapshot={viewTabsSnapshot}
             onSelectView={handleSelectSharedView}
             onCreateView={handleCreateSharedView}
             onRenameView={handleRenameSharedView}
@@ -2656,17 +3138,7 @@ export function App() {
           />
           {filterBarVisible ? (
             <ViewFilterBar
-              collectionKey={activeCollectionKey}
-              view={activeView}
-              fields={allFields}
-              fieldConfig={fieldConfig}
-              fieldViewConfigs={fieldViewConfigs}
-              fieldTypes={viewFilterFieldTypes}
-              relationFilterOptions={viewFilterOptions}
-              dirty={activeViewDirty}
-              viewOrderDirty={viewOrderDirty}
-              saving={saving}
-              autoOpenRuleId={pendingOpenFilterRuleId}
+              snapshot={viewFilterBarSnapshot}
               onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
               onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
               onAddFilter={handleAddFilter}
@@ -2685,29 +3157,14 @@ export function App() {
             />
           ) : null}
           <DataTable
-            model={viewModel!}
-            schemaModel={model}
-            sourcePath={selectedPath}
-            collectionPath={collectionPath}
-            fieldConfig={fieldConfig}
-            fieldViewConfigs={fieldViewConfigs}
-            backlinkColumns={backlinkColumns}
-            backlinkValuesByRowIndex={backlinkValuesByRowIndex}
-            relationOptions={relationOptions}
-            relationConfigs={viewConfig.relations}
-            revision={tableRevision}
-            sort={activeViewSort}
-            issues={issues}
-            titleField={titleField}
-            scrollRestoreKey={scrollRestoreKey}
-            initialScrollPosition={initialScrollPosition}
+            snapshot={tableSnapshot}
             onScrollPositionChange={handleTableScrollPositionChange}
             onSelectRow={selectRow}
-            onOpenDetail={openDetail}
+            onOpenDetail={openDetailForRow}
             onOpenBacklink={handleOpenBacklink}
-            onEditCell={handleEditCell}
-            onCommitMultiSelectDraft={handleCommitMultiSelectOptionFieldDraft}
-            onCommitSelectDraft={handleCommitSelectOptionFieldDraft}
+            onEditCell={handleTableEditCell}
+            onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
+            onCommitSelectDraft={handleTableCommitSelectOptionFieldDraft}
             onChangeFieldType={handleChangeFieldType}
             onHideField={handleHideField}
             onToggleWrapField={handleToggleWrapField}
@@ -2725,35 +3182,17 @@ export function App() {
             onDeleteField={handleDeleteField}
           />
           <DetailPanel
-            open={detailOpen}
-            panelWidth={detailPanelWidth}
-            row={selectedRow}
-            rowIndex={selectedRowIndex}
-            rowCount={rows.length}
-            sourcePath={selectedPath}
-            collectionPath={collectionPath}
-            titleField={titleField}
-            detailOrder={fieldConfig.detailOrder}
-            displayTypes={fieldConfig.displayTypes}
-            fieldViewConfigs={fieldViewConfigs}
-            issues={issues}
-            relationOptions={relationOptions}
-            relationConfigs={viewConfig.relations}
-            relationBacklinks={relationBacklinks}
-            primaryKeyImpacts={primaryKeyImpacts}
-            primaryKeySyncPlan={primaryKeySyncPlan}
-            primaryKeySyncResult={primaryKeySyncResult}
-            saving={saving}
-            onCommitMultiSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitMultiSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
-            onCommitSelectDraft={(fieldName, patch) => selectedRowIndex != null && handleCommitSelectOptionFieldDraft(selectedRowIndex, fieldName, patch)}
+            snapshot={detailSnapshot}
+            onCommitMultiSelectDraft={(fieldName, patch) => selectedRowId && handleCommitMultiSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
+            onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
             onOpenBacklink={handleOpenBacklink}
             onRequestSyncSave={() => void persistChanges(true)}
             onOpenRelationTarget={handleOpenRelationTarget}
-            onSelectRow={selectRow}
+            onSelectRow={selectRowById}
             onClose={() => setDetailOpen(false)}
             onPanelWidthChange={handleDetailPanelWidthChange}
             onPanelWidthCommit={commitDetailPanelWidth}
-            onEditField={(fieldName, value) => selectedRowIndex != null && handleEditCell(selectedRowIndex, fieldName, value)}
+            onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
             onReorderFields={handleReorderDetailFields}
           />
         </div>
@@ -3235,25 +3674,6 @@ function formatSkippedRewriteReason(reason: "unsupported-multi" | "unsupported-n
   return "嵌套路径 relation 暂未纳入首版同步范围。";
 }
 
-function describePrimaryKeySyncBlockingIssues(plan: PrimaryKeySyncPlan) {
-  return plan.blockingIssues.map((issue) => {
-    if (issue === "unchanged-primary-key") return "主键值没有发生变化。";
-    if (issue === "empty-primary-key") return "新主键不能为空。";
-    if (issue === "duplicate-primary-key") return "新主键与当前集合中的已有主键冲突。";
-    if (issue === "source-document-load-failed") return "存在来源文件读取失败，当前不能执行同步保存。";
-    if (issue === "invalid-relation-config") return "存在损坏的 relation 配置，当前不能执行同步保存。";
-    return issue;
-  }).join(" ");
-}
-
-function describePrimaryKeySyncSaveResult(result: SaveDocumentsResult) {
-  if (result.ok) return `已同步保存 ${result.savedPaths.length} 个文件。`;
-  const saved = result.savedPaths.length ? `已成功：${result.savedPaths.join("、")}。` : "尚未成功写入任何文件。";
-  const failed = result.failedPath ? `失败文件：${result.failedPath}。` : "";
-  const reason = result.errorMessage ? `原因：${result.errorMessage}` : "";
-  return `${saved}${failed}${reason} 当前磁盘状态可能已部分更新。`;
-}
-
 function formatFilteredCandidateReason(candidate: FilteredPrimaryKeyCandidate) {
   const reasons: string[] = [];
   if (candidate.reasons.includes("duplicate-values")) {
@@ -3325,88 +3745,142 @@ function orderColumns(columns: string[], order: string[]) {
   return [...known, ...rest];
 }
 
-function buildValidationIssues(
-  rows: DataRecord[],
-  fieldConfig: FieldConfig,
-  relationIndexes: Record<string, Set<string> | null>,
-  viewConfig: ViewConfig,
+function sameRecord<T extends string | number>(previous: Record<string, T>, next: Record<string, T>) {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  return previousKeys.length === nextKeys.length && previousKeys.every((key) => previous[key] === next[key]);
+}
+
+function sameSet(previous: Set<string>, next: Set<string>) {
+  return previous.size === next.size && [...previous].every((value) => next.has(value));
+}
+
+function sameStringArray(previous: string[], next: string[]) {
+  return previous.length === next.length && previous.every((value, index) => next[index] === value);
+}
+
+function sameFilterGroup(previous: FilterGroup, next: FilterGroup) {
+  return previous.op === next.op
+    && previous.rules.length === next.rules.length
+    && previous.rules.every((rule, index) => {
+      const candidate = next.rules[index];
+      if (!candidate) return false;
+      return rule.id === candidate.id
+        && rule.field === candidate.field
+        && rule.operator === candidate.operator
+        && sameUnknownValue(rule.value, candidate.value);
+    });
+}
+
+function sameSortRules(previous: SortRule[], next: SortRule[]) {
+  return previous.length === next.length && previous.every((rule, index) => {
+    const candidate = next[index];
+    return Boolean(candidate)
+      && rule.id === candidate.id
+      && rule.field === candidate.field
+      && rule.direction === candidate.direction;
+  });
+}
+
+function sameUnknownValue(previous: unknown, next: unknown): boolean {
+  if (previous === next) return true;
+  if (Array.isArray(previous) && Array.isArray(next)) {
+    return previous.length === next.length && previous.every((value, index) => sameUnknownValue(value, next[index]));
+  }
+  return false;
+}
+
+function sameRelationIndexMap(previous: Record<string, Set<string> | null>, next: Record<string, Set<string> | null>) {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  if (previousKeys.length !== nextKeys.length) return false;
+  return previousKeys.every((key) => {
+    const left = previous[key] ?? null;
+    const right = next[key] ?? null;
+    if (left === right) return true;
+    if (!left || !right) return left === right;
+    return sameSet(left, right);
+  });
+}
+
+function sameRelationOptionMap(previous: Record<string, RelationOption[]>, next: Record<string, RelationOption[]>) {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  if (previousKeys.length !== nextKeys.length) return false;
+  return previousKeys.every((key) => {
+    const left = previous[key] ?? [];
+    const right = next[key] ?? [];
+    return left.length === right.length && left.every((option, index) => {
+      const candidate = right[index];
+      return Boolean(candidate)
+        && option.value === candidate.value
+        && option.label === candidate.label
+        && option.description === candidate.description;
+    });
+  });
+}
+
+function patchValidationSnapshotForChangedRelationFields({
+  previousSnapshot,
+  previousRelationIndexes,
+  nextRelationIndexes,
+  sourcePath,
+  collectionPath,
+  rows,
+  collectionStore,
+  fieldConfig,
+  validationConfig,
+}: {
+  previousSnapshot: ValidationSnapshotType;
+  previousRelationIndexes: Record<string, Set<string> | null>;
+  nextRelationIndexes: Record<string, Set<string> | null>;
+  sourcePath: string;
+  collectionPath: string;
+  rows: DataRecord[];
+  collectionStore: CollectionStore | null;
+  fieldConfig: ValidationFieldConfigType;
+  validationConfig: ValidationRuleConfigType;
+}) {
+  const changedFields = getChangedRelationFields(previousRelationIndexes, nextRelationIndexes, sourcePath, collectionPath);
+  if (!changedFields.length) return null;
+  let nextSnapshot: ValidationSnapshotType | null = previousSnapshot;
+  for (const fieldName of changedFields) {
+    nextSnapshot = patchValidationSnapshotForField({
+      previousSnapshot: nextSnapshot,
+      invalidation: { type: "field", fieldName },
+      rows,
+      collectionStore,
+      fieldConfig,
+      relationIndexes: nextRelationIndexes,
+      validationConfig,
+      sourcePath,
+      collectionPath,
+    });
+    if (!nextSnapshot) return null;
+  }
+  return nextSnapshot;
+}
+
+function getChangedRelationFields(
+  previous: Record<string, Set<string> | null>,
+  next: Record<string, Set<string> | null>,
   sourcePath: string,
   collectionPath: string,
 ) {
-  const result: Record<string, ValidationIssue | null> = {};
-  const fields = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  const primaryKey = viewConfig.primaryKeys[buildCollectionKey(sourcePath, collectionPath)] ?? null;
-  for (const field of fields) {
-    const isPrimaryKey = field === primaryKey;
-    for (const duplicate of validateUniqueTyped(rows, field, { unique: isPrimaryKey })) {
-      if (duplicate.rowIndex != null) result[`${duplicate.rowIndex}:${field}`] = duplicate;
-    }
-    rows.forEach((row, rowIndex) => {
-      const required = validateRequiredTyped(row[field], field, { required: isPrimaryKey });
-      if (required) result[`${rowIndex}:${field}`] = required;
-      const displayType = fieldConfig.displayTypes[field];
-      if (displayType && !isCompatible(displayType, row[field])) {
-        result[`${rowIndex}:${field}`] = { severity: "error" as const, message: `当前值不能用 ${displayType} 显示` };
-      }
-      const relationIssue = validateRelationAtPath([field], row[field], relationIndexes, viewConfig, sourcePath, collectionPath);
-      if (relationIssue && !result[`${rowIndex}:${field}`]) result[`${rowIndex}:${field}`] = relationIssue;
-      for (const nestedIssue of collectNestedRelationIssues(row[field], [field], relationIndexes, viewConfig, sourcePath, collectionPath)) {
-        if (!result[`${rowIndex}:${field}`]) result[`${rowIndex}:${field}`] = nestedIssue;
-      }
-    });
+  const changedFields = new Set<string>();
+  const keys = new Set([...Object.keys(previous), ...Object.keys(next)]);
+  for (const key of keys) {
+    const parsed = parseRelationKey(key);
+    if (!parsed) continue;
+    if (parsed.sourceFile !== sourcePath || parsed.sourceCollection !== collectionPath) continue;
+    const left = previous[key] ?? null;
+    const right = next[key] ?? null;
+    const changed = left === right ? false : (!left || !right ? left !== right : !sameSet(left, right));
+    if (!changed) continue;
+    const topLevelField = parsed.fieldPath[0];
+    if (topLevelField) changedFields.add(topLevelField);
   }
-  return result;
-}
-
-function collectNestedRelationIssues(
-  value: unknown,
-  path: Array<string | number>,
-  relationIndexes: Record<string, Set<string> | null>,
-  viewConfig: ViewConfig,
-  sourcePath: string,
-  collectionPath: string,
-): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => issues.push(...collectNestedRelationIssues(item, [...path, index], relationIndexes, viewConfig, sourcePath, collectionPath)));
-  } else if (value && typeof value === "object") {
-    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-      const nestedPath = [...path, key];
-      const issue = validateRelationAtPath(nestedPath, nested, relationIndexes, viewConfig, sourcePath, collectionPath);
-      if (issue) issues.push(issue);
-      issues.push(...collectNestedRelationIssues(nested, nestedPath, relationIndexes, viewConfig, sourcePath, collectionPath));
-    }
-  }
-  return issues;
-}
-
-function validateRelationAtPath(
-  pathParts: Array<string | number>,
-  value: unknown,
-  relationIndexes: Record<string, Set<string> | null>,
-  viewConfig: ViewConfig,
-  sourcePath: string,
-  collectionPath: string,
-): ValidationIssue | null {
-  const relationKey = buildRelationKey({ sourceFile: sourcePath, sourceCollection: collectionPath, fieldPath: pathParts });
-  if (viewConfig.relations[relationKey]) {
-    const config = viewConfig.relations[relationKey];
-    const index = relationIndexes[relationKey];
-    if (index == null) return { severity: "neutral" as const, message: `${config.targetKey} 未检查` };
-    if (config.mode === "multi") {
-      if (!Array.isArray(value)) return { severity: "error" as const, message: `当前值不能用 ${config.targetKey} 多值关联显示` };
-      const missing = value
-        .filter((item) => item == null || typeof item !== "object")
-        .map((item) => validateRelationValueTyped(item, index))
-        .filter(Boolean)
-        .map((issue) => issue!.message.replace("未找到引用 ", ""));
-      return missing.length ? { severity: "warning" as const, message: `未找到引用 ${missing.join(", ")}` } : null;
-    }
-    if (Array.isArray(value)) return { severity: "error" as const, message: `当前值不能用 ${config.targetKey} 单值关联显示` };
-    if (value && typeof value === "object") return null;
-    return validateRelationValueTyped(value, index);
-  }
-  return null;
+  return [...changedFields];
 }
 
 function configKey(path: string, collectionPath: string, fieldName: string, suffix: string) {
@@ -3498,12 +3972,6 @@ function clampSidebarWidth(width: number) {
 
 function clampDetailPanelWidth(width: number) {
   return Math.min(maxDetailPanelWidth, Math.max(minDetailPanelWidth, Math.round(width)));
-}
-
-function replaceRowsForView(model: DocumentModel, collectionPath: string, rows: DataRecord[]) {
-  if (collectionPath === "$") return rows;
-  if (!model.root || typeof model.root !== "object" || Array.isArray(model.root)) return model.root;
-  return { ...(model.root as Record<string, unknown>), [collectionPath]: rows };
 }
 
 function cloneDataRoot<T>(value: T): T {

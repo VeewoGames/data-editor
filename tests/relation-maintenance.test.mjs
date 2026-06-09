@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { buildDocumentModel, getRows } from "../src/document-model.mjs";
+import { buildDocumentStore } from "../src/model/document-store.mjs";
 import {
   analyzePrimaryKeyChange,
   buildPrimaryKeySyncPlan,
@@ -20,6 +22,19 @@ test("findTargetRecord returns matching target row", () => {
   const result = findTargetRecord([{ skill_id: "slash" }, { skill_id: "fire" }], "skill_id", "fire");
   assert.equal(result.rowIndex, 1);
   assert.deepEqual(result.row, { skill_id: "fire" });
+});
+
+test("findTargetRecord carries rowId when rows come from a document store", () => {
+  const model = buildDocumentModel([
+    { skill_id: "slash" },
+    { skill_id: "fire" },
+  ], "json", "memory://skills.json");
+  const store = buildDocumentStore({ documentId: "skills", model });
+  assert.ok(store.collections.get("$")?.rowViews[1].rowId);
+
+  const result = findTargetRecord(getRows(model, "$"), "skill_id", "fire");
+  assert.equal(result.rowIndex, 1);
+  assert.equal(result.rowId, "skills:$:1");
 });
 
 test("collectRelationBacklinks scans scalar, array, and nested wildcard references", () => {
@@ -82,6 +97,37 @@ test("collectRelationBacklinks scans scalar, array, and nested wildcard referenc
   assert.equal(backlinks.length, 2);
   assert.equal(backlinks[0].title, "敌人A");
   assert.equal(backlinks[1].sourceFile, "data/status_effects.json");
+});
+
+test("collectRelationBacklinks carries source rowId when source rows were registered in a document store", () => {
+  const sourceModel = buildDocumentModel([
+    { name: "敌人A", skills: ["slash", "fire"] },
+    { name: "敌人B", skills: ["ice"] },
+  ], "json", "data/enemies.json");
+  buildDocumentStore({ documentId: "enemies", model: sourceModel });
+
+  const backlinks = collectRelationBacklinks({
+    targetFile: "data/skills.json",
+    targetCollection: "skills",
+    targetKey: "skill_id",
+    targetId: "fire",
+    relations: {
+      "data/enemies.json:$:skills": {
+        targetFile: "data/skills.json",
+        targetCollection: "skills",
+        targetKey: "skill_id",
+        mode: "multi",
+        titleFields: ["skill_name"],
+        allowMissing: false,
+      },
+    },
+    documentsByPath: {
+      "data/enemies.json": sourceModel,
+    },
+  });
+
+  assert.equal(backlinks.length, 1);
+  assert.equal(backlinks[0].rowId, "enemies:$:0");
 });
 
 test("analyzePrimaryKeyChange reports impact without mutating documents", () => {

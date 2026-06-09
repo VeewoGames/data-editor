@@ -7,6 +7,20 @@ import { icons } from "./icons";
 import { ExpandableSearch } from "./ExpandableSearch";
 
 type ToolbarProps = {
+  snapshot: ToolbarSnapshot;
+  onQueryChange: (value: string) => void;
+  onRefreshBuild: () => void;
+  onCloseServer: () => void;
+  onResetView: () => void;
+  onSelectViewProfile: (name: string) => void;
+  onCreateViewProfile: () => void;
+  onChangeTheme: (theme: UiTheme) => void;
+  onChangeBaseFontSize: (size: UiPreferences["baseFontSize"]) => void;
+  onUnhideField: (fieldName: string) => void;
+  onUnhideAllFields: () => void;
+};
+
+export type ToolbarSnapshot = {
   currentPath: string | null;
   collectionPath: string;
   viewProfiles: string[];
@@ -22,21 +36,12 @@ type ToolbarProps = {
   rebuilding: boolean;
   status: string;
   hiddenFields: string[];
-  onQueryChange: (value: string) => void;
-  onRefreshBuild: () => void;
-  onCloseServer: () => void;
-  onResetView: () => void;
-  onSelectViewProfile: (name: string) => void;
-  onCreateViewProfile: () => void;
-  onChangeTheme: (theme: UiTheme) => void;
-  onChangeBaseFontSize: (size: UiPreferences["baseFontSize"]) => void;
-  onUnhideField: (fieldName: string) => void;
-  onUnhideAllFields: () => void;
 };
 
 const fontSizeOptions: UiPreferences["baseFontSize"][] = [14, 14.5, 15, 16];
 
 export function Toolbar(props: ToolbarProps) {
+  const { snapshot } = props;
   const [hiddenPanelOpen, setHiddenPanelOpen] = useState(false);
   const hiddenPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -50,42 +55,42 @@ export function Toolbar(props: ToolbarProps) {
   }, [hiddenPanelOpen]);
 
   useEffect(() => {
-    if (props.hiddenFields.length === 0) setHiddenPanelOpen(false);
-  }, [props.hiddenFields]);
+    if (snapshot.hiddenFields.length === 0) setHiddenPanelOpen(false);
+  }, [snapshot.hiddenFields]);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = props.activeThemeId;
-    document.documentElement.dataset.fontSizeBase = String(props.baseFontSize);
-  }, [props.activeThemeId, props.baseFontSize]);
+    document.documentElement.dataset.theme = snapshot.activeThemeId;
+    document.documentElement.dataset.fontSizeBase = String(snapshot.baseFontSize);
+  }, [snapshot.activeThemeId, snapshot.baseFontSize]);
 
-  const autosaveLabel = props.autosaveState === "pending"
+  const autosaveLabel = snapshot.autosaveState === "pending"
     ? "待保存"
-    : props.autosaveState === "saving"
+    : snapshot.autosaveState === "saving"
       ? "保存中..."
-      : props.autosaveState === "error"
+      : snapshot.autosaveState === "error"
         ? "保存失败"
-        : props.autosaveState === "blocked-confirmation"
+        : snapshot.autosaveState === "blocked-confirmation"
           ? "待确认"
           : "";
 
   return (
     <header className="toolbar">
       <div className="toolbar-title">
-        <strong>{props.currentPath ?? "No file selected"}</strong>
-        <span>{props.collectionPath}</span>
+        <strong>{snapshot.currentPath ?? "No file selected"}</strong>
+        <span>{snapshot.collectionPath}</span>
       </div>
-      <ExpandableSearch className="search-box" value={props.query} alwaysExpanded onChange={props.onQueryChange} placeholder="搜索当前表格" />
+      <ExpandableSearch className="search-box" value={snapshot.query} alwaysExpanded onChange={props.onQueryChange} placeholder="搜索当前表格" />
       <div className="toolbar-spacer" />
-      <span className="row-count">Visible {props.visibleCount} / Total {props.rowCount}</span>
+      <span className="row-count">Visible {snapshot.visibleCount} / Total {snapshot.rowCount}</span>
       {autosaveLabel ? (
         <span className="dirty-pill">
           <icons.dirty size={14} />
           {autosaveLabel}
         </span>
       ) : null}
-      {props.status ? <span className="status-text">{props.status}</span> : null}
+      {snapshot.status ? <span className="status-text">{snapshot.status}</span> : null}
       <div className="toolbar-profile-picker">
-        <Select.Root value={props.selectedViewProfileName ?? "__local__"} onValueChange={props.onSelectViewProfile}>
+        <Select.Root value={snapshot.selectedViewProfileName ?? "__local__"} onValueChange={props.onSelectViewProfile}>
           <Select.Trigger className="select-trigger toolbar-profile-select-trigger" aria-label="View profile">
             <Select.Value />
             <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
@@ -96,7 +101,7 @@ export function Toolbar(props: ToolbarProps) {
                 <Select.Item className="menu-item" value="__local__">
                   <Select.ItemText>浏览器本地</Select.ItemText>
                 </Select.Item>
-                {props.viewProfiles.map((profile) => (
+                {snapshot.viewProfiles.map((profile) => (
                   <Select.Item className="menu-item" key={profile} value={profile}>
                     <Select.ItemText>{profile}</Select.ItemText>
                   </Select.Item>
@@ -111,11 +116,11 @@ export function Toolbar(props: ToolbarProps) {
       </div>
       <div className="toolbar-hidden-fields" ref={hiddenPanelRef}>
         <button
-          aria-label={props.hiddenFields.length > 0 ? `Hidden fields (${props.hiddenFields.length})` : "Hidden fields"}
+          aria-label={snapshot.hiddenFields.length > 0 ? `Hidden fields (${snapshot.hiddenFields.length})` : "Hidden fields"}
           className="ghost-button icon-button toolbar-action-button"
-          disabled={props.hiddenFields.length === 0}
+          disabled={snapshot.hiddenFields.length === 0}
           onClick={() => setHiddenPanelOpen((open) => !open)}
-          title={props.hiddenFields.length > 0 ? `Hidden fields (${props.hiddenFields.length})` : "Hidden fields"}
+          title={snapshot.hiddenFields.length > 0 ? `Hidden fields (${snapshot.hiddenFields.length})` : "Hidden fields"}
           type="button"
         >
           <icons.hidden size={16} />
@@ -127,7 +132,7 @@ export function Toolbar(props: ToolbarProps) {
               <button className="ghost-button compact" onClick={props.onUnhideAllFields} type="button">Restore all</button>
             </div>
             <div className="hidden-fields-list">
-              {props.hiddenFields.map((fieldName) => (
+              {snapshot.hiddenFields.map((fieldName) => (
                 <button className="hidden-field-item" key={fieldName} onClick={() => props.onUnhideField(fieldName)} type="button">
                   <span>{fieldName}</span>
                   <small>Restore</small>
@@ -151,7 +156,7 @@ export function Toolbar(props: ToolbarProps) {
           <button
             aria-label="外观设置"
             className="ghost-button icon-button toolbar-action-button toolbar-settings-button"
-            disabled={props.closing || props.saving}
+            disabled={snapshot.closing || snapshot.saving}
             title="外观设置"
             type="button"
           >
@@ -164,12 +169,12 @@ export function Toolbar(props: ToolbarProps) {
               <section className="appearance-section" aria-label="Theme settings">
                 <div className="appearance-section-header">
                   <strong>主题</strong>
-                  <span>{props.activeThemeId === "dark" ? "深色" : "浅色"}</span>
+                  <span>{snapshot.activeThemeId === "dark" ? "深色" : "浅色"}</span>
                 </div>
                 <div className="appearance-segmented-control" role="group" aria-label="Theme">
                   <button
-                    aria-pressed={props.activeThemeId === "light"}
-                    className={props.activeThemeId === "light" ? "appearance-segment is-active" : "appearance-segment"}
+                    aria-pressed={snapshot.activeThemeId === "light"}
+                    className={snapshot.activeThemeId === "light" ? "appearance-segment is-active" : "appearance-segment"}
                     data-theme-option="light"
                     onClick={() => props.onChangeTheme("light")}
                     type="button"
@@ -177,8 +182,8 @@ export function Toolbar(props: ToolbarProps) {
                     浅色
                   </button>
                   <button
-                    aria-pressed={props.activeThemeId === "dark"}
-                    className={props.activeThemeId === "dark" ? "appearance-segment is-active" : "appearance-segment"}
+                    aria-pressed={snapshot.activeThemeId === "dark"}
+                    className={snapshot.activeThemeId === "dark" ? "appearance-segment is-active" : "appearance-segment"}
                     data-theme-option="dark"
                     onClick={() => props.onChangeTheme("dark")}
                     type="button"
@@ -190,13 +195,13 @@ export function Toolbar(props: ToolbarProps) {
               <section className="appearance-section" aria-label="Base font size settings">
                 <div className="appearance-section-header">
                   <strong>基础字号</strong>
-                  <span>{props.baseFontSize}px</span>
+                  <span>{snapshot.baseFontSize}px</span>
                 </div>
                 <div className="appearance-segmented-control" role="group" aria-label="Base font size">
                   {fontSizeOptions.map((size) => (
                     <button
-                      aria-pressed={props.baseFontSize === size}
-                      className={props.baseFontSize === size ? "appearance-segment is-active" : "appearance-segment"}
+                      aria-pressed={snapshot.baseFontSize === size}
+                      className={snapshot.baseFontSize === size ? "appearance-segment is-active" : "appearance-segment"}
                       data-font-size-option={String(size)}
                       key={size}
                       onClick={() => props.onChangeBaseFontSize(size)}
@@ -213,25 +218,25 @@ export function Toolbar(props: ToolbarProps) {
       </Popover.Root>
       <button
         aria-label="刷新构建"
-        className={props.rebuilding ? "ghost-button toolbar-rebuild-button" : "ghost-button icon-button toolbar-rebuild-button"}
-        disabled={props.rebuilding || props.closing || props.saving}
+        className={snapshot.rebuilding ? "ghost-button toolbar-rebuild-button" : "ghost-button icon-button toolbar-rebuild-button"}
+        disabled={snapshot.rebuilding || snapshot.closing || snapshot.saving}
         onClick={props.onRefreshBuild}
         title="刷新构建"
         type="button"
       >
         <icons.refresh size={16} />
-        {props.rebuilding ? "构建中..." : null}
+        {snapshot.rebuilding ? "构建中..." : null}
       </button>
       <button
         aria-label="关闭服务"
-        className={props.closing ? "ghost-button toolbar-close-button" : "ghost-button icon-button toolbar-close-button"}
-        disabled={props.closing || props.saving || props.rebuilding}
+        className={snapshot.closing ? "ghost-button toolbar-close-button" : "ghost-button icon-button toolbar-close-button"}
+        disabled={snapshot.closing || snapshot.saving || snapshot.rebuilding}
         onClick={props.onCloseServer}
         title="关闭服务"
         type="button"
       >
         <icons.close size={16} />
-        {props.closing ? "关闭中..." : null}
+        {snapshot.closing ? "关闭中..." : null}
       </button>
     </header>
   );

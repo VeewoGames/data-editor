@@ -15,7 +15,10 @@
     "start": "node server.mjs --project . --port 8787 --static dist",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs && tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "profile:prototypes-expansion": "node tests/perf/prototypes-expansion-profile.mjs",
+    "profile:prototypes-expansion:static": "node tests/perf/prototypes-expansion-static.mjs",
+    "profile:prototypes-expansion:wrap-observe": "node tests/perf/prototypes-expansion-wrap-observe.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
