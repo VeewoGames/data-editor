@@ -676,9 +676,19 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
 
   assert.match(viewTabsSource, /onToggleFilterBar/);
+  assert.match(viewTabsSource, /onToggleRowDeleteControls/);
   assert.match(viewTabsSource, /hasActiveFilters/);
+  assert.match(viewTabsSource, /rowDeleteControlsVisible/);
   assert.match(viewTabsSource, /aria-pressed=\{filterBarVisible\}/);
+  assert.match(viewTabsSource, /aria-pressed=\{rowDeleteControlsVisible\}/);
   assert.match(viewTabsSource, /view-tabs-filter-toggle/);
+  assert.match(viewTabsSource, /hasActiveFilters \? "has-filters" : ""/);
+  assert.match(viewTabsSource, /filterBarVisible \? "visible" : ""/);
+  assert.match(viewTabsSource, /view-tabs-row-delete-toggle/);
+  assert.match(viewTabsSource, /rowDeleteControlsVisible \? "active" : ""/);
+  assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
+  assert.match(viewTabsSource, /<span>调整<\/span>/);
+  assert.doesNotMatch(viewTabsSource, /<span>配置<\/span>/);
   assert.doesNotMatch(viewTabsSource, /view-tabs-search/);
   assert.doesNotMatch(viewTabsSource, /onSaveForEveryone/);
   assert.doesNotMatch(viewTabsSource, /onResetView/);
@@ -695,4 +705,21 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(filterBarSource, /view-filter-actions/);
   assert.match(filterBarSource, /为所有人保存/);
   assert.match(filterBarSource, /重置/);
+});
+
+test("row delete controls stay hidden until the temporary toolbar mode is enabled", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const dataTableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /const \[rowDeleteControlsVisible, setRowDeleteControlsVisible\] = useState\(false\);/);
+  assert.match(appSource, /rowDeleteControlsVisible,/);
+  assert.match(appSource, /onToggleRowDeleteControls=\{\(\) => setRowDeleteControlsVisible\(\(value\) => !value\)\}/);
+  assert.match(appSource, /showRowDeleteControls=\{rowDeleteControlsVisible\}/);
+  assert.doesNotMatch(appSource, /localStorage\.(?:getItem|setItem)\([^)]*rowDeleteControlsVisible/);
+
+  assert.match(dataTableSource, /showRowDeleteControls: boolean;/);
+  assert.match(dataTableSource, /className=\{props\.showRowDeleteControls \? "icon-button danger" : "icon-button danger row-delete-hidden"\}/);
+  assert.match(dataTableSource, /aria-hidden=\{!props\.showRowDeleteControls\}/);
+  assert.match(dataTableSource, /tabIndex=\{props\.showRowDeleteControls \? 0 : -1\}/);
+  assert.match(dataTableSource, /previous\.showRowDeleteControls === next\.showRowDeleteControls/);
 });

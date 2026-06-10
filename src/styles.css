@@ -431,12 +431,13 @@ select {
   background: transparent;
   border: 0;
   border-radius: 5px;
-  color: #787774;
+  color: #9b9994;
   cursor: pointer;
   display: inline-flex;
-  font-size: 12px;
-  height: 26px;
-  padding: 0 7px;
+  font-size: 14px;
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px;
 }
 
 .view-tab-action.primary {
@@ -457,9 +458,19 @@ select {
   background: #c9660b;
 }
 
-.view-tab-action.filter-toggle.active {
-  color: #2383e2;
+.view-tab-action.filter-toggle.visible,
+.view-tab-action.row-delete-toggle.active {
+  color: #37352f;
   font-weight: 600;
+}
+
+.view-tab-action.filter-toggle.has-filters {
+  color: #7ab7f0;
+  font-weight: 600;
+}
+
+.view-tab-action.filter-toggle.has-filters.visible {
+  color: #2383e2;
 }
 
 .view-tab-action:disabled,
@@ -485,6 +496,10 @@ select {
 .view-tabs-filter-toggle {
   flex: 0 0 auto;
   margin-left: auto;
+}
+
+.view-tabs-row-delete-toggle {
+  flex: 0 0 auto;
 }
 
 .view-tab-menu-content {
@@ -1748,6 +1763,11 @@ select {
 .row-action-cell {
   min-width: 42px !important;
   width: 42px;
+}
+
+.row-delete-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .row-action-col {

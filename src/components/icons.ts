@@ -1,5 +1,6 @@
 import {
   IconAlertTriangleFilled,
+  IconAdjustmentsHorizontal,
   IconBraces,
   IconCalendarFilled,
   IconCircleCaretDownFilled,
@@ -69,6 +70,7 @@ export const icons = {
   close: IconX,
   copy: IconCopy,
   refresh: IconRefresh,
+  adjust: IconAdjustmentsHorizontal,
   settings: IconSettings,
   hidden: IconEyeOff,
   reset: IconRotateClockwise2,

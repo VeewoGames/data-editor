@@ -84,9 +84,23 @@ import {
   buildScrollContextKey,
   readPageContextState,
   readProjectPageContext,
+  writePageContextState,
   updatePageContextScroll,
   updatePageContextSelection,
+  type ProjectPageContextState,
 } from "./page-context-storage";
+import {
+  applyLocalPathMigrations,
+  applyPageContextPathMigrations,
+  applyProfilePathMigrations,
+  applyViewConfigPathMigrations,
+  detectPathMigrations,
+  migrateFingerprintCache,
+  readFingerprintCache,
+  rewriteSharedViewsConfig,
+  updateFingerprintCache,
+  writeFingerprintCache,
+} from "./path-migration.mjs";
 import {
   copyViewLayoutState,
   emptyLocalViewState,
@@ -233,6 +247,180 @@ function writeStoredLocalSidebarTreePreferences(localStorage: Storage, value: un
   localStorage.setItem(sidebarTreePrefsStorageKey, JSON.stringify(serializeSidebarTreeState(normalized, explicitExpandedNodeIds)));
 }
 
+type PathMigration = {
+  oldPath: string;
+  newPath: string;
+  reason: "file-move" | "folder-move" | "rename";
+  confidence: "high";
+};
+
+type PathRewriteContext = {
+  collectionPathsByFile: Record<string, string[]>;
+  viewIdsByCollectionKey: Record<string, string[]>;
+};
+
+function addUniqueRecordValue(record: Record<string, string[]>, key: string, value: string) {
+  if (!key || !value) return;
+  record[key] ??= [];
+  if (!record[key].includes(value)) record[key].push(value);
+}
+
+function addCollectionKeyToRewriteContext(context: PathRewriteContext, collectionKey: string | null | undefined, viewIds: string[] = []) {
+  if (!collectionKey) return;
+  const separatorIndex = collectionKey.indexOf(":");
+  if (separatorIndex <= 0) return;
+  const filePath = collectionKey.slice(0, separatorIndex);
+  const collectionPath = collectionKey.slice(separatorIndex + 1);
+  if (!filePath || !collectionPath) return;
+  addUniqueRecordValue(context.collectionPathsByFile, filePath, collectionPath);
+  for (const viewId of viewIds) addUniqueRecordValue(context.viewIdsByCollectionKey, collectionKey, viewId);
+}
+
+function collectViewIdsFromSharedViews(sharedViewsConfig: SharedViewsConfig, collectionKey: string) {
+  const collection = sharedViewsConfig.collections?.[collectionKey];
+  return [
+    "all",
+    collection?.defaultViewId ?? "",
+    ...(collection?.views ?? []).map((view) => view.id),
+  ].filter(Boolean);
+}
+
+function collectCollectionKeyMapContext(context: PathRewriteContext, keys: Iterable<string>, viewIdsByKey?: Record<string, string[]>) {
+  for (const key of keys) addCollectionKeyToRewriteContext(context, key, viewIdsByKey?.[key] ?? []);
+}
+
+function collectLocalStorageViewIds(context: PathRewriteContext, localStorage: Storage) {
+  for (const collectionKey of Object.keys(context.viewIdsByCollectionKey)) {
+    const prefix = `data-editor:${collectionKey}:`;
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(prefix)) continue;
+      const rest = key.slice(prefix.length);
+      const encodedViewId = rest.split(":")[0];
+      if (!encodedViewId) continue;
+      try {
+        addUniqueRecordValue(context.viewIdsByCollectionKey, collectionKey, decodeURIComponent(encodedViewId));
+      } catch {
+        addUniqueRecordValue(context.viewIdsByCollectionKey, collectionKey, encodedViewId);
+      }
+    }
+  }
+}
+
+function isLocalViewStoragePayload(parts: string[]) {
+  if (parts.length === 1) return parts[0] === "__order" || parts[0] === "__detail-order";
+  return ["width", "hidden", "wrapped"].includes(parts.at(-1) ?? "");
+}
+
+function collectLocalOnlyViewLayoutContext(context: PathRewriteContext, migrations: PathMigration[], localStorage: Storage) {
+  for (const migration of migrations) {
+    const prefix = `data-editor:${migration.oldPath}:`;
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(prefix)) continue;
+      const parts = key.slice(prefix.length).split(":");
+      for (let viewIdIndex = 1; viewIdIndex < parts.length; viewIdIndex += 1) {
+        const payloadParts = parts.slice(viewIdIndex + 1);
+        if (!isLocalViewStoragePayload(payloadParts)) continue;
+        const collectionPath = parts.slice(0, viewIdIndex).join(":");
+        const encodedViewId = parts[viewIdIndex];
+        if (!collectionPath || !encodedViewId) continue;
+        const collectionKey = `${migration.oldPath}:${collectionPath}`;
+        addCollectionKeyToRewriteContext(context, collectionKey);
+        try {
+          addUniqueRecordValue(context.viewIdsByCollectionKey, collectionKey, decodeURIComponent(encodedViewId));
+        } catch {
+          addUniqueRecordValue(context.viewIdsByCollectionKey, collectionKey, encodedViewId);
+        }
+      }
+    }
+  }
+}
+
+function buildPathRewriteContext(input: {
+  migrations: PathMigration[];
+  viewConfig: ViewConfig;
+  sharedViewsConfig: SharedViewsConfig;
+  profile: UserViewProfile | null;
+  localSharedViewDrafts: SharedViewDraftState;
+  pageContext: ReturnType<typeof readProjectPageContext>;
+  localStorage: Storage;
+}) {
+  const context: PathRewriteContext = { collectionPathsByFile: {}, viewIdsByCollectionKey: {} };
+  for (const migration of input.migrations) {
+    context.collectionPathsByFile[migration.oldPath] = [];
+    context.viewIdsByCollectionKey[`${migration.oldPath}:$`] = ["all"];
+  }
+
+  for (const collectionKey of Object.keys(input.sharedViewsConfig.collections ?? {})) {
+    addCollectionKeyToRewriteContext(context, collectionKey, collectViewIdsFromSharedViews(input.sharedViewsConfig, collectionKey));
+  }
+  collectCollectionKeyMapContext(context, Object.keys(input.viewConfig.primaryKeys ?? {}));
+  collectCollectionKeyMapContext(context, Object.keys(input.profile?.lastActiveViews ?? {}), input.profile?.lastActiveViews ? Object.fromEntries(Object.entries(input.profile.lastActiveViews).map(([key, viewId]) => [key, [viewId]])) : undefined);
+  collectCollectionKeyMapContext(context, Object.keys(input.profile?.viewDrafts ?? {}), Object.fromEntries(Object.entries(input.profile?.viewDrafts ?? {}).map(([key, views]) => [key, Object.keys(views ?? {})])));
+  collectCollectionKeyMapContext(context, Object.keys(input.profile?.viewOrderDrafts ?? {}), input.profile?.viewOrderDrafts);
+  collectCollectionKeyMapContext(context, Object.keys(input.profile?.viewLayouts ?? {}), Object.fromEntries(Object.entries(input.profile?.viewLayouts ?? {}).map(([key, views]) => [key, Object.keys(views ?? {})])));
+  collectCollectionKeyMapContext(context, Object.keys(input.profile?.collections ?? {}));
+  collectCollectionKeyMapContext(context, Object.keys(input.localSharedViewDrafts.lastActiveViews ?? {}), Object.fromEntries(Object.entries(input.localSharedViewDrafts.lastActiveViews ?? {}).map(([key, viewId]) => [key, [viewId]])));
+  collectCollectionKeyMapContext(context, Object.keys(input.localSharedViewDrafts.viewDrafts ?? {}), Object.fromEntries(Object.entries(input.localSharedViewDrafts.viewDrafts ?? {}).map(([key, views]) => [key, Object.keys(views ?? {})])));
+  collectCollectionKeyMapContext(context, Object.keys(input.localSharedViewDrafts.viewOrderDrafts ?? {}), input.localSharedViewDrafts.viewOrderDrafts);
+
+  if (input.pageContext.selectedPath && input.pageContext.collectionPath) {
+    addCollectionKeyToRewriteContext(context, `${input.pageContext.selectedPath}:${input.pageContext.collectionPath}`);
+  }
+  collectLocalOnlyViewLayoutContext(context, input.migrations, input.localStorage);
+  collectLocalStorageViewIds(context, input.localStorage);
+  return context;
+}
+
+async function sha256Text(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hashBuffer)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function buildSchemaSignature(root: unknown) {
+  if (Array.isArray(root)) {
+    const firstRecord = root.find((item) => item && typeof item === "object" && !Array.isArray(item)) as Record<string, unknown> | undefined;
+    return `json:array:${Object.keys(firstRecord ?? {}).sort().join(",")}`;
+  }
+  if (root && typeof root === "object") {
+    return `json:object:${Object.keys(root as Record<string, unknown>).sort().join(",")}`;
+  }
+  return `json:${typeof root}`;
+}
+
+function extensionForPath(path: string) {
+  const fileName = path.split("/").at(-1) ?? path;
+  const index = fileName.lastIndexOf(".");
+  return index >= 0 ? fileName.slice(index) : "";
+}
+
+async function buildDataFileFingerprint(file: DataFile, projectId: string | null) {
+  const model = await loadDocument(file.path, projectId) as DocumentModel;
+  const serializedRoot = JSON.stringify(model.root ?? null);
+  return {
+    path: file.path,
+    dataSourceId: file.dataSourceId ?? "default",
+    extension: extensionForPath(file.path),
+    size: file.size,
+    modifiedAt: file.modifiedAt,
+    contentHash: await sha256Text(serializedRoot),
+    schemaSignature: buildSchemaSignature(model.root),
+  };
+}
+
+async function refreshFingerprintCacheForFiles(cache: unknown, files: DataFile[], projectId: string | null) {
+  const normalizedCache = (cache ?? {}) as { version?: number; files?: Record<string, { size: number; modifiedAt: string }> };
+  const fingerprints: Array<Awaited<ReturnType<typeof buildDataFileFingerprint>>> = [];
+  for (const file of files) {
+    const cached = normalizedCache.files?.[file.path];
+    if (cached && cached.size === file.size && cached.modifiedAt === file.modifiedAt) continue;
+    fingerprints.push(await buildDataFileFingerprint(file, projectId));
+  }
+  return updateFingerprintCache(cache, files.filter((file) => fingerprints.some((fingerprint: { path: string }) => fingerprint.path === file.path)), fingerprints);
+}
+
 export function App() {
   const [files, setFiles] = useState<DataFile[]>([]);
   const [projects, setProjects] = useState<ProjectDefinition[]>([]);
@@ -274,6 +462,7 @@ export function App() {
   const [pendingDeleteField, setPendingDeleteField] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
+  const [rowDeleteControlsVisible, setRowDeleteControlsVisible] = useState(false);
   const [pendingOpenFilterRuleId, setPendingOpenFilterRuleId] = useState<string | null>(null);
   const [uiRevision, bumpUiRevision] = useState(0);
   const [layoutRevision, bumpLayoutRevision] = useState(0);
@@ -296,6 +485,7 @@ export function App() {
   const [selectedPrimaryKeyCandidate, setSelectedPrimaryKeyCandidate] = useState<string>("");
   const openRequestRef = useRef(0);
   const maintenanceRequestRef = useRef(0);
+  const filesRef = useRef<DataFile[]>([]);
   const activeProjectIdRef = useRef<string | null>(null);
   const modelRef = useRef<DocumentModel | null>(null);
   const savedDocumentRootRef = useRef<unknown | null>(null);
@@ -390,6 +580,7 @@ export function App() {
   }, [activeSidebarPreferences.sidebarTree, files]);
 
   useEffect(() => { modelRef.current = model; }, [model]);
+  useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
   useEffect(() => { selectedPathRef.current = selectedPath; }, [selectedPath]);
   useEffect(() => { dataDirtyRef.current = dataDirty; }, [dataDirty]);
@@ -461,8 +652,10 @@ export function App() {
   }, [selectedViewProfileName, activeProjectId]);
 
   async function reloadProjectWorkspace(projectId: string, options: { resetProfile?: boolean } = {}) {
-    resetWorkspaceState(options);
+    const previousFiles = loadedProjectIdRef.current === projectId ? filesRef.current : [];
     try {
+      await saveCoordinator.flush("flush");
+      resetWorkspaceState(options);
       const profileNameForInitialOrder = options.resetProfile ? null : selectedViewProfileNameRef.current;
       const [nextFiles, nextConfig, nextSharedViewsConfig, nextProfiles, nextProfile] = await Promise.all([
         listFiles(projectId),
@@ -471,23 +664,89 @@ export function App() {
         listViewProfiles(projectId),
         profileNameForInitialOrder ? loadViewProfile(profileNameForInitialOrder, projectId) : Promise.resolve(null),
       ]);
+      let migratedConfig = nextConfig;
+      let migratedSharedViewsConfig = nextSharedViewsConfig;
+      let migratedLocalSharedViewDrafts = readLocalSharedViewDrafts(window.localStorage);
+      let normalizedInitialProfile = profileNameForInitialOrder ? normalizeUserViewProfile(nextProfile) : null;
+      const pageContextState = readPageContextState(window.localStorage);
+      let currentPageContext = readProjectPageContext(pageContextState, projectId);
+      let fingerprintCache = readFingerprintCache(window.localStorage);
+      if (previousFiles.length) {
+        const detection = await detectPathMigrations({
+          previousFiles,
+          nextFiles,
+          fingerprintCache,
+          readFingerprint: (file: DataFile) => buildDataFileFingerprint(file, projectId),
+        });
+        const migrations = detection.migrations as PathMigration[];
+        if (migrations.length) {
+          const context = buildPathRewriteContext({
+            migrations,
+            viewConfig: migratedConfig,
+            sharedViewsConfig: migratedSharedViewsConfig,
+            profile: normalizedInitialProfile,
+            localSharedViewDrafts: migratedLocalSharedViewDrafts,
+            pageContext: currentPageContext,
+            localStorage: window.localStorage,
+          });
+          const profileResult = normalizedInitialProfile
+            ? applyProfilePathMigrations(normalizedInitialProfile, migrations, context)
+            : null;
+          const sharedViewsResult = rewriteSharedViewsConfig(migratedSharedViewsConfig, migrations, context);
+          const viewConfigResult = applyViewConfigPathMigrations(migratedConfig, migrations);
+          const pageContextResult = applyPageContextPathMigrations(currentPageContext, migrations, context);
+
+          await Promise.all([
+            profileResult?.changed && profileNameForInitialOrder
+              ? saveViewProfile(profileNameForInitialOrder, profileResult.value as UserViewProfile, projectId)
+              : Promise.resolve(),
+            sharedViewsResult.changed
+              ? saveSharedViews(sharedViewsResult.value as SharedViewsConfig, projectId)
+              : Promise.resolve(),
+            viewConfigResult.changed
+              ? saveViewConfig(viewConfigResult.value as ViewConfig, projectId)
+              : Promise.resolve(),
+          ]);
+
+          migratedConfig = viewConfigResult.value as ViewConfig;
+          migratedSharedViewsConfig = sharedViewsResult.value as SharedViewsConfig;
+          normalizedInitialProfile = (profileResult?.value as UserViewProfile | undefined) ?? normalizedInitialProfile;
+          const localResult = applyLocalPathMigrations(window.localStorage, migrations, context);
+          migratedLocalSharedViewDrafts = readLocalSharedViewDrafts(window.localStorage);
+          if (pageContextResult.changed) {
+            pageContextState.projects[projectId] = pageContextResult.value as ProjectPageContextState;
+            writePageContextState(window.localStorage, pageContextState);
+            currentPageContext = pageContextResult.value as ProjectPageContextState;
+          }
+          const migratedFingerprintCache = migrateFingerprintCache(fingerprintCache, migrations);
+          fingerprintCache = migratedFingerprintCache.value;
+          writeFingerprintCache(window.localStorage, fingerprintCache);
+          if (localResult.changed || viewConfigResult.changed || sharedViewsResult.changed || profileResult?.changed || pageContextResult.changed) {
+            setStatus(`已迁移 ${migrations.length} 个移动文件的视图配置。`);
+          }
+        }
+      }
+      const refreshedFingerprintCache = await refreshFingerprintCacheForFiles(fingerprintCache, nextFiles, projectId);
+      if (refreshedFingerprintCache.changed) writeFingerprintCache(window.localStorage, refreshedFingerprintCache.value);
       setFiles(nextFiles);
-      setViewConfig(nextConfig);
-      setSharedViewsConfig(nextSharedViewsConfig);
-      setLocalSharedViewDrafts(readLocalSharedViewDrafts(window.localStorage));
+      filesRef.current = nextFiles;
+      setViewConfig(migratedConfig);
+      viewConfigRef.current = migratedConfig;
+      setSharedViewsConfig(migratedSharedViewsConfig);
+      setLocalSharedViewDrafts(migratedLocalSharedViewDrafts);
       setViewProfiles(nextProfiles);
-      const normalizedInitialProfile = profileNameForInitialOrder ? normalizeUserViewProfile(nextProfile) : null;
       if (profileNameForInitialOrder && normalizedInitialProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
         const normalizedProfile = normalizedInitialProfile;
         setSelectedViewProfile(normalizedProfile);
         selectedViewProfileRef.current = normalizedProfile;
+        profileDirtyRef.current = false;
+        setProfileDirty(false);
         setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
         setSidebarWidth(clampSidebarWidth(normalizedProfile.sidebarWidth ?? defaultSidebarWidth));
         setDetailPanelWidth(clampDetailPanelWidth(normalizedProfile.detailPanelWidth ?? defaultDetailPanelWidth));
       } else if (!profileNameForInitialOrder) {
         setUiPreferences(readLocalUiPreferences(window.localStorage));
       }
-      const currentPageContext = readProjectPageContext(readPageContextState(window.localStorage), projectId);
       const sidebarTree = buildResolvedSidebarTree(nextFiles, profileNameForInitialOrder, normalizedInitialProfile, window.localStorage);
       const preferredPath = findSidebarFallbackFilePath(
         sidebarTree,
@@ -1638,6 +1897,7 @@ export function App() {
     saving,
     filterBarVisible,
     hasActiveFilters: activeViewHasFilters,
+    rowDeleteControlsVisible,
     viewOrderDirty,
   }), [
     orderedCollectionViews,
@@ -1646,6 +1906,7 @@ export function App() {
     saving,
     filterBarVisible,
     activeViewHasFilters,
+    rowDeleteControlsVisible,
     viewOrderDirty,
   ]);
   const viewFilterBarSnapshot = useMemo<ViewFilterBarSnapshot>(() => ({
@@ -3197,6 +3458,7 @@ export function App() {
                   onDuplicateView={handleDuplicateSharedView}
                   onReorderViews={handleReorderSharedViews}
                   onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
+                  onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
                 />
               </Profiler>
               {filterBarVisible ? (
@@ -3246,6 +3508,7 @@ export function App() {
                   onOpenRelationTarget={handleOpenRelationTarget}
                   onAddRow={handleAddRow}
                   onDeleteRow={handleDeleteRow}
+                  showRowDeleteControls={rowDeleteControlsVisible}
                   onAddField={handleAddField}
                   onDeleteField={handleDeleteField}
                 />
@@ -3279,6 +3542,7 @@ export function App() {
             onDuplicateView={handleDuplicateSharedView}
             onReorderViews={handleReorderSharedViews}
             onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
+            onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
           />
           {filterBarVisible ? (
             <ViewFilterBar
@@ -3322,6 +3586,7 @@ export function App() {
             onOpenRelationTarget={handleOpenRelationTarget}
             onAddRow={handleAddRow}
             onDeleteRow={handleDeleteRow}
+            showRowDeleteControls={rowDeleteControlsVisible}
             onAddField={handleAddField}
             onDeleteField={handleDeleteField}
           />

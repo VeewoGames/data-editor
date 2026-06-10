@@ -12,6 +12,7 @@ export type ViewTabsProps = {
   onDuplicateView: (viewId: string) => void;
   onReorderViews: (viewIds: string[]) => void;
   onToggleFilterBar: () => void;
+  onToggleRowDeleteControls: () => void;
 };
 
 export type ViewTabsSnapshot = {
@@ -21,6 +22,7 @@ export type ViewTabsSnapshot = {
   saving: boolean;
   filterBarVisible: boolean;
   hasActiveFilters: boolean;
+  rowDeleteControlsVisible: boolean;
   viewOrderDirty: boolean;
 };
 
@@ -33,6 +35,7 @@ export function ViewTabs({
   onDuplicateView,
   onReorderViews,
   onToggleFilterBar,
+  onToggleRowDeleteControls,
 }: ViewTabsProps) {
   const {
     views,
@@ -41,6 +44,7 @@ export function ViewTabs({
     saving,
     filterBarVisible,
     hasActiveFilters,
+    rowDeleteControlsVisible,
     viewOrderDirty,
   } = snapshot;
   const [draggingViewId, setDraggingViewId] = useState<string | null>(null);
@@ -326,12 +330,32 @@ export function ViewTabs({
         </div>
         <button
           type="button"
-          className={hasActiveFilters ? "view-tab-action filter-toggle view-tabs-filter-toggle active" : "view-tab-action filter-toggle view-tabs-filter-toggle"}
+          className={[
+            "view-tab-action filter-toggle view-tabs-filter-toggle",
+            filterBarVisible ? "visible" : "",
+            hasActiveFilters ? "has-filters" : "",
+          ].filter(Boolean).join(" ")}
           onClick={onToggleFilterBar}
           aria-pressed={filterBarVisible}
           disabled={viewTabsDisabled}
+          title="筛选"
         >
-          筛选
+          <icons.filter size={18} />
+          <span>筛选</span>
+        </button>
+        <button
+          type="button"
+          className={[
+            "view-tab-action row-delete-toggle view-tabs-row-delete-toggle",
+            rowDeleteControlsVisible ? "active" : "",
+          ].filter(Boolean).join(" ")}
+          onClick={onToggleRowDeleteControls}
+          aria-pressed={rowDeleteControlsVisible}
+          disabled={viewTabsDisabled}
+          title="调整显示选项"
+        >
+          <icons.adjust size={18} />
+          <span>调整</span>
         </button>
       </div>
       {viewOrderDirty ? <div className="view-order-dirty">视图顺序有未保存更改</div> : null}

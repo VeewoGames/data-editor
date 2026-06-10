@@ -98,6 +98,7 @@ type DataTableProps = {
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onAddRow: () => void;
   onDeleteRow: (rowIndex: number, rowId: string | null) => void;
+  showRowDeleteControls: boolean;
   onAddField: () => void;
   onDeleteField: (fieldName: string) => void;
 };
@@ -668,7 +669,13 @@ function DataTableComponent(props: DataTableProps) {
                   onClick={(event) => selectRow(event, originalRowIndex, rowId)}
                 >
                   <td className="row-action-cell" data-cell-kind="row-action">
-                    <button className="icon-button danger" onClick={(event) => { event.stopPropagation(); props.onDeleteRow(originalRowIndex, rowId); }} title="Delete row">
+                    <button
+                      className={props.showRowDeleteControls ? "icon-button danger" : "icon-button danger row-delete-hidden"}
+                      onClick={(event) => { event.stopPropagation(); props.onDeleteRow(originalRowIndex, rowId); }}
+                      title="Delete row"
+                      aria-hidden={!props.showRowDeleteControls}
+                      tabIndex={props.showRowDeleteControls ? 0 : -1}
+                    >
                       <icons.delete size={14} />
                     </button>
                   </td>
@@ -712,6 +719,7 @@ function DataTableComponent(props: DataTableProps) {
 
 export const DataTable = memo(DataTableComponent, (previous, next) => {
   return sameTableSnapshot(previous.snapshot, next.snapshot) &&
+    previous.showRowDeleteControls === next.showRowDeleteControls &&
     previous.onScrollPositionChange === next.onScrollPositionChange;
 });
 
