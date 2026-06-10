@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import { fieldTypes } from "../model/fieldTypes";
 import { icons } from "../components/icons";
@@ -15,6 +15,7 @@ type ColumnHeaderProps = {
   width: number;
   pressed: boolean;
   isDragging: boolean;
+  tooltipSuppressed: boolean;
   relationConfigured: boolean;
   onSort: (direction: "asc" | "desc" | null) => void;
   onAddFilter: () => void;
@@ -24,6 +25,7 @@ type ColumnHeaderProps = {
   onDragStart: (fieldName: string, rect: DOMRect, pointerOffsetX: number) => void;
   onDragMove: (fieldName: string, clientX: number) => void;
   onDragEnd: (fieldName: string) => void;
+  onDragCancel: (fieldName: string) => void;
   onPressChange: (fieldName: string, pressed: boolean) => void;
   onToggleWrap: () => void;
   onChangeFieldType: (type: FieldDisplayType) => void;
@@ -49,8 +51,17 @@ const displayTypeLabels: Record<FieldDisplayType, string> = {
 
 export function ColumnHeader(props: ColumnHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isPointerPressActive, setIsPointerPressActive] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ left: 12, top: 0 });
   const headerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const titleRef = useRef<HTMLSpanElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const widthRef = useRef(props.width);
   const pressStateRef = useRef<{
     pointerId: number;
@@ -73,6 +84,23 @@ export function ColumnHeader(props: ColumnHeaderProps) {
   }, [props.width]);
 
   useEffect(() => {
+    const measureTitle = () => {
+      const titleElement = titleRef.current;
+      if (!titleElement) {
+        setIsTruncated(false);
+        return;
+      }
+      setIsTruncated(titleElement.scrollWidth - titleElement.clientWidth > 1);
+    };
+    measureTitle();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => measureTitle());
+    if (titleRef.current) observer.observe(titleRef.current);
+    if (triggerRef.current) observer.observe(triggerRef.current);
+    return () => observer.disconnect();
+  }, [props.fieldName, props.width]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
@@ -92,9 +120,49 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     };
   }, [menuOpen]);
 
+  const shouldShowTooltip = (hovered || focused) &&
+    isTruncated &&
+    !menuOpen &&
+    !isResizing &&
+    !isPointerPressActive &&
+    !props.isDragging &&
+    !props.tooltipSuppressed;
+
+  useEffect(() => {
+    if (!shouldShowTooltip) return;
+    const updateTooltipPosition = () => {
+      const anchor = headerRef.current?.closest("th[data-column-field]") ?? headerRef.current;
+      if (!(anchor instanceof HTMLElement)) return;
+      const anchorRect = anchor.getBoundingClientRect();
+      const tooltipWidth = tooltipRef.current?.offsetWidth ?? 0;
+      const tooltipHeight = tooltipRef.current?.offsetHeight ?? 0;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const maxLeft = Math.max(12, viewportWidth - tooltipWidth - 12);
+      const maxTop = Math.max(12, viewportHeight - tooltipHeight - 12);
+      const preferredTop = anchorRect.top - tooltipHeight - 6;
+      const fallbackTop = anchorRect.bottom + 6;
+      const nextLeft = Math.min(Math.max(anchorRect.left, 12), maxLeft);
+      setTooltipPosition({
+        left: nextLeft,
+        top: preferredTop >= 12 ? preferredTop : Math.min(Math.max(fallbackTop, 12), maxTop),
+      });
+    };
+    updateTooltipPosition();
+    const frame = window.requestAnimationFrame(updateTooltipPosition);
+    window.addEventListener("resize", updateTooltipPosition);
+    window.addEventListener("scroll", updateTooltipPosition, true);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updateTooltipPosition);
+      window.removeEventListener("scroll", updateTooltipPosition, true);
+    };
+  }, [shouldShowTooltip, props.fieldName, props.width]);
+
   function beginResize(event: ReactPointerEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
+    setIsResizing(true);
 
     dragState.current = {
       startX: event.clientX,
@@ -119,6 +187,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
       if (state?.frame != null) window.cancelAnimationFrame(state.frame);
       if (state) commitColumnWidth(state.lastWidth);
       dragState.current = null;
+      setIsResizing(false);
       document.body.classList.remove("is-resizing-column");
       document.body.style.removeProperty("--column-resize-guide-x");
       window.removeEventListener("pointermove", onPointerMove);
@@ -159,6 +228,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     if (event.button !== 0) return;
     event.stopPropagation();
     event.preventDefault();
+    setIsPointerPressActive(true);
     setMenuOpen(false);
     const startRect = headerRef.current?.getBoundingClientRect() ?? event.currentTarget.getBoundingClientRect();
     pressStateRef.current = {
@@ -191,6 +261,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
       if (!state || upEvent.pointerId !== state.pointerId) return;
       if (state.dragging) props.onDragEnd(props.fieldName);
       else if (!state.moved) setMenuOpen(true);
+      setIsPointerPressActive(false);
       props.onPressChange(props.fieldName, false);
       document.body.classList.remove("is-dragging-column");
       pressStateRef.current = null;
@@ -200,9 +271,10 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     };
 
     const onPointerCancel = () => {
+      setIsPointerPressActive(false);
       props.onPressChange(props.fieldName, false);
       document.body.classList.remove("is-dragging-column");
-      props.onDragEnd(props.fieldName);
+      props.onDragCancel(props.fieldName);
       pressStateRef.current = null;
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
@@ -220,23 +292,28 @@ export function ColumnHeader(props: ColumnHeaderProps) {
       ref={headerRef}
     >
       <button
+        aria-label={props.fieldName}
         className="column-trigger"
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
           setMenuOpen(true);
         }}
+        onBlur={() => setFocused(false)}
+        onFocus={() => setFocused(true)}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             setMenuOpen(true);
           }
         }}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
         onPointerDown={beginDrag}
-        title={props.fieldName}
+        ref={triggerRef}
         type="button"
       >
-        <span>{props.fieldName}</span>
+        <span ref={titleRef}>{props.fieldName}</span>
         <small>{displayTypeLabels[props.displayType]}</small>
       </button>
       {menuOpen ? (
@@ -328,6 +405,21 @@ export function ColumnHeader(props: ColumnHeaderProps) {
         role="separator"
         title="Drag to resize column"
       />
+      {shouldShowTooltip && typeof document !== "undefined"
+        ? createPortal(
+          <div
+            className="column-header-full-title-tooltip"
+            ref={tooltipRef}
+            style={{
+              left: `${tooltipPosition.left}px`,
+              top: `${tooltipPosition.top}px`,
+            }}
+          >
+            {props.fieldName}
+          </div>,
+          document.body,
+        )
+        : null}
     </div>
   );
 }

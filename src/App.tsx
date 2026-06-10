@@ -31,6 +31,7 @@ import {
   type FilterGroup,
   type SharedViewsConfig,
   type SortRule,
+  type SidebarTreePreferences,
   type UserViewLayoutState,
   type UserViewProfile,
   type ViewConfig,
@@ -71,7 +72,7 @@ import { findTitleField, getRecordTitle } from "./model/titleField";
 import type { BacklinkGridColumn } from "./model/backlinkGrid";
 import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RealFieldType, RelationConfig } from "./model/viewConfig";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
-import { normalizeFileOrder, resolvePreferredFilePath } from "./file-order.mjs";
+import { normalizeFileOrder } from "./file-order.mjs";
 import {
   buildOptionConfigFromOptions,
   removeMultiSelectOptionFromRows,
@@ -118,6 +119,7 @@ import type { ValidationFieldConfig as ValidationFieldConfigType, ValidationRule
 import { createSaveCoordinator, type AutosaveDomain, type AutosaveState } from "./save-coordinator";
 import { buildDocumentStore, type CollectionStore, type DocumentStore, type TableRowView } from "./model/document-store";
 import { addFieldByRowId, deleteRowByRowId, setCellValueByRowId } from "./model/writeback-adapter";
+import { applySidebarTreePreferences, buildSidebarTree, buildSidebarTreePreferences, findSidebarFallbackFilePath } from "./sidebar-tree.mjs";
 import {
   applyViewOrderDraft,
   collectionConfigKey,
@@ -136,6 +138,14 @@ import {
 
 type ServiceLifecycleState = "running" | "closed" | "recovering" | "disconnected" | "recoveredPendingReload" | "bridgeUnavailable";
 type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts">;
+type SidebarTreeNodeLike = {
+  id: string;
+  kind: string;
+  file?: DataFile;
+  filePath?: string;
+  children?: SidebarTreeNodeLike[];
+};
+type DeferredTaskHandle = { kind: "idle"; id: number } | { kind: "timeout"; id: number } | null;
 const defaultRecoveryBridgePort = 8791;
 const detailReorderReactProfilingStorageKey = "data-editor:enable-detail-reorder-profiling";
 const emptyFilterGroup: FilterGroup = { op: "and", rules: [] };
@@ -146,6 +156,7 @@ const buildDocumentStoreTyped = buildDocumentStore as (input: {
   previousStore?: DocumentStore | null;
 }) => DocumentStore;
 const runViewTyped = runView as (input: ViewInput) => ViewResult;
+const sidebarTreePrefsStorageKey = "data-editor:__sidebar-tree-prefs";
 
 function markPerf(name: string) {
   if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
@@ -171,6 +182,55 @@ function recordPerfDuration(name: string, duration: number) {
   } catch {
     // Ignore unsupported measure options during ad-hoc profiling.
   }
+}
+
+function scheduleDeferredTask(handleRef: { current: DeferredTaskHandle }, task: () => void, timeoutMs = 120) {
+  cancelDeferredTask(handleRef.current);
+  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+    const idleId = window.requestIdleCallback(() => {
+      handleRef.current = null;
+      task();
+    }, { timeout: timeoutMs });
+    handleRef.current = { kind: "idle", id: idleId };
+    return;
+  }
+  const timeoutId = window.setTimeout(() => {
+    handleRef.current = null;
+    task();
+  }, timeoutMs);
+  handleRef.current = { kind: "timeout", id: timeoutId };
+}
+
+function cancelDeferredTask(handle: DeferredTaskHandle) {
+  if (!handle || typeof window === "undefined") return;
+  if (handle.kind === "idle" && typeof window.cancelIdleCallback === "function") {
+    window.cancelIdleCallback(handle.id);
+    return;
+  }
+  if (handle.kind === "timeout") {
+    window.clearTimeout(handle.id);
+  }
+}
+
+function readRawLocalSidebarTreePreferences(localStorage: Storage) {
+  const rawValue = localStorage.getItem(sidebarTreePrefsStorageKey);
+  if (!rawValue) return undefined;
+  try {
+    const parsed = JSON.parse(rawValue);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStoredLocalSidebarTreePreferences(localStorage: Storage, value: unknown) {
+  const normalized = cloneSidebarTreePreferences(value);
+  const explicitExpandedNodeIds = hasExplicitExpandedNodeIds(value);
+  if (Object.keys(normalized.childOrderByParent).length === 0 && !explicitExpandedNodeIds) {
+    localStorage.removeItem(sidebarTreePrefsStorageKey);
+    return;
+  }
+  localStorage.setItem(sidebarTreePrefsStorageKey, JSON.stringify(serializeSidebarTreeState(normalized, explicitExpandedNodeIds)));
 }
 
 export function App() {
@@ -245,6 +305,11 @@ export function App() {
   const viewConfigDirtyRef = useRef(false);
   const profileDirtyRef = useRef(false);
   const relationIndexRequestRef = useRef(0);
+  const backlinkRequestRef = useRef(0);
+  const relationWarmupHandleRef = useRef<DeferredTaskHandle>(null);
+  const backlinkWarmupHandleRef = useRef<DeferredTaskHandle>(null);
+  const deferRelationWarmupRef = useRef(false);
+  const deferBacklinkWarmupRef = useRef(false);
   const selectedViewProfileNameRef = useRef<string | null>(null);
   const selectedViewProfileRef = useRef<UserViewProfile>(emptyUserViewProfile());
   const bridgePortRef = useRef(defaultRecoveryBridgePort);
@@ -316,12 +381,13 @@ export function App() {
   );
   const selectedCollectionKey = selectedPath ? buildCollectionKey(selectedPath, collectionPath) : null;
   const activeCollectionKey = selectedPath ? collectionConfigKey(selectedPath, collectionPath) : null;
+  const activeSidebarPreferences = useMemo(() => (
+    resolveActiveSidebarPreferences(files, selectedViewProfileName, selectedViewProfile, window.localStorage)
+  ), [files, selectedViewProfileName, selectedViewProfile.sidebarTree, selectedViewProfile.fileOrder, uiRevision]);
   const orderedFiles = useMemo(() => {
-    const savedOrder = selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage);
-    const order = normalizeFileOrder(files, savedOrder);
-    const byPath = new Map(files.map((file) => [file.path, file]));
-    return order.map((path) => byPath.get(path)).filter((file): file is DataFile => Boolean(file));
-  }, [files, selectedViewProfileName, selectedViewProfile.fileOrder, uiRevision]);
+    const sidebarTree = applySidebarTreePreferences(buildSidebarTree(files), activeSidebarPreferences.sidebarTree) as SidebarTreeNodeLike[];
+    return flattenSidebarTreeFiles(sidebarTree);
+  }, [activeSidebarPreferences.sidebarTree, files]);
 
   useEffect(() => { modelRef.current = model; }, [model]);
   useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
@@ -410,8 +476,9 @@ export function App() {
       setSharedViewsConfig(nextSharedViewsConfig);
       setLocalSharedViewDrafts(readLocalSharedViewDrafts(window.localStorage));
       setViewProfiles(nextProfiles);
-      if (profileNameForInitialOrder && nextProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
-        const normalizedProfile = normalizeUserViewProfile(nextProfile);
+      const normalizedInitialProfile = profileNameForInitialOrder ? normalizeUserViewProfile(nextProfile) : null;
+      if (profileNameForInitialOrder && normalizedInitialProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
+        const normalizedProfile = normalizedInitialProfile;
         setSelectedViewProfile(normalizedProfile);
         selectedViewProfileRef.current = normalizedProfile;
         setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
@@ -421,12 +488,9 @@ export function App() {
         setUiPreferences(readLocalUiPreferences(window.localStorage));
       }
       const currentPageContext = readProjectPageContext(readPageContextState(window.localStorage), projectId);
-      const savedOrder = profileNameForInitialOrder
-        ? (normalizeUserViewProfile(nextProfile).fileOrder ?? selectedViewProfileRef.current.fileOrder)
-        : readLocalFileOrder(window.localStorage);
-      const preferredPath = resolvePreferredFilePath(
-        nextFiles,
-        savedOrder,
+      const sidebarTree = buildResolvedSidebarTree(nextFiles, profileNameForInitialOrder, normalizedInitialProfile, window.localStorage);
+      const preferredPath = findSidebarFallbackFilePath(
+        sidebarTree,
         currentPageContext.selectedPath ?? selectedPathRef.current,
       );
       loadedProjectIdRef.current = projectId;
@@ -544,12 +608,21 @@ export function App() {
       if (disconnectConfirmTimerRef.current != null) {
         window.clearTimeout(disconnectConfirmTimerRef.current);
       }
+      cancelDeferredTask(relationWarmupHandleRef.current);
+      cancelDeferredTask(backlinkWarmupHandleRef.current);
     };
   }, []);
 
   useEffect(() => {
+    if (deferRelationWarmupRef.current) {
+      deferRelationWarmupRef.current = false;
+      scheduleDeferredTask(relationWarmupHandleRef, () => {
+        void loadRelationIndexes(viewConfig);
+      });
+      return;
+    }
     void loadRelationIndexes(viewConfig);
-  }, [viewConfig.relations]);
+  }, [viewConfig.relations, selectedPath, model, activeProjectId]);
 
   useEffect(() => {
     async function syncHealth() {
@@ -564,6 +637,13 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (deferBacklinkWarmupRef.current) {
+      deferBacklinkWarmupRef.current = false;
+      scheduleDeferredTask(backlinkWarmupHandleRef, () => {
+        void loadBacklinkGridData();
+      });
+      return;
+    }
     void loadBacklinkGridData();
   }, [selectedPath, collectionPath, model, viewConfig.relations, viewConfig.backlinks, viewConfig.primaryKeys, tableRevision]);
 
@@ -731,6 +811,18 @@ export function App() {
     setSelectedPath(path);
     setModel(null);
     modelRef.current = null;
+    cancelDeferredTask(relationWarmupHandleRef.current);
+    relationWarmupHandleRef.current = null;
+    cancelDeferredTask(backlinkWarmupHandleRef.current);
+    backlinkWarmupHandleRef.current = null;
+    deferRelationWarmupRef.current = true;
+    deferBacklinkWarmupRef.current = true;
+    relationIndexRequestRef.current += 1;
+    backlinkRequestRef.current += 1;
+    setRelationIndexes({});
+    setRelationOptions({});
+    setBacklinkColumns([]);
+    setBacklinkValuesByRowIdState({});
     savedDocumentRootRef.current = null;
     setCollectionPath("$");
     setSelectedRowIndex(null);
@@ -742,11 +834,8 @@ export function App() {
       documentModel = await loadDocument(path, projectId);
     } catch (error) {
       if (shouldRetryWithFallbackFile(error)) {
-        const fallbackPath = resolvePreferredFilePath(
-          files,
-          selectedViewProfileNameRef.current ? selectedViewProfileRef.current.fileOrder : readLocalFileOrder(window.localStorage),
-          path,
-        );
+        const sidebarTree = buildResolvedSidebarTree(files, selectedViewProfileNameRef.current, selectedViewProfileRef.current, window.localStorage);
+        const fallbackPath = findSidebarFallbackFilePath(sidebarTree, path);
         if (fallbackPath && fallbackPath !== path) {
           return openDocumentAt(fallbackPath, undefined, undefined, false, projectId);
         }
@@ -889,6 +978,8 @@ export function App() {
     if (perfState.active && perfState.awaitingBacklinks) {
       markPerf("detail-reorder:before-backlinks");
     }
+    const requestId = backlinkRequestRef.current + 1;
+    backlinkRequestRef.current = requestId;
     if (!selectedPath || !model) {
       setBacklinkColumns([]);
       setBacklinkValuesByRowIdState({});
@@ -907,6 +998,10 @@ export function App() {
       activeModel: model,
       loadDocument: (path) => loadDocument(path, activeProjectId),
     });
+    if (requestId !== backlinkRequestRef.current) {
+      finalizeDetailReorderAsyncSegment("backlinks");
+      return;
+    }
     setBacklinkColumns(backlinkColumns as BacklinkGridColumn[]);
     setBacklinkValuesByRowIdState(backlinkValuesByRowId);
     finalizeDetailReorderAsyncSegment("backlinks");
@@ -1674,6 +1769,7 @@ export function App() {
       sidebarWidth: current.sidebarWidth,
       detailPanelWidth: current.detailPanelWidth,
       fileOrder: [...current.fileOrder],
+      sidebarTree: cloneStoredSidebarTreeState(current.sidebarTree),
       lastActiveViews: { ...current.lastActiveViews },
       viewDrafts: { ...current.viewDrafts },
       viewOrderDrafts: { ...current.viewOrderDrafts },
@@ -1805,12 +1901,53 @@ export function App() {
     setViewDraftDirty(true);
   }
 
-  function handleReorderFiles(fileOrder: string[]) {
+  function handleReorderFiles(fileOrder: string[], nextChildOrderByParent?: Record<string, string[]>) {
+    const currentSidebarPreferences = resolveActiveSidebarPreferences(
+      files,
+      selectedViewProfileName,
+      selectedViewProfileRef.current,
+      window.localStorage,
+    );
     const nextOrder = normalizeFileOrder(files, fileOrder);
+    const nextSidebarTree = nextChildOrderByParent
+      ? {
+        ...cloneSidebarTreePreferences(currentSidebarPreferences.sidebarTree),
+        childOrderByParent: Object.fromEntries(
+          Object.entries(nextChildOrderByParent).map(([parentId, order]) => [parentId, [...order]]),
+        ) as Record<string, string[]>,
+      }
+      : deriveSidebarTreePreferencesFromFileOrder(
+        files,
+        nextOrder,
+        currentSidebarPreferences.sidebarTree,
+      );
+    const nextStoredSidebarTree = serializeSidebarTreeState(nextSidebarTree, currentSidebarPreferences.hasExplicitExpandedNodeIds);
     if (mutateSelectedViewProfile((draft) => {
       draft.fileOrder = nextOrder;
+      draft.sidebarTree = nextStoredSidebarTree;
     })) return;
     writeLocalFileOrder(window.localStorage, nextOrder);
+    writeStoredLocalSidebarTreePreferences(window.localStorage, nextStoredSidebarTree);
+    bumpUiRevision((value) => value + 1);
+  }
+
+  function handleSidebarExpandedNodeIdsChange(nextExpandedNodeIds: string[] | null) {
+    const currentSidebarPreferences = resolveActiveSidebarPreferences(
+      files,
+      selectedViewProfileName,
+      selectedViewProfileRef.current,
+      window.localStorage,
+    );
+    const rawSidebarTree = selectedViewProfileName
+      ? selectedViewProfileRef.current.sidebarTree
+      : readRawLocalSidebarTreePreferences(window.localStorage);
+    const nextSidebarTree = cloneSidebarTreePreferences(rawSidebarTree);
+    nextSidebarTree.expandedNodeIds = nextExpandedNodeIds ?? [];
+    const nextStoredSidebarTree = serializeSidebarTreeState(nextSidebarTree, nextExpandedNodeIds != null);
+    if (mutateSelectedViewProfile((draft) => {
+      draft.sidebarTree = nextStoredSidebarTree;
+    })) return;
+    writeStoredLocalSidebarTreePreferences(window.localStorage, nextStoredSidebarTree);
     bumpUiRevision((value) => value + 1);
   }
 
@@ -2148,7 +2285,7 @@ export function App() {
     }, activeViewLayoutId, activeSnapshot.sidebarWidth ?? sidebarWidth, activeSnapshot.detailPanelWidth ?? detailPanelWidth, normalizeFileOrder(
       files,
       selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage),
-    ), uiPreferences);
+    ), resolveActiveSidebarPreferences(files, selectedViewProfileName, selectedViewProfile, window.localStorage).sidebarTree, uiPreferences);
     try {
       await saveViewProfile(name, profile, activeProjectId);
       setViewProfiles((current) => current.includes(name) ? current : [...current, name].sort((left, right) => left.localeCompare(right, undefined, { numeric: true })));
@@ -2365,6 +2502,7 @@ export function App() {
       draft.sidebarWidth = result.profile.sidebarWidth;
       draft.detailPanelWidth = result.profile.detailPanelWidth;
       draft.fileOrder = result.profile.fileOrder;
+      draft.sidebarTree = result.profile.sidebarTree;
       draft.lastActiveViews = result.profile.lastActiveViews;
       draft.viewDrafts = result.profile.viewDrafts;
       draft.viewOrderDrafts = result.profile.viewOrderDrafts;
@@ -2976,16 +3114,19 @@ export function App() {
         <Sidebar
           projects={projects}
           activeProjectId={activeProjectId}
-          files={orderedFiles}
-          selectedPath={selectedPath}
-          collections={[]}
-          selectedCollection="$"
-          metadata={[]}
-          onSelectFile={openFile}
-          onReorderFiles={handleReorderFiles}
-          onSelectCollection={(path) => {
-            setCollectionPath(path);
-            setSelectedSourceRow(0, null);
+        files={orderedFiles}
+        selectedPath={selectedPath}
+        collections={[]}
+        selectedCollection="$"
+        metadata={[]}
+        sidebarTreePreferences={activeSidebarPreferences.sidebarTree}
+        sidebarTreeHasExplicitExpandedNodeIds={activeSidebarPreferences.hasExplicitExpandedNodeIds}
+        onSelectFile={openFile}
+        onReorderFiles={handleReorderFiles}
+        onExpandedNodeIdsChange={handleSidebarExpandedNodeIdsChange}
+        onSelectCollection={(path) => {
+          setCollectionPath(path);
+          setSelectedSourceRow(0, null);
           }}
           onSelectProject={selectProject}
           onOpenProjectSettings={() => setProjectSettingsOpen(true)}
@@ -3015,8 +3156,11 @@ export function App() {
         selectedCollection={collectionPath}
         candidateCollections={candidateCollections}
         metadata={model.metadata ?? []}
+        sidebarTreePreferences={activeSidebarPreferences.sidebarTree}
+        sidebarTreeHasExplicitExpandedNodeIds={activeSidebarPreferences.hasExplicitExpandedNodeIds}
         onSelectFile={openFile}
         onReorderFiles={handleReorderFiles}
+        onExpandedNodeIdsChange={handleSidebarExpandedNodeIdsChange}
         onSelectCollection={(path) => {
           setCollectionPath(path);
           setSelectedSourceRow(0, null);
@@ -3983,6 +4127,7 @@ function emptyUserViewProfile(): UserViewProfile {
     sidebarWidth: null,
     detailPanelWidth: null,
     fileOrder: [],
+    sidebarTree: serializeSidebarTreeState(cloneSidebarTreePreferences(), false),
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
@@ -3997,6 +4142,7 @@ function normalizeUserViewProfile(profile: Partial<UserViewProfile> | null | und
     sidebarWidth: Number.isFinite(profile.sidebarWidth) ? Number(profile.sidebarWidth) : null,
     detailPanelWidth: Number.isFinite(profile.detailPanelWidth) ? Number(profile.detailPanelWidth) : null,
     fileOrder: Array.isArray(profile.fileOrder) ? [...profile.fileOrder] : [],
+    sidebarTree: cloneStoredSidebarTreeState(profile.sidebarTree),
     lastActiveViews: { ...(profile.lastActiveViews ?? {}) },
     viewDrafts: { ...(profile.viewDrafts ?? {}) },
     viewOrderDrafts: { ...(profile.viewOrderDrafts ?? {}) },
@@ -4098,6 +4244,137 @@ function ensureViewLayout(profile: UserViewProfile, path: string, collectionPath
   return profile.viewLayouts[key][viewId];
 }
 
+function cloneSidebarTreePreferences(value?: unknown): SidebarTreePreferences {
+  const normalized = buildSidebarTreePreferences(value as Record<string, unknown> | undefined) as SidebarTreePreferences;
+  return {
+    childOrderByParent: Object.fromEntries(
+      Object.entries(normalized.childOrderByParent).map(([parentId, order]) => [parentId, [...order]]),
+    ) as Record<string, string[]>,
+    expandedNodeIds: [...normalized.expandedNodeIds],
+  };
+}
+
+function hasExplicitExpandedNodeIds(value?: unknown) {
+  return Boolean(
+    value
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && Object.prototype.hasOwnProperty.call(value, "expandedNodeIds")
+    && Array.isArray((value as { expandedNodeIds?: unknown }).expandedNodeIds),
+  );
+}
+
+function serializeSidebarTreeState(value?: unknown, explicitExpandedNodeIds = hasExplicitExpandedNodeIds(value)) {
+  const normalized = cloneSidebarTreePreferences(value);
+  const result: Record<string, unknown> = {};
+  if (Object.keys(normalized.childOrderByParent).length > 0) {
+    result.childOrderByParent = Object.fromEntries(
+      Object.entries(normalized.childOrderByParent).map(([parentId, order]) => [parentId, [...order]]),
+    );
+  }
+  if (explicitExpandedNodeIds) result.expandedNodeIds = [...normalized.expandedNodeIds];
+  return result as UserViewProfile["sidebarTree"];
+}
+
+function cloneStoredSidebarTreeState(value?: unknown) {
+  return serializeSidebarTreeState(value, hasExplicitExpandedNodeIds(value));
+}
+
+function hasSidebarTreeChildOrder(value?: unknown) {
+  return Object.keys(cloneSidebarTreePreferences(value).childOrderByParent).length > 0;
+}
+
+function flattenSidebarTreeFiles(nodes: SidebarTreeNodeLike[]) {
+  const result: DataFile[] = [];
+  for (const node of nodes) {
+    if (node.kind === "file" && node.file) {
+      result.push(node.file);
+      continue;
+    }
+    if (Array.isArray(node.children)) {
+      result.push(...flattenSidebarTreeFiles(node.children));
+    }
+  }
+  return result;
+}
+
+function deriveSidebarTreePreferencesFromFileOrder(
+  files: DataFile[],
+  fileOrder: string[],
+  basePreferences?: unknown,
+): SidebarTreePreferences {
+  const normalizedBasePreferences = cloneSidebarTreePreferences(basePreferences);
+  const order = normalizeFileOrder(files, fileOrder);
+  if (!order.length) return cloneSidebarTreePreferences(normalizedBasePreferences);
+  const orderIndex = new Map(order.map((path, index) => [path, index]));
+  const childOrderByParent: Record<string, string[]> = {};
+  const tree = buildSidebarTree(files) as SidebarTreeNodeLike[];
+
+  function visit(node: SidebarTreeNodeLike) {
+    if (!Array.isArray(node.children) || node.children.length === 0) return;
+    for (const child of node.children) visit(child);
+    const orderedFileChildren = node.children
+      .filter((child) => child.kind === "file" && child.filePath)
+      .map((child, index) => ({
+        child,
+        index,
+        rank: orderIndex.get(child.filePath ?? "") ?? Number.POSITIVE_INFINITY,
+      }))
+      .sort((left, right) => left.rank - right.rank || left.index - right.index)
+      .map(({ child }) => child.id);
+    let fileChildIndex = 0;
+    childOrderByParent[node.id] = node.children.map((child) => {
+      if (child.kind !== "file") return child.id;
+      const nextFileId = orderedFileChildren[fileChildIndex];
+      fileChildIndex += 1;
+      return nextFileId ?? child.id;
+    });
+  }
+
+  for (const node of tree) visit(node);
+
+  return {
+    childOrderByParent,
+    expandedNodeIds: [...normalizedBasePreferences.expandedNodeIds],
+  };
+}
+
+function resolveActiveSidebarPreferences(
+  files: DataFile[],
+  profileName: string | null | undefined,
+  profile: Pick<UserViewProfile, "fileOrder" | "sidebarTree"> | null | undefined,
+  localStorage: Storage,
+) {
+  const legacyFileOrder = profileName ? [...(profile?.fileOrder ?? [])] : readLocalFileOrder(localStorage);
+  const rawSidebarTree = profileName ? profile?.sidebarTree : readRawLocalSidebarTreePreferences(localStorage);
+  return {
+    hasExplicitExpandedNodeIds: hasExplicitExpandedNodeIds(rawSidebarTree),
+    legacyFileOrder,
+    sidebarTree: resolveSidebarTreePreferences(files, rawSidebarTree, legacyFileOrder),
+  };
+}
+
+function buildResolvedSidebarTree(
+  files: DataFile[],
+  profileName: string | null | undefined,
+  profile: Pick<UserViewProfile, "fileOrder" | "sidebarTree"> | null | undefined,
+  localStorage: Storage,
+) {
+  return applySidebarTreePreferences(
+    buildSidebarTree(files),
+    resolveActiveSidebarPreferences(files, profileName, profile, localStorage).sidebarTree,
+  );
+}
+
+function resolveSidebarTreePreferences(
+  files: DataFile[],
+  sidebarTree: unknown,
+  legacyFileOrder: string[],
+) {
+  if (hasSidebarTreeChildOrder(sidebarTree)) return cloneSidebarTreePreferences(sidebarTree);
+  return deriveSidebarTreePreferencesFromFileOrder(files, legacyFileOrder, sidebarTree);
+}
+
 function insertViewIdAfter(viewIds: string[], sourceViewId: string, targetViewId: string) {
   const normalized = viewIds.filter((viewId, index) => viewId && viewIds.indexOf(viewId) === index && viewId !== targetViewId);
   const sourceIndex = normalized.indexOf(sourceViewId);
@@ -4106,12 +4383,13 @@ function insertViewIdAfter(viewIds: string[], sourceViewId: string, targetViewId
   return normalized;
 }
 
-function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, viewId: string | null, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[], appearance: UiPreferences): UserViewProfile {
+function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, viewId: string | null, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[], sidebarTree: UserViewProfile["sidebarTree"], appearance: UiPreferences): UserViewProfile {
   if (!path) {
     return {
       sidebarWidth,
       detailPanelWidth,
       fileOrder: [...fileOrder],
+      sidebarTree: cloneStoredSidebarTreeState(sidebarTree),
       lastActiveViews: {},
       viewDrafts: {},
       viewOrderDrafts: {},
@@ -4125,6 +4403,7 @@ function buildProfileFromCurrentView(path: string | null, collectionPath: string
     sidebarWidth,
     detailPanelWidth,
     fileOrder: [...fileOrder],
+    sidebarTree: cloneStoredSidebarTreeState(sidebarTree),
     lastActiveViews: viewId ? { [collectionKey]: viewId } : {},
     viewDrafts: {},
     viewOrderDrafts: {},

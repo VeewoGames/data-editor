@@ -84,10 +84,15 @@ export type UserViewLayoutState = {
   detailOrder: string[];
   widths: Record<string, number>;
 };
+export type SidebarTreePreferences = {
+  childOrderByParent: Record<string, string[]>;
+  expandedNodeIds: string[];
+};
 export type UserViewProfile = {
   sidebarWidth: number | null;
   detailPanelWidth: number | null;
   fileOrder: string[];
+  sidebarTree: SidebarTreePreferences;
   lastActiveViews: Record<string, string>;
   viewDrafts: Record<string, Record<string, Partial<CollectionView>>>;
   viewOrderDrafts: Record<string, string[]>;

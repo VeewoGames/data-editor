@@ -318,9 +318,13 @@ async function removeDirectory(targetPath) {
   await rm(targetPath, { recursive: true, force: true });
 }
 
-async function stopProcess(pid) {
-  if (process.platform === "win32") {
-    await execFileAsync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", `Stop-Process -Id ${Number(pid)} -Force`], {
+export async function stopProcess(pid, { platform = process.platform, execFileImpl = execFileAsync } = {}) {
+  if (platform === "win32") {
+    const command = [
+      `$p = Get-Process -Id ${Number(pid)} -ErrorAction SilentlyContinue`,
+      "if ($p) { $p | Stop-Process -Force -ErrorAction SilentlyContinue }",
+    ].join("; ");
+    await execFileImpl("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], {
       windowsHide: true,
     });
     return;

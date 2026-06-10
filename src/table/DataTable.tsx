@@ -1,9 +1,11 @@
-import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { flexRender, getCoreRowModel, useReactTable, type HeaderGroup } from "@tanstack/react-table";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from "react";
 import {
+  buildColumnPreviewOrderState,
   buildPreviewOrderFromSlots,
   collectColumnSlots,
   getPointerXInScrollSpace,
+  projectHeaderFieldsByPreviewOrder,
   resolveAutoScrollDirection,
   scrollColumnContainer,
 } from "./column-dnd.mjs";
@@ -105,10 +107,8 @@ function DataTableComponent(props: DataTableProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(720);
   const [pressedField, setPressedField] = useState<string | null>(null);
-  const [columnDragState, setColumnDragState] = useState<{
+  const [columnDragSession, setColumnDragSession] = useState<{
     draggingField: string;
-    order: string[];
-    ghostLeft: number;
     ghostTop: number;
     width: number;
     height: number;
@@ -116,13 +116,15 @@ function DataTableComponent(props: DataTableProps) {
   } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const scrollMetricsRef = useRef({ scrollTop: 0, scrollLeft: 0, viewportHeight: 720 });
-  const columnDragStateRef = useRef<typeof columnDragState>(null);
+  const columnDragSessionRef = useRef<typeof columnDragSession>(null);
+  const columnDragPreviewStoreRef = useRef(createColumnDragPreviewStore());
   const columnDragPointerXRef = useRef<number | null>(null);
   const columnDragAutoScrollDirectionRef = useRef<-1 | 0 | 1>(0);
   const columnDragAutoScrollFrameRef = useRef<number | null>(null);
   const localWidthsRef = useRef<Record<string, number>>({ ...snapshot.fieldConfig.widths });
   const rowElementRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
   const previousTableRenderContractRef = useRef<ReturnType<typeof buildVisibleTableRenderContract> | null>(null);
+  const previousColumnModelsByFieldRef = useRef<Record<string, ReturnType<typeof buildTableColumnModels>[number]>>({});
   const runtimeActionRef = useRef({
     onSort: props.onSort,
     onAddFilter: props.onAddFilter,
@@ -184,8 +186,8 @@ function DataTableComponent(props: DataTableProps) {
     }
   }, [snapshot.scrollRestoreKey, snapshot.initialScrollPosition]);
   useEffect(() => {
-    columnDragStateRef.current = columnDragState;
-  }, [columnDragState]);
+    columnDragSessionRef.current = columnDragSession;
+  }, [columnDragSession]);
   useEffect(() => () => stopColumnAutoScroll(), []);
   const allColumns = useMemo(() => orderColumns([
     ...getMainColumns(schemaModel, snapshot.collectionPath),
@@ -199,7 +201,7 @@ function DataTableComponent(props: DataTableProps) {
     () => snapshot.fieldConfig.order.length ? visibleBaseFields : moveTitleFirst(visibleBaseFields, detectedTitleField),
     [visibleBaseFields, detectedTitleField, snapshot.fieldConfig.order.length],
   );
-  const visibleFields = columnDragState?.order ?? baseVisibleFields;
+  const visibleFields = baseVisibleFields;
   const hasWrappedField = useMemo(() => visibleFields.some((field) => snapshot.fieldConfig.wrapped.has(field)), [visibleFields, snapshot.fieldConfig.wrapped]);
   const variableRowWindow = useMemo(() => hasWrappedField
     ? buildVariableRowWindow({
@@ -339,7 +341,11 @@ function DataTableComponent(props: DataTableProps) {
     fieldOptions,
     selectOptions,
     getColumnWidth,
+    previousByField: previousColumnModelsByFieldRef.current,
   }), [columnModelSignature]);
+  useEffect(() => {
+    previousColumnModelsByFieldRef.current = Object.fromEntries(columnModels.map((model) => [model.fieldName, model]));
+  }, [columnModels]);
   const columns = useMemo(() => buildTableColumns(columnModels), [columnModels]);
   const handleSort = useCallback((fieldName: string, direction: "asc" | "desc" | null) => {
     runtimeActionRef.current.onSort(fieldName, direction);
@@ -420,15 +426,19 @@ function DataTableComponent(props: DataTableProps) {
     columnDragPointerXRef.current = rect.left + pointerOffsetX;
     columnDragAutoScrollDirectionRef.current = 0;
     stopColumnAutoScroll();
-    setColumnDragState({
-      draggingField: fieldName,
-      order: [...baseVisibleFields],
+    columnDragPreviewStoreRef.current.setState({
+      ...buildColumnPreviewOrderState(baseVisibleFields, baseVisibleFields),
       ghostLeft: rect.left,
+    });
+    const nextSession = {
+      draggingField: fieldName,
       ghostTop: rect.top,
       width: rect.width,
       height: rect.height,
       pointerOffsetX,
-    });
+    };
+    columnDragSessionRef.current = nextSession;
+    setColumnDragSession(nextSession);
   }, [baseVisibleFields]);
 
   const handleColumnDragMove = useCallback((fieldName: string, clientX: number) => {
@@ -444,20 +454,29 @@ function DataTableComponent(props: DataTableProps) {
     columnDragPointerXRef.current = null;
     columnDragAutoScrollDirectionRef.current = 0;
     stopColumnAutoScroll();
-    setColumnDragState((current) => {
-      if (!current || current.draggingField !== fieldName) return null;
-      runtimeActionRef.current.onReorderFields(current.order);
-      return null;
-    });
+    const current = columnDragSessionRef.current;
+    if (!current || current.draggingField !== fieldName) return;
+    runtimeActionRef.current.onReorderFields(columnDragPreviewStoreRef.current.getState().previewOrder);
+    columnDragPreviewStoreRef.current.setState({ ...buildColumnPreviewOrderState([], []), ghostLeft: 0 });
+    columnDragSessionRef.current = null;
+    setColumnDragSession(null);
+  }, []);
+
+  const handleColumnDragCancel = useCallback((fieldName: string) => {
+    setPressedField(null);
+    columnDragPointerXRef.current = null;
+    columnDragAutoScrollDirectionRef.current = 0;
+    stopColumnAutoScroll();
+    const current = columnDragSessionRef.current;
+    if (!current || current.draggingField !== fieldName) return;
+    columnDragPreviewStoreRef.current.setState({ ...buildColumnPreviewOrderState([], []), ghostLeft: 0 });
+    columnDragSessionRef.current = null;
+    setColumnDragSession(null);
   }, []);
 
   const tableColumnsRuntime = useMemo(() => ({
     backlinkValuesByRowId: snapshot.backlinkValuesByRowId,
     validation: snapshot.validation,
-    sortField: snapshot.sort?.field ?? null,
-    sortDirection: snapshot.sort?.direction ?? null,
-    pressedField,
-    columnDragState,
     onSort: handleSort,
     onAddFilter: handleAddFilter,
     onHideField: handleHideField,
@@ -466,6 +485,7 @@ function DataTableComponent(props: DataTableProps) {
     onDragStart: handleColumnDragStart,
     onDragMove: handleColumnDragMove,
     onDragEnd: handleColumnDragEnd,
+    onDragCancel: handleColumnDragCancel,
     onPressChange: handlePressChange,
     onToggleWrapField: handleToggleWrapField,
     onChangeFieldType: handleChangeFieldType,
@@ -482,9 +502,6 @@ function DataTableComponent(props: DataTableProps) {
   }), [
     snapshot.backlinkValuesByRowId,
     snapshot.validation,
-    snapshot.sort,
-    pressedField,
-    columnDragState,
     handleSort,
     handleAddFilter,
     handleHideField,
@@ -493,6 +510,7 @@ function DataTableComponent(props: DataTableProps) {
     handleColumnDragStart,
     handleColumnDragMove,
     handleColumnDragEnd,
+    handleColumnDragCancel,
     handlePressChange,
     handleToggleWrapField,
     handleChangeFieldType,
@@ -507,6 +525,13 @@ function DataTableComponent(props: DataTableProps) {
     handleCommitMultiSelectDraft,
     handleCommitSelectDraft,
   ]);
+  const tableColumnsHeaderState = useMemo(() => ({
+    sortField: snapshot.sort?.field ?? null,
+    sortDirection: snapshot.sort?.direction ?? null,
+    pressedField,
+    draggingField: columnDragSession?.draggingField ?? null,
+    tooltipSuppressed: columnDragSession != null,
+  }), [snapshot.sort?.field, snapshot.sort?.direction, pressedField, columnDragSession]);
 
   const table = useReactTable({
     data: tableData,
@@ -540,17 +565,17 @@ function DataTableComponent(props: DataTableProps) {
   }, [hasWrappedField, data, visibleFields, snapshot.fieldConfig.widths]);
 
   function updateColumnDragPreview(fieldName: string, clientX: number) {
+    const current = columnDragSessionRef.current;
+    if (!current || current.draggingField !== fieldName) return;
     const scrollContainer = scrollContainerRef.current;
-    setColumnDragState((current) => {
-      if (!current || current.draggingField !== fieldName) return current;
-      const slots = collectColumnSlots(scrollContainer, current.draggingField);
-      const pointerX = getPointerXInScrollSpace(scrollContainer, clientX);
-      const nextOrder = buildPreviewOrderFromSlots(current.order, current.draggingField, slots, pointerX);
-      return {
-        ...current,
-        order: nextOrder,
-        ghostLeft: clientX - current.pointerOffsetX,
-      };
+    const slots = collectColumnSlots(scrollContainer, current.draggingField);
+    const pointerX = getPointerXInScrollSpace(scrollContainer, clientX);
+    const previewState = columnDragPreviewStoreRef.current.getState();
+    const nextOrder = buildPreviewOrderFromSlots(previewState.previewOrder, current.draggingField, slots, pointerX);
+    columnDragPreviewStoreRef.current.setState({
+      baseOrder: previewState.baseOrder,
+      previewOrder: nextOrder,
+      ghostLeft: clientX - current.pointerOffsetX,
     });
   }
 
@@ -560,7 +585,7 @@ function DataTableComponent(props: DataTableProps) {
       columnDragAutoScrollFrameRef.current = null;
       const scrollContainer = scrollContainerRef.current;
       const direction = columnDragAutoScrollDirectionRef.current;
-      const activeState = columnDragStateRef.current;
+      const activeState = columnDragSessionRef.current;
       if (!scrollContainer || !activeState || direction === 0) return;
       const moved = scrollColumnContainer(scrollContainer, direction);
       if (!moved) {
@@ -570,7 +595,7 @@ function DataTableComponent(props: DataTableProps) {
       if (columnDragPointerXRef.current != null) {
         updateColumnDragPreview(activeState.draggingField, columnDragPointerXRef.current);
       }
-      if (columnDragAutoScrollDirectionRef.current !== 0 && columnDragStateRef.current) {
+      if (columnDragAutoScrollDirectionRef.current !== 0 && columnDragSessionRef.current) {
         columnDragAutoScrollFrameRef.current = window.requestAnimationFrame(step);
       }
     };
@@ -586,7 +611,7 @@ function DataTableComponent(props: DataTableProps) {
 
   return (
     <section className="table-shell">
-      <TableColumnsRuntimeProvider value={tableColumnsRuntime}>
+      <TableColumnsRuntimeProvider value={tableColumnsRuntime} headerState={tableColumnsHeaderState}>
         <div
           className="table-scroll"
           ref={scrollContainerRef}
@@ -603,8 +628,8 @@ function DataTableComponent(props: DataTableProps) {
             if (snapshot.scrollRestoreKey) {
               props.onScrollPositionChange({ scrollTop: nextScrollTop, scrollLeft: nextScrollLeft });
             }
-            if (columnDragPointerXRef.current != null && columnDragStateRef.current) {
-              updateColumnDragPreview(columnDragStateRef.current.draggingField, columnDragPointerXRef.current);
+            if (columnDragPointerXRef.current != null && columnDragSessionRef.current) {
+              updateColumnDragPreview(columnDragSessionRef.current.draggingField, columnDragPointerXRef.current);
             }
           }}
         >
@@ -619,21 +644,14 @@ function DataTableComponent(props: DataTableProps) {
           </colgroup>
           <thead>
             {table.getHeaderGroups().map((group) => (
-              <tr key={group.id}>
-                <th className="row-action-cell" />
-                {group.headers.map((header) => (
-                  <th key={header.id} data-column-field={header.id}>
-                    <div
-                      className={`column-slot ${columnDragState?.draggingField === header.id ? "column-slot-placeholder" : ""}`}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </div>
-                  </th>
-                ))}
-                <th className="add-column-cell">
-                  <button className="icon-button" onClick={props.onAddField} title="Add field"><icons.addField size={16} /></button>
-                </th>
-              </tr>
+              <MemoProjectedHeaderRow
+                key={group.id}
+                group={group}
+                baseVisibleFields={baseVisibleFields}
+                draggingField={columnDragSession?.draggingField ?? null}
+                onAddField={props.onAddField}
+                store={columnDragPreviewStoreRef.current}
+              />
             ))}
           </thead>
           <tbody>
@@ -678,21 +696,15 @@ function DataTableComponent(props: DataTableProps) {
         <icons.addRow size={16} />
         New row
       </button>
-      {columnDragState ? (
-        <div
-          className="column-drag-ghost"
-          style={{
-            width: columnDragState.width,
-            height: columnDragState.height,
-            left: columnDragState.ghostLeft,
-            top: columnDragState.ghostTop,
-          }}
-        >
-          <div className="column-drag-ghost-name">{columnDragState.draggingField}</div>
-          <div className="column-drag-ghost-type">
-            {getColumnModelDisplayType(columnDragState.draggingField, columnModels) ?? "Text"}
-          </div>
-        </div>
+      {columnDragSession ? (
+        <MemoColumnDragGhost
+          draggingField={columnDragSession.draggingField}
+          ghostTop={columnDragSession.ghostTop}
+          width={columnDragSession.width}
+          height={columnDragSession.height}
+          displayType={getColumnModelDisplayType(columnDragSession.draggingField, columnModels) ?? "Text"}
+          store={columnDragPreviewStoreRef.current}
+        />
       ) : null}
     </section>
   );
@@ -847,5 +859,140 @@ function orderColumns(columns: string[], order: string[]) {
   const known = order.filter((field) => columns.includes(field));
   const rest = columns.filter((field) => !known.includes(field));
   return [...known, ...rest];
+}
+
+function createColumnDragPreviewStore() {
+  let state: { baseOrder: string[]; previewOrder: string[]; ghostLeft: number } = {
+    ...buildColumnPreviewOrderState([], []),
+    ghostLeft: 0,
+  };
+  const listeners = new Set<() => void>();
+  return {
+    getState() {
+      return state;
+    },
+    setState(nextState: { baseOrder: string[]; previewOrder: string[]; ghostLeft: number }) {
+      if (
+        sameFieldOrder(state.baseOrder, nextState.baseOrder) &&
+        sameFieldOrder(state.previewOrder, nextState.previewOrder) &&
+        state.ghostLeft === nextState.ghostLeft
+      ) return;
+      state = nextState;
+      listeners.forEach((listener) => listener());
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+function ProjectedHeaderRow(
+  {
+    group,
+    baseVisibleFields,
+    draggingField,
+    onAddField,
+    store,
+  }: {
+    group: HeaderGroup<DataRecord>;
+    baseVisibleFields: string[];
+    draggingField: string | null;
+    onAddField: () => void;
+    store: ReturnType<typeof createColumnDragPreviewStore>;
+  },
+) {
+  const previewState = useSyncExternalStore(store.subscribe, store.getState, store.getState);
+  const renderedHeaderFields = useMemo(() => {
+    if (!draggingField) return baseVisibleFields;
+    return projectHeaderFieldsByPreviewOrder(baseVisibleFields, previewState.previewOrder);
+  }, [draggingField, baseVisibleFields, previewState.previewOrder]);
+  const headerByField = useMemo(
+    () => new Map(group.headers.map((header) => [header.id, header])),
+    [group.headers],
+  );
+  return (
+    <tr>
+      <th className="row-action-cell" />
+      {/* The current table renders a single leaf-header row only.
+          Header projection intentionally reorders leaf headers in that row. */}
+      {renderedHeaderFields.map((fieldName) => {
+        const header = headerByField.get(fieldName);
+        if (!header) return null;
+        return (
+          <th key={header.id} data-column-field={header.id}>
+            <div
+              className={`column-slot ${draggingField === fieldName ? "column-slot-placeholder" : ""} ${draggingField ? "column-slot-previewing" : ""}`}
+            >
+              {flexRender(header.column.columnDef.header, header.getContext())}
+            </div>
+          </th>
+        );
+      })}
+      <th className="add-column-cell">
+        <button className="icon-button" onClick={onAddField} title="Add field"><icons.addField size={16} /></button>
+      </th>
+    </tr>
+  );
+}
+
+const MemoProjectedHeaderRow = memo(
+  ProjectedHeaderRow,
+  (previous, next) =>
+    previous.group === next.group &&
+    previous.draggingField === next.draggingField &&
+    previous.baseVisibleFields === next.baseVisibleFields &&
+    previous.onAddField === next.onAddField &&
+    previous.store === next.store &&
+    previous.group.headers === next.group.headers,
+);
+
+function ColumnDragGhost(
+  {
+    draggingField,
+    ghostTop,
+    width,
+    height,
+    displayType,
+    store,
+  }: {
+    draggingField: string;
+    ghostTop: number;
+    width: number;
+    height: number;
+    displayType: string;
+    store: ReturnType<typeof createColumnDragPreviewStore>;
+  },
+) {
+  const previewState = useSyncExternalStore(store.subscribe, store.getState, store.getState);
+  return (
+    <div
+      className="column-drag-ghost"
+      style={{
+        width,
+        height,
+        left: previewState.ghostLeft,
+        top: ghostTop,
+      }}
+    >
+      <div className="column-drag-ghost-name">{draggingField}</div>
+      <div className="column-drag-ghost-type">{displayType}</div>
+    </div>
+  );
+}
+
+const MemoColumnDragGhost = memo(
+  ColumnDragGhost,
+  (previous, next) =>
+    previous.draggingField === next.draggingField &&
+    previous.ghostTop === next.ghostTop &&
+    previous.width === next.width &&
+    previous.height === next.height &&
+    previous.displayType === next.displayType &&
+    previous.store === next.store,
+);
+
+function sameFieldOrder(previous: string[], next: string[]) {
+  return previous.length === next.length && previous.every((field, index) => next[index] === field);
 }
 

@@ -1,4 +1,4 @@
-import { createContext, memo, useContext, type ReactNode } from "react";
+import { createContext, memo, useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { BacklinkCellViewer } from "./BacklinkCellViewer";
 import { CellRenderer } from "./CellRenderer";
@@ -12,17 +12,9 @@ import type { TableColumnModel } from "./table-column-models";
 import { resolveValidationIssue } from "../validation/issue-lookup.mjs";
 import type { ValidationSnapshot } from "../validation/issue-map";
 
-type ColumnDragState = {
-  draggingField: string;
-};
-
 type TableColumnsRuntime = {
   backlinkValuesByRowId: Record<number | string, Record<string, RelationBacklink[]>>;
   validation: ValidationSnapshot | null;
-  sortField: string | null;
-  sortDirection: "asc" | "desc" | null;
-  pressedField: string | null;
-  columnDragState: ColumnDragState | null;
   onSort: (fieldName: string, direction: "asc" | "desc" | null) => void;
   onAddFilter: (fieldName: string, displayType: FieldDisplayType) => void;
   onHideField: (fieldName: string) => void;
@@ -31,6 +23,7 @@ type TableColumnsRuntime = {
   onDragStart: (fieldName: string, rect: DOMRect, pointerOffsetX: number) => void;
   onDragMove: (fieldName: string, clientX: number) => void;
   onDragEnd: (fieldName: string) => void;
+  onDragCancel: (fieldName: string) => void;
   onPressChange: (fieldName: string, pressed: boolean) => void;
   onToggleWrapField: (fieldName: string) => void;
   onChangeFieldType: (fieldName: string, type: FieldDisplayType) => void;
@@ -46,12 +39,47 @@ type TableColumnsRuntime = {
   onCommitSelectDraft: (rowIndex: number, rowId: string, fieldName: string, patch: OptionFieldDraftCommit) => void;
 };
 
+type TableColumnsHeaderState = {
+  sortField: string | null;
+  sortDirection: "asc" | "desc" | null;
+  pressedField: string | null;
+  draggingField: string | null;
+  tooltipSuppressed: boolean;
+};
+
+type TableColumnHeaderSnapshot = {
+  sortDirection: "asc" | "desc" | null;
+  pressed: boolean;
+  isDragging: boolean;
+  tooltipSuppressed: boolean;
+};
+
+type TableColumnsHeaderStore = ReturnType<typeof createTableColumnsHeaderStore>;
+
 const TableColumnsRuntimeContext = createContext<TableColumnsRuntime | null>(null);
+const TableColumnsHeaderStoreContext = createContext<TableColumnsHeaderStore | null>(null);
 
 export function TableColumnsRuntimeProvider(
-  { value, children }: { value: TableColumnsRuntime; children: ReactNode },
+  {
+    value,
+    headerState,
+    children,
+  }: { value: TableColumnsRuntime; headerState: TableColumnsHeaderState; children: ReactNode },
 ) {
-  return <TableColumnsRuntimeContext.Provider value={value}>{children}</TableColumnsRuntimeContext.Provider>;
+  const storeRef = useRef<TableColumnsHeaderStore | null>(null);
+  if (!storeRef.current) {
+    storeRef.current = createTableColumnsHeaderStore(headerState);
+  }
+  useEffect(() => {
+    storeRef.current?.setState(headerState);
+  }, [headerState]);
+  return (
+    <TableColumnsRuntimeContext.Provider value={value}>
+      <TableColumnsHeaderStoreContext.Provider value={storeRef.current}>
+        {children}
+      </TableColumnsHeaderStoreContext.Provider>
+    </TableColumnsRuntimeContext.Provider>
+  );
 }
 
 export function buildTableColumns(columnModels: TableColumnModel[]): ColumnDef<DataRecord>[] {
@@ -83,8 +111,19 @@ function useTableColumnsRuntime() {
   return runtime;
 }
 
+function useTableColumnHeaderSnapshot(fieldName: string) {
+  const store = useContext(TableColumnsHeaderStoreContext);
+  if (!store) throw new Error("TableColumnsHeaderStoreContext is missing");
+  return useSyncExternalStore(
+    (listener) => store.subscribeField(fieldName, listener),
+    () => store.getFieldSnapshot(fieldName),
+    () => store.getFieldSnapshot(fieldName),
+  );
+}
+
 function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel }) {
   const runtime = useTableColumnsRuntime();
+  const headerState = useTableColumnHeaderSnapshot(columnModel.fieldName);
   return (
     <ColumnHeader
       fieldName={columnModel.fieldName}
@@ -92,19 +131,21 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       allowTypeChange={columnModel.allowTypeChange}
       displayType={columnModel.displayType}
       relationConfigured={columnModel.relationConfigured}
-      sortDirection={runtime.sortField === columnModel.fieldName ? runtime.sortDirection : null}
+      sortDirection={headerState.sortDirection}
+      tooltipSuppressed={headerState.tooltipSuppressed}
       wrapped={columnModel.wrapped}
       width={columnModel.width}
-      pressed={runtime.pressedField === columnModel.fieldName}
+      pressed={headerState.pressed}
       onSort={(direction) => runtime.onSort(columnModel.fieldName, direction)}
       onAddFilter={() => runtime.onAddFilter(columnModel.fieldName, columnModel.displayType)}
       onHide={() => runtime.onHideField(columnModel.fieldName)}
       onResize={(width) => runtime.onResizeField(columnModel.fieldName, width)}
       onMove={(direction) => runtime.onMoveField(columnModel.fieldName, direction)}
-      isDragging={runtime.columnDragState?.draggingField === columnModel.fieldName}
+      isDragging={headerState.isDragging}
       onDragStart={runtime.onDragStart}
       onDragMove={runtime.onDragMove}
       onDragEnd={runtime.onDragEnd}
+      onDragCancel={runtime.onDragCancel}
       onPressChange={runtime.onPressChange}
       onToggleWrap={() => runtime.onToggleWrapField(columnModel.fieldName)}
       onChangeFieldType={(type) => runtime.onChangeFieldType(columnModel.fieldName, type)}
@@ -198,4 +239,58 @@ const MemoTableColumnCellView = memo(
 function summarizeNestedValue(value: unknown) {
   if (value == null) return "未设置";
   return summarizeNested(value);
+}
+
+function createTableColumnsHeaderStore(initialState: TableColumnsHeaderState) {
+  let state = initialState;
+  const listeners = new Set<() => void>();
+  const snapshotCache = new Map<string, TableColumnHeaderSnapshot>();
+
+  function getFieldSnapshot(fieldName: string) {
+    const nextSnapshot: TableColumnHeaderSnapshot = {
+      sortDirection: state.sortField === fieldName ? state.sortDirection : null,
+      pressed: state.pressedField === fieldName,
+      isDragging: state.draggingField === fieldName,
+      tooltipSuppressed: state.tooltipSuppressed,
+    };
+    const cached = snapshotCache.get(fieldName);
+    if (cached && sameHeaderSnapshot(cached, nextSnapshot)) return cached;
+    snapshotCache.set(fieldName, nextSnapshot);
+    return nextSnapshot;
+  }
+
+  return {
+    getFieldSnapshot,
+    subscribeField(fieldName: string, listener: () => void) {
+      let previousSnapshot = getFieldSnapshot(fieldName);
+      const notifyIfChanged = () => {
+        const nextSnapshot = getFieldSnapshot(fieldName);
+        if (sameHeaderSnapshot(previousSnapshot, nextSnapshot)) return;
+        previousSnapshot = nextSnapshot;
+        listener();
+      };
+      listeners.add(notifyIfChanged);
+      return () => listeners.delete(notifyIfChanged);
+    },
+    setState(nextState: TableColumnsHeaderState) {
+      if (sameHeaderState(state, nextState)) return;
+      state = nextState;
+      listeners.forEach((listener) => listener());
+    },
+  };
+}
+
+function sameHeaderState(previous: TableColumnsHeaderState, next: TableColumnsHeaderState) {
+  return previous.sortField === next.sortField &&
+    previous.sortDirection === next.sortDirection &&
+    previous.pressedField === next.pressedField &&
+    previous.draggingField === next.draggingField &&
+    previous.tooltipSuppressed === next.tooltipSuppressed;
+}
+
+function sameHeaderSnapshot(previous: TableColumnHeaderSnapshot, next: TableColumnHeaderSnapshot) {
+  return previous.sortDirection === next.sortDirection &&
+    previous.pressed === next.pressed &&
+    previous.isDragging === next.isDragging &&
+    previous.tooltipSuppressed === next.tooltipSuppressed;
 }

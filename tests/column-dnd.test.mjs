@@ -1,49 +1,43 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
-  buildPreviewOrderFromSlots,
+  buildColumnPreviewOffsetMap,
+  buildColumnPreviewOrderState,
   buildPreviewOrderFromTarget,
-  resolveDropTarget,
-  shouldStartColumnDrag,
+  projectHeaderFieldsByPreviewOrder,
 } from "../src/table/column-dnd.mjs";
 
-test("should start drag only after threshold is exceeded", () => {
-  assert.equal(shouldStartColumnDrag(4, 0), false);
-  assert.equal(shouldStartColumnDrag(5, 0), true);
-  assert.equal(shouldStartColumnDrag(0, 5), true);
+test("buildColumnPreviewOffsetMap projects preview positions into horizontal offsets", () => {
+  const widths = { id: 120, status: 180, title: 240, tags: 160 };
+  const getWidth = (fieldName) => widths[fieldName] ?? 180;
+  const baseOrder = ["id", "status", "title", "tags"];
+  const previewOrder = buildPreviewOrderFromTarget(baseOrder, "title", "id", "before");
+
+  assert.deepEqual(previewOrder, ["title", "id", "status", "tags"]);
+  assert.deepEqual(buildColumnPreviewOffsetMap(baseOrder, previewOrder, getWidth), {
+    id: 240,
+    status: 240,
+    title: -300,
+    tags: 0,
+  });
 });
 
-test("resolves before and after targets from slot geometry", () => {
-  const slots = [
-    { fieldName: "first", index: 0, left: 0, right: 100, center: 50 },
-    { fieldName: "second", index: 1, left: 100, right: 200, center: 150 },
-    { fieldName: "third", index: 2, left: 200, right: 300, center: 250 },
-  ];
-
-  assert.deepEqual(resolveDropTarget(slots, 25), { targetField: "first", placement: "before" });
-  assert.deepEqual(resolveDropTarget(slots, 175), { targetField: "third", placement: "before" });
-  assert.deepEqual(resolveDropTarget(slots, 325), { targetField: "third", placement: "after" });
+test("buildColumnPreviewOrderState keeps base and preview orders separate", () => {
+  const state = buildColumnPreviewOrderState(["id", "status"], ["status", "id"]);
+  assert.deepEqual(state.baseOrder, ["id", "status"]);
+  assert.deepEqual(state.previewOrder, ["status", "id"]);
 });
 
-test("builds preview order from a drop target", () => {
-  const order = ["first", "second", "third", "fourth"];
-  assert.deepEqual(buildPreviewOrderFromTarget(order, "second", "fourth", "before"), ["first", "third", "second", "fourth"]);
-  assert.deepEqual(buildPreviewOrderFromTarget(order, "second", "first", "after"), ["first", "second", "third", "fourth"]);
-});
-
-test("builds preview order from slot geometry", () => {
-  const slots = [
-    { fieldName: "first", index: 0, left: 0, right: 100, center: 50 },
-    { fieldName: "third", index: 2, left: 200, right: 300, center: 250 },
-    { fieldName: "fourth", index: 3, left: 300, right: 400, center: 350 },
-  ];
-
+test("projectHeaderFieldsByPreviewOrder falls back to base order when preview order is empty", () => {
   assert.deepEqual(
-    buildPreviewOrderFromSlots(["first", "second", "third", "fourth"], "second", slots, 220),
-    ["first", "second", "third", "fourth"],
+    projectHeaderFieldsByPreviewOrder(["id", "status", "title"], []),
+    ["id", "status", "title"],
   );
+});
+
+test("projectHeaderFieldsByPreviewOrder appends base-only fields in original order", () => {
   assert.deepEqual(
-    buildPreviewOrderFromSlots(["first", "second", "third", "fourth"], "second", slots, 40),
-    ["second", "first", "third", "fourth"],
+    projectHeaderFieldsByPreviewOrder(["id", "status", "title"], ["title", "id"]),
+    ["title", "id", "status"],
   );
 });

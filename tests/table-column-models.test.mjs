@@ -79,3 +79,40 @@ test("buildTableColumnModels compiles per-column descriptors from runtime deps a
   assert.equal(getColumnModelDisplayType("backlinks", models), "Backlink");
   assert.equal(getColumnModelDisplayType("missing", models), null);
 });
+
+test("buildTableColumnModels reuses previous column objects when per-field shape is unchanged", () => {
+  const input = {
+    visibleFields: ["title", "status"],
+    rows: [{ title: "Alpha", status: "ready" }],
+    nestedFieldSet: new Set(),
+    displayTypes: { title: "Text", status: "Text" },
+    wrappedFields: new Set(["title"]),
+    detectedTitleField: "title",
+    backlinkColumns: [],
+    relationOptionsByField: {},
+    relationConfigByField: {},
+    fieldOptions: {},
+    selectOptions: {},
+    getColumnWidth: (fieldName) => ({ title: 240, status: 180 })[fieldName] ?? 180,
+  };
+
+  const first = buildTableColumnModels(input);
+  const previousByField = Object.fromEntries(first.map((model) => [model.fieldName, model]));
+  const reordered = buildTableColumnModels({
+    ...input,
+    visibleFields: ["status", "title"],
+    previousByField,
+  });
+
+  assert.equal(reordered[0], previousByField.status);
+  assert.equal(reordered[1], previousByField.title);
+
+  const resized = buildTableColumnModels({
+    ...input,
+    previousByField,
+    getColumnWidth: (fieldName) => ({ title: 260, status: 180 })[fieldName] ?? 180,
+  });
+
+  assert.notEqual(resized.find((model) => model.fieldName === "title"), previousByField.title);
+  assert.equal(resized.find((model) => model.fieldName === "status"), previousByField.status);
+});

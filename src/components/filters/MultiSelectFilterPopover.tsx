@@ -91,7 +91,7 @@ export function MultiSelectFilterPopover({
               <Select.Content className="menu-content select-content filter-select-content" position="popper" sideOffset={6}>
                 <Select.Viewport>
                   {multiValueOperators.map((operator) => (
-                    <Select.Item className="menu-item" key={operator.value} value={operator.value}>
+                    <Select.Item className="menu-item" data-filter-operator={operator.value} key={operator.value} value={operator.value}>
                       <Select.ItemText>{operator.label}</Select.ItemText>
                     </Select.Item>
                   ))}
@@ -134,7 +134,7 @@ export function MultiSelectFilterPopover({
               {filteredOptions.length ? filteredOptions.map((option) => {
                 const selected = selectedValues.includes(option.value);
                 return (
-                  <label className={`filter-option-row${selected ? " selected" : ""}`} key={option.value}>
+                  <label className={`filter-option-row${selected ? " selected" : ""}`} data-filter-option-value={option.value} key={option.value}>
                     <input
                       className="filter-option-checkbox"
                       type="checkbox"

@@ -71,6 +71,27 @@ export function buildPreviewOrderFromSlots(order, draggingField, slots, pointerX
   return buildPreviewOrderFromTarget(order, draggingField, target.targetField, target.placement);
 }
 
+export function buildColumnPreviewOrderState(baseOrder, previewOrder) {
+  return {
+    baseOrder: [...baseOrder],
+    previewOrder: Array.isArray(previewOrder) && previewOrder.length ? [...previewOrder] : [...baseOrder],
+  };
+}
+
+export function projectHeaderFieldsByPreviewOrder(baseOrder, previewOrder) {
+  if (!Array.isArray(previewOrder) || !previewOrder.length) return [...baseOrder];
+  const allowed = new Set(baseOrder);
+  const projected = [];
+  const seen = new Set();
+  for (const field of previewOrder) {
+    if (!allowed.has(field) || seen.has(field)) continue;
+    projected.push(field);
+    seen.add(field);
+  }
+  const rest = baseOrder.filter((field) => !seen.has(field));
+  return [...projected, ...rest];
+}
+
 export function scrollColumnContainer(scrollContainer, direction) {
   if (!scrollContainer || direction === 0) return false;
   const maxScrollLeft = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
@@ -78,4 +99,23 @@ export function scrollColumnContainer(scrollContainer, direction) {
   if (nextScrollLeft === scrollContainer.scrollLeft) return false;
   scrollContainer.scrollLeft = nextScrollLeft;
   return true;
+}
+
+export function buildColumnPreviewOffsetMap(baseOrder, previewOrder, getColumnWidth) {
+  const baseLeftByField = buildColumnLeftMap(baseOrder, getColumnWidth);
+  const previewLeftByField = buildColumnLeftMap(previewOrder, getColumnWidth);
+  return Object.fromEntries(baseOrder.map((fieldName) => [
+    fieldName,
+    (previewLeftByField[fieldName] ?? 0) - (baseLeftByField[fieldName] ?? 0),
+  ]));
+}
+
+function buildColumnLeftMap(order, getColumnWidth) {
+  let cursor = 0;
+  const leftByField = {};
+  for (const fieldName of order) {
+    leftByField[fieldName] = cursor;
+    cursor += getColumnWidth(fieldName);
+  }
+  return leftByField;
 }

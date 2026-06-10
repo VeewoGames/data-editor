@@ -2,6 +2,7 @@ import {
   emptySharedViewDraftState,
   normalizeSharedViewDraftState,
 } from "./view/shared-view-normalize.mjs";
+import { buildSidebarTreePreferences } from "./sidebar-tree.mjs";
 
 export function emptyCollectionViewState() {
   return {
@@ -55,6 +56,7 @@ function viewDetailOrderStorageKey(path, collectionPath, viewId) {
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
 const detailPanelWidthStorageKey = "data-editor:detail-panel-width";
 const fileOrderStorageKey = "data-editor:__file-order";
+const sidebarTreePrefsStorageKey = "data-editor:__sidebar-tree-prefs";
 const sharedViewDraftsStorageKey = "data-editor:shared-view-drafts";
 
 export function cloneCollectionViewState(state) {
@@ -232,6 +234,25 @@ export function deleteLocalViewLayoutState({ path, collectionPath, viewId, local
   }
 }
 
+export function readLocalSidebarTreePreferences(localStorage) {
+  const rawValue = localStorage.getItem(sidebarTreePrefsStorageKey);
+  if (!rawValue) return buildSidebarTreePreferences();
+  try {
+    return buildSidebarTreePreferences(JSON.parse(rawValue));
+  } catch {
+    return buildSidebarTreePreferences();
+  }
+}
+
+export function writeLocalSidebarTreePreferences(localStorage, value) {
+  const normalized = buildSidebarTreePreferences(value);
+  if (Object.keys(normalized.childOrderByParent).length === 0 && normalized.expandedNodeIds.length === 0) {
+    localStorage.removeItem(sidebarTreePrefsStorageKey);
+    return;
+  }
+  localStorage.setItem(sidebarTreePrefsStorageKey, JSON.stringify(normalized));
+}
+
 export function copyViewLayoutState({
   mode,
   path,
@@ -254,6 +275,7 @@ export function copyViewLayoutState({
       sidebarWidth: profile?.sidebarWidth ?? null,
       detailPanelWidth: profile?.detailPanelWidth ?? null,
       fileOrder: [...(profile?.fileOrder ?? [])],
+      sidebarTree: buildSidebarTreePreferences(profile?.sidebarTree),
       lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
       viewDrafts: { ...(profile?.viewDrafts ?? {}) },
       viewOrderDrafts: { ...(profile?.viewOrderDrafts ?? {}) },
@@ -308,6 +330,7 @@ export function resetViewLayoutState({ mode, path, collectionPath, viewId, profi
       sidebarWidth: null,
       detailPanelWidth: null,
       fileOrder: [...(profile?.fileOrder ?? [])],
+      sidebarTree: buildSidebarTreePreferences(profile?.sidebarTree),
       lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
       viewDrafts: { ...(profile?.viewDrafts ?? {}) },
       viewOrderDrafts: { ...(profile?.viewOrderDrafts ?? {}) },

@@ -35,6 +35,13 @@ test("saveViewProfile writes normalized profile file", async () => {
       sidebarWidth: 311.8,
       detailPanelWidth: 455.6,
       fileOrder: ["data/skills.json", "data/runes.json", "data/skills.json", " "],
+      sidebarTree: {
+        childOrderByParent: {
+          "source:data": ["folder:data/items", "folder:data/actors", "folder:data/items"],
+          " ": ["file:ignored"],
+        },
+        expandedNodeIds: ["source:data", "folder:data/items", "source:data"],
+      },
       lastActiveViews: {
         "data/runes.json::$": " view-1 ",
         "data/empty.json::$": "",
@@ -102,6 +109,12 @@ test("saveViewProfile writes normalized profile file", async () => {
       sidebarWidth: 312,
       detailPanelWidth: 456,
       fileOrder: ["data/skills.json", "data/runes.json"],
+      sidebarTree: {
+        childOrderByParent: {
+          "source:data": ["folder:data/items", "folder:data/actors"],
+        },
+        expandedNodeIds: ["source:data", "folder:data/items"],
+      },
       lastActiveViews: {
         "data/runes.json::$": "view-1",
       },
@@ -271,6 +284,31 @@ test("loadViewProfile de-duplicates repeated order fields", async () => {
     assert.deepEqual(profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
     assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.order, ["effects", "dot", "buildup"]);
     assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.detailOrder, ["effect_name", "description"]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile keeps sidebarTree as a top-level personal preference", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      fileOrder: ["data/legacy.json"],
+      sidebarTree: {
+        childOrderByParent: { "source:data": ["folder:data/items", "folder:data/actors"] },
+        expandedNodeIds: ["source:data", "folder:data/items"],
+      },
+    }, null, 2));
+
+    const profile = await loadViewProfile(root, "lans");
+
+    assert.deepEqual(profile.fileOrder, ["data/legacy.json"]);
+    assert.deepEqual(profile.sidebarTree, {
+      childOrderByParent: { "source:data": ["folder:data/items", "folder:data/actors"] },
+      expandedNodeIds: ["source:data", "folder:data/items"],
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

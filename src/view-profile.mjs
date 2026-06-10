@@ -2,6 +2,7 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
 import { normalizeSharedViewDraftState } from "./shared-views.mjs";
+import { buildSidebarTreePreferences } from "./sidebar-tree.mjs";
 
 const defaultAppearanceThemeId = "light";
 const defaultAppearanceBaseFontSize = 14;
@@ -44,6 +45,7 @@ export function emptyViewProfile() {
     sidebarWidth: null,
     detailPanelWidth: null,
     fileOrder: [],
+    sidebarTree: buildSidebarTreePreferences(),
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
@@ -70,6 +72,7 @@ function normalizeViewProfile(value) {
     sidebarWidth: Number.isFinite(value.sidebarWidth) ? Math.round(value.sidebarWidth) : null,
     detailPanelWidth: Number.isFinite(value.detailPanelWidth) ? Math.round(value.detailPanelWidth) : null,
     fileOrder: normalizeStringArray(value.fileOrder),
+    sidebarTree: buildSidebarTreePreferences(value.sidebarTree),
     lastActiveViews: sharedDrafts.lastActiveViews,
     viewDrafts: sharedDrafts.viewDrafts,
     viewOrderDrafts: sharedDrafts.viewOrderDrafts,
@@ -239,6 +242,7 @@ function serializeViewProfile(profile) {
     sidebarWidth: normalized.sidebarWidth,
     detailPanelWidth: normalized.detailPanelWidth,
     fileOrder: normalized.fileOrder,
+    sidebarTree: normalized.sidebarTree,
     lastActiveViews: normalized.lastActiveViews,
     viewDrafts: normalized.viewDrafts,
     viewOrderDrafts: normalized.viewOrderDrafts,

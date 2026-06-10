@@ -1,5 +1,7 @@
 import { defaultTypeFor } from "../model/fieldTypes.mjs";
 
+const emptyRelationOptions = [];
+
 /**
  * @typedef {{
  *   fieldName: string;
@@ -34,6 +36,7 @@ import { defaultTypeFor } from "../model/fieldTypes.mjs";
  *   fieldOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   selectOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   getColumnWidth: (fieldName: string) => number;
+ *   previousByField?: Record<string, TableColumnModel>;
  * }} input
  * @returns {TableColumnModel[]}
  */
@@ -50,14 +53,16 @@ export function buildTableColumnModels({
   fieldOptions,
   selectOptions,
   getColumnWidth,
+  previousByField = {},
 }) {
   return visibleFields.map((fieldName) => {
     const backlinkColumn = backlinkColumns.find((column) => column.fieldName === fieldName);
     const relationConfig = relationConfigByField[fieldName] ?? null;
+    const relationOptions = relationOptionsByField[fieldName] ?? emptyRelationOptions;
     const isNested = nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
     const relationConfigured = Boolean(relationConfig);
-    return {
+    const nextModel = {
       fieldName,
       displayType: isBacklink
         ? "Backlink"
@@ -68,7 +73,7 @@ export function buildTableColumnModels({
       allowTypeChange: !isNested && !isBacklink,
       relationConfigured,
       relationConfig,
-      relationOptions: relationOptionsByField[fieldName] ?? [],
+      relationOptions,
       wrapped: wrappedFields.has(fieldName),
       width: getColumnWidth(fieldName),
       isNested,
@@ -78,6 +83,8 @@ export function buildTableColumnModels({
       selectConfig: selectOptions[fieldName],
       backlinkColumn,
     };
+    const previousModel = previousByField[fieldName];
+    return sameColumnModel(previousModel, nextModel) ? previousModel : nextModel;
   });
 }
 
@@ -96,4 +103,23 @@ function inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes) {
   const sample = rows.find((row) => row[fieldName] !== undefined && row[fieldName] !== null)?.[fieldName]
     ?? rows.find((row) => row[fieldName] !== undefined)?.[fieldName];
   return defaultTypeFor(sample);
+}
+
+function sameColumnModel(previous, next) {
+  return Boolean(previous) &&
+    previous.fieldName === next.fieldName &&
+    previous.displayType === next.displayType &&
+    previous.roleKind === next.roleKind &&
+    previous.allowTypeChange === next.allowTypeChange &&
+    previous.relationConfigured === next.relationConfigured &&
+    previous.relationConfig === next.relationConfig &&
+    previous.relationOptions === next.relationOptions &&
+    previous.wrapped === next.wrapped &&
+    previous.width === next.width &&
+    previous.isNested === next.isNested &&
+    previous.isTitle === next.isTitle &&
+    previous.isBacklink === next.isBacklink &&
+    previous.multiSelectConfig === next.multiSelectConfig &&
+    previous.selectConfig === next.selectConfig &&
+    previous.backlinkColumn === next.backlinkColumn;
 }

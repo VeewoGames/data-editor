@@ -473,6 +473,7 @@ export function OptionFieldEditor({
                             return (
                               <button
                                 className={`multi-select-color-item ${active ? "active" : ""}`}
+                                data-color-choice={choice.value}
                                 key={choice.value}
                                 onPointerDown={(event) => {
                                   event.preventDefault();

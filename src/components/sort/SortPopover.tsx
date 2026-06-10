@@ -64,7 +64,7 @@ export function SortPopover({ fields, sorts, onChangeSorts }: SortPopoverProps) 
     >
       <div className="sort-popover-header">
         <strong>排序</strong>
-        <button className="ghost-button compact" onClick={addSort} disabled={!availableFields.length} type="button">
+        <button className="ghost-button compact" data-sort-action="add" onClick={addSort} disabled={!availableFields.length} type="button">
           <icons.addField size={15} />
           添加排序
         </button>

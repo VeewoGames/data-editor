@@ -8,9 +8,11 @@ import {
   emptyViewLayoutState,
   readLocalViewState,
   readLocalSharedViewDrafts,
+  readLocalSidebarTreePreferences,
   readViewLayoutState,
   readLocalFileOrder,
   resetViewLayoutState,
+  writeLocalSidebarTreePreferences,
   writeLocalFileOrder,
   writeLocalSharedViewDrafts,
   writeLocalViewState,
@@ -425,6 +427,55 @@ test("writeLocalFileOrder removes top-level file order when empty", () => {
   writeLocalFileOrder(storage, []);
 
   assert.equal(storage.getItem("data-editor:__file-order"), null);
+});
+
+test("readLocalSidebarTreePreferences reads top-level sidebar tree preferences independently from collection state", () => {
+  const storage = createMemoryStorage({
+    "data-editor:__sidebar-tree-prefs": JSON.stringify({
+      childOrderByParent: { "source:data": ["folder:data/items", "folder:data/actors"] },
+      expandedNodeIds: ["source:data", "folder:data/items"],
+    }),
+    "data-editor:data/runes.json:$:damage:__order": "description,rune_name",
+  });
+
+  assert.deepEqual(readLocalSidebarTreePreferences(storage), {
+    childOrderByParent: { "source:data": ["folder:data/items", "folder:data/actors"] },
+    expandedNodeIds: ["source:data", "folder:data/items"],
+  });
+});
+
+test("writeLocalSidebarTreePreferences stores top-level sidebar tree preferences without touching collection state", () => {
+  const storage = createMemoryStorage({
+    "data-editor:__sidebar-tree-prefs": JSON.stringify({
+      childOrderByParent: { "source:data": ["folder:data/actors"] },
+      expandedNodeIds: ["folder:data/actors"],
+    }),
+    "data-editor:data/runes.json:$:damage:__order": "description,rune_name",
+  });
+
+  writeLocalSidebarTreePreferences(storage, {
+    childOrderByParent: { "source:data": ["folder:data/items"] },
+    expandedNodeIds: ["folder:data/items"],
+  });
+
+  assert.deepEqual(JSON.parse(storage.getItem("data-editor:__sidebar-tree-prefs")), {
+    childOrderByParent: { "source:data": ["folder:data/items"] },
+    expandedNodeIds: ["folder:data/items"],
+  });
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:damage:__order"), "description,rune_name");
+});
+
+test("writeLocalSidebarTreePreferences removes storage when sidebar tree preferences are empty", () => {
+  const storage = createMemoryStorage({
+    "data-editor:__sidebar-tree-prefs": JSON.stringify({
+      childOrderByParent: { "source:data": ["folder:data/actors"] },
+      expandedNodeIds: ["folder:data/actors"],
+    }),
+  });
+
+  writeLocalSidebarTreePreferences(storage, { childOrderByParent: {}, expandedNodeIds: [] });
+
+  assert.equal(storage.getItem("data-editor:__sidebar-tree-prefs"), null);
 });
 
 test("local shared view drafts are stored independently from collection view state", () => {

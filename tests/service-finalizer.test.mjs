@@ -10,6 +10,7 @@ import {
   planProcessCleanup,
   planTempDirectoryCleanup,
 } from "../src/service-finalizer.mjs";
+import { stopProcess } from "../scripts/service-finalize.mjs";
 
 test("buildProtectedPids includes runtime state, controller, bridge, and listening pids", () => {
   const result = buildProtectedPids({
@@ -190,4 +191,30 @@ test("formatFinalizeSummary includes degraded states", () => {
   assert.match(summary, /Recovery bridge: healthy/);
   assert.match(summary, /Cleanup: cleanupSkipped/);
   assert.match(summary, /http:\/\/127\.0\.0\.1:8787\//);
+});
+
+test("stopProcess on Windows hides the PowerShell window and ignores missing pids", async () => {
+  const calls = [];
+  await stopProcess(4321, {
+    platform: "win32",
+    execFileImpl: async (...args) => {
+      calls.push(args);
+      return { stdout: "", stderr: "" };
+    },
+  });
+
+  assert.deepEqual(calls, [
+    [
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "$p = Get-Process -Id 4321 -ErrorAction SilentlyContinue; if ($p) { $p | Stop-Process -Force -ErrorAction SilentlyContinue }",
+      ],
+      {
+        windowsHide: true,
+      },
+    ],
+  ]);
 });

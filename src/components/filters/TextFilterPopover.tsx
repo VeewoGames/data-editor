@@ -55,7 +55,7 @@ export function TextFilterPopover({ filters, rule, onChangeFilters }: TextFilter
               <Select.Content className="menu-content select-content filter-select-content" position="popper" sideOffset={6}>
                 <Select.Viewport>
                   {textOperators.map((operator) => (
-                    <Select.Item className="menu-item" key={operator.value} value={operator.value}>
+                    <Select.Item className="menu-item" data-filter-operator={operator.value} key={operator.value} value={operator.value}>
                       <Select.ItemText>{operator.label}</Select.ItemText>
                     </Select.Item>
                   ))}

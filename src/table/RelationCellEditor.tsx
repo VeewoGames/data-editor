@@ -147,6 +147,7 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
                 return (
                   <button
                     className={`multi-select-option relation-option ${selected ? "selected" : ""}`}
+                    data-relation-value={String(option.value)}
                     key={option.value}
                     onPointerDown={(event) => {
                       event.preventDefault();

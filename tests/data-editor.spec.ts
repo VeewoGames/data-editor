@@ -1,5 +1,5 @@
 ﻿import { expect, test, type Page } from "@playwright/test";
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(process.cwd(), "..", "Nocturnel"));
@@ -28,7 +28,7 @@ async function configureRelation(page: Page, fieldName: string, options: {
 }) {
   const closeDetail = page.locator('.detail-panel.primary button[title="Close detail"]');
   if (await closeDetail.isVisible().catch(() => false)) await closeDetail.evaluate((element) => (element as HTMLButtonElement).click());
-  await page.locator(`.column-trigger[title="${fieldName}"]`).click();
+  await columnHeaderTrigger(page, fieldName).click();
   const action = page.locator('.column-menu-popup [data-relation-action="create"], .column-menu-popup [data-relation-action="edit"]').first();
   await expect(action).toBeVisible();
   await action.dispatchEvent("click");
@@ -70,6 +70,24 @@ async function chooseDialogSelect(page: Page, label: string, option: string) {
   await page.locator('[role="option"]').filter({ hasText: option }).first().click();
 }
 
+function columnHeaderCell(page: Page, fieldName: string) {
+  return page.locator(`th[data-column-field="${fieldName}"]`).first();
+}
+
+function columnHeaderTrigger(page: Page, fieldName: string) {
+  return columnHeaderCell(page, fieldName).locator(`button[aria-label="${fieldName}"]`).first();
+}
+
+function columnHeaderTooltip(page: Page) {
+  return page.locator(".column-header-full-title-tooltip");
+}
+
+async function getColumnHeaderOrder(page: Page) {
+  return page.locator("th[data-column-field]").evaluateAll((items) => (
+    items.map((item) => item.getAttribute("data-column-field")).filter((field): field is string => Boolean(field))
+  ));
+}
+
 async function dispatchRecoverableFailure(page: Page, message = "synthetic disconnect") {
   await page.evaluate((detail) => {
     window.dispatchEvent(new CustomEvent("data-editor:recoverable-request", {
@@ -85,10 +103,10 @@ async function dispatchRecoverableFailure(page: Page, message = "synthetic disco
 async function scrollColumnHeaderNearEdge(page: Page, fieldName: string, edge: "left" | "right" = "right") {
   await page.evaluate(({ currentField, currentEdge }) => {
     const table = document.querySelector(".table-scroll") as HTMLElement | null;
-    const trigger = document.querySelector(`.column-trigger[title="${currentField}"]`) as HTMLElement | null;
-    if (!table || !trigger) return;
+    const header = document.querySelector(`th[data-column-field="${currentField}"]`) as HTMLElement | null;
+    if (!table || !header) return;
     const tableRect = table.getBoundingClientRect();
-    const handleRect = trigger.getBoundingClientRect();
+    const handleRect = header.getBoundingClientRect();
     const targetX = currentEdge === "right" ? tableRect.right - 72 : tableRect.left + 72;
     table.scrollLeft += Math.round(handleRect.left + handleRect.width / 2 - targetX);
   }, { currentField: fieldName, currentEdge: edge });
@@ -96,25 +114,58 @@ async function scrollColumnHeaderNearEdge(page: Page, fieldName: string, edge: "
 }
 
 async function dragColumnHeader(page: Page, sourceField: string, targetField: string) {
-  const sourceLocator = page.locator(`.column-trigger[title="${sourceField}"]`);
-  const targetLocator = page.locator(`.column-trigger[title="${targetField}"]`);
+  await beginColumnHeaderDrag(page, sourceField);
+  await expect(page.locator(".column-drag-ghost")).toBeVisible();
+  await moveColumnHeaderDrag(page, targetField);
+  await page.mouse.up();
+}
+
+async function beginColumnHeaderDrag(page: Page, sourceField: string) {
+  const sourceLocator = columnHeaderTrigger(page, sourceField);
   let dragSource = await sourceLocator.boundingBox();
-  let dragTarget = await targetLocator.boundingBox();
   if (!dragSource) {
     await sourceLocator.scrollIntoViewIfNeeded();
     dragSource = await sourceLocator.boundingBox();
   }
+  expect(dragSource).not.toBeNull();
+  await page.mouse.move(dragSource!.x + dragSource!.width / 2, dragSource!.y + dragSource!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(dragSource!.x + dragSource!.width / 2 - 18, dragSource!.y + dragSource!.height / 2, { steps: 4 });
+}
+
+async function moveColumnHeaderDrag(page: Page, targetField: string) {
+  const targetLocator = columnHeaderTrigger(page, targetField);
+  let dragTarget = await targetLocator.boundingBox();
   if (!dragTarget) {
     await targetLocator.scrollIntoViewIfNeeded();
     dragTarget = await targetLocator.boundingBox();
   }
-  expect(dragSource).not.toBeNull();
   expect(dragTarget).not.toBeNull();
-  await page.mouse.move(dragSource!.x + dragSource!.width / 2, dragSource!.y + dragSource!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(dragSource!.x + dragSource!.width / 2 - 18, dragSource!.y + dragSource!.height / 2, { steps: 4 });
-  await expect(page.locator(".column-drag-ghost")).toBeVisible();
   await page.mouse.move(dragTarget!.x + dragTarget!.width * 0.25, dragTarget!.y + dragTarget!.height / 2, { steps: 10 });
+}
+
+async function cancelColumnHeaderDrag(page: Page) {
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent("pointercancel", {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+    }));
+  });
+}
+
+async function resizeColumnHeader(page: Page, fieldName: string, deltaX: number) {
+  const handle = page.locator(`.column-resize-handle[aria-label="Resize ${fieldName} column"]`);
+  const box = await handle.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width / 2 + deltaX, box!.y + box!.height / 2, { steps: 6 });
   await page.mouse.up();
 }
 
@@ -304,6 +355,75 @@ async function getSidebarFileOrder(page: Page) {
   ));
 }
 
+async function getSidebarTreeVisibleRowSnapshot(page: Page) {
+  return sidebarTreeSection(page)
+    .locator(".sidebar-tree-row")
+    .evaluateAll((items) => items.map((item) => {
+      const element = item as HTMLElement;
+      return {
+        kind: element.dataset.sidebarNodeKind ?? "",
+        label: element.querySelector('[data-sidebar-slot="label"]')?.textContent?.trim() ?? "",
+        title: element.getAttribute("title") ?? "",
+      };
+    }));
+}
+
+async function getSidebarTreeRowSlots(page: Page, kind: "source" | "folder" | "file", label: string) {
+  return sidebarTreeNode(page, kind, label).evaluate((element) => {
+    const slots = [...element.querySelectorAll("[data-sidebar-slot]")].map((slot) => {
+      const html = slot as HTMLElement;
+      return {
+        name: html.dataset.sidebarSlot ?? "",
+        className: html.className,
+        text: html.textContent?.trim() ?? "",
+      };
+    });
+    return {
+      slots,
+      slotNames: slots.map((slot) => slot.name),
+    };
+  });
+}
+
+async function getSidebarTreeSlotBox(page: Page, kind: "source" | "folder" | "file", label: string, slotName: string) {
+  const box = await sidebarTreeNode(page, kind, label).locator(`[data-sidebar-slot="${slotName}"]`).boundingBox();
+  expect(box).not.toBeNull();
+  return box!;
+}
+
+function sidebarTreeSection(page: Page) {
+  return page.locator(".sidebar-section").first();
+}
+
+function sidebarTreeNode(page: Page, kind: "source" | "folder" | "file", label: string) {
+  return sidebarTreeSection(page)
+    .locator(`.sidebar-item[data-sidebar-node-kind="${kind}"]`)
+    .filter({ has: page.locator('[data-sidebar-slot="label"]', { hasText: label }) })
+    .first();
+}
+
+async function toggleSidebarTreeNode(page: Page, kind: "source" | "folder", label: string) {
+  await sidebarTreeNode(page, kind, label).click();
+}
+
+function sidebarTreeLabel(page: Page, kind: "source" | "folder" | "file", label: string) {
+  return sidebarTreeNode(page, kind, label).locator('[data-sidebar-slot="label"]').first();
+}
+
+async function getSidebarTreeLabelStart(page: Page, kind: "source" | "folder" | "file", label: string) {
+  const box = await sidebarTreeLabel(page, kind, label).boundingBox();
+  expect(box).not.toBeNull();
+  return Math.round(box!.x);
+}
+
+async function expectSidebarTreeLabelStartsAligned(page: Page, entries: Array<{ kind: "source" | "folder" | "file"; label: string }>, tolerance = 1) {
+  const starts = await Promise.all(entries.map((entry) => getSidebarTreeLabelStart(page, entry.kind, entry.label)));
+  const baseline = starts[0] ?? 0;
+  for (const start of starts) {
+    expect(Math.abs(start - baseline)).toBeLessThanOrEqual(tolerance);
+  }
+}
+
 async function beginSidebarFileDrag(page: Page, sourcePath: string) {
   const sourceLocator = page.locator(`.sidebar-file-item[title="${sourcePath}"]`);
   await sourceLocator.scrollIntoViewIfNeeded();
@@ -324,6 +444,57 @@ async function moveSidebarFileDrag(page: Page, targetPath: string, placement: "b
   expect(target).not.toBeNull();
   const targetY = placement === "before" ? target!.y + target!.height * 0.25 : target!.y + target!.height * 0.75;
   await page.mouse.move(target!.x + target!.width / 2, targetY, { steps: 8 });
+}
+
+async function beginSidebarNodeDrag(page: Page, kind: "source" | "folder" | "file", label: string) {
+  const sourceLocator = sidebarTreeNode(page, kind, label);
+  await sourceLocator.scrollIntoViewIfNeeded();
+  const source = await sourceLocator.boundingBox();
+  expect(source).not.toBeNull();
+  const startX = source!.x + source!.width / 2;
+  const startY = source!.y + source!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX, startY + 8, { steps: 3 });
+  await expect(sourceLocator).toHaveClass(/is-dragging/);
+}
+
+async function moveSidebarNodeDrag(page: Page, kind: "source" | "folder" | "file", label: string, placement: "before" | "after" = "before") {
+  const targetLocator = sidebarTreeNode(page, kind, label);
+  await targetLocator.scrollIntoViewIfNeeded();
+  const target = await targetLocator.boundingBox();
+  expect(target).not.toBeNull();
+  const targetY = placement === "before" ? target!.y + target!.height * 0.25 : target!.y + target!.height * 0.75;
+  await page.mouse.move(target!.x + target!.width / 2, targetY, { steps: 8 });
+}
+
+async function dragSidebarNode(page: Page, source: { kind: "source" | "folder" | "file"; label: string }, target: { kind: "source" | "folder" | "file"; label: string }, placement: "before" | "after" = "before") {
+  await beginSidebarNodeDrag(page, source.kind, source.label);
+  await moveSidebarNodeDrag(page, target.kind, target.label, placement);
+  await releaseSidebarFileDrag(page);
+}
+
+async function moveSidebarFileDragToRowCenter(page: Page, targetPath: string) {
+  const targetLocator = page.locator(`.sidebar-file-item[title="${targetPath}"]`);
+  await targetLocator.scrollIntoViewIfNeeded();
+  const target = await targetLocator.boundingBox();
+  expect(target).not.toBeNull();
+  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 8 });
+}
+
+async function getSidebarFileRowCenter(page: Page, targetPath: string) {
+  const targetLocator = page.locator(`.sidebar-file-item[title="${targetPath}"]`);
+  await targetLocator.scrollIntoViewIfNeeded();
+  const target = await targetLocator.boundingBox();
+  expect(target).not.toBeNull();
+  return {
+    x: target!.x + target!.width / 2,
+    y: target!.y + target!.height / 2,
+  };
+}
+
+async function moveSidebarFileDragToPoint(page: Page, point: { x: number; y: number }) {
+  await page.mouse.move(point.x, point.y, { steps: 8 });
 }
 
 async function releaseSidebarFileDrag(page: Page) {
@@ -352,6 +523,10 @@ async function dragSidebarFile(page: Page, sourcePath: string, targetPath: strin
   await beginSidebarFileDrag(page, sourcePath);
   await moveSidebarFileDrag(page, targetPath, placement);
   await releaseSidebarFileDrag(page);
+}
+
+async function readLocalSidebarTreePrefsRaw(page: Page) {
+  return page.evaluate(() => localStorage.getItem("data-editor:__sidebar-tree-prefs"));
 }
 
 async function getViewTabNames(page: Page) {
@@ -534,13 +709,106 @@ test("column header menu copies the field name to the clipboard", async ({ page,
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  await page.locator('.column-trigger[title="category"]').click();
-  const copyAction = page.locator(".column-menu-popup .menu-item").filter({ hasText: "澶嶅埗瀛楁鏂囨湰" });
+  await columnHeaderTrigger(page, "category").click();
+  const copyAction = page.locator(".column-menu-popup .menu-item").filter({ hasText: "复制字段文本" });
   await expect(copyAction).toBeVisible();
   await copyAction.click();
 
   await expect(page.locator(".column-menu-popup")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("category");
+});
+
+test("column header full title tooltip only appears for truncated headers and hides on menu open", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await resizeColumnHeader(page, "description", -220);
+
+  const truncatedHeader = columnHeaderTrigger(page, "description");
+  const shortHeader = columnHeaderTrigger(page, "rune_name");
+  const tooltip = columnHeaderTooltip(page);
+
+  await expect.poll(async () => page.evaluate(() => {
+    const col = document.querySelector('col[data-column-field="description"]') as HTMLTableColElement | null;
+    return col?.style.width ?? "";
+  })).toBe("56px");
+  await expect.poll(async () => truncatedHeader.evaluate((element) => {
+    const title = element.querySelector("span");
+    return title instanceof HTMLElement && title.scrollWidth > title.clientWidth;
+  })).toBe(true);
+  await expect.poll(async () => shortHeader.evaluate((element) => {
+    const title = element.querySelector("span");
+    return title instanceof HTMLElement && title.scrollWidth <= title.clientWidth;
+  })).toBe(true);
+
+  await shortHeader.hover();
+  await expect(tooltip).toHaveCount(0);
+
+  await truncatedHeader.hover();
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toHaveText("description");
+  const tooltipBox = await tooltip.boundingBox();
+  expect(tooltipBox).not.toBeNull();
+  expect(tooltipBox!.y).toBeGreaterThanOrEqual(0);
+
+  await page.mouse.move(4, 4);
+  await expect(tooltip).toHaveCount(0);
+
+  await truncatedHeader.focus();
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toHaveText("description");
+
+  await shortHeader.focus();
+  await expect(tooltip).toHaveCount(0);
+
+  await truncatedHeader.hover();
+  await expect(tooltip).toBeVisible();
+  await truncatedHeader.click();
+  await expect(page.locator(".column-menu-popup")).toBeVisible();
+  await expect(tooltip).toHaveCount(0);
+});
+
+test("column header tooltip hides during drag and resize and can recover after pointercancel", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await resizeColumnHeader(page, "description", -220);
+
+  const header = columnHeaderTrigger(page, "description");
+  const tooltip = columnHeaderTooltip(page);
+
+  await expect.poll(async () => header.evaluate((element) => {
+    const title = element.querySelector("span");
+    return title instanceof HTMLElement && title.scrollWidth > title.clientWidth;
+  })).toBe(true);
+
+  await header.hover();
+  await expect(tooltip).toBeVisible();
+
+  await beginColumnHeaderDrag(page, "description");
+  await expect(page.locator(".column-drag-ghost")).toBeVisible();
+  await expect(tooltip).toHaveCount(0);
+
+  await cancelColumnHeaderDrag(page);
+  await expect(page.locator(".column-drag-ghost")).toHaveCount(0);
+  await header.hover();
+  await expect(tooltip).toBeVisible();
+
+  await header.hover();
+  await expect(tooltip).toBeVisible();
+  const resizeHandle = page.locator('.column-resize-handle[aria-label="Resize description column"]');
+  const box = await resizeHandle.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await expect(tooltip).toHaveCount(0);
+  await page.mouse.up();
 });
 
 test("shared view filter and sort drafts persist through save and reload", async ({ page }) => {
@@ -618,7 +886,7 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect(tableRow(page, 0)).toContainText("multi_2");
 
     await page.locator(".filter-popover-content").press("Escape");
-    await page.locator('.column-trigger[title="id"]').click();
+    await columnHeaderTrigger(page, "id").click();
     await expect(page.locator(".column-menu-popup")).toBeVisible();
     await page.locator('.column-menu-popup .menu-item[data-column-action="add-filter"]').click();
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toBeVisible();
@@ -627,7 +895,7 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "multi_2" })).toBeVisible();
     await page.locator(".filter-popover-content").press("Escape");
 
-    await page.locator('.column-trigger[title="name"]').click();
+    await columnHeaderTrigger(page, "name").click();
     await expect(page.locator(".column-menu-popup")).toBeVisible();
     await page.locator(".column-menu-popup .menu-item").nth(1).click();
     await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
@@ -809,7 +1077,7 @@ test("multi-select filter popover supports operator text, selected chips, search
 
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("鍖呭惈");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("包含");
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("spell");
   await expect(tableRows(page)).toHaveCount(1);
 
@@ -843,7 +1111,7 @@ test("select filter restores cached values after empty operators hide the value 
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
 
   await page.getByRole("button", { name: "+ 筛选" }).click();
@@ -852,18 +1120,18 @@ test("select filter restores cached values after empty operators hide the value 
   const filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("鍖呭惈");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
   await expect(tableRows(page)).toHaveCount(1);
 
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "涓虹┖", exact: true }).click();
+  await page.locator('.filter-select-content [data-filter-operator="is_empty"]').click();
   await expect(filterPopover.locator(".filter-option-value-area")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("涓虹┖");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("为空");
   await expect(tableRows(page)).toHaveCount(1);
 
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "鍖呭惈", exact: true }).click();
+  await page.locator('.filter-select-content [data-filter-operator="contains"]').click();
   await expect(filterPopover.locator(".filter-option-value-area")).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
@@ -879,7 +1147,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
 
@@ -902,7 +1170,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
       },
       {
         id: "second",
-        name: "绗簩瑙嗗浘",
+        name: "第二视图",
         type: "table",
         query: "",
         filters: { op: "and", rules: [] },
@@ -925,23 +1193,23 @@ test("value filter cache stays scoped per view and clears after delete and recre
   await expect(filterPopover).toBeVisible();
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "涓虹┖", exact: true }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("涓虹┖");
+  await page.locator('.filter-select-content [data-filter-operator="is_empty"]').click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("为空");
 
-  await page.locator(".view-tab").filter({ hasText: "绗簩瑙嗗浘" }).click();
-  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("绗簩瑙嗗浘");
+  await page.locator(".view-tab").filter({ hasText: "第二视图" }).click();
+  await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("第二视图");
   await page.getByRole("button", { name: "+ 筛选" }).click();
   await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("鍖呭惈");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
   await expect(tableRows(page)).toHaveCount(3);
 
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "涓虹┖", exact: true }).click();
+  await page.locator('.filter-select-content [data-filter-operator="is_empty"]').click();
   await filterPopover.locator(".filter-select-trigger").click();
-  await page.getByRole("option", { name: "鍖呭惈", exact: true }).click();
+  await page.locator('.filter-select-content [data-filter-operator="contains"]').click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
 
   await page.locator(".filter-action-trigger").click();
@@ -953,7 +1221,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("鍖呭惈");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
   await expect(tableRows(page)).toHaveCount(3);
 });
 
@@ -964,7 +1232,7 @@ test("value filters support does_not_contain and is_not_empty with real row resu
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
 
   await page.getByRole("button", { name: "+ 筛选" }).click();
@@ -1014,7 +1282,7 @@ test("select filter contains operator keeps multiple selected values", async ({ 
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
 
   await page.getByRole("button", { name: "+ 筛选" }).click();
@@ -1082,7 +1350,7 @@ test("relation filter keeps missing selected keys visible with fallback labels",
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
   const relationChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" });
-  await expect(relationChip).toContainText("鍖呭惈");
+  await expect(relationChip).toContainText("包含");
   await expect(relationChip).toContainText("missing_skill");
   await relationChip.click();
 
@@ -1133,16 +1401,16 @@ test("relation filter search matches title first and key fallback", async ({ pag
   await page.getByRole("button", { name: "+ 筛选" }).click();
   await page.locator(".add-filter-field-option").filter({ hasText: "skill_id" }).click();
   const filterPopover = page.locator(".filter-popover-content");
-  const slashRow = filterPopover.locator(".filter-option-row").filter({ has: page.locator(".filter-option-label", { hasText: /^鏂╁嚮$/ }) });
+  const slashRow = filterPopover.locator('.filter-option-row[data-filter-option-value="skill_slash"]');
   await expect(filterPopover).toBeVisible();
 
-  await filterPopover.locator(".filter-option-search-input").fill("鏂╁嚮");
+  await filterPopover.locator(".filter-option-search-input").fill("斩击");
   await expect(slashRow).toBeVisible();
   await filterPopover.locator(".filter-option-search-input").fill("skill_slash");
   await expect(slashRow).toBeVisible();
 
   await slashRow.click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" })).toContainText("鏂╁嚮");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" })).toContainText("斩击");
   await expect(tableRows(page)).toHaveCount(1);
 });
 
@@ -1214,7 +1482,7 @@ test("sort direction select stays above the sort popover surface", async ({ page
   await page.locator(".view-filter-sort-button").click();
   const sortPopover = page.locator(".sort-popover-content");
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+  await sortPopover.locator('[data-sort-action="add"]').click();
 
   const directionTrigger = sortPopover.locator(".sort-direction-trigger").first();
   await directionTrigger.click();
@@ -1239,7 +1507,7 @@ test("sort chip reuses the filter chip visual style", async ({ page }) => {
   await page.locator(".view-filter-sort-button").click();
   const sortPopover = page.locator(".sort-popover-content");
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+  await sortPopover.locator('[data-sort-action="add"]').click();
 
   const fieldTrigger = sortPopover.locator(".sort-field-trigger").first();
   await fieldTrigger.click();
@@ -1294,8 +1562,8 @@ test("sort popover drag handle reorders sort priority and updates the real table
     await page.locator(".view-filter-sort-button").click();
     const sortPopover = page.locator(".sort-popover-content");
     await expect(sortPopover).toBeVisible();
-    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
-    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await sortPopover.locator('[data-sort-action="add"]').click();
+    await sortPopover.locator('[data-sort-action="add"]').click();
 
     await sortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
@@ -1356,8 +1624,8 @@ test("sort chip popover also supports drag reordering", async ({ page }) => {
 
     await page.locator(".view-filter-sort-button").click();
     const firstSortPopover = page.locator(".sort-popover-content");
-    await firstSortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
-    await firstSortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await firstSortPopover.locator('[data-sort-action="add"]').click();
+    await firstSortPopover.locator('[data-sort-action="add"]').click();
     await firstSortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
     await firstSortPopover.locator(".sort-field-trigger").nth(1).click();
@@ -1392,7 +1660,7 @@ test("multiple sorts merge into a single summary chip", async ({ page }) => {
   await page.locator(".view-filter-sort-button").click();
   const sortPopover = page.locator(".sort-popover-content");
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+  await sortPopover.locator('[data-sort-action="add"]').click();
   await sortPopover.locator(".sort-field-trigger").first().click();
   await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
   await closePopoverByClickingOutside(page);
@@ -1404,7 +1672,7 @@ test("multiple sorts merge into a single summary chip", async ({ page }) => {
 
   await singleSortChip.click();
   await expect(sortPopover).toBeVisible();
-  await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+  await sortPopover.locator('[data-sort-action="add"]').click();
   await sortPopover.locator(".sort-field-trigger").nth(1).click();
   await page.locator(".sort-select-content").getByRole("option", { name: "id", exact: true }).click();
   await closePopoverByClickingOutside(page);
@@ -1436,8 +1704,8 @@ test("sort popover drag cancel rolls back preview without changing priority", as
     await page.locator(".view-filter-sort-button").click();
     const sortPopover = page.locator(".sort-popover-content");
     await expect(sortPopover).toBeVisible();
-    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
-    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await sortPopover.locator('[data-sort-action="add"]').click();
+    await sortPopover.locator('[data-sort-action="add"]').click();
 
     await sortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
@@ -1483,8 +1751,8 @@ test("sort popover drag release over field trigger reorders without opening sele
     await page.locator(".view-filter-sort-button").click();
     const sortPopover = page.locator(".sort-popover-content");
     await expect(sortPopover).toBeVisible();
-    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
-    await sortPopover.getByRole("button", { name: "娣诲姞鎺掑簭" }).click();
+    await sortPopover.locator('[data-sort-action="add"]').click();
+    await sortPopover.locator('[data-sort-action="add"]').click();
 
     await sortPopover.locator(".sort-field-trigger").nth(0).click();
     await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
@@ -1511,7 +1779,7 @@ test("clickable drag surfaces use pointer by default and grabbing while dragging
 
   const activeViewTab = page.locator(".view-tab-shell.active .view-tab");
   const sidebarFileItem = page.locator('.sidebar-file-item[title="data/e2e_multiselect.json"]');
-  const columnTrigger = page.locator('.column-trigger[title="id"]');
+  const columnTrigger = columnHeaderTrigger(page, "id");
 
   await expect(activeViewTab).toHaveCSS("cursor", "pointer");
   await expect(sidebarFileItem).toHaveCSS("cursor", "pointer");
@@ -1539,8 +1807,8 @@ test("clickable drag surfaces use pointer by default and grabbing while dragging
   await page.mouse.move(targetFileBox!.x + targetFileBox!.width / 2, targetFileBox!.y + targetFileBox!.height * 0.25, { steps: 6 });
   await page.mouse.up();
 
-  const sourceColumn = page.locator('.column-trigger[title="id"]');
-  const targetColumn = page.locator('.column-trigger[title="name"]');
+  const sourceColumn = columnHeaderTrigger(page, "id");
+  const targetColumn = columnHeaderTrigger(page, "name");
   const sourceColumnBox = await sourceColumn.boundingBox();
   const targetColumnBox = await targetColumn.boundingBox();
   expect(sourceColumnBox).not.toBeNull();
@@ -1593,7 +1861,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator(".multi-select-option-name-input").press("Enter");
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".option-menu-trigger").click();
-  await page.locator(".multi-select-color-item").filter({ hasText: "绾㈣壊" }).click();
+  await page.locator('.multi-select-color-item[data-color-choice="red"]').click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".chip")).toHaveCSS("background-color", "rgb(255, 217, 214)");
   await page.locator(".multi-select-option-row").filter({ hasText: "spell" }).locator(".option-menu-trigger").click();
   await page.locator(".multi-select-option-editor .multi-select-option-action.danger").click();
@@ -1616,7 +1884,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await expect(page.locator('.column-menu-popup [data-field-type="Text"]')).toBeVisible();
   await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
   await expect(page.locator('.column-menu-popup [data-field-type]')).toHaveCount(2);
@@ -1642,7 +1910,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator(".multi-select-option-name-input").press("Enter");
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "strike" })).toBeVisible();
   await page.locator(".multi-select-option-row").filter({ hasText: "strike" }).locator(".option-menu-trigger").click();
-  await page.locator(".multi-select-color-item").filter({ hasText: "钃濊壊" }).click();
+  await page.locator('.multi-select-color-item[data-color-choice="blue"]').click();
   await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
   await expect(tableRow(page, 0).locator(".multi-select-trigger")).toContainText("spell");
@@ -1651,7 +1919,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_select.json"), "utf8");
     return text.includes('"category": "spell"');
   });
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Text"]').click();
   await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
@@ -1662,8 +1930,8 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".data-table")).toBeVisible();
   await tableRow(page, 0).locator(".multi-select-trigger").last().click();
   await page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".option-menu-trigger").click();
-  const pinkItem = page.locator(".multi-select-color-item").filter({ hasText: "绮夎壊" });
-  const redItem = page.locator(".multi-select-color-item").filter({ hasText: "绾㈣壊" });
+  const pinkItem = page.locator('.multi-select-color-item[data-color-choice="pink"]');
+  const redItem = page.locator('.multi-select-color-item[data-color-choice="red"]');
   await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-width", "0px");
   await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(247, 216, 238)");
   await expect(redItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(255, 217, 214)");
@@ -1734,11 +2002,11 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(tableRow(page, 1).locator(".issue.warning")).toHaveCount(2);
   await tableRow(page, 0).locator(".relation-trigger").first().click();
   await expect(page.locator(".relation-popover")).toBeVisible();
-  await page.locator(".relation-option").filter({ hasText: "skill_heavy_slash" }).click();
+  await page.locator('.relation-option[data-relation-value="skill_heavy_slash"]').click();
   await page.locator(".relation-popover").press("Escape");
   await tableRow(page, 0).locator(".relation-trigger").nth(1).click();
   await expect(page.locator(".relation-popover")).toBeVisible();
-  await page.locator(".relation-option").filter({ hasText: "涓撴敞" }).click();
+  await page.locator('.relation-option[data-relation-value="focus"]').click();
   await page.locator(".relation-popover").press("Escape");
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
   await waitForAutosaveWrite(page, async () => {
@@ -1748,7 +2016,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   const relationDataAfterEdit = await readFile(path.resolve("tests/.scratch/data/e2e_relation.json"), "utf8");
   await tableRow(page, 0).locator(".relation-trigger").first().click();
   await expect(page.locator(".relation-popover")).toBeVisible();
-  await page.locator(".relation-option").filter({ hasText: "skill_heavy_slash" }).locator(".relation-open-target").evaluate((element) => {
+  await page.locator('.relation-option[data-relation-value="skill_heavy_slash"]').locator(".relation-open-target").evaluate((element) => {
     element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, buttons: 1 }));
   });
   await expect(page.locator(".toolbar strong")).toContainText("data/skills.json");
@@ -1758,7 +2026,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".relation-maintenance-panel")).toContainText("skill_id");
   await page.locator(".relation-backlink-item").filter({ hasText: "Relation Row" }).click();
   await expect(page.locator(".toolbar strong")).toContainText("data/e2e_relation.json");
-  await page.locator('.column-trigger[title="skill_id"]').click();
+  await columnHeaderTrigger(page, "skill_id").click();
   await page.locator('.column-menu-popup [data-relation-action="clear"]').click();
   await expect.poll(async () => {
     const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
@@ -1828,38 +2096,38 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator(".hidden-field-item").click();
   await expect(page.locator('col[data-column-field="description"]')).toHaveCount(1);
 
-  await page.locator('.column-trigger[title="description"]').click();
+  await columnHeaderTrigger(page, "description").click();
   await expect(page.locator(".menu-content")).toBeVisible();
   await page.locator(".menu-content").press("Escape");
   await expect(page.locator(".menu-content")).toHaveCount(0);
 
-  const headerOrderBeforeDrag = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
+  const headerOrderBeforeDrag = await getColumnHeaderOrder(page);
   expect(headerOrderBeforeDrag.slice(0, 3)).toEqual(["rune_name", "description", "description_zh"]);
   await dragColumnHeader(page, "description_zh", "rune_name");
   await expect(page.locator(".menu-content")).toHaveCount(0);
-  const headerOrderAfterDrag = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
+  const headerOrderAfterDrag = await getColumnHeaderOrder(page);
   expect(headerOrderAfterDrag.slice(0, 3)).toEqual(["description_zh", "rune_name", "description"]);
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/runes.json:$:all:__order"))).toContain("description_zh,rune_name,description");
   await page.reload();
   await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
-  await expect(page.locator('.column-trigger[title="description_zh"]')).toBeVisible();
-  const headerOrderAfterReload = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
+  await expect(columnHeaderTrigger(page, "description_zh")).toBeVisible();
+  const headerOrderAfterReload = await getColumnHeaderOrder(page);
   expect(headerOrderAfterReload.slice(0, 3)).toEqual(["description_zh", "rune_name", "description"]);
 
   await page.locator('.sidebar-item[title="data/skills.json"]').click();
   await expect(page.locator(".toolbar strong")).toContainText("data/skills.json");
   await scrollColumnHeaderNearEdge(page, "icon_path", "right");
   await dragColumnHeader(page, "icon_path", "dev_status");
-  const headerOrderAfterIconDrag = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
+  const headerOrderAfterIconDrag = await getColumnHeaderOrder(page);
   expect(headerOrderAfterIconDrag.indexOf("icon_path")).toBeGreaterThanOrEqual(0);
   expect(headerOrderAfterIconDrag.indexOf("dev_status")).toBeGreaterThanOrEqual(0);
   expect(headerOrderAfterIconDrag.indexOf("icon_path")).toBeLessThan(headerOrderAfterIconDrag.indexOf("dev_status"));
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/skills.json:skills:all:__order"))).toContain("icon_path");
   await page.reload();
   await page.locator('.sidebar-item[title="data/skills.json"]').click();
-  await expect(page.locator('.column-trigger[title="icon_path"]')).toBeVisible();
-  const headerOrderAfterSkillsReload = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
+  await expect(columnHeaderTrigger(page, "icon_path")).toBeVisible();
+  const headerOrderAfterSkillsReload = await getColumnHeaderOrder(page);
   expect(headerOrderAfterSkillsReload.indexOf("icon_path")).toBeLessThan(headerOrderAfterSkillsReload.indexOf("dev_status"));
 
   await page.evaluate(() => localStorage.setItem(
@@ -1870,17 +2138,17 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator('.sidebar-item[title="data/skills.json"]').click();
   await expect(page.locator(".toolbar strong")).toContainText("data/skills.json");
   await scrollColumnHeaderNearEdge(page, "icon_path", "right");
-  await page.locator('.column-trigger[title="icon_path"]').click();
+  await columnHeaderTrigger(page, "icon_path").click();
   await expect(page.locator(".column-menu-popup")).toBeVisible();
   await page.locator('.column-menu-popup [data-column-action="move-right"]').click();
-  const headerOrderAfterIconRightDrag = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
+  const headerOrderAfterIconRightDrag = await getColumnHeaderOrder(page);
   expect(headerOrderAfterIconRightDrag.indexOf("icon_path")).toBeGreaterThan(headerOrderAfterIconRightDrag.indexOf("equipment_requirement"));
   expect(headerOrderAfterIconRightDrag.indexOf("icon_path")).toBeLessThan(headerOrderAfterIconRightDrag.indexOf("on_expire_effect"));
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/skills.json:skills:all:__order"))).toContain("on_expire_effect");
   await page.reload();
   await page.locator('.sidebar-item[title="data/skills.json"]').click();
   await scrollColumnHeaderNearEdge(page, "icon_path", "right");
-  const headerOrderAfterIconRightReload = await page.locator(".column-trigger").evaluateAll((items) => items.map((item) => item.getAttribute("title")).filter(Boolean));
+  const headerOrderAfterIconRightReload = await getColumnHeaderOrder(page);
   expect(headerOrderAfterIconRightReload.indexOf("icon_path")).toBeGreaterThan(headerOrderAfterIconRightReload.indexOf("equipment_requirement"));
   expect(headerOrderAfterIconRightReload.indexOf("icon_path")).toBeLessThan(headerOrderAfterIconRightReload.indexOf("on_expire_effect"));
 
@@ -2001,7 +2269,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   expect(nowrapDescriptionResult.tdWidth).toBeLessThanOrEqual(60);
   expect(nowrapDescriptionResult.whiteSpace).toBe("nowrap");
 
-  const descriptionHeaderLayout = await page.locator(".column-trigger[title=\"description\"]").evaluate((element) => {
+  const descriptionHeaderLayout = await columnHeaderTrigger(page, "description").evaluate((element) => {
     const name = element.querySelector("span")!.getBoundingClientRect();
     const type = element.querySelector("small")!.getBoundingClientRect();
     return { nameBottom: name.bottom, typeTop: type.top };
@@ -2435,14 +2703,14 @@ test("keyword backlink columns support wrapped chip layout after reload", async 
   }).toBe(true);
 
   await page.locator('.sidebar-item[title="data/keywords.json"]').click();
-  await expect(page.locator('.column-trigger[title="back_keyword_id"]')).toBeVisible();
+  await expect(columnHeaderTrigger(page, "back_keyword_id")).toBeVisible();
   await page.evaluate(() => {
     localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:wrapped", "1");
     localStorage.setItem("data-editor:data/keywords.json:$:all:back_keyword_id:width", "120");
   });
   await page.reload();
   await page.locator('.sidebar-item[title="data/keywords.json"]').click();
-  await expect(page.locator('.column-trigger[title="back_keyword_id"]')).toBeVisible();
+  await expect(columnHeaderTrigger(page, "back_keyword_id")).toBeVisible();
   const wrappedBacklinkCell = page.locator('td[data-column-field="back_keyword_id"][data-wrap-mode="wrap"] [data-cell-role="token-content"]').first();
   await expect(wrappedBacklinkCell).toBeVisible();
   const keywordBacklinkChip = page.locator('.data-table tbody .backlink-chip-button[title*="data/status_effects.json"]').first();
@@ -2498,7 +2766,7 @@ test("select column dragged to the first position keeps select rendering when ti
     await page.locator('.sidebar-item[title="data/e2e_select_title_fallback.json"]').click();
     await expect(page.locator(".data-table")).toBeVisible();
 
-    await page.locator('.column-trigger[title="status"]').click();
+    await columnHeaderTrigger(page, "status").click();
     await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
     await page.locator('.column-menu-popup [data-field-type="Select"]').click();
     await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select_title_fallback.json:$:status"') && text.includes('"type": "Select"'));
@@ -2508,7 +2776,7 @@ test("select column dragged to the first position keeps select rendering when ti
 
     await dragColumnHeader(page, "status", "id");
 
-    await expect(page.locator(".column-trigger").first()).toHaveAttribute("title", "status");
+    expect((await getColumnHeaderOrder(page))[0]).toBe("status");
     const firstDataCell = tableRow(page, 0).locator('td[data-column-field="status"]');
     await expect(firstDataCell.locator(".multi-select-trigger")).toContainText("review");
     await expect(firstDataCell.locator(".multi-select-trigger .chip")).toBeVisible();
@@ -2516,6 +2784,60 @@ test("select column dragged to the first position keeps select rendering when ti
   } finally {
     await bestEffortRestore("e2e_select_title_fallback.json", () => rm(dataPath, { force: true }));
   }
+});
+
+test("column header drag previews reordered headers before drop and persists only on release", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const before = await getColumnHeaderOrder(page);
+  expect(before.slice(0, 3)).toEqual(["rune_name", "description", "description_zh"]);
+
+  await beginColumnHeaderDrag(page, "description_zh");
+  await expect(page.locator(".column-drag-ghost")).toBeVisible();
+  await moveColumnHeaderDrag(page, "rune_name");
+
+  const preview = await getColumnHeaderOrder(page);
+  expect(preview.slice(0, 3)).toEqual(["description_zh", "rune_name", "description"]);
+
+  const storedBeforeDrop = await page.evaluate(() => localStorage.getItem("data-editor:data/runes.json:$:all:__order"));
+  expect(storedBeforeDrop ?? "").not.toContain("description_zh,rune_name,description");
+
+  await page.mouse.up();
+
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/runes.json:$:all:__order"))).toContain("description_zh,rune_name,description");
+  const after = await getColumnHeaderOrder(page);
+  expect(after.slice(0, 3)).toEqual(["description_zh", "rune_name", "description"]);
+});
+
+test("column header pointercancel rolls back preview without committing order", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const before = await getColumnHeaderOrder(page);
+  expect(before.slice(0, 3)).toEqual(["rune_name", "description", "description_zh"]);
+
+  await beginColumnHeaderDrag(page, "description_zh");
+  await expect(page.locator(".column-drag-ghost")).toBeVisible();
+  await moveColumnHeaderDrag(page, "rune_name");
+
+  const preview = await getColumnHeaderOrder(page);
+  expect(preview.slice(0, 3)).toEqual(["description_zh", "rune_name", "description"]);
+
+  await cancelColumnHeaderDrag(page);
+  await expect(page.locator(".column-drag-ghost")).toHaveCount(0);
+
+  const after = await getColumnHeaderOrder(page);
+  expect(after.slice(0, 3)).toEqual(before.slice(0, 3));
+  expect(await page.evaluate(() => localStorage.getItem("data-editor:data/runes.json:$:all:__order"))).toBeNull();
 });
 
 test("file list order can be dragged and persists after reload", async ({ page }) => {
@@ -2533,6 +2855,435 @@ test("file list order can be dragged and persists after reload", async ({ page }
   await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
   fileOrderAfterDrag = await getSidebarFileOrder(page);
   expect(fileOrderAfterDrag.indexOf("data/status_effects.json")).toBeLessThan(fileOrderAfterDrag.indexOf("data/runes.json"));
+});
+
+test("sidebar renders folder tree", async ({ page }) => {
+  const folderRoot = path.resolve("tests/.scratch/data/e2e_sidebar_tree");
+  const alphaPath = path.join(folderRoot, "alpha.json");
+  const betaPath = path.join(folderRoot, "nested", "beta.json");
+  await mkdir(path.dirname(alphaPath), { recursive: true });
+  await mkdir(path.dirname(betaPath), { recursive: true });
+  await writeFile(alphaPath, JSON.stringify([{ id: "alpha_1", name: "Alpha" }], null, 2), "utf8");
+  await writeFile(betaPath, JSON.stringify([{ id: "beta_1", name: "Beta" }], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await expect(sidebarTreeNode(page, "folder", "e2e_sidebar_tree")).toBeVisible();
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_tree/alpha.json"]')).toBeVisible();
+    await expect(sidebarTreeNode(page, "folder", "nested")).toBeVisible();
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_tree/nested/beta.json"]')).toBeVisible();
+
+    await toggleSidebarTreeNode(page, "folder", "nested");
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_tree/nested/beta.json"]')).toHaveCount(0);
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_tree/nested/beta.json"]')).toHaveCount(0);
+
+    await toggleSidebarTreeNode(page, "folder", "nested");
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_tree/nested/beta.json"]')).toBeVisible();
+  } finally {
+    await bestEffortRestore("e2e_sidebar_tree", () => rm(folderRoot, { recursive: true, force: true }));
+  }
+});
+
+test("sidebar tree label alignment stays stable across row types and expansion states", async ({ page }) => {
+  const folderRoot = path.resolve("tests/.scratch/data/e2e_label_alignment");
+  const rootFilePath = path.join(folderRoot, "root.json");
+  const nestedFolderPath = path.join(folderRoot, "nested");
+  const nestedFilePath = path.join(nestedFolderPath, "child.json");
+  await mkdir(path.dirname(rootFilePath), { recursive: true });
+  await mkdir(nestedFolderPath, { recursive: true });
+  await writeFile(rootFilePath, JSON.stringify([{ id: "root_1", name: "Root" }], null, 2), "utf8");
+  await writeFile(nestedFilePath, JSON.stringify([{ id: "child_1", name: "Child" }], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await expect(sidebarTreeNode(page, "folder", "e2e_label_alignment")).toBeVisible();
+    await expect(sidebarTreeNode(page, "file", "root.json")).toBeVisible();
+    await expect(sidebarTreeNode(page, "folder", "nested")).toBeVisible();
+
+    await expectSidebarTreeLabelStartsAligned(page, [
+      { kind: "file", label: "root.json" },
+      { kind: "folder", label: "nested" },
+    ]);
+    const rootFileControl = await getSidebarTreeSlotBox(page, "file", "root.json", "control");
+    const nestedFolderControl = await getSidebarTreeSlotBox(page, "folder", "nested", "control");
+    expect(Math.abs(Math.round(rootFileControl.x - nestedFolderControl.x))).toBeLessThanOrEqual(1);
+
+    const nestedLabelStartBeforeCollapse = await getSidebarTreeLabelStart(page, "file", "child.json");
+    await toggleSidebarTreeNode(page, "folder", "nested");
+    await expect(sidebarTreeNode(page, "file", "child.json")).toHaveCount(0);
+    await toggleSidebarTreeNode(page, "folder", "nested");
+    await expect(sidebarTreeNode(page, "file", "child.json")).toBeVisible();
+    const nestedLabelStartAfterExpand = await getSidebarTreeLabelStart(page, "file", "child.json");
+    expect(Math.abs(nestedLabelStartAfterExpand - nestedLabelStartBeforeCollapse)).toBeLessThanOrEqual(1);
+
+    await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
+    await expect(page.locator('.sidebar-file-item[title="data/skills.json"]')).toBeVisible();
+    await expect(sidebarTreeSection(page).locator('[data-sidebar-node-kind="source"]')).toHaveCount(0);
+    await expectSidebarTreeLabelStartsAligned(page, [
+      { kind: "file", label: "runes.json" },
+      { kind: "file", label: "skills.json" },
+    ]);
+  } finally {
+    await bestEffortRestore("e2e_label_alignment", () => rm(folderRoot, { recursive: true, force: true }));
+  }
+});
+
+test("sidebar tree rows keep a consistent slot skeleton across source folder and file kinds", async ({ page }) => {
+  const registry = {
+    version: 1,
+    activeProjectId: "multi-source-project",
+    projects: [{
+      id: "multi-source-project",
+      name: "Multi Source Project",
+      root: "C:\\Code\\DataEditorFixture",
+      adapter: "nocturnel",
+      dataSources: [
+        { id: "data", label: "Data", kind: "relative", path: "data" },
+        { id: "mods", label: "Mods", kind: "relative", path: "mods" },
+      ],
+      filePolicy: { includeExtensions: [".json"] },
+    }],
+  };
+  const files = [
+    {
+      path: "data/e2e_slot_contract/alpha.json",
+      displayPath: "e2e_slot_contract/alpha.json",
+      dataSourceId: "data",
+      dataSourceLabel: "Data",
+      size: 12,
+      modifiedAt: "2026-06-10T00:00:00.000Z",
+    },
+    {
+      path: "mods/omega.json",
+      displayPath: "omega.json",
+      dataSourceId: "mods",
+      dataSourceLabel: "Mods",
+      size: 12,
+      modifiedAt: "2026-06-10T00:00:00.000Z",
+    },
+  ];
+  const viewConfig = {
+    fields: {},
+    primaryKeys: {},
+    backlinks: {},
+    relations: {},
+    relationsVersion: 1,
+  };
+
+  await page.route("**/api/projects", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(registry) });
+  });
+  await page.route("**/api/files?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(files) });
+  });
+  await page.route("**/api/view-config?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(viewConfig) });
+  });
+  await page.route("**/api/view-profiles?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+  await page.route("**/api/shared-views?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ version: 1, collections: {} }) });
+  });
+  await page.route("**/api/document?*", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ id: "row_1", name: "Row 1" }]) });
+  });
+
+  await page.goto("/");
+  await expect(sidebarTreeNode(page, "source", "Data")).toBeVisible();
+  await expect(sidebarTreeNode(page, "folder", "e2e_slot_contract")).toBeVisible();
+  await expect(sidebarTreeNode(page, "file", "alpha.json")).toBeVisible();
+
+  const sourceRow = await getSidebarTreeRowSlots(page, "source", "Data");
+  const folderRow = await getSidebarTreeRowSlots(page, "folder", "e2e_slot_contract");
+  const fileRow = await getSidebarTreeRowSlots(page, "file", "alpha.json");
+
+  expect(sourceRow.slotNames).toEqual(["indent", "control", "label", "trailing"]);
+  expect(folderRow.slotNames).toEqual(sourceRow.slotNames);
+  expect(fileRow.slotNames).toEqual(sourceRow.slotNames);
+
+  expect(sourceRow.slots.find((slot) => slot.name === "control")?.className).toContain("is-present");
+  expect(folderRow.slots.find((slot) => slot.name === "control")?.className).toContain("is-present");
+  expect(fileRow.slots.find((slot) => slot.name === "control")?.className).toContain("is-present");
+  expect(sourceRow.slots.find((slot) => slot.name === "trailing")?.text).toBe("");
+  expect(folderRow.slots.find((slot) => slot.name === "trailing")?.text).toBe("");
+  expect(fileRow.slots.find((slot) => slot.name === "trailing")?.text).toBe("");
+
+  const folderControl = await getSidebarTreeSlotBox(page, "folder", "e2e_slot_contract", "control");
+  const folderLabel = await getSidebarTreeSlotBox(page, "folder", "e2e_slot_contract", "label");
+  expect(Math.round(folderLabel.x - (folderControl.x + folderControl.width))).toBeLessThanOrEqual(2);
+
+  const fileControl = await getSidebarTreeSlotBox(page, "file", "alpha.json", "control");
+  expect(Math.round(fileControl.width)).toBe(Math.round(folderControl.width));
+});
+
+test("sidebar drag reorder only works among siblings", async ({ page }) => {
+  const folderRoot = path.resolve("tests/.scratch/data/e2e_sidebar_drag");
+  const alphaPath = path.join(folderRoot, "alpha.json");
+  const betaPath = path.join(folderRoot, "beta.json");
+  const foreignFolder = path.join(folderRoot, "other");
+  const gammaPath = path.join(foreignFolder, "gamma.json");
+  await mkdir(path.dirname(alphaPath), { recursive: true });
+  await mkdir(path.dirname(gammaPath), { recursive: true });
+  await writeFile(alphaPath, JSON.stringify([{ id: "alpha_1", name: "Alpha" }], null, 2), "utf8");
+  await writeFile(betaPath, JSON.stringify([{ id: "beta_1", name: "Beta" }], null, 2), "utf8");
+  await writeFile(gammaPath, JSON.stringify([{ id: "gamma_1", name: "Gamma" }], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await dragSidebarFile(page, "data/e2e_sidebar_drag/beta.json", "data/e2e_sidebar_drag/alpha.json", "before");
+    await expect.poll(async () => {
+      const order = await getSidebarFileOrder(page);
+      return order.indexOf("data/e2e_sidebar_drag/beta.json") - order.indexOf("data/e2e_sidebar_drag/alpha.json");
+    }).toBeLessThan(0);
+
+    const orderAfterSiblingDrag = await getSidebarFileOrder(page);
+    expect(orderAfterSiblingDrag.indexOf("data/e2e_sidebar_drag/beta.json")).toBeLessThan(orderAfterSiblingDrag.indexOf("data/e2e_sidebar_drag/alpha.json"));
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_drag/other/gamma.json"]')).toBeVisible();
+
+    await beginSidebarFileDrag(page, "data/e2e_sidebar_drag/beta.json");
+    await moveSidebarFileDrag(page, "data/e2e_sidebar_drag/other/gamma.json", "before");
+    await releaseSidebarFileDrag(page);
+
+    const orderAfterCrossParentAttempt = await getSidebarFileOrder(page);
+    expect(orderAfterCrossParentAttempt).toEqual(orderAfterSiblingDrag);
+  } finally {
+    await bestEffortRestore("e2e_sidebar_drag", () => rm(folderRoot, { recursive: true, force: true }));
+  }
+});
+
+test("sidebar drag reorder preserves folder positions in mixed sibling trees", async ({ page }) => {
+  const folderRoot = path.resolve("tests/.scratch/data/e2e_sidebar_mixed_sibling");
+  const alphaPath = path.join(folderRoot, "alpha.json");
+  const betaPath = path.join(folderRoot, "beta.json");
+  const nestedFolder = path.join(folderRoot, "nested");
+  const gammaPath = path.join(nestedFolder, "gamma.json");
+  await mkdir(path.dirname(alphaPath), { recursive: true });
+  await mkdir(nestedFolder, { recursive: true });
+  await writeFile(alphaPath, JSON.stringify([{ id: "alpha_1", name: "Alpha" }], null, 2), "utf8");
+  await writeFile(betaPath, JSON.stringify([{ id: "beta_1", name: "Beta" }], null, 2), "utf8");
+  await writeFile(gammaPath, JSON.stringify([{ id: "gamma_1", name: "Gamma" }], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await expect(sidebarTreeNode(page, "folder", "e2e_sidebar_mixed_sibling")).toBeVisible();
+    await expect(sidebarTreeNode(page, "file", "alpha.json")).toBeVisible();
+    await expect(sidebarTreeNode(page, "folder", "nested")).toBeVisible();
+    await expect(sidebarTreeNode(page, "file", "beta.json")).toBeVisible();
+    const initialMixedRows = (await getSidebarTreeVisibleRowSnapshot(page))
+      .filter((row) => row.title.includes("data/e2e_sidebar_mixed_sibling/") || row.label === "nested")
+      .map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    const initialFolderIndex = initialMixedRows.indexOf("folder:nested");
+    expect(initialFolderIndex).toBeGreaterThanOrEqual(0);
+
+    await dragSidebarFile(page, "data/e2e_sidebar_mixed_sibling/beta.json", "data/e2e_sidebar_mixed_sibling/alpha.json", "before");
+
+    await expect.poll(async () => {
+      const rows = await getSidebarTreeVisibleRowSnapshot(page);
+      const mixedRows = rows.filter((row) => row.title.includes("data/e2e_sidebar_mixed_sibling/") || row.label === "nested");
+      return mixedRows.map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    }).toEqual(expect.arrayContaining([
+      "data/e2e_sidebar_mixed_sibling/beta.json",
+      "data/e2e_sidebar_mixed_sibling/alpha.json",
+      "folder:nested",
+      "data/e2e_sidebar_mixed_sibling/nested/gamma.json",
+    ]));
+
+    const reorderedMixedRows = (await getSidebarTreeVisibleRowSnapshot(page))
+      .filter((row) => row.title.includes("data/e2e_sidebar_mixed_sibling/") || row.label === "nested")
+      .map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    expect(reorderedMixedRows.indexOf("folder:nested")).toBe(initialFolderIndex);
+    expect(reorderedMixedRows.indexOf("data/e2e_sidebar_mixed_sibling/beta.json")).toBeLessThan(
+      reorderedMixedRows.indexOf("data/e2e_sidebar_mixed_sibling/alpha.json"),
+    );
+
+    await expect.poll(() => readLocalSidebarTreePrefsRaw(page)).toContain("\"childOrderByParent\"");
+
+    await page.reload();
+    await expect(sidebarTreeNode(page, "folder", "nested")).toBeVisible();
+    const reloadedMixedRows = (await getSidebarTreeVisibleRowSnapshot(page))
+      .filter((row) => row.title.includes("data/e2e_sidebar_mixed_sibling/") || row.label === "nested")
+      .map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    expect(reloadedMixedRows.indexOf("folder:nested")).toBe(initialFolderIndex);
+    expect(reloadedMixedRows.indexOf("data/e2e_sidebar_mixed_sibling/beta.json")).toBeLessThan(
+      reloadedMixedRows.indexOf("data/e2e_sidebar_mixed_sibling/alpha.json"),
+    );
+  } finally {
+    await bestEffortRestore("e2e_sidebar_mixed_sibling", () => rm(folderRoot, { recursive: true, force: true }));
+  }
+});
+
+test("sidebar drag reorder supports folders among same-level files", async ({ page }) => {
+  const folderRoot = path.resolve("tests/.scratch/data/e2e_sidebar_folder_drag");
+  const alphaPath = path.join(folderRoot, "aaa_folder_drag.json");
+  const zetaPath = path.join(folderRoot, "zzz_folder_drag.json");
+  const movingFolder = path.join(folderRoot, "move_me_folder_drag");
+  const gammaPath = path.join(movingFolder, "gamma.json");
+  await mkdir(path.dirname(alphaPath), { recursive: true });
+  await mkdir(movingFolder, { recursive: true });
+  await writeFile(alphaPath, JSON.stringify([{ id: "alpha_1", name: "Alpha" }], null, 2), "utf8");
+  await writeFile(zetaPath, JSON.stringify([{ id: "zeta_1", name: "Zeta" }], null, 2), "utf8");
+  await writeFile(gammaPath, JSON.stringify([{ id: "gamma_1", name: "Gamma" }], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await expect(sidebarTreeNode(page, "folder", "move_me_folder_drag")).toBeVisible();
+    await expect(sidebarTreeNode(page, "file", "aaa_folder_drag.json")).toBeVisible();
+    const initialRows = (await getSidebarTreeVisibleRowSnapshot(page))
+      .filter((row) => row.title.includes("data/e2e_sidebar_folder_drag/") || row.label === "move_me_folder_drag")
+      .map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    expect(initialRows.indexOf("folder:move_me_folder_drag")).toBeGreaterThan(
+      initialRows.indexOf("data/e2e_sidebar_folder_drag/aaa_folder_drag.json"),
+    );
+
+    await dragSidebarNode(
+      page,
+      { kind: "folder", label: "move_me_folder_drag" },
+      { kind: "file", label: "aaa_folder_drag.json" },
+      "before",
+    );
+
+    await expect.poll(async () => {
+      const rows = await getSidebarTreeVisibleRowSnapshot(page);
+      return rows
+        .filter((row) => row.title.includes("data/e2e_sidebar_folder_drag/") || row.label === "move_me_folder_drag")
+        .map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    }).toEqual(expect.arrayContaining([
+      "folder:move_me_folder_drag",
+      "data/e2e_sidebar_folder_drag/aaa_folder_drag.json",
+      "data/e2e_sidebar_folder_drag/zzz_folder_drag.json",
+    ]));
+
+    const reorderedRows = (await getSidebarTreeVisibleRowSnapshot(page))
+      .filter((row) => row.title.includes("data/e2e_sidebar_folder_drag/") || row.label === "move_me_folder_drag")
+      .map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    expect(reorderedRows.indexOf("folder:move_me_folder_drag")).toBeLessThan(
+      reorderedRows.indexOf("data/e2e_sidebar_folder_drag/aaa_folder_drag.json"),
+    );
+    await expect.poll(() => readLocalSidebarTreePrefsRaw(page)).toContain("\"childOrderByParent\"");
+
+    await page.reload();
+    await expect(sidebarTreeNode(page, "folder", "move_me_folder_drag")).toBeVisible();
+    const reloadedRows = (await getSidebarTreeVisibleRowSnapshot(page))
+      .filter((row) => row.title.includes("data/e2e_sidebar_folder_drag/") || row.label === "move_me_folder_drag")
+      .map((row) => row.kind === "file" ? row.title : `${row.kind}:${row.label}`);
+    expect(reloadedRows.indexOf("folder:move_me_folder_drag")).toBeLessThan(
+      reloadedRows.indexOf("data/e2e_sidebar_folder_drag/aaa_folder_drag.json"),
+    );
+  } finally {
+    await bestEffortRestore("e2e_sidebar_folder_drag", () => rm(folderRoot, { recursive: true, force: true }));
+  }
+});
+
+test("sidebar drag reorder does not commit a stale preview when released back on the source row", async ({ page }) => {
+  const folderRoot = path.resolve("tests/.scratch/data/e2e_sidebar_drag_return_to_source");
+  const alphaPath = path.join(folderRoot, "alpha.json");
+  const betaPath = path.join(folderRoot, "beta.json");
+  const gammaPath = path.join(folderRoot, "gamma.json");
+  await mkdir(path.dirname(alphaPath), { recursive: true });
+  await writeFile(alphaPath, JSON.stringify([{ id: "alpha_1", name: "Alpha" }], null, 2), "utf8");
+  await writeFile(betaPath, JSON.stringify([{ id: "beta_1", name: "Beta" }], null, 2), "utf8");
+  await writeFile(gammaPath, JSON.stringify([{ id: "gamma_1", name: "Gamma" }], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_drag_return_to_source/alpha.json"]')).toBeVisible();
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_drag_return_to_source/beta.json"]')).toBeVisible();
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_drag_return_to_source/gamma.json"]')).toBeVisible();
+
+    const initialOrder = (await getSidebarFileOrder(page)).filter((item) => item.startsWith("data/e2e_sidebar_drag_return_to_source/"));
+    expect(initialOrder).toEqual([
+      "data/e2e_sidebar_drag_return_to_source/alpha.json",
+      "data/e2e_sidebar_drag_return_to_source/beta.json",
+      "data/e2e_sidebar_drag_return_to_source/gamma.json",
+    ]);
+    const sourceRowCenter = await getSidebarFileRowCenter(page, "data/e2e_sidebar_drag_return_to_source/beta.json");
+
+    await beginSidebarFileDrag(page, "data/e2e_sidebar_drag_return_to_source/beta.json");
+    await moveSidebarFileDrag(page, "data/e2e_sidebar_drag_return_to_source/alpha.json", "before");
+    await expect.poll(async () => {
+      const order = await getSidebarFileOrder(page);
+      return order.filter((item) => item.startsWith("data/e2e_sidebar_drag_return_to_source/"));
+    }).toEqual([
+      "data/e2e_sidebar_drag_return_to_source/beta.json",
+      "data/e2e_sidebar_drag_return_to_source/alpha.json",
+      "data/e2e_sidebar_drag_return_to_source/gamma.json",
+    ]);
+
+    await moveSidebarFileDragToPoint(page, sourceRowCenter);
+    await releaseSidebarFileDrag(page);
+
+    const finalOrder = (await getSidebarFileOrder(page)).filter((item) => item.startsWith("data/e2e_sidebar_drag_return_to_source/"));
+    expect(finalOrder).toEqual(initialOrder);
+    await expect.poll(() => readLocalSidebarTreePrefsRaw(page)).toBeNull();
+  } finally {
+    await bestEffortRestore("e2e_sidebar_drag_return_to_source", () => rm(folderRoot, { recursive: true, force: true }));
+  }
+});
+
+test("sidebar expanded state writes only explicit prefs and clears them when returning to default", async ({ page }) => {
+  const folderRoot = path.resolve("tests/.scratch/data/e2e_sidebar_expanded_state");
+  const alphaPath = path.join(folderRoot, "alpha.json");
+  const nestedPath = path.join(folderRoot, "nested", "beta.json");
+  await mkdir(path.dirname(alphaPath), { recursive: true });
+  await mkdir(path.dirname(nestedPath), { recursive: true });
+  await writeFile(alphaPath, JSON.stringify([{ id: "alpha_1", name: "Alpha" }], null, 2), "utf8");
+  await writeFile(nestedPath, JSON.stringify([{ id: "beta_1", name: "Beta" }], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await expect(sidebarTreeNode(page, "folder", "nested")).toBeVisible();
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_expanded_state/nested/beta.json"]')).toBeVisible();
+    await expect.poll(() => readLocalSidebarTreePrefsRaw(page)).toBeNull();
+
+    await toggleSidebarTreeNode(page, "folder", "nested");
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_expanded_state/nested/beta.json"]')).toHaveCount(0);
+    await expect.poll(async () => {
+      const raw = await readLocalSidebarTreePrefsRaw(page);
+      return raw ? JSON.parse(raw) : null;
+    }).toMatchObject({
+      expandedNodeIds: expect.not.arrayContaining(["folder:data/e2e_sidebar_expanded_state/nested"]),
+    });
+
+    await page.reload();
+
+    await expect(sidebarTreeNode(page, "folder", "nested")).toBeVisible();
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_expanded_state/nested/beta.json"]')).toHaveCount(0);
+
+    await toggleSidebarTreeNode(page, "folder", "nested");
+    await expect(page.locator('.sidebar-file-item[title="data/e2e_sidebar_expanded_state/nested/beta.json"]')).toBeVisible();
+    await expect.poll(() => readLocalSidebarTreePrefsRaw(page)).toBeNull();
+  } finally {
+    await bestEffortRestore("e2e_sidebar_expanded_state", () => rm(folderRoot, { recursive: true, force: true }));
+  }
+});
+
+test("single data source hides the source row", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator('.sidebar-file-item[title="data/runes.json"]')).toBeVisible();
+  await expect(sidebarTreeSection(page).locator('[data-sidebar-node-kind="source"]')).toHaveCount(0);
 });
 
 test("detail panel width can be resized and property spacing stays compact", async ({ page }) => {
@@ -2707,7 +3458,7 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
@@ -2812,7 +3563,7 @@ test("detail panel option field editors reuse the shared popover shell", async (
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
@@ -2913,7 +3664,7 @@ test("relation popover still opens and selects target after option field shell m
   const relationPopover = page.locator(".relation-popover");
   await expect(relationPopover).toBeVisible();
   await expect(relationPopover.locator(".option-field-popover-shell")).toHaveCount(0);
-  await relationPopover.locator(".relation-option").filter({ hasText: "skill_heavy_slash" }).click();
+  await relationPopover.locator('.relation-option[data-relation-value="skill_heavy_slash"]').click();
   await relationPopover.press("Escape");
   await expect(relationTrigger).not.toHaveText(initialRelationText);
 });
@@ -2944,7 +3695,7 @@ test("option field editor keeps create rename color and delete actions", async (
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" })).toBeVisible();
 
   await page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" }).locator(".option-menu-trigger").click();
-  await page.locator(".multi-select-color-item").filter({ hasText: "钃濊壊" }).click();
+  await page.locator('.multi-select-color-item[data-color-choice="blue"]').click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "phase2_attack" }).locator(".chip")).toHaveCSS("background-color", "rgb(219, 234, 254)");
 
   await page.locator(".multi-select-option-row").filter({ hasText: "phase2_tag" }).locator(".option-menu-trigger").click();
@@ -3055,7 +3806,7 @@ test("option field editor drag reorder also persists for single-select options",
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForAutosaveWrite(page, async () => {
     const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8");
@@ -3104,7 +3855,7 @@ test("detail panel option field drag reorder commits only after parent close", a
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
@@ -3149,7 +3900,7 @@ test("detail panel option field draft stays bound to the original row when navig
 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
   await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
@@ -3475,7 +4226,7 @@ test("detail keeps the selected record when search hides it from the current vie
 test("select chip grows with column width", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_select_long.json"]').click();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   const chip = tableRow(page, 0).locator(".chip").first();
   await expect(chip).toBeVisible();
@@ -3493,11 +4244,11 @@ test("select chip grows with column width", async ({ page }) => {
 test("column header field type label stays top-aligned in a compact header", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
-  await page.locator('.column-trigger[title="category"]').click();
+  await columnHeaderTrigger(page, "category").click();
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
 
   const headerCell = page.locator('th[data-column-field="category"]');
-  const trigger = page.locator('.column-trigger[title="category"]');
+  const trigger = columnHeaderTrigger(page, "category");
   await expect(trigger.locator("small")).toContainText("单选");
   await expect.poll(async () => Number.parseFloat(await headerCell.evaluate((element) => getComputedStyle(element).height))).toBeLessThanOrEqual(37);
   await expect(trigger).toHaveCSS("justify-content", "flex-start");

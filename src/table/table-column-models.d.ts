@@ -40,6 +40,7 @@ export function buildTableColumnModels(input: {
   fieldOptions: Record<string, OptionConfig>;
   selectOptions: Record<string, OptionConfig>;
   getColumnWidth: (fieldName: string) => number;
+  previousByField?: Record<string, TableColumnModel>;
 }): TableColumnModel[];
 
 export function getColumnModelDisplayType(fieldName: string, columnModels: TableColumnModel[]): FieldDisplayType | null;
