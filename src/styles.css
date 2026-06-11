@@ -930,16 +930,27 @@ select {
 
 .table-text-cell-editor:focus-within {
   background: #fff;
-  border-radius: 8px;
-  border-color: #d9d7d2;
-  box-shadow: 0 4px 14px rgba(15, 15, 15, 0.13);
-  bottom: 0;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 100%;
   z-index: 6;
+}
+
+.table-text-cell-editor.cell-text-wrap:focus-within {
+  height: auto;
+  min-height: 100%;
+}
+
+.table-text-cell-editor:focus-within::after {
+  background: #fff;
+  border: 1px solid #d9d7d2;
+  border-radius: 8px;
+  bottom: -1px;
+  box-shadow: 0 4px 14px rgba(15, 15, 15, 0.13);
+  content: "";
+  left: -1px;
+  pointer-events: none;
+  position: absolute;
+  right: -1px;
+  top: -1px;
+  z-index: -1;
 }
 
 .table-text-cell-editor input {
@@ -1801,6 +1812,7 @@ select {
 .data-table td.data-cell:has(.table-text-cell-editor:focus-within) {
   overflow: visible;
   position: relative;
+  z-index: 4;
 }
 
 .table-cell-frame {

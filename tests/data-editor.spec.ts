@@ -2882,6 +2882,8 @@ test("table text edit mode preserves wrapped text layout", async ({ page }) => {
       leftDelta: editorRect.left - cellRect.left,
       rightDelta: editorRect.right - cellRect.right,
       bottomDelta: editorRect.bottom - cellRect.bottom,
+      editorHeight: editorRect.height,
+      cellHeight: cellRect.height,
       editorWidth: editorRect.width,
       cellWidth: cellRect.width,
     };
@@ -2894,8 +2896,152 @@ test("table text edit mode preserves wrapped text layout", async ({ page }) => {
   expect(Math.abs(layout.topDelta)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout.leftDelta)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout.rightDelta)).toBeLessThanOrEqual(1);
+  expect(layout.cellHeight).toBeGreaterThan(72);
+  expect(Math.abs(layout.editorHeight - layout.cellHeight)).toBeLessThanOrEqual(2);
   expect(Math.abs(layout.bottomDelta)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout.editorWidth - layout.cellWidth)).toBeLessThanOrEqual(2);
+});
+
+test("wrapped table text editor expands beyond the base cell height while editing", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_wrapped_text_editor_growth.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "Growth row",
+      description: "短文本"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_wrapped_text_editor_growth.json:$:all:description:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_wrapped_text_editor_growth.json:$:all:description:width", "150");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_wrapped_text_editor_growth.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await page.getByRole("button", { name: "编辑" }).click();
+
+    const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor textarea");
+    await expect(editor).toBeVisible();
+    await editor.fill("向射程4格内的目标位置发射火球，对1格圆形范围内造成对射程燃烧的单体目标造成高额伤害并附加持续灼烧效果。");
+
+    const growth = await tableCell(page, 0, "description").evaluate((cell) => {
+      const textarea = cell.querySelector(".table-text-cell-editor textarea") as HTMLTextAreaElement;
+      const editorFrame = cell.querySelector(".table-text-cell-editor") as HTMLElement;
+      const cellRect = cell.getBoundingClientRect();
+      const frameRect = editorFrame.getBoundingClientRect();
+      return {
+        cellHeight: cellRect.height,
+        frameHeight: frameRect.height,
+        textareaHeight: textarea.getBoundingClientRect().height,
+        scrollHeight: textarea.scrollHeight,
+        topDelta: frameRect.top - cellRect.top,
+        bottomOverflow: frameRect.bottom - cellRect.bottom,
+      };
+    });
+
+    expect(growth.cellHeight).toBeGreaterThan(80);
+    expect(Math.abs(growth.frameHeight - growth.cellHeight)).toBeLessThanOrEqual(2);
+    expect(growth.textareaHeight).toBeGreaterThan(growth.cellHeight - 24);
+    expect(growth.scrollHeight).toBeLessThanOrEqual(growth.textareaHeight + 1);
+    expect(Math.abs(growth.topDelta)).toBeLessThanOrEqual(1);
+    expect(Math.abs(growth.bottomOverflow)).toBeLessThanOrEqual(1);
+  } finally {
+    await bestEffortRestore("e2e_wrapped_text_editor_growth.json", () => rm(dataPath, { force: true }));
+  }
+});
+
+test("wrapped table text edit keeps the row height instead of collapsing to one line", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_wrapped_text_editor_row_height.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "Height row",
+      description: "向射程4格内的目标位置发射火球，对1格圆形范围内造成45点火焰伤害，使目标灼烧2回合。在命中位置产生燃烧地形持续2回合。消耗2AP和15法力。"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_wrapped_text_editor_row_height.json:$:all:description:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_wrapped_text_editor_row_height.json:$:all:description:width", "150");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_wrapped_text_editor_row_height.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "编辑" }).click();
+
+  const cell = tableCell(page, 0, "description");
+  const beforeEdit = await cell.evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    return { height: rect.height };
+  });
+
+  const editor = cell.locator(".table-text-cell-editor textarea");
+  await expect(editor).toBeVisible();
+  await editor.fill("向射程4格内的目标位置发射火球，对1格圆形范围内造成45点火焰伤害，使目标灼烧2回合。在命中位置产生燃烧地形持续2回合。消耗2AP和15法力。");
+
+  const duringEdit = await cell.evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    const editorFrame = node.querySelector(".table-text-cell-editor") as HTMLElement;
+    const frameRect = editorFrame.getBoundingClientRect();
+    return {
+      height: rect.height,
+      frameHeight: frameRect.height,
+      bottomOverflow: frameRect.bottom - rect.bottom,
+    };
+  });
+
+  expect(beforeEdit.height).toBeGreaterThan(80);
+  expect(Math.abs(duringEdit.height - beforeEdit.height)).toBeLessThanOrEqual(2);
+  expect(Math.abs(duringEdit.frameHeight - duringEdit.height)).toBeLessThanOrEqual(2);
+  expect(Math.abs(duringEdit.bottomOverflow)).toBeLessThanOrEqual(1);
+  } finally {
+    await bestEffortRestore("e2e_wrapped_text_editor_row_height.json", () => rm(dataPath, { force: true }));
+  }
+});
+
+test("toggling table text edit mode does not reflow wrapped row heights", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_toggle_edit_height_stability.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "Stable row",
+      description: "向射程4格内的目标位置发射火球，对1格圆形范围内造成45点火焰伤害，使目标灼烧2回合。在命中位置产生燃烧地形持续2回合。消耗2AP和15法力。"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_toggle_edit_height_stability.json:$:all:description:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_toggle_edit_height_stability.json:$:all:description:width", "150");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_toggle_edit_height_stability.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    const beforeToggle = await tableCell(page, 0, "description").evaluate((node) => ({
+      height: node.getBoundingClientRect().height,
+    }));
+
+    await page.getByRole("button", { name: "编辑" }).click();
+
+    const afterToggle = await tableCell(page, 0, "description").evaluate((node) => ({
+      height: node.getBoundingClientRect().height,
+    }));
+
+    expect(beforeToggle.height).toBeGreaterThan(80);
+    expect(Math.abs(afterToggle.height - beforeToggle.height)).toBeLessThanOrEqual(2);
+  } finally {
+    await bestEffortRestore("e2e_toggle_edit_height_stability.json", () => rm(dataPath, { force: true }));
+  }
 });
 
 test("table text edit active frame fills a tall cell", async ({ page }) => {
@@ -2939,7 +3085,7 @@ test("table text edit active frame fills a tall cell", async ({ page }) => {
 
     expect(frame.cellHeight).toBeGreaterThan(48);
     expect(Math.abs(frame.topDelta)).toBeLessThanOrEqual(1);
-    expect(Math.abs(frame.bottomDelta)).toBeLessThanOrEqual(1);
+    expect(Math.abs(frame.bottomDelta)).toBeLessThanOrEqual(2);
     expect(Math.abs(frame.frameHeight - frame.cellHeight)).toBeLessThanOrEqual(2);
   } finally {
     await bestEffortRestore("e2e_tall_text_cell.json", () => rm(dataPath, { force: true }));

@@ -284,7 +284,6 @@ function resolveCellFrameMeta(columnModel: TableColumnModel, displayType: FieldD
   }
   if (
     displayType === "Text" &&
-    textEditable &&
     (value == null || typeof value === "string" || typeof value === "number")
   ) {
     return { kind: "editor", layout: "editor" };
