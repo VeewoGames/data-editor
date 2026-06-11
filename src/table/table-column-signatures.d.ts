@@ -22,4 +22,5 @@ export function buildTableColumnModelsSignature(input: {
   fieldOptions: Record<string, OptionConfig>;
   selectOptions: Record<string, OptionConfig>;
   widths: Record<string, number>;
+  textEditable: boolean;
 }): string;

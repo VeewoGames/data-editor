@@ -9,7 +9,8 @@ export type AutosaveSnapshot = {
 export type AutosaveFlushResult =
   | { outcome: "saved" | "idle" }
   | { outcome: "blocked-confirmation" }
-  | { outcome: "deferred" };
+  | { outcome: "deferred" }
+  | { outcome: "error" };
 
 type SaveCoordinatorOptions = {
   delayMs?: number;
@@ -20,7 +21,7 @@ type SaveCoordinatorOptions = {
 
 export type SaveCoordinator = {
   cancel: () => void;
-  flush: (reason?: AutosaveReason) => Promise<void>;
+  flush: (reason?: AutosaveReason) => Promise<AutosaveFlushResult>;
   getState: () => AutosaveState;
   markDirty: (domain: AutosaveDomain) => void;
 };
@@ -29,7 +30,7 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions): SaveCoor
   const delayMs = options.delayMs ?? 800;
   let state: AutosaveState = "idle";
   let timer: number | null = null;
-  let inFlight: Promise<void> | null = null;
+  let inFlight: Promise<AutosaveFlushResult> | null = null;
   let retryRequested = false;
   let errorMessage: string | null = null;
 
@@ -71,7 +72,7 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions): SaveCoor
     if (!snapshot.dirtyDomains.length) {
       errorMessage = null;
       emit("idle", snapshot);
-      return;
+      return { outcome: "idle" } as const;
     }
     errorMessage = null;
     emit("saving", snapshot);
@@ -81,20 +82,22 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions): SaveCoor
         const nextSnapshot = options.getSnapshot();
         if (result.outcome === "blocked-confirmation") {
           emit("blocked-confirmation", nextSnapshot);
-          return;
+          return result;
         }
         if (result.outcome === "deferred") {
           schedule("retry");
-          return;
+          return result;
         }
         if (nextSnapshot.dirtyDomains.length) {
           schedule("retry");
-          return;
+          return result;
         }
         emit("idle", nextSnapshot);
+        return result;
       } catch (error) {
         errorMessage = error instanceof Error ? error.message : String(error);
         emit("error", options.getSnapshot());
+        return { outcome: "error" } as const;
       } finally {
         inFlight = null;
         if (retryRequested) {
@@ -106,13 +109,30 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions): SaveCoor
     return inFlight;
   }
 
+  async function runStrongFlush(reason: AutosaveReason): Promise<AutosaveFlushResult> {
+    let currentReason = reason;
+    while (true) {
+      const result = await runFlush(currentReason);
+      if (result.outcome === "blocked-confirmation" || result.outcome === "deferred" || result.outcome === "error") {
+        return result;
+      }
+      const snapshot = options.getSnapshot();
+      if (!snapshot.dirtyDomains.length) {
+        errorMessage = null;
+        emit("idle", snapshot);
+        return { outcome: result.outcome === "idle" ? "idle" : "saved" };
+      }
+      currentReason = "flush";
+    }
+  }
+
   return {
     cancel() {
       clearTimer();
     },
     async flush(reason = "flush") {
       clearTimer();
-      await runFlush(reason);
+      return runStrongFlush(reason);
     },
     getState() {
       return state;

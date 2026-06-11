@@ -40,6 +40,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Toolbar, type ToolbarSnapshot } from "./components/Toolbar";
 import { ViewTabs, type ViewTabsSnapshot } from "./components/ViewTabs";
 import { ViewFilterBar, type ViewFilterBarSnapshot } from "./components/ViewFilterBar";
+import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editing";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
 import { icons } from "./components/icons";
@@ -435,7 +436,7 @@ export function App() {
   const [viewConfigDirty, setViewConfigDirty] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
   const [viewDraftDirty, setViewDraftDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [commandSaving, setCommandSaving] = useState(false);
   const [autosaveState, setAutosaveState] = useState<AutosaveState>("idle");
   const [closing, setClosing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
@@ -462,6 +463,7 @@ export function App() {
   const [pendingDeleteField, setPendingDeleteField] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
+  const [tableTextEditMode, setTableTextEditMode] = useState(false);
   const [rowDeleteControlsVisible, setRowDeleteControlsVisible] = useState(false);
   const [pendingOpenFilterRuleId, setPendingOpenFilterRuleId] = useState<string | null>(null);
   const [uiRevision, bumpUiRevision] = useState(0);
@@ -490,6 +492,10 @@ export function App() {
   const modelRef = useRef<DocumentModel | null>(null);
   const savedDocumentRootRef = useRef<unknown | null>(null);
   const selectedPathRef = useRef<string | null>(null);
+  const collectionPathRef = useRef("$");
+  const selectedRowIdRef = useRef<string | null>(null);
+  const selectedSourceRowIndexRef = useRef<number | null>(null);
+  const titleFieldRef = useRef<string | null>(null);
   const dataDirtyRef = useRef(false);
   const viewConfigRef = useRef<ViewConfig>(emptyProjectViewConfig());
   const viewConfigDirtyRef = useRef(false);
@@ -530,7 +536,9 @@ export function App() {
   const primaryKeySyncSnapshotRef = useRef<PrimaryKeySyncSaveSnapshot | null>(null);
   const primaryKeySyncPlanRef = useRef<PrimaryKeySyncPlan | null>(null);
   const autosaveStateRef = useRef<AutosaveState>("idle");
-  const savingRef = useRef(false);
+  const autosaveInFlightRef = useRef(false);
+  const commandSavingRef = useRef(false);
+  const activeTextEditorRef = useRef<ActiveTextEditorHandle | null>(null);
   const closingRef = useRef(false);
   const rebuildingRef = useRef(false);
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
@@ -569,6 +577,18 @@ export function App() {
     }),
     [],
   );
+  const registerActiveTextEditor = useCallback<ActiveTextEditorRegistrar>((handle, sourceHandle) => {
+    if (!handle) {
+      if (!sourceHandle || activeTextEditorRef.current === sourceHandle) {
+        activeTextEditorRef.current = null;
+      }
+      return;
+    }
+    activeTextEditorRef.current = handle;
+  }, []);
+  const flushActiveTextEditorDraft = useCallback(() => {
+    activeTextEditorRef.current?.flushDraft();
+  }, []);
   const selectedCollectionKey = selectedPath ? buildCollectionKey(selectedPath, collectionPath) : null;
   const activeCollectionKey = selectedPath ? collectionConfigKey(selectedPath, collectionPath) : null;
   const activeSidebarPreferences = useMemo(() => (
@@ -583,6 +603,7 @@ export function App() {
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
   useEffect(() => { selectedPathRef.current = selectedPath; }, [selectedPath]);
+  useEffect(() => { collectionPathRef.current = collectionPath; }, [collectionPath]);
   useEffect(() => { dataDirtyRef.current = dataDirty; }, [dataDirty]);
   useEffect(() => { viewConfigRef.current = viewConfig; }, [viewConfig]);
   useEffect(() => { viewConfigDirtyRef.current = viewConfigDirty; }, [viewConfigDirty]);
@@ -595,7 +616,7 @@ export function App() {
   useEffect(() => { detailOpenRef.current = detailOpen; }, [detailOpen]);
   useEffect(() => { primaryKeySyncPlanRef.current = primaryKeySyncPlan; }, [primaryKeySyncPlan]);
   useEffect(() => { autosaveStateRef.current = autosaveState; }, [autosaveState]);
-  useEffect(() => { savingRef.current = saving; }, [saving]);
+  useEffect(() => { commandSavingRef.current = commandSaving; }, [commandSaving]);
   useEffect(() => { closingRef.current = closing; }, [closing]);
   useEffect(() => { rebuildingRef.current = rebuilding; }, [rebuilding]);
   useEffect(() => {
@@ -654,6 +675,7 @@ export function App() {
   async function reloadProjectWorkspace(projectId: string, options: { resetProfile?: boolean } = {}) {
     const previousFiles = loadedProjectIdRef.current === projectId ? filesRef.current : [];
     try {
+      flushActiveTextEditorDraft();
       await saveCoordinator.flush("flush");
       resetWorkspaceState(options);
       const profileNameForInitialOrder = options.resetProfile ? null : selectedViewProfileNameRef.current;
@@ -821,6 +843,7 @@ export function App() {
     if (projectId === activeProjectId) return;
     if (globalDirty && !window.confirm("当前项目有未保存改动。放弃改动并切换项目？")) return;
     try {
+      flushActiveTextEditorDraft();
       await saveCoordinator.flush("flush");
       await activateProject(projectId);
       setActiveProjectId(projectId);
@@ -856,11 +879,12 @@ export function App() {
 
   useEffect(() => {
     function onPageHide() {
+      flushActiveTextEditorDraft();
       void saveCoordinator.flush("flush");
     }
     window.addEventListener("pagehide", onPageHide);
     return () => window.removeEventListener("pagehide", onPageHide);
-  }, []);
+  }, [flushActiveTextEditorDraft, saveCoordinator]);
 
   useEffect(() => {
     return () => {
@@ -947,7 +971,14 @@ export function App() {
     return () => window.clearInterval(timer);
   }, [serviceLifecycleState]);
 
+  async function flushBeforeDocumentTransition() {
+    flushActiveTextEditorDraft();
+    const result = await saveCoordinator.flush("flush");
+    return result.outcome === "saved" || result.outcome === "idle";
+  }
+
   async function openFile(path: string) {
+    if (!(await flushBeforeDocumentTransition())) return;
     await openDocumentAt(path, undefined, undefined, false, activeProjectId);
   }
 
@@ -1279,6 +1310,7 @@ export function App() {
         setStatus(`引用缺失：${String(value)}`);
         return;
       }
+      if (!(await flushBeforeDocumentTransition())) return;
       await openDocumentAt(target.targetFile, target.targetCollection, target.rowIndex, true, activeProjectId, target.rowId ?? undefined);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -1286,6 +1318,7 @@ export function App() {
   }
 
   async function handleOpenBacklink(backlink: RelationBacklink) {
+    if (!(await flushBeforeDocumentTransition())) return;
     await openDocumentAt(backlink.sourceFile, backlink.sourceCollection, backlink.rowIndex, true, activeProjectId, backlink.rowId ?? undefined);
   }
 
@@ -1648,6 +1681,10 @@ export function App() {
     previousVisibleRowViewsRef.current = visibleRowViews;
   }, [visibleRowViews]);
   useEffect(() => {
+    selectedRowIdRef.current = selectedRowId;
+    selectedSourceRowIndexRef.current = selectedSourceRowIndex;
+  }, [selectedRowId, selectedSourceRowIndex]);
+  useEffect(() => {
     const nextSelection = resolveDetailSelectionSync({
       collectionStore,
       selectedRowId: selectedRowIdState,
@@ -1665,6 +1702,9 @@ export function App() {
     () => model ? findTitleField(getMainColumns(model, collectionPath), rows) : null,
     [model, collectionPath, rows],
   );
+  useEffect(() => {
+    titleFieldRef.current = titleField;
+  }, [titleField]);
   const relationConfigKey = useMemo(
     () => selectedPath && relationConfigField
       ? buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [relationConfigField] })
@@ -1790,6 +1830,8 @@ export function App() {
     titleField,
     scrollRestoreKey,
     initialScrollPosition,
+    textEditable: tableTextEditMode,
+    onRegisterActiveTextEditor: registerActiveTextEditor,
   }), [
     model,
     selectedPath,
@@ -1807,6 +1849,8 @@ export function App() {
     titleField,
     scrollRestoreKey,
     initialScrollPosition,
+    tableTextEditMode,
+    registerActiveTextEditor,
   ]);
   const detailSnapshot = useMemo<DetailSnapshot>(() => ({
     open: detailOpen,
@@ -1831,7 +1875,7 @@ export function App() {
     primaryKeyImpacts,
     primaryKeySyncPlan,
     primaryKeySyncResult,
-    saving,
+    commandSaving,
   }), [
     detailOpen,
     detailPanelWidth,
@@ -1855,7 +1899,7 @@ export function App() {
     primaryKeyImpacts,
     primaryKeySyncPlan,
     primaryKeySyncResult,
-    saving,
+    commandSaving,
   ]);
   const toolbarSnapshot = useMemo<ToolbarSnapshot>(() => ({
     currentPath: selectedPath,
@@ -1868,7 +1912,7 @@ export function App() {
     visibleCount: visibleRowViews.length,
     query: activeViewRenderState.query,
     autosaveState,
-    saving,
+    commandSaving,
     closing,
     rebuilding,
     status: statusText,
@@ -1884,7 +1928,7 @@ export function App() {
     visibleRowViews.length,
     activeViewRenderState.query,
     autosaveState,
-    saving,
+    commandSaving,
     closing,
     rebuilding,
     statusText,
@@ -1894,18 +1938,20 @@ export function App() {
     views: orderedCollectionViews,
     activeViewId: activeSharedView?.id ?? null,
     dirtyViewIds,
-    saving,
+    commandSaving,
     filterBarVisible,
     hasActiveFilters: activeViewHasFilters,
+    tableTextEditMode,
     rowDeleteControlsVisible,
     viewOrderDirty,
   }), [
     orderedCollectionViews,
     activeSharedView,
     dirtyViewIds,
-    saving,
+    commandSaving,
     filterBarVisible,
     activeViewHasFilters,
+    tableTextEditMode,
     rowDeleteControlsVisible,
     viewOrderDirty,
   ]);
@@ -1919,7 +1965,7 @@ export function App() {
     relationFilterOptions: viewFilterOptions,
     dirty: activeViewDirty,
     viewOrderDirty,
-    saving,
+    commandSaving,
     autoOpenRuleId: pendingOpenFilterRuleId,
   }), [
     activeCollectionKey,
@@ -1931,7 +1977,7 @@ export function App() {
     viewFilterOptions,
     activeViewDirty,
     viewOrderDirty,
-    saving,
+    commandSaving,
     pendingOpenFilterRuleId,
   ]);
   const appFrameStyle = useMemo(() => ({ "--sidebar-width": `${sidebarWidth}px` }) as CSSProperties, [sidebarWidth]);
@@ -2125,7 +2171,7 @@ export function App() {
   }
 
   function updateActiveViewDraft(patch: Partial<CollectionView>) {
-    if (saving) return;
+    if (commandSaving) return;
     if (!activeCollectionKey || !activeSharedView) return;
     const viewId = activeSharedView.id;
     if (mutateSelectedViewProfile((draft) => {
@@ -2514,6 +2560,7 @@ export function App() {
   }
 
   async function handleSelectViewProfile(name: string) {
+    flushActiveTextEditorDraft();
     await saveCoordinator.flush("flush");
     setSelectedViewProfileName(name === localProfileOptionValue ? null : name);
   }
@@ -2811,7 +2858,7 @@ export function App() {
   }
 
   function handleSelectSharedView(viewId: string) {
-    if (saving || !activeCollectionKey) return;
+    if (commandSaving || !activeCollectionKey) return;
     const current = currentSharedViewDraftState();
     updateSharedViewDraftState({
       lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: viewId },
@@ -2823,8 +2870,8 @@ export function App() {
   }
 
   async function handleCreateSharedView() {
-    if (saving || !activeCollectionKey || !activeSharedView || !activeView) return;
-    setSaving(true);
+    if (commandSaving || !activeCollectionKey || !activeSharedView || !activeView) return;
+    setCommandSaving(true);
     setStatus("");
     try {
       const result = createSharedViewConfig(sharedViewsConfig, activeCollectionKey, activeSharedView.id, activeView);
@@ -2841,18 +2888,18 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      setCommandSaving(false);
     }
   }
 
   async function handleDuplicateSharedView(viewId: string) {
-    if (saving || !activeCollectionKey || !selectedPath) return;
+    if (commandSaving || !activeCollectionKey || !selectedPath) return;
     const sourceView = orderedCollectionViews.find((view: CollectionView) => view.id === viewId);
     if (!sourceView) return;
     const draft = draftSource.viewDrafts?.[activeCollectionKey]?.[viewId];
     const snapshot = mergeSharedViewWithDraft(sourceView, draft) as CollectionView;
     const duplicateNameBase = `${snapshot.name} 副本`.trim();
-    setSaving(true);
+    setCommandSaving(true);
     setStatus("");
     try {
       const result = createSharedViewConfig(sharedViewsConfig, activeCollectionKey, viewId, snapshot, {
@@ -2904,13 +2951,13 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      setCommandSaving(false);
     }
   }
 
   async function handleRenameSharedView(viewId: string, name: string) {
-    if (saving || !activeCollectionKey) return;
-    setSaving(true);
+    if (commandSaving || !activeCollectionKey) return;
+    setCommandSaving(true);
     setStatus("");
     try {
       const nextConfig = renameSharedViewConfig(sharedViewsConfig, activeCollectionKey, viewId, name) as SharedViewsConfig;
@@ -2920,19 +2967,19 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      setCommandSaving(false);
     }
   }
 
   async function handleDeleteSharedView(viewId: string) {
-    if (saving || !activeCollectionKey || !selectedPath) return;
+    if (commandSaving || !activeCollectionKey || !selectedPath) return;
     const current = currentSharedViewDraftState();
     const result = deleteSharedViewConfig(sharedViewsConfig, current, activeCollectionKey, viewId);
     if (!result.deleted) {
       setStatus("至少需要保留一个团队共享视图");
       return;
     }
-    setSaving(true);
+    setCommandSaving(true);
     setStatus("");
     try {
       const nextConfig = result.config as SharedViewsConfig;
@@ -2964,18 +3011,18 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      setCommandSaving(false);
     }
   }
 
   function handleReorderSharedViews(viewIds: string[]) {
-    if (saving || !activeCollectionKey) return;
+    if (commandSaving || !activeCollectionKey) return;
     const next = draftSharedViewOrder(currentSharedViewDraftState(), activeCollectionKey, collectionSharedViews, viewIds);
     updateSharedViewDraftState(next);
   }
 
   function handleResetSharedViewDraft() {
-    if (saving || !activeCollectionKey || !activeSharedView) return;
+    if (commandSaving || !activeCollectionKey || !activeSharedView) return;
     if (mutateSelectedViewProfile((draft) => {
       const result = resetActiveSharedViewDraft(draft, activeCollectionKey, activeSharedView.id);
       draft.lastActiveViews = result.draftState.lastActiveViews;
@@ -3073,10 +3120,10 @@ export function App() {
   }
 
   async function handleSaveViewForEveryone() {
-    if (saving || !activeCollectionKey || !activeSharedView) return;
+    if (commandSaving || !activeCollectionKey || !activeSharedView) return;
     const current = currentSharedViewDraftState();
     if (!hasViewDraft(current, activeCollectionKey, activeSharedView.id)) return;
-    setSaving(true);
+    setCommandSaving(true);
     setStatus("");
     try {
       const result = saveSharedViewDraftsToConfig(sharedViewsConfig, current, activeCollectionKey, activeSharedView.id);
@@ -3088,19 +3135,55 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      setCommandSaving(false);
     }
   }
 
   function shouldInterceptPrimaryKeySync(currentDataDirty: boolean, force = false) {
-    const currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
+    return shouldInterceptPrimaryKeySyncPlan(primaryKeySyncPlanRef.current, currentDataDirty, force);
+  }
+
+  function shouldInterceptPrimaryKeySyncPlan(plan: PrimaryKeySyncPlan | null, currentDataDirty: boolean, _force = false) {
     return Boolean(
       currentDataDirty
-      && (force || detailOpenRef.current)
-      && currentPrimaryKeySyncPlan
-      && currentPrimaryKeySyncPlan.oldValue !== currentPrimaryKeySyncPlan.newValue
-      && (currentPrimaryKeySyncPlan.rewrites.length > 0 || currentPrimaryKeySyncPlan.blockingIssues.length > 0),
+      && plan
+      && plan.oldValue !== plan.newValue
+      && (plan.rewrites.length > 0 || plan.blockingIssues.length > 0),
     );
+  }
+
+  async function resolvePrimaryKeySyncPlanForFlush(
+    currentModel: DocumentModel,
+    currentSelectedPath: string,
+    currentViewConfig: ViewConfig,
+  ) {
+    const currentCollectionPath = collectionPathRef.current;
+    const currentSelectedRowId = selectedRowIdRef.current;
+    const store = documentStoreRef.current?.collections.get(currentCollectionPath) ?? null;
+    const currentSelectedSourceRowIndex = currentSelectedRowId && store?.sourceIndexByRowId.has(currentSelectedRowId)
+      ? store.sourceIndexByRowId.get(currentSelectedRowId)!
+      : selectedSourceRowIndexRef.current;
+    const currentTitleField = titleFieldRef.current;
+    const currentRows = getRows(currentModel, currentCollectionPath) as DataRecord[];
+    const currentSelectedRow = currentSelectedSourceRowIndex == null ? null : (currentRows[currentSelectedSourceRowIndex] ?? null);
+    const nextState = await buildMaintenanceLookupState({
+      selectedPath: currentSelectedPath,
+      collectionPath: currentCollectionPath,
+      selectedRow: currentSelectedRow,
+      selectedSourceRowIndex: currentSelectedSourceRowIndex,
+      selectedRowLabel: getRecordTitle(currentSelectedRow, currentTitleField ? [currentTitleField] : [], currentSelectedSourceRowIndex ?? null),
+      model: currentModel,
+      rows: currentRows,
+      savedRoot: savedDocumentRootRef.current,
+      viewConfig: currentViewConfig,
+      activeProjectId: activeProjectIdRef.current,
+      loadDocument: (path) => loadDocument(path, activeProjectIdRef.current),
+    });
+    setRelationBacklinks(nextState.relationBacklinks);
+    setPrimaryKeyImpacts(nextState.primaryKeyImpacts);
+    setPrimaryKeySyncPlan(nextState.primaryKeySyncPlan);
+    primaryKeySyncPlanRef.current = nextState.primaryKeySyncPlan;
+    return nextState.primaryKeySyncPlan;
   }
 
   async function flushAutosaveTargets(_reason: string, dirtyDomains: AutosaveDomain[]) {
@@ -3112,15 +3195,17 @@ export function App() {
     const currentProfileDirty = profileDirtyRef.current;
     const currentProfileName = selectedViewProfileNameRef.current;
     const currentProjectId = activeProjectIdRef.current;
-    const currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
+    let currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
     if (!dirtyDomains.length) return { outcome: "idle" } as const;
-    if (savingRef.current || closingRef.current || rebuildingRef.current) return { outcome: "deferred" } as const;
-    if (currentDataDirty && currentModel && currentSelectedPath && shouldInterceptPrimaryKeySync(currentDataDirty, false)) {
+    if (commandSavingRef.current || closingRef.current || rebuildingRef.current) return { outcome: "deferred" } as const;
+    if (currentDataDirty && currentModel && currentSelectedPath && !currentPrimaryKeySyncPlan) {
+      currentPrimaryKeySyncPlan = await resolvePrimaryKeySyncPlanForFlush(currentModel, currentSelectedPath, currentViewConfig);
+    }
+    if (currentDataDirty && currentModel && currentSelectedPath && shouldInterceptPrimaryKeySyncPlan(currentPrimaryKeySyncPlan, currentDataDirty, false)) {
       if (currentPrimaryKeySyncPlan?.blockingIssues.length) {
         setStatus(describePrimaryKeySyncBlockingIssues(currentPrimaryKeySyncPlan));
         return { outcome: "blocked-confirmation" } as const;
       }
-      setSaving(true);
       setStatus("");
       try {
         const snapshot = await buildPrimaryKeySyncSaveSnapshot({
@@ -3135,12 +3220,10 @@ export function App() {
       } catch (error) {
         setStatus(error instanceof Error ? error.message : String(error));
         throw error;
-      } finally {
-        setSaving(false);
       }
       return { outcome: "blocked-confirmation" } as const;
     }
-    setSaving(true);
+    autosaveInFlightRef.current = true;
     setStatus("");
     try {
       if (dirtyDomains.includes("document") && currentDataDirty && currentModel && currentSelectedPath) {
@@ -3164,7 +3247,7 @@ export function App() {
       setStatus(error instanceof Error ? error.message : String(error));
       throw error;
     } finally {
-      setSaving(false);
+      autosaveInFlightRef.current = false;
     }
   }
 
@@ -3177,8 +3260,8 @@ export function App() {
       }
       const currentModel = modelRef.current;
       const currentSelectedPath = selectedPathRef.current;
-      if (!currentModel || !currentSelectedPath || saving || closing || rebuilding) return;
-      setSaving(true);
+      if (!currentModel || !currentSelectedPath || commandSaving || closing || rebuilding) return;
+      setCommandSaving(true);
       setStatus("");
       try {
         const snapshot = await buildPrimaryKeySyncSaveSnapshot({
@@ -3193,10 +3276,11 @@ export function App() {
       } catch (error) {
         setStatus(error instanceof Error ? error.message : String(error));
       } finally {
-        setSaving(false);
+        setCommandSaving(false);
       }
       return;
     }
+    flushActiveTextEditorDraft();
     await saveCoordinator.flush("flush");
   }
 
@@ -3204,7 +3288,7 @@ export function App() {
     const snapshot = primaryKeySyncSnapshotRef.current;
     const currentSelectedPath = selectedPathRef.current;
     if (!snapshot || !currentSelectedPath) return;
-    setSaving(true);
+    setCommandSaving(true);
     setStatus("");
     try {
       const result = await saveDocuments(snapshot.pendingSaves, activeProjectId);
@@ -3234,16 +3318,17 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      setCommandSaving(false);
     }
   }
 
   async function handleCloseServer() {
-    if (closing || saving || rebuilding) return;
+    if (closing || commandSaving || rebuilding) return;
     if (globalDirty && !window.confirm("有未保存更改，关闭服务会丢失这些更改。是否继续关闭？")) return;
     setClosing(true);
     setStatus("");
     try {
+      flushActiveTextEditorDraft();
       await saveCoordinator.flush("flush");
       manualClosedRef.current = true;
       await shutdownServer();
@@ -3257,11 +3342,12 @@ export function App() {
   }
 
   async function handleRefreshBuild() {
-    if (rebuilding || closing || saving) return;
+    if (rebuilding || closing || commandSaving) return;
     if (globalDirty && !window.confirm("有未保存更改，刷新构建会丢失这些更改。是否继续刷新构建？")) return;
     setRebuilding(true);
     setStatus("");
     try {
+      flushActiveTextEditorDraft();
       await saveCoordinator.flush("flush");
       await rebuildFrontend();
       rememberTransientStatus("构建成功，页面已刷新");
@@ -3274,7 +3360,7 @@ export function App() {
   }
 
   async function handleRecoverEditor() {
-    if (closing || rebuilding || saving) return;
+    if (closing || rebuilding || commandSaving) return;
     setDisconnectMessage("");
     setServiceLifecycleState("recovering");
     try {
@@ -3458,6 +3544,7 @@ export function App() {
                   onDuplicateView={handleDuplicateSharedView}
                   onReorderViews={handleReorderSharedViews}
                   onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
+                  onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
                   onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
                 />
               </Profiler>
@@ -3527,6 +3614,7 @@ export function App() {
                   onPanelWidthCommit={commitDetailPanelWidth}
                   onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
                   onReorderFields={handleReorderDetailFields}
+                  onRegisterActiveTextEditor={registerActiveTextEditor}
                 />
               </Profiler>
             </div>
@@ -3542,6 +3630,7 @@ export function App() {
             onDuplicateView={handleDuplicateSharedView}
             onReorderViews={handleReorderSharedViews}
             onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
+            onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
             onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
           />
           {filterBarVisible ? (
@@ -3603,6 +3692,7 @@ export function App() {
             onPanelWidthCommit={commitDetailPanelWidth}
             onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
             onReorderFields={handleReorderDetailFields}
+            onRegisterActiveTextEditor={registerActiveTextEditor}
           />
         </div>
         )}
@@ -3663,7 +3753,7 @@ export function App() {
         open={primaryKeySyncDialogOpen}
         plan={primaryKeySyncPlan}
         result={primaryKeySyncResult}
-        saving={saving}
+        commandSaving={commandSaving}
         onOpenChange={setPrimaryKeySyncDialogOpen}
         onConfirm={confirmPrimaryKeySyncSave}
       />
@@ -3999,7 +4089,7 @@ function PrimaryKeySyncDialog(props: {
   open: boolean;
   plan: PrimaryKeySyncPlan | null;
   result: SaveDocumentsResult | null;
-  saving: boolean;
+  commandSaving: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
@@ -4068,8 +4158,8 @@ function PrimaryKeySyncDialog(props: {
           ) : null}
           <div className="dialog-actions">
             <Dialog.Close className="ghost-button">取消</Dialog.Close>
-            <button className="primary-button" disabled={!canConfirm || props.saving} onClick={props.onConfirm}>
-              {props.saving ? "保存中..." : "确认同步"}
+            <button className="primary-button" disabled={!canConfirm || props.commandSaving} onClick={props.onConfirm}>
+              {props.commandSaving ? "保存中..." : "确认同步"}
             </button>
           </div>
         </Dialog.Content>
@@ -4740,3 +4830,4 @@ function collectSingleSelectValues(rows: DataRecord[], fieldName: string) {
   }
   return values;
 }
+

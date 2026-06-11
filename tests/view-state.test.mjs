@@ -612,7 +612,7 @@ test("autosave architecture removes manual save entry points and old profile tim
   assert.doesNotMatch(toolbarSource, /保存中\.\.\." : "保存"/);
 });
 
-test("ViewTabs and App block shared view draft mutations while saving", async () => {
+test("ViewTabs and App block shared view draft mutations while command saving", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
 
@@ -636,10 +636,10 @@ test("ViewTabs and App block shared view draft mutations while saving", async ()
     ].filter((index) => index > start);
     const end = Math.min(...endCandidates);
     const section = appSource.slice(start, Number.isFinite(end) ? end : undefined);
-    assert.match(section, /saving/);
+    assert.match(section, /commandSaving/);
   }
 
-  assert.match(viewTabsSource, /const viewTabsDisabled = saving;/);
+  assert.match(viewTabsSource, /const viewTabsDisabled = commandSaving;/);
   assert.match(viewTabsSource, /Popover\.Root/);
   assert.match(viewTabsSource, /Popover\.Anchor/);
   assert.match(viewTabsSource, /if \(active\) \{\s*setOpenMenuViewId\(view\.id\);/);
@@ -653,7 +653,66 @@ test("ViewTabs and App block shared view draft mutations while saving", async ()
     appSource.indexOf("function updateActiveViewDraft"),
     appSource.indexOf("function handleReorderFiles"),
   );
-  assert.match(updateActiveViewDraftSection, /if \(saving\) return;/);
+  assert.match(updateActiveViewDraftSection, /if \(commandSaving\) return;/);
+});
+
+test("stable text editing structure is wired", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const detailPanelSource = await readFile(new URL("../src/detail/DetailPanel.tsx", import.meta.url), "utf8");
+  const cellRendererSource = await readFile(new URL("../src/table/CellRenderer.tsx", import.meta.url), "utf8");
+  const dataTableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
+  const tableColumnsSource = await readFile(new URL("../src/table/table-columns.tsx", import.meta.url), "utf8");
+  const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(detailPanelSource, /key=\{`\$\{props\.fieldName\}:\$\{String\(props\.value \?\? ""\)\}`\}/);
+  assert.match(detailPanelSource, /StableTextInput/);
+  assert.match(detailPanelSource, /StableTextarea/);
+  assert.match(detailPanelSource, /commandSaving: boolean/);
+
+  assert.doesNotMatch(appSource, /const \[saving, setSaving\] = useState\(false\)/);
+  assert.match(appSource, /const \[commandSaving, setCommandSaving\] = useState\(false\)/);
+  assert.match(appSource, /activeTextEditorRef/);
+  assert.match(appSource, /tableTextEditMode/);
+
+  assert.match(dataTableSource, /textEditable: boolean/);
+  assert.match(dataTableSource, /previous\.textEditable === next\.textEditable/);
+  assert.match(dataTableSource, /previous\.onRegisterActiveTextEditor === next\.onRegisterActiveTextEditor/);
+  assert.match(tableColumnsSource, /textEditable=\{runtime\.textEditable\}/);
+  assert.match(cellRendererSource, /TableTextCellEditor/);
+  assert.match(cellRendererSource, /displayType === "Text"[\s\S]+textEditable/);
+  const tableTextCellEditorSource = await readFile(new URL("../src/editing/TableTextCellEditor.tsx", import.meta.url), "utf8");
+  const handleKeyDownSection = tableTextCellEditorSource.slice(
+    tableTextCellEditorSource.indexOf("function handleKeyDown"),
+    tableTextCellEditorSource.indexOf("useEffect(() => () =>"),
+  );
+  assert.doesNotMatch(handleKeyDownSection, /event\.key === "Enter"[\s\S]+flushDraft\(\)/);
+  assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Select"'), cellRendererSource.indexOf('displayType === "Relation"')), /textEditable/);
+  assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Multi-select"'), cellRendererSource.indexOf('displayType === "Select"')), /textEditable/);
+  assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Relation"'), cellRendererSource.indexOf("const textValue")), /textEditable/);
+
+  assert.match(viewTabsSource, /tableTextEditMode/);
+  assert.match(viewTabsSource, /onToggleTableTextEditMode/);
+  assert.match(viewTabsSource, /title="编辑文本单元格"/);
+  assert.match(viewTabsSource, /aria-pressed=\{tableTextEditMode\}/);
+});
+
+test("table cell frame structure is centralized in table-columns", async () => {
+  const cellRendererSource = await readFile(new URL("../src/table/CellRenderer.tsx", import.meta.url), "utf8");
+  const tableColumnsSource = await readFile(new URL("../src/table/table-columns.tsx", import.meta.url), "utf8");
+  const tableCellFrameSource = await readFile(new URL("../src/table/TableCellFrame.tsx", import.meta.url), "utf8");
+
+  assert.match(tableCellFrameSource, /export type TableCellContentKind/);
+  assert.match(tableCellFrameSource, /export type TableCellLayout/);
+  assert.match(tableCellFrameSource, /className="table-cell-frame"/);
+  assert.match(tableCellFrameSource, /data-cell-frame-kind/);
+  assert.match(tableCellFrameSource, /data-cell-frame-layout/);
+  assert.match(tableColumnsSource, /import \{ TableCellFrame, type TableCellContentKind, type TableCellLayout \} from "\.\/TableCellFrame"/);
+  assert.match(tableColumnsSource, /function resolveCellFrameMeta/);
+  assert.match(tableColumnsSource, /if \(columnModel\.backlinkColumn\) \{[\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>/);
+  assert.match(tableColumnsSource, /if \(columnModel\.isNested\) \{[\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>/);
+  assert.match(tableColumnsSource, /if \(columnModel\.isTitle\) \{[\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>/);
+  assert.match(tableColumnsSource, /return \([\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>[\s\S]+<CellRenderer/);
+  assert.doesNotMatch(cellRendererSource, /TableCellFrame/);
 });
 
 test("duplicating a shared view copies the current user's personal layout and only drafts visible order when needed", async () => {
@@ -676,17 +735,22 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
 
   assert.match(viewTabsSource, /onToggleFilterBar/);
+  assert.match(viewTabsSource, /onToggleTableTextEditMode/);
   assert.match(viewTabsSource, /onToggleRowDeleteControls/);
   assert.match(viewTabsSource, /hasActiveFilters/);
   assert.match(viewTabsSource, /rowDeleteControlsVisible/);
   assert.match(viewTabsSource, /aria-pressed=\{filterBarVisible\}/);
+  assert.match(viewTabsSource, /aria-pressed=\{tableTextEditMode\}/);
   assert.match(viewTabsSource, /aria-pressed=\{rowDeleteControlsVisible\}/);
   assert.match(viewTabsSource, /view-tabs-filter-toggle/);
+  assert.match(viewTabsSource, /view-tabs-table-edit-toggle/);
   assert.match(viewTabsSource, /hasActiveFilters \? "has-filters" : ""/);
   assert.match(viewTabsSource, /filterBarVisible \? "visible" : ""/);
   assert.match(viewTabsSource, /view-tabs-row-delete-toggle/);
   assert.match(viewTabsSource, /rowDeleteControlsVisible \? "active" : ""/);
   assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
+  assert.match(viewTabsSource, /<icons\.edit size=\{18\} \/>/);
+  assert.match(viewTabsSource, /<span>编辑<\/span>/);
   assert.match(viewTabsSource, /<span>调整<\/span>/);
   assert.doesNotMatch(viewTabsSource, /<span>配置<\/span>/);
   assert.doesNotMatch(viewTabsSource, /view-tabs-search/);
@@ -701,7 +765,7 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
 
   assert.match(filterBarSource, /onSaveForEveryone/);
   assert.match(filterBarSource, /onResetView/);
-  assert.match(filterBarSource, /const showSharedViewActions = !saving && \(dirty \|\| viewOrderDirty\);/);
+  assert.match(filterBarSource, /const showSharedViewActions = !commandSaving && \(dirty \|\| viewOrderDirty\);/);
   assert.match(filterBarSource, /view-filter-actions/);
   assert.match(filterBarSource, /为所有人保存/);
   assert.match(filterBarSource, /重置/);

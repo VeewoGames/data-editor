@@ -32,7 +32,7 @@ export type ViewFilterBarSnapshot = {
   relationFilterOptions?: Record<string, MultiSelectOptionView[]>;
   dirty: boolean;
   viewOrderDirty: boolean;
-  saving: boolean;
+  commandSaving: boolean;
   autoOpenRuleId: string | null;
 };
 
@@ -55,7 +55,7 @@ export function ViewFilterBar({
     relationFilterOptions = {},
     dirty,
     viewOrderDirty,
-    saving,
+    commandSaving,
     autoOpenRuleId,
   } = snapshot;
   const [addFilterOpen, setAddFilterOpen] = useState(false);
@@ -71,7 +71,7 @@ export function ViewFilterBar({
   const visibleFilterRules = view.filters?.rules ?? [];
   const availableFilterFields = fields.filter((field) => !visibleFilterRules.some((rule) => rule.field === field));
   const sorts = view.sorts ?? [];
-  const showSharedViewActions = !saving && (dirty || viewOrderDirty);
+  const showSharedViewActions = !commandSaving && (dirty || viewOrderDirty);
   const currentScopeKey = `${collectionKey ?? "__unknown_collection__"}::${view.id}`;
 
   useEffect(() => {

@@ -17,10 +17,11 @@ import { SelectCellEditor } from "../table/SelectCellEditor";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
 import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
-import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { FieldTypeIcon } from "../components/FieldTypeIcon";
 import { resolveValidationIssue } from "../validation/issue-lookup.mjs";
 import type { ValidationSnapshot } from "../validation/issue-map";
+import { StableTextInput, StableTextarea, type ActiveTextEditorHandle, type ActiveTextEditorRegistrar, type StableTextInputHandle } from "../editing";
+import { AutoSizeTextarea } from "./AutoSizeTextarea";
 
 export type DetailSnapshot = {
   open: boolean;
@@ -45,7 +46,7 @@ export type DetailSnapshot = {
   primaryKeyImpacts: Record<string, PrimaryKeyImpact>;
   primaryKeySyncPlan: PrimaryKeySyncPlan | null;
   primaryKeySyncResult: SaveDocumentsResult | null;
-  saving: boolean;
+  commandSaving: boolean;
 };
 
 type DetailPanelProps = {
@@ -61,6 +62,7 @@ type DetailPanelProps = {
   onPanelWidthCommit: (width: number) => void;
   onEditField: (fieldName: string, value: unknown) => void;
   onReorderFields: (nextOrder: string[]) => void;
+  onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
 };
 
 type SelectOptionsByField = Record<string, MultiSelectOptionView[]>;
@@ -85,6 +87,7 @@ export function DetailPanel({
   onPanelWidthCommit,
   onEditField,
   onReorderFields,
+  onRegisterActiveTextEditor,
 }: DetailPanelProps) {
   const {
     open,
@@ -109,7 +112,7 @@ export function DetailPanel({
     primaryKeyImpacts,
     primaryKeySyncPlan,
     primaryKeySyncResult,
-    saving,
+    commandSaving,
   } = snapshot;
   const panelRef = useRef<HTMLElement | null>(null);
   const nestedPanelRef = useRef<HTMLElement | null>(null);
@@ -412,6 +415,7 @@ export function DetailPanel({
                         onCommitMultiSelectDraft,
                         onCommitSelectDraft,
                         onEditField,
+                        onRegisterActiveTextEditor,
                         onOpenNested: (nestedValue, path, customTitle) => openNestedField(key, nestedValue, path, customTitle),
                       })}
                     </section>
@@ -429,7 +433,7 @@ export function DetailPanel({
           impacts={primaryKeyImpacts}
           syncPlan={primaryKeySyncPlan}
           syncResult={primaryKeySyncResult}
-          syncing={saving}
+          syncing={commandSaving}
           onOpenBacklink={onOpenBacklink}
           onRequestSyncSave={onRequestSyncSave}
         />
@@ -751,6 +755,7 @@ function renderValueEditor(props: {
   onCommitMultiSelectDraft?: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onCommitSelectDraft?: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onEditField: (fieldName: string, value: unknown) => void;
+  onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
   onOpenNested: (value: unknown, path: Array<string | number>, customTitle?: string) => void;
 }) {
   const relation = getRelationConfig(props.pathParts, props.relationOptions, props.relationConfigs, props.sourcePath, props.collectionPath);
@@ -845,22 +850,82 @@ function renderValueEditor(props: {
   }
   if (shouldUseMultilineEditor(props.fieldName, props.value)) {
     return (
-      <AutoSizeTextarea
-        key={`${props.fieldName}:${String(props.value ?? "")}`}
+      <DetailStableTextEditor
+        multiline
+        identityKey={props.cellId}
         className="detail-input detail-textarea"
-        defaultValue={props.value == null ? "" : String(props.value)}
-        onInput={(event) => props.onEditField(props.fieldName, (event.target as HTMLTextAreaElement).value)}
+        value={props.value}
+        fieldName={props.fieldName}
+        onEditField={props.onEditField}
+        onRegisterActiveEditor={props.onRegisterActiveTextEditor}
       />
     );
   }
   return (
-    <input
-      key={`${props.fieldName}:${String(props.value ?? "")}`}
+    <DetailStableTextEditor
+      identityKey={props.cellId}
       className="detail-input"
-      defaultValue={props.value == null ? "" : String(props.value)}
-      onInput={(event) => props.onEditField(props.fieldName, (event.target as HTMLInputElement).value)}
+      value={props.value}
+      fieldName={props.fieldName}
+      onEditField={props.onEditField}
+      onRegisterActiveEditor={props.onRegisterActiveTextEditor}
     />
   );
+}
+
+function DetailStableTextEditor(
+  {
+    multiline = false,
+    identityKey,
+    className,
+    value,
+    fieldName,
+    onEditField,
+    onRegisterActiveEditor,
+  }: {
+    multiline?: boolean;
+    identityKey: string;
+    className: string;
+    value: unknown;
+    fieldName: string;
+    onEditField: (fieldName: string, value: unknown) => void;
+    onRegisterActiveEditor?: ActiveTextEditorRegistrar;
+  },
+) {
+  const inputRef = useRef<StableTextInputHandle | null>(null);
+  const activeHandleRef = useRef<ActiveTextEditorHandle | null>(null);
+
+  function registerActiveEditor() {
+    const handle: ActiveTextEditorHandle = {
+      identityKey,
+      flushDraft: () => inputRef.current?.flushDraft(),
+    };
+    activeHandleRef.current = handle;
+    onRegisterActiveEditor?.(handle);
+  }
+
+  function clearActiveEditor() {
+    if (!activeHandleRef.current) return;
+    onRegisterActiveEditor?.(null, activeHandleRef.current);
+    activeHandleRef.current = null;
+  }
+
+  useEffect(() => () => {
+    if (activeHandleRef.current) onRegisterActiveEditor?.(null, activeHandleRef.current);
+  }, [onRegisterActiveEditor]);
+
+  const sharedProps = {
+    identityKey,
+    className,
+    value,
+    commitMode: "realtime" as const,
+    onChangeValue: (next: string) => onEditField(fieldName, next),
+    onFocus: registerActiveEditor,
+    onBlur: clearActiveEditor,
+  };
+
+  if (multiline) return <StableTextarea {...sharedProps} ref={inputRef} />;
+  return <StableTextInput {...sharedProps} ref={inputRef} />;
 }
 
 function getRelationConfig(

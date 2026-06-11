@@ -10,6 +10,7 @@ import { RelationCellEditor } from "./RelationCellEditor";
 import { SelectCellEditor } from "./SelectCellEditor";
 import type { MultiSelectFieldOptionConfig, SelectFieldOptionConfig } from "./DataTable";
 import type { RelationMode } from "../model/viewConfig";
+import { TableTextCellEditor, type ActiveTextEditorRegistrar } from "../editing";
 
 type CellRendererProps = {
   cellId?: string;
@@ -22,6 +23,8 @@ type CellRendererProps = {
   relationOptions?: RelationOption[];
   relationConfigured?: boolean;
   relationMode?: RelationMode;
+  textEditable?: boolean;
+  onRegisterActiveEditor?: ActiveTextEditorRegistrar;
   onEdit: (value: unknown) => void;
   onOpenRelationTarget?: (value: string | number) => void;
   onCommitMultiSelectDraft?: (patch: OptionFieldDraftCommit) => void;
@@ -39,42 +42,53 @@ function CellRendererComponent({
   relationOptions = [],
   relationConfigured = false,
   relationMode,
+  textEditable = false,
+  onRegisterActiveEditor,
   onEdit,
   onOpenRelationTarget,
   onCommitMultiSelectDraft,
   onCommitSelectDraft,
 }: CellRendererProps) {
   const shouldShowIssue = issue != null && !shouldSuppressRelationIssue(displayType, value);
+  const issueNode = shouldShowIssue ? <Issue issue={issue} /> : null;
   if (!isCompatible(displayType, value)) {
     return (
-      <div className="cell-incompatible">
-        <icons.incompatible size={14} />
-        不兼容
+      <div className="table-cell-content-main">
+        <div className="cell-incompatible">
+          <icons.incompatible size={14} />
+          不兼容
+        </div>
       </div>
     );
   }
 
   if (displayType === "Checkbox") {
     return (
-      <label className="checkbox-cell" onClick={(event) => event.stopPropagation()}>
-        <input type="checkbox" checked={Boolean(value)} onChange={(event) => onEdit(event.target.checked)} />
-        {shouldShowIssue ? <Issue issue={issue} /> : null}
-      </label>
+      <>
+        <div className="table-cell-content-main">
+          <label className="checkbox-cell" onClick={(event) => event.stopPropagation()}>
+            <input type="checkbox" checked={Boolean(value)} onChange={(event) => onEdit(event.target.checked)} />
+          </label>
+        </div>
+        {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
+      </>
     );
   }
 
   if (displayType === "Multi-select" && Array.isArray(value)) {
     return (
       <>
-        <MultiSelectCellEditor
-          cellId={cellId}
-          onCommitDraft={onCommitMultiSelectDraft ?? (() => {})}
-          surface="table"
-          value={value as Array<string | number>}
-          options={multiSelectConfig?.options ?? []}
-          wrapped={wrapped}
-        />
-        {shouldShowIssue ? <Issue issue={issue} /> : null}
+        <div className="table-cell-content-main">
+          <MultiSelectCellEditor
+            cellId={cellId}
+            onCommitDraft={onCommitMultiSelectDraft ?? (() => {})}
+            surface="table"
+            value={value as Array<string | number>}
+            options={multiSelectConfig?.options ?? []}
+            wrapped={wrapped}
+          />
+        </div>
+        {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
       </>
     );
   }
@@ -82,15 +96,17 @@ function CellRendererComponent({
   if (displayType === "Select" && (value == null || typeof value === "string" || typeof value === "number")) {
     return (
       <>
-        <SelectCellEditor
-          cellId={cellId}
-          onCommitDraft={onCommitSelectDraft ?? (() => {})}
-          surface="table"
-          options={selectConfig?.options ?? []}
-          value={value as string | number | null}
-          wrapped={wrapped}
-        />
-        {shouldShowIssue ? <Issue issue={issue} /> : null}
+        <div className="table-cell-content-main">
+          <SelectCellEditor
+            cellId={cellId}
+            onCommitDraft={onCommitSelectDraft ?? (() => {})}
+            surface="table"
+            options={selectConfig?.options ?? []}
+            value={value as string | number | null}
+            wrapped={wrapped}
+          />
+        </div>
+        {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
       </>
     );
   }
@@ -98,33 +114,59 @@ function CellRendererComponent({
   if (displayType === "Relation" && (value == null || Array.isArray(value) || typeof value === "string" || typeof value === "number")) {
     return (
       <>
-        <RelationCellEditor
-          cellId={cellId}
-          configured={relationConfigured}
-          mode={relationMode}
-          options={relationOptions}
-          surface="table"
-          value={value as string | number | null | Array<string | number>}
-          wrapped={wrapped}
-          onOpenTarget={onOpenRelationTarget}
-          onEdit={onEdit}
-        />
-        {shouldShowIssue ? <Issue issue={issue} /> : null}
+        <div className="table-cell-content-main">
+          <RelationCellEditor
+            cellId={cellId}
+            configured={relationConfigured}
+            mode={relationMode}
+            options={relationOptions}
+            surface="table"
+            value={value as string | number | null | Array<string | number>}
+            wrapped={wrapped}
+            onOpenTarget={onOpenRelationTarget}
+            onEdit={onEdit}
+          />
+        </div>
+        {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
       </>
     );
   }
 
   const textValue = value == null ? "" : String(value);
+  if (
+    displayType === "Text" &&
+    textEditable &&
+    (value == null || typeof value === "string" || typeof value === "number")
+  ) {
+    return (
+      <>
+        <div className="table-cell-content-main">
+          <TableTextCellEditor
+            cellId={cellId}
+            value={value}
+            wrapped={wrapped}
+            onChangeValue={(next) => onEdit(next)}
+            onRegisterActiveEditor={onRegisterActiveEditor}
+          />
+        </div>
+        {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
+      </>
+    );
+  }
   return (
-    <div
-      className={`editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
-      data-cell-role="content"
-      data-wrap-mode={wrapped ? "wrap" : "truncate"}
-      title={textValue}
-    >
-      <span>{textValue}</span>
-      {shouldShowIssue ? <Issue issue={issue} /> : null}
-    </div>
+    <>
+      <div className="table-cell-content-main">
+        <div
+          className={`editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
+          data-cell-role="content"
+          data-wrap-mode={wrapped ? "wrap" : "truncate"}
+          title={textValue}
+        >
+          <span>{textValue}</span>
+        </div>
+      </div>
+      {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
+    </>
   );
 }
 
@@ -139,6 +181,8 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.relationOptions === next.relationOptions &&
   previous.relationConfigured === next.relationConfigured &&
   previous.relationMode === next.relationMode &&
+  previous.textEditable === next.textEditable &&
+  previous.onRegisterActiveEditor === next.onRegisterActiveEditor &&
   previous.onEdit === next.onEdit &&
   previous.onOpenRelationTarget === next.onOpenRelationTarget &&
   previous.onCommitMultiSelectDraft === next.onCommitMultiSelectDraft &&

@@ -4,17 +4,21 @@ import { BacklinkCellViewer } from "./BacklinkCellViewer";
 import { CellRenderer } from "./CellRenderer";
 import { ColumnHeader } from "./ColumnHeader";
 import type { OptionFieldDraftCommit } from "./OptionFieldEditor";
+import { TableCellFrame, type TableCellContentKind, type TableCellLayout } from "./TableCellFrame";
 import { summarizeNested, type DataRecord } from "../model/documentModel";
-import type { FieldDisplayType } from "../model/fieldTypes";
+import { isCompatible, type FieldDisplayType } from "../model/fieldTypes";
 import type { RelationBacklink } from "../model/relationMaintenance";
 import type { RelationConfig } from "../model/viewConfig";
 import type { TableColumnModel } from "./table-column-models";
 import { resolveValidationIssue } from "../validation/issue-lookup.mjs";
 import type { ValidationSnapshot } from "../validation/issue-map";
+import type { ActiveTextEditorRegistrar } from "../editing";
 
 type TableColumnsRuntime = {
   backlinkValuesByRowId: Record<number | string, Record<string, RelationBacklink[]>>;
   validation: ValidationSnapshot | null;
+  textEditable: boolean;
+  onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
   onSort: (fieldName: string, direction: "asc" | "desc" | null) => void;
   onAddFilter: (fieldName: string, displayType: FieldDisplayType) => void;
   onHideField: (fieldName: string) => void;
@@ -55,6 +59,7 @@ type TableColumnHeaderSnapshot = {
 };
 
 type TableColumnsHeaderStore = ReturnType<typeof createTableColumnsHeaderStore>;
+type CellFrameMeta = { kind: TableCellContentKind; layout: TableCellLayout };
 
 const TableColumnsRuntimeContext = createContext<TableColumnsRuntime | null>(null);
 const TableColumnsHeaderStoreContext = createContext<TableColumnsHeaderStore | null>(null);
@@ -172,58 +177,75 @@ function TableColumnCellView(
   },
 ) {
   const runtime = useTableColumnsRuntime();
+  const displayType = columnModel.relationConfig ? "Relation" : columnModel.displayType;
+  const frameMeta = resolveCellFrameMeta(columnModel, displayType, value, runtime.textEditable);
+
   if (columnModel.backlinkColumn) {
     return (
-      <BacklinkCellViewer
-        items={runtime.backlinkValuesByRowId[rowId]?.[columnModel.fieldName] ?? []}
-        status={columnModel.backlinkColumn.status}
-        message={columnModel.backlinkColumn.message}
-        wrapped={columnModel.wrapped}
-        onOpen={runtime.onOpenBacklink}
-      />
+      <TableCellFrame kind={frameMeta.kind} layout={frameMeta.layout}>
+        <BacklinkCellViewer
+          items={runtime.backlinkValuesByRowId[rowId]?.[columnModel.fieldName] ?? []}
+          status={columnModel.backlinkColumn.status}
+          message={columnModel.backlinkColumn.message}
+          wrapped={columnModel.wrapped}
+          onOpen={runtime.onOpenBacklink}
+        />
+      </TableCellFrame>
     );
   }
   if (columnModel.isNested) {
     return (
-      <button className="nested-summary" onClick={() => runtime.onSelectRow(originalRowIndex, rowId)}>
-        {summarizeNestedValue(value)}
-      </button>
+      <TableCellFrame kind={frameMeta.kind} layout={frameMeta.layout}>
+        <div className="table-cell-content-main">
+          <button className="nested-summary" onClick={() => runtime.onSelectRow(originalRowIndex, rowId)} type="button">
+            {summarizeNestedValue(value)}
+          </button>
+        </div>
+      </TableCellFrame>
     );
   }
   if (columnModel.isTitle) {
     return (
-      <button
-        type="button"
-        className={`title-cell title-cell-button cell-text-content ${columnModel.wrapped ? "cell-text-wrap" : ""}`}
-        data-cell-role="title-action"
-        data-wrap-mode={columnModel.wrapped ? "wrap" : "truncate"}
-        onClick={(event) => {
-          event.stopPropagation();
-          runtime.onOpenDetail(originalRowIndex, rowId);
-        }}
-        title="Open detail"
-      >
-        <span className="title-cell-text" data-cell-role="title-text">{value == null ? "" : String(value)}</span>
-      </button>
+      <TableCellFrame kind={frameMeta.kind} layout={frameMeta.layout}>
+        <div className="table-cell-content-main">
+          <button
+            type="button"
+            className={`title-cell title-cell-button cell-text-content ${columnModel.wrapped ? "cell-text-wrap" : ""}`}
+            data-cell-role="title-action"
+            data-wrap-mode={columnModel.wrapped ? "wrap" : "truncate"}
+            onClick={(event) => {
+              event.stopPropagation();
+              runtime.onOpenDetail(originalRowIndex, rowId);
+            }}
+            title="Open detail"
+          >
+            <span className="title-cell-text" data-cell-role="title-text">{value == null ? "" : String(value)}</span>
+          </button>
+        </div>
+      </TableCellFrame>
     );
   }
   return (
-    <CellRenderer
-      cellId={`${rowId}:${columnModel.fieldName}`}
-      value={value}
-      displayType={columnModel.relationConfig ? "Relation" : columnModel.displayType}
-      wrapped={columnModel.wrapped}
-      multiSelectConfig={columnModel.multiSelectConfig}
-      selectConfig={columnModel.selectConfig}
-      relationOptions={columnModel.relationOptions}
-      relationConfigured={columnModel.relationConfigured}
-      relationMode={columnModel.relationConfig?.mode}
-      onOpenRelationTarget={columnModel.relationConfig ? (nextValue) => runtime.onOpenRelationTarget(columnModel.relationConfig as RelationConfig, nextValue) : undefined}
-      issue={resolveValidationIssue(runtime.validation, rowId, originalRowIndex, columnModel.fieldName)}
-      onEdit={(next) => runtime.onEditCell(originalRowIndex, rowId, columnModel.fieldName, next)}
-      onCommitMultiSelectDraft={(patch) => runtime.onCommitMultiSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
-      onCommitSelectDraft={(patch) => runtime.onCommitSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
-    />
+    <TableCellFrame kind={frameMeta.kind} layout={frameMeta.layout}>
+      <CellRenderer
+        cellId={`${rowId}:${columnModel.fieldName}`}
+        value={value}
+        displayType={displayType}
+        wrapped={columnModel.wrapped}
+        multiSelectConfig={columnModel.multiSelectConfig}
+        selectConfig={columnModel.selectConfig}
+        relationOptions={columnModel.relationOptions}
+        relationConfigured={columnModel.relationConfigured}
+        relationMode={columnModel.relationConfig?.mode}
+        onOpenRelationTarget={columnModel.relationConfig ? (nextValue) => runtime.onOpenRelationTarget(columnModel.relationConfig as RelationConfig, nextValue) : undefined}
+        issue={resolveValidationIssue(runtime.validation, rowId, originalRowIndex, columnModel.fieldName)}
+        textEditable={runtime.textEditable}
+        onRegisterActiveEditor={runtime.onRegisterActiveTextEditor}
+        onEdit={(next) => runtime.onEditCell(originalRowIndex, rowId, columnModel.fieldName, next)}
+        onCommitMultiSelectDraft={(patch) => runtime.onCommitMultiSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
+        onCommitSelectDraft={(patch) => runtime.onCommitSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
+      />
+    </TableCellFrame>
   );
 }
 
@@ -239,6 +261,35 @@ const MemoTableColumnCellView = memo(
 function summarizeNestedValue(value: unknown) {
   if (value == null) return "未设置";
   return summarizeNested(value);
+}
+
+function resolveCellFrameMeta(columnModel: TableColumnModel, displayType: FieldDisplayType, value: unknown, textEditable: boolean): CellFrameMeta {
+  if (columnModel.backlinkColumn) {
+    return { kind: "backlink", layout: "center" };
+  }
+  if (columnModel.isNested) {
+    return { kind: "nested", layout: "center" };
+  }
+  if (columnModel.isTitle) {
+    return { kind: "title", layout: "center" };
+  }
+  if (!isCompatible(displayType, value)) {
+    return { kind: "incompatible", layout: "center" };
+  }
+  if (displayType === "Checkbox") {
+    return { kind: "checkbox", layout: "center" };
+  }
+  if (displayType === "Select" || displayType === "Multi-select" || displayType === "Relation") {
+    return { kind: "token", layout: "center" };
+  }
+  if (
+    displayType === "Text" &&
+    textEditable &&
+    (value == null || typeof value === "string" || typeof value === "number")
+  ) {
+    return { kind: "editor", layout: "editor" };
+  }
+  return { kind: "text", layout: "center" };
 }
 
 function createTableColumnsHeaderStore(initialState: TableColumnsHeaderState) {

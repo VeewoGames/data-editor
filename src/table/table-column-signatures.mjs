@@ -14,6 +14,7 @@ import { defaultTypeFor } from "../model/fieldTypes.mjs";
  *   fieldOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   selectOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   widths: Record<string, number>;
+ *   textEditable: boolean;
  * }} input
  */
 export function buildTableColumnModelsSignature({
@@ -29,6 +30,7 @@ export function buildTableColumnModelsSignature({
   fieldOptions,
   selectOptions,
   widths,
+  textEditable,
 }) {
   return visibleFields.map((fieldName) => {
     const backlinkColumn = backlinkColumns.find((column) => column.fieldName === fieldName);
@@ -53,6 +55,7 @@ export function buildTableColumnModelsSignature({
       signatureRelationOptions(relationOptionsByField[fieldName] ?? []),
       signatureOptionConfig(fieldOptions[fieldName]),
       signatureOptionConfig(selectOptions[fieldName]),
+      textEditable && displayType === "Text" && fieldName !== detectedTitleField ? "text-editable" : "text-readonly",
     ].join("::");
   }).join("||");
 }

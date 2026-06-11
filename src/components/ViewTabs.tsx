@@ -12,6 +12,7 @@ export type ViewTabsProps = {
   onDuplicateView: (viewId: string) => void;
   onReorderViews: (viewIds: string[]) => void;
   onToggleFilterBar: () => void;
+  onToggleTableTextEditMode: () => void;
   onToggleRowDeleteControls: () => void;
 };
 
@@ -19,9 +20,10 @@ export type ViewTabsSnapshot = {
   views: CollectionView[];
   activeViewId: string | null;
   dirtyViewIds: Set<string>;
-  saving: boolean;
+  commandSaving: boolean;
   filterBarVisible: boolean;
   hasActiveFilters: boolean;
+  tableTextEditMode: boolean;
   rowDeleteControlsVisible: boolean;
   viewOrderDirty: boolean;
 };
@@ -35,15 +37,17 @@ export function ViewTabs({
   onDuplicateView,
   onReorderViews,
   onToggleFilterBar,
+  onToggleTableTextEditMode,
   onToggleRowDeleteControls,
 }: ViewTabsProps) {
   const {
     views,
     activeViewId,
     dirtyViewIds,
-    saving,
+    commandSaving,
     filterBarVisible,
     hasActiveFilters,
+    tableTextEditMode,
     rowDeleteControlsVisible,
     viewOrderDirty,
   } = snapshot;
@@ -74,7 +78,7 @@ export function ViewTabs({
   }>(null);
   const suppressClickRef = useRef(false);
   const viewIds = useMemo(() => views.map((view) => view.id), [views]);
-  const viewTabsDisabled = saving;
+  const viewTabsDisabled = commandSaving;
 
   useEffect(() => {
     if (!draggingViewId) return;
@@ -342,6 +346,20 @@ export function ViewTabs({
         >
           <icons.filter size={18} />
           <span>筛选</span>
+        </button>
+        <button
+          type="button"
+          className={[
+            "view-tab-action table-edit-toggle view-tabs-table-edit-toggle",
+            tableTextEditMode ? "active" : "",
+          ].filter(Boolean).join(" ")}
+          onClick={onToggleTableTextEditMode}
+          aria-pressed={tableTextEditMode}
+          disabled={viewTabsDisabled}
+          title="编辑文本单元格"
+        >
+          <icons.edit size={18} />
+          <span>编辑</span>
         </button>
         <button
           type="button"

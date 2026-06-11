@@ -27,6 +27,7 @@ test("buildTableColumnModelsSignature stays stable when runtime refs churn witho
     fieldOptions: {},
     selectOptions: {},
     widths: { title: 240, target_id: 180, payload: 260 },
+    textEditable: false,
   };
 
   const first = buildTableColumnModelsSignature(base);
@@ -67,6 +68,7 @@ test("buildTableColumnModelsSignature changes when compiled column output should
     fieldOptions: {},
     selectOptions: {},
     widths: { title: 240, target_id: 180 },
+    textEditable: false,
   };
 
   const first = buildTableColumnModelsSignature(base);
@@ -82,4 +84,38 @@ test("buildTableColumnModelsSignature changes when compiled column output should
   assert.notEqual(wrapped, first);
   assert.notEqual(resized, first);
   assert.notEqual(relabeled, first);
+});
+
+test("buildTableColumnModelsSignature changes when table text editing changes text cell rendering", () => {
+  const base = {
+    visibleFields: ["title", "description", "target_id"],
+    rows: [{ title: "Fireball", description: "Burns", target_id: "enemy_a" }],
+    nestedFieldSet: new Set(),
+    displayTypes: { title: "Text", description: "Text", target_id: "Relation" },
+    wrappedFields: new Set(),
+    detectedTitleField: "title",
+    backlinkColumns: [],
+    relationOptionsByField: {
+      target_id: [{ value: "enemy_a", label: "Enemy A", description: "boss" }],
+    },
+    relationConfigByField: {
+      target_id: {
+        targetFile: "data/enemies.json",
+        targetCollection: "$",
+        targetKey: "id",
+        mode: "single",
+        allowMissing: false,
+        titleFields: ["name"],
+      },
+    },
+    fieldOptions: {},
+    selectOptions: {},
+    widths: { title: 240, description: 260, target_id: 180 },
+    textEditable: false,
+  };
+
+  const readonly = buildTableColumnModelsSignature(base);
+  const editable = buildTableColumnModelsSignature({ ...base, textEditable: true });
+
+  assert.notEqual(editable, readonly);
 });

@@ -242,6 +242,16 @@ function tableRow(page: Page, index: number) {
   return tableRows(page).nth(index);
 }
 
+function tableCell(page: Page, rowIndex: number, fieldName: string) {
+  return tableRow(page, rowIndex).locator(`td[data-column-field="${fieldName}"]`).first();
+}
+
+async function clickCellWhitespace(page: Page, rowIndex: number, fieldName: string, xRatio = 0.92, yRatio = 0.82) {
+  const box = await tableCell(page, rowIndex, fieldName).boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.click(box!.x + box!.width * xRatio, box!.y + box!.height * yRatio);
+}
+
 async function getSortRuleFields(page: Page) {
   return page.locator(".sort-rule-row .sort-field-trigger").evaluateAll((items) => (
     items.map((item) => item.textContent?.replace(/\s+/g, " ").trim() ?? "")
@@ -2342,7 +2352,7 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
       heights,
     };
   });
-  expect(wrapResult.tdVerticalAlign).toBe("top");
+  expect(wrapResult.tdVerticalAlign).toBe("middle");
   expect(wrapResult.whiteSpace).toBe("normal");
   expect(["normal", null]).toContain(wrapResult.titleWhiteSpace);
   expect(wrapResult.contentScrollHeight).toBeLessThanOrEqual(wrapResult.contentClientHeight);
@@ -2747,6 +2757,448 @@ test("autosave persists scratch json edits without toolbar save button", async (
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_mixed.json"), "utf8");
     return text.includes("autosave_e2e");
   });
+});
+
+test("detail text input keeps focus while autosave runs", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+
+  const nameInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "name" }).locator(".detail-input").first();
+  await nameInput.click();
+  await nameInput.evaluate((node) => {
+    (node as HTMLElement).dataset.identityProbe = "detail-name-probe";
+  });
+  await nameInput.fill("focus stable name");
+
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/data/e2e_mixed.json"), "utf8");
+    return text.includes("focus stable name");
+  });
+
+  await expect(nameInput).toBeFocused();
+  await expect(nameInput).toHaveAttribute("data-identity-probe", "detail-name-probe");
+});
+
+test("table text edit mode toggles ordinary text cell editing and autosaves", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableCell(page, 0, "description").click();
+  await expect(page.locator(".table-text-cell-editor")).toHaveCount(0);
+
+  const editButton = page.getByRole("button", { name: "编辑" });
+  await expect(editButton).toHaveAttribute("aria-pressed", "false");
+  await editButton.click();
+  await expect(editButton).toHaveAttribute("aria-pressed", "true");
+
+  const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor input");
+  await expect(editor).toBeVisible();
+  await editor.click();
+  const activeStyle = await tableCell(page, 0, "description").locator(".table-text-cell-editor").evaluate((element) => {
+    const style = getComputedStyle(element);
+    const editorRect = element.getBoundingClientRect();
+    const cellRect = element.closest("td")!.getBoundingClientRect();
+    const input = element.querySelector("input") as HTMLInputElement;
+    const inputRect = input.getBoundingClientRect();
+    return {
+      background: style.backgroundColor,
+      borderTopWidth: style.borderTopWidth,
+      boxShadow: style.boxShadow,
+      cellWidth: cellRect.width,
+      cellHeight: cellRect.height,
+      topDelta: editorRect.top - cellRect.top,
+      leftDelta: editorRect.left - cellRect.left,
+      rightDelta: editorRect.right - cellRect.right,
+      bottomDelta: editorRect.bottom - cellRect.bottom,
+      editorWidth: editorRect.width,
+      editorHeight: editorRect.height,
+      inputWidth: inputRect.width,
+      zIndex: style.zIndex,
+    };
+  });
+  expect(activeStyle.background).toBe("rgb(255, 255, 255)");
+  expect(activeStyle.borderTopWidth).not.toBe("0px");
+  expect(activeStyle.boxShadow).not.toBe("none");
+  expect(Math.abs(activeStyle.topDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeStyle.leftDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeStyle.rightDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeStyle.bottomDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeStyle.editorWidth - activeStyle.cellWidth)).toBeLessThanOrEqual(2);
+  expect(Math.abs(activeStyle.editorHeight - activeStyle.cellHeight)).toBeLessThanOrEqual(2);
+  expect(activeStyle.inputWidth).toBeGreaterThan(activeStyle.cellWidth - 24);
+  expect(Number(activeStyle.zIndex)).toBeGreaterThan(0);
+
+  await editor.fill("table text edit value");
+  await page.waitForTimeout(400);
+  const textBeforeBlur = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
+  expect(textBeforeBlur).not.toContain("table text edit value");
+
+  await editor.blur();
+
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
+    return text.includes("table text edit value");
+  });
+  await expect(editor).toHaveValue("table text edit value");
+});
+
+test("table text edit mode preserves wrapped text layout", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:wrapped", "1");
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:width", "160");
+  });
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "编辑" }).click();
+
+  const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor textarea");
+  await expect(editor).toBeVisible();
+  await editor.fill("wrapped table edit value with enough words to span multiple visual lines");
+
+  const layout = await tableCell(page, 0, "description").evaluate((cell) => {
+    const textarea = cell.querySelector(".table-text-cell-editor textarea") as HTMLTextAreaElement;
+    const editor = cell.querySelector(".table-text-cell-editor") as HTMLElement;
+    const cellRect = cell.getBoundingClientRect();
+    const editorRect = editor.getBoundingClientRect();
+    return {
+      wrapMode: cell.getAttribute("data-wrap-mode"),
+      whiteSpace: getComputedStyle(textarea).whiteSpace,
+      overflowWrap: getComputedStyle(textarea).overflowWrap,
+      clientHeight: textarea.clientHeight,
+      scrollHeight: textarea.scrollHeight,
+      topDelta: editorRect.top - cellRect.top,
+      leftDelta: editorRect.left - cellRect.left,
+      rightDelta: editorRect.right - cellRect.right,
+      bottomDelta: editorRect.bottom - cellRect.bottom,
+      editorWidth: editorRect.width,
+      cellWidth: cellRect.width,
+    };
+  });
+
+  expect(layout.wrapMode).toBe("wrap");
+  expect(layout.whiteSpace).toBe("pre-wrap");
+  expect(["anywhere", "break-word"]).toContain(layout.overflowWrap);
+  expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1);
+  expect(Math.abs(layout.topDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout.leftDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout.rightDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout.bottomDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout.editorWidth - layout.cellWidth)).toBeLessThanOrEqual(2);
+});
+
+test("table text edit active frame fills a tall cell", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_tall_text_cell.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "Tall row",
+      short_text: "命中率+10%，暴击率+3%",
+      long_text: "这是一段用来撑高同行单元格的长文本，开启自动换行后会占用多行高度，从而验证短文本编辑框是否能贴合整个单元格上下边界。"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_tall_text_cell.json:$:all:long_text:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_tall_text_cell.json:$:all:long_text:width", "120");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_tall_text_cell.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await page.getByRole("button", { name: "编辑" }).click();
+
+    const editor = tableCell(page, 0, "short_text").locator(".table-text-cell-editor input");
+    await expect(editor).toBeVisible();
+    await editor.click();
+
+    const frame = await tableCell(page, 0, "short_text").evaluate((cell) => {
+      const editorFrame = cell.querySelector(".table-text-cell-editor") as HTMLElement;
+      const cellRect = cell.getBoundingClientRect();
+      const frameRect = editorFrame.getBoundingClientRect();
+      return {
+        cellHeight: cellRect.height,
+        frameHeight: frameRect.height,
+        topDelta: frameRect.top - cellRect.top,
+        bottomDelta: frameRect.bottom - cellRect.bottom,
+      };
+    });
+
+    expect(frame.cellHeight).toBeGreaterThan(48);
+    expect(Math.abs(frame.topDelta)).toBeLessThanOrEqual(1);
+    expect(Math.abs(frame.bottomDelta)).toBeLessThanOrEqual(1);
+    expect(Math.abs(frame.frameHeight - frame.cellHeight)).toBeLessThanOrEqual(2);
+  } finally {
+    await bestEffortRestore("e2e_tall_text_cell.json", () => rm(dataPath, { force: true }));
+  }
+});
+
+test("single line table cells use the same top inset in tall wrapped rows", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_single_line_padding.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "Padding row",
+      short_text: "每回合第2次攻击伤害+30%",
+      long_text: "这是一段用于撑高同行的长文本。开启自动换行后，普通单行文本单元格应该和多行文本使用同一组顶部内边距。"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_single_line_padding.json:$:all:short_text:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_single_line_padding.json:$:all:short_text:width", "180");
+      localStorage.setItem("data-editor:data/e2e_single_line_padding.json:$:all:long_text:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_single_line_padding.json:$:all:long_text:width", "120");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_single_line_padding.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    const padding = await tableCell(page, 0, "short_text").evaluate((cell) => {
+      const content = cell.querySelector('[data-cell-role="content"] span') as HTMLElement;
+      const cellRect = cell.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      return {
+        wrapMode: cell.getAttribute("data-wrap-mode"),
+        cellHeight: cellRect.height,
+        topGap: contentRect.top - cellRect.top,
+        bottomGap: cellRect.bottom - contentRect.bottom,
+      };
+    });
+
+    expect(padding.wrapMode).toBe("wrap");
+    expect(padding.cellHeight).toBeGreaterThan(48);
+    expect(padding.topGap).toBeGreaterThanOrEqual(7);
+    expect(padding.topGap).toBeLessThanOrEqual(10);
+    expect(padding.bottomGap).toBeGreaterThan(padding.topGap + 8);
+  } finally {
+    await bestEffortRestore("e2e_single_line_padding.json", () => rm(dataPath, { force: true }));
+  }
+});
+
+test("title, chip and text share the same top inset in the same tall row", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_cell_layout_alignment.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "燃烧之心",
+      status: "element",
+      description: "火焰技能暴击率+10%",
+      long_text: "这是一段用于撑高同行的长文本。开启自动换行后，标题、选项 chip 和普通文本应该统一贴齐同一组顶部内边距。"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_cell_layout_alignment.json:$:all:long_text:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_cell_layout_alignment.json:$:all:long_text:width", "120");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_cell_layout_alignment.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await columnHeaderTrigger(page, "status").click();
+    await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
+    await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+    await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_cell_layout_alignment.json:$:status"') && text.includes('"type": "Select"'));
+
+    const geometry = await page.evaluate(() => {
+      const titleCell = document.querySelector('td[data-column-field="title"]') as HTMLElement;
+      const titleText = titleCell?.querySelector('[data-cell-role="title-text"]') as HTMLElement;
+      const statusCell = document.querySelector('td[data-column-field="status"]') as HTMLElement;
+      const statusChip = statusCell?.querySelector(".multi-select-trigger .chip") as HTMLElement;
+      const descriptionCell = document.querySelector('td[data-column-field="description"]') as HTMLElement;
+      const descriptionText = descriptionCell?.querySelector('[data-cell-role="content"] span') as HTMLElement;
+      if (!titleCell || !titleText || !statusCell || !statusChip || !descriptionCell || !descriptionText) return null;
+
+      return {
+        rowHeight: titleCell.getBoundingClientRect().height,
+        titleTopGap: titleText.getBoundingClientRect().top - titleCell.getBoundingClientRect().top,
+        chipTopGap: statusChip.getBoundingClientRect().top - statusCell.getBoundingClientRect().top,
+        textTopGap: descriptionText.getBoundingClientRect().top - descriptionCell.getBoundingClientRect().top,
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    expect(geometry?.rowHeight ?? 0).toBeGreaterThan(48);
+    expect(Math.abs((geometry?.titleTopGap ?? 99) - (geometry?.chipTopGap ?? 0))).toBeLessThanOrEqual(2);
+    expect(Math.abs((geometry?.titleTopGap ?? 99) - (geometry?.textTopGap ?? 0))).toBeLessThanOrEqual(2);
+    expect(geometry?.titleTopGap ?? 0).toBeGreaterThanOrEqual(7);
+    expect(geometry?.titleTopGap ?? 99).toBeLessThanOrEqual(10);
+  } finally {
+    await bestEffortRestore("e2e_cell_layout_alignment.json", () => rm(dataPath, { force: true }));
+  }
+});
+
+test("table text edit draft flushes before switching files", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.getByRole("button", { name: "编辑" }).click();
+  const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor input");
+  await expect(editor).toBeVisible();
+  await editor.fill("flush before file switch");
+  await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
+  await expect(page.locator(".toolbar strong")).toContainText("data/e2e_mixed.json");
+
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
+    return text.includes("flush before file switch");
+  }).toBe(true);
+});
+
+test("primary key sync confirmation blocks file switching until confirmed", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_target.json"]').click();
+  await ensurePrimaryKeySelection(page, "target_id");
+
+  await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_source.json"]').click();
+  await configureRelation(page, "target_id", {
+    targetFile: "data/e2e_primary_key_sync_target.json",
+    targetCollection: "$",
+    targetKey: "target_id",
+    mode: "single",
+  });
+
+  await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_target.json"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  const targetIdInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "target_id" }).locator(".detail-input").first();
+  await targetIdInput.fill("blocked_switch");
+  await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
+
+  await expect(page.locator(".primary-key-sync-dialog")).toBeVisible();
+  await expect(page.locator(".toolbar strong")).toContainText("data/e2e_primary_key_sync_target.json");
+});
+
+test("table text edit mode off keeps select cells interactive instead of text inputs", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_select_text_edit_off.json");
+  await writeFile(dataPath, JSON.stringify([
+    { id: "row_1", status: "review", notes: "plain text" },
+    { id: "row_2", status: "parked", notes: "other text" },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_select_text_edit_off.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await columnHeaderTrigger(page, "status").click();
+    await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
+    await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+    await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select_text_edit_off.json:$:status"') && text.includes('"type": "Select"'));
+
+    await expect(page.getByRole("button", { name: "编辑" })).toHaveAttribute("aria-pressed", "false");
+    const statusCell = tableCell(page, 0, "status");
+    await expect(statusCell.locator(".multi-select-trigger")).toContainText("review");
+    await statusCell.locator(".multi-select-trigger").click();
+    await expect(page.locator(".multi-select-popover")).toBeVisible();
+    await expect(statusCell.locator(".table-text-cell-editor")).toHaveCount(0);
+  } finally {
+    await bestEffortRestore("e2e_select_text_edit_off.json", () => rm(dataPath, { force: true }));
+  }
+});
+
+test("table text edit mode off keeps multi-select cells interactive instead of text inputs", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await expect(page.getByRole("button", { name: "编辑" })).toHaveAttribute("aria-pressed", "false");
+  const featuresCell = tableCell(page, 0, "features");
+  await expect(featuresCell.locator(".multi-select-trigger .chip")).toHaveCount(1);
+  await featuresCell.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover")).toBeVisible();
+  await expect(featuresCell.locator(".table-text-cell-editor")).toHaveCount(0);
+});
+
+test("table text edit mode off keeps relation cells interactive instead of text inputs", async ({ page }) => {
+  const targetPath = path.resolve("tests/.scratch/data/e2e_relation_text_edit_target.json");
+  const sourcePath = path.resolve("tests/.scratch/data/e2e_relation_text_edit_source.json");
+  await writeFile(targetPath, JSON.stringify([
+    { target_id: "target_1", name: "Target Row 1" },
+    { target_id: "target_2", name: "Target Row 2" },
+  ], null, 2), "utf8");
+  await writeFile(sourcePath, JSON.stringify([
+    { id: "source_1", target_id: "target_1", notes: "plain text" },
+    { id: "source_2", target_id: null, notes: "other text" },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_relation_text_edit_target.json"]').click();
+    await ensurePrimaryKeySelection(page, "target_id");
+
+    await page.locator('.sidebar-item[title="data/e2e_relation_text_edit_source.json"]').click();
+    await ensurePrimaryKeySelection(page, "id");
+    await configureRelation(page, "target_id", {
+      targetFile: "data/e2e_relation_text_edit_target.json",
+      targetCollection: "$",
+      targetKey: "target_id",
+      mode: "single",
+    });
+
+    await expect(page.getByRole("button", { name: "编辑" })).toHaveAttribute("aria-pressed", "false");
+    const relationCell = tableCell(page, 0, "target_id");
+    await expect(relationCell.locator(".multi-select-trigger")).toContainText("Target Row 1");
+    await relationCell.locator(".multi-select-trigger").click();
+    await expect(page.locator(".relation-popover")).toBeVisible();
+    await expect(relationCell.locator(".table-text-cell-editor")).toHaveCount(0);
+  } finally {
+    await bestEffortRestore("e2e_relation_text_edit_target.json", () => rm(targetPath, { force: true }));
+    await bestEffortRestore("e2e_relation_text_edit_source.json", () => rm(sourcePath, { force: true }));
+  }
+});
+
+test("title and nested cells keep full-cell whitespace click targets", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await clickCellWhitespace(page, 0, "name");
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await clickCellWhitespace(page, 0, "effects");
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
 });
 
 test("select column dragged to the first position keeps select rendering when title falls back to first field", async ({ page }) => {

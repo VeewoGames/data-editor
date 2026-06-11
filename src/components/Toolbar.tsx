@@ -31,7 +31,7 @@ export type ToolbarSnapshot = {
   visibleCount: number;
   query: string;
   autosaveState: AutosaveState;
-  saving: boolean;
+  commandSaving: boolean;
   closing: boolean;
   rebuilding: boolean;
   status: string;
@@ -156,7 +156,7 @@ export function Toolbar(props: ToolbarProps) {
           <button
             aria-label="外观设置"
             className="ghost-button icon-button toolbar-action-button toolbar-settings-button"
-            disabled={snapshot.closing || snapshot.saving}
+            disabled={snapshot.closing || snapshot.commandSaving}
             title="外观设置"
             type="button"
           >
@@ -219,7 +219,7 @@ export function Toolbar(props: ToolbarProps) {
       <button
         aria-label="刷新构建"
         className={snapshot.rebuilding ? "ghost-button toolbar-rebuild-button" : "ghost-button icon-button toolbar-rebuild-button"}
-        disabled={snapshot.rebuilding || snapshot.closing || snapshot.saving}
+        disabled={snapshot.rebuilding || snapshot.closing || snapshot.commandSaving}
         onClick={props.onRefreshBuild}
         title="刷新构建"
         type="button"
@@ -230,7 +230,7 @@ export function Toolbar(props: ToolbarProps) {
       <button
         aria-label="关闭服务"
         className={snapshot.closing ? "ghost-button toolbar-close-button" : "ghost-button icon-button toolbar-close-button"}
-        disabled={snapshot.closing || snapshot.saving || snapshot.rebuilding}
+        disabled={snapshot.closing || snapshot.commandSaving || snapshot.rebuilding}
         onClick={props.onCloseServer}
         title="关闭服务"
         type="button"

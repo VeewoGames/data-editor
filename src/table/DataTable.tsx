@@ -28,6 +28,7 @@ import type { ValidationSnapshot } from "../validation/issue-map";
 import { mergeMeasuredRowHeights, resolveRowHeight as resolveMeasuredRowHeight } from "./row-height-index.mjs";
 import { buildTableRuntimeDeps } from "./table-runtime-deps.mjs";
 import { buildVariableRowWindow } from "./variable-row-window.mjs";
+import type { ActiveTextEditorRegistrar } from "../editing";
 
 export type TableFieldConfig = {
   displayTypes: Record<string, FieldDisplayType>;
@@ -74,6 +75,8 @@ export type TableSnapshot = {
   titleField: string | null;
   scrollRestoreKey: string | null;
   initialScrollPosition: { scrollTop: number; scrollLeft: number } | null;
+  textEditable: boolean;
+  onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
 };
 
 type DataTableProps = {
@@ -315,6 +318,7 @@ function DataTableComponent(props: DataTableProps) {
     fieldOptions,
     selectOptions,
     widths: snapshot.fieldConfig.widths,
+    textEditable: snapshot.textEditable,
   }), [
     visibleFields,
     rows,
@@ -328,6 +332,7 @@ function DataTableComponent(props: DataTableProps) {
     fieldOptions,
     selectOptions,
     snapshot.fieldConfig.widths,
+    snapshot.textEditable,
   ]);
   const columnModels = useMemo(() => buildTableColumnModels({
     visibleFields,
@@ -478,6 +483,8 @@ function DataTableComponent(props: DataTableProps) {
   const tableColumnsRuntime = useMemo(() => ({
     backlinkValuesByRowId: snapshot.backlinkValuesByRowId,
     validation: snapshot.validation,
+    textEditable: snapshot.textEditable,
+    onRegisterActiveTextEditor: snapshot.onRegisterActiveTextEditor,
     onSort: handleSort,
     onAddFilter: handleAddFilter,
     onHideField: handleHideField,
@@ -503,6 +510,8 @@ function DataTableComponent(props: DataTableProps) {
   }), [
     snapshot.backlinkValuesByRowId,
     snapshot.validation,
+    snapshot.textEditable,
+    snapshot.onRegisterActiveTextEditor,
     handleSort,
     handleAddFilter,
     handleHideField,
@@ -665,6 +674,7 @@ function DataTableComponent(props: DataTableProps) {
                 <tr
                   key={row.id}
                   data-row-id={rowId}
+                  data-row-layout={hasWrappedField ? "top" : "center"}
                   ref={(element) => { rowElementRefs.current[rowId] = element; }}
                   onClick={(event) => selectRow(event, originalRowIndex, rowId)}
                 >
@@ -739,6 +749,8 @@ function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
     sameFieldConfig(previous.fieldConfig, next.fieldConfig) &&
     sameSort(previous.sort, next.sort) &&
     previous.validation === next.validation &&
+    previous.textEditable === next.textEditable &&
+    previous.onRegisterActiveTextEditor === next.onRegisterActiveTextEditor &&
     sameFieldViewConfigs(previous.fieldViewConfigs, next.fieldViewConfigs);
 }
 
