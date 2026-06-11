@@ -2,7 +2,7 @@
 
 Data Editor 是一个独立的本地网页数据编辑器，用于编辑一个或多个本地项目中的 JSON / CSV 数据文件。它不再要求自己放在业务项目的 `tools/data-editor` 目录下，而是通过本机项目 registry 管理项目列表，并在 UI 中切换当前项目。
 
-当前版本支持多项目和自定义数据源：运行时状态与日志写入全局 Data Editor home，业务项目自己的视图配置和备份仍写入对应项目的 `.data-editor/` 目录。
+当前版本支持多项目和自定义数据源：运行时状态与日志写入全局 Data Editor home，业务项目自己的视图配置仍写入对应项目的 `.data-editor/` 目录。
 
 ## 安装
 
@@ -67,15 +67,17 @@ npm run dev -- --project C:\Code\Nocturnel --adapter nocturnel
 %APPDATA%\data-editor\logs\
 ```
 
-目标项目中的业务配置和备份默认放在：
+目标项目中的业务配置默认放在：
 
 ```text
 <project>/.data-editor/view-config.json
+<project>/.data-editor/shared-views.json
 <project>/.data-editor/view-configs/<profile>.json
-<project>/.data-editor/backups/
 ```
 
-其中 `view-config.json` 适合团队共享，`view-configs/<profile>.json` 适合用户个人视图配置。
+其中 `view-config.json` 适合团队共享字段语义配置，`shared-views.json` 保存团队共享视图，`view-configs/<profile>.json` 适合用户个人视图配置。
+
+数据文件当前默认采用 `direct-write` 保存策略，不再生成本地 `.bak` 备份目录；版本回退主要依赖 Git。
 
 ## 自定义数据源
 
