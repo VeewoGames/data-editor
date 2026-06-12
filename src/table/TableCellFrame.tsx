@@ -10,7 +10,7 @@ export type TableCellContentKind =
   | "backlink"
   | "incompatible";
 
-export type TableCellLayout = "center" | "top" | "editor";
+export type TableCellLayout = "center" | "top";
 
 type TableCellFrameProps = {
   kind: TableCellContentKind;

@@ -8,9 +8,10 @@ import { MultiSelectCellEditor } from "./MultiSelectCellEditor";
 import type { OptionFieldDraftCommit } from "./OptionFieldEditor";
 import { RelationCellEditor } from "./RelationCellEditor";
 import { SelectCellEditor } from "./SelectCellEditor";
+import { TextCellSurface } from "./TextCellSurface";
 import type { MultiSelectFieldOptionConfig, SelectFieldOptionConfig } from "./DataTable";
 import type { RelationMode } from "../model/viewConfig";
-import { TableTextCellEditor, type ActiveTextEditorRegistrar } from "../editing";
+import type { ActiveTextEditorRegistrar } from "../editing";
 
 type CellRendererProps = {
   cellId?: string;
@@ -24,7 +25,10 @@ type CellRendererProps = {
   relationConfigured?: boolean;
   relationMode?: RelationMode;
   textEditable?: boolean;
+  textEditingActive?: boolean;
   onRegisterActiveEditor?: ActiveTextEditorRegistrar;
+  onActivateTextCell?: (cellId: string) => void;
+  onDeactivateTextCell?: (cellId: string) => void;
   onEdit: (value: unknown) => void;
   onOpenRelationTarget?: (value: string | number) => void;
   onCommitMultiSelectDraft?: (patch: OptionFieldDraftCommit) => void;
@@ -43,7 +47,10 @@ function CellRendererComponent({
   relationConfigured = false,
   relationMode,
   textEditable = false,
+  textEditingActive = false,
   onRegisterActiveEditor,
+  onActivateTextCell,
+  onDeactivateTextCell,
   onEdit,
   onOpenRelationTarget,
   onCommitMultiSelectDraft,
@@ -135,16 +142,19 @@ function CellRendererComponent({
   const textValue = value == null ? "" : String(value);
   if (
     displayType === "Text" &&
-    textEditable &&
     (value == null || typeof value === "string" || typeof value === "number")
   ) {
     return (
       <>
         <div className="table-cell-content-main">
-          <TableTextCellEditor
+          <TextCellSurface
             cellId={cellId}
+            editable={textEditable}
+            active={textEditingActive}
             value={value}
             wrapped={wrapped}
+            onActivate={onActivateTextCell ?? (() => {})}
+            onDeactivate={onDeactivateTextCell ?? (() => {})}
             onChangeValue={(next) => onEdit(next)}
             onRegisterActiveEditor={onRegisterActiveEditor}
           />
@@ -157,7 +167,7 @@ function CellRendererComponent({
     <>
       <div className="table-cell-content-main">
         <div
-          className={`table-text-cell-editor editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
+          className={`table-text-cell-display editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
           data-cell-role="content"
           data-wrap-mode={wrapped ? "wrap" : "truncate"}
           title={textValue}
@@ -182,7 +192,10 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.relationConfigured === next.relationConfigured &&
   previous.relationMode === next.relationMode &&
   previous.textEditable === next.textEditable &&
+  previous.textEditingActive === next.textEditingActive &&
   previous.onRegisterActiveEditor === next.onRegisterActiveEditor &&
+  previous.onActivateTextCell === next.onActivateTextCell &&
+  previous.onDeactivateTextCell === next.onDeactivateTextCell &&
   previous.onEdit === next.onEdit &&
   previous.onOpenRelationTarget === next.onOpenRelationTarget &&
   previous.onCommitMultiSelectDraft === next.onCommitMultiSelectDraft &&

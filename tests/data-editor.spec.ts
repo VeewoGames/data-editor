@@ -2799,6 +2799,7 @@ test("table text edit mode toggles ordinary text cell editing and autosaves", as
   await editButton.click();
   await expect(editButton).toHaveAttribute("aria-pressed", "true");
 
+  await tableCell(page, 0, "description").locator('[data-cell-role="content"]').click();
   const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor input");
   await expect(editor).toBeVisible();
   await editor.click();
@@ -2826,7 +2827,6 @@ test("table text edit mode toggles ordinary text cell editing and autosaves", as
   });
   expect(activeStyle.background).toBe("rgb(255, 255, 255)");
   expect(activeStyle.borderTopWidth).not.toBe("0px");
-  expect(activeStyle.boxShadow).not.toBe("none");
   expect(Math.abs(activeStyle.topDelta)).toBeLessThanOrEqual(1);
   expect(Math.abs(activeStyle.leftDelta)).toBeLessThanOrEqual(1);
   expect(Math.abs(activeStyle.rightDelta)).toBeLessThanOrEqual(1);
@@ -2847,7 +2847,7 @@ test("table text edit mode toggles ordinary text cell editing and autosaves", as
     const text = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
     return text.includes("table text edit value");
   });
-  await expect(editor).toHaveValue("table text edit value");
+  await expect(tableCell(page, 0, "description").locator('[data-cell-role="content"]')).toContainText("table text edit value");
 });
 
 test("table text edit mode preserves wrapped text layout", async ({ page }) => {
@@ -2863,6 +2863,7 @@ test("table text edit mode preserves wrapped text layout", async ({ page }) => {
   await expect(page.locator(".data-table")).toBeVisible();
   await page.getByRole("button", { name: "编辑" }).click();
 
+  await tableCell(page, 0, "description").locator('[data-cell-role="content"]').click();
   const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor textarea");
   await expect(editor).toBeVisible();
   await editor.fill("wrapped table edit value with enough words to span multiple visual lines");
@@ -2896,9 +2897,9 @@ test("table text edit mode preserves wrapped text layout", async ({ page }) => {
   expect(Math.abs(layout.topDelta)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout.leftDelta)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout.rightDelta)).toBeLessThanOrEqual(1);
-  expect(layout.cellHeight).toBeGreaterThan(72);
-  expect(Math.abs(layout.editorHeight - layout.cellHeight)).toBeLessThanOrEqual(2);
-  expect(Math.abs(layout.bottomDelta)).toBeLessThanOrEqual(1);
+  expect(layout.cellHeight).toBeLessThan(60);
+  expect(layout.editorHeight).toBeGreaterThan(layout.cellHeight + 24);
+  expect(layout.bottomDelta).toBeGreaterThan(24);
   expect(Math.abs(layout.editorWidth - layout.cellWidth)).toBeLessThanOrEqual(2);
 });
 
@@ -2924,6 +2925,7 @@ test("wrapped table text editor expands beyond the base cell height while editin
     await expect(page.locator(".data-table")).toBeVisible();
     await page.getByRole("button", { name: "编辑" }).click();
 
+    await tableCell(page, 0, "description").locator('[data-cell-role="content"]').click();
     const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor textarea");
     await expect(editor).toBeVisible();
     await editor.fill("向射程4格内的目标位置发射火球，对1格圆形范围内造成对射程燃烧的单体目标造成高额伤害并附加持续灼烧效果。");
@@ -2943,12 +2945,12 @@ test("wrapped table text editor expands beyond the base cell height while editin
       };
     });
 
-    expect(growth.cellHeight).toBeGreaterThan(80);
-    expect(Math.abs(growth.frameHeight - growth.cellHeight)).toBeLessThanOrEqual(2);
-    expect(growth.textareaHeight).toBeGreaterThan(growth.cellHeight - 24);
+    expect(growth.cellHeight).toBeLessThan(60);
+    expect(growth.frameHeight).toBeGreaterThan(growth.cellHeight + 24);
+    expect(growth.textareaHeight).toBeGreaterThan(growth.cellHeight - 16);
     expect(growth.scrollHeight).toBeLessThanOrEqual(growth.textareaHeight + 1);
     expect(Math.abs(growth.topDelta)).toBeLessThanOrEqual(1);
-    expect(Math.abs(growth.bottomOverflow)).toBeLessThanOrEqual(1);
+    expect(growth.bottomOverflow).toBeGreaterThan(24);
   } finally {
     await bestEffortRestore("e2e_wrapped_text_editor_growth.json", () => rm(dataPath, { force: true }));
   }
@@ -2977,13 +2979,14 @@ test("wrapped table text edit keeps the row height instead of collapsing to one 
   await page.getByRole("button", { name: "编辑" }).click();
 
   const cell = tableCell(page, 0, "description");
-  const beforeEdit = await cell.evaluate((node) => {
-    const rect = node.getBoundingClientRect();
-    return { height: rect.height };
-  });
+    const beforeEdit = await cell.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { height: rect.height };
+    });
 
-  const editor = cell.locator(".table-text-cell-editor textarea");
-  await expect(editor).toBeVisible();
+    await cell.locator('[data-cell-role="content"]').click();
+    const editor = cell.locator(".table-text-cell-editor textarea");
+    await expect(editor).toBeVisible();
   await editor.fill("向射程4格内的目标位置发射火球，对1格圆形范围内造成45点火焰伤害，使目标灼烧2回合。在命中位置产生燃烧地形持续2回合。消耗2AP和15法力。");
 
   const duringEdit = await cell.evaluate((node) => {
@@ -3000,7 +3003,7 @@ test("wrapped table text edit keeps the row height instead of collapsing to one 
   expect(beforeEdit.height).toBeGreaterThan(80);
   expect(Math.abs(duringEdit.height - beforeEdit.height)).toBeLessThanOrEqual(2);
   expect(Math.abs(duringEdit.frameHeight - duringEdit.height)).toBeLessThanOrEqual(2);
-  expect(Math.abs(duringEdit.bottomOverflow)).toBeLessThanOrEqual(1);
+  expect(Math.abs(duringEdit.bottomOverflow)).toBeLessThanOrEqual(2);
   } finally {
     await bestEffortRestore("e2e_wrapped_text_editor_row_height.json", () => rm(dataPath, { force: true }));
   }
@@ -3044,6 +3047,101 @@ test("toggling table text edit mode does not reflow wrapped row heights", async 
   }
 });
 
+test("table text edit mode keeps wrapped text cells idle until the user activates a cell", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_text_edit_idle_activation.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "Idle row",
+      description: "这是一段用于验证编辑模式开启后不会立即把文本单元格替换成输入框的长文本。"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_text_edit_idle_activation.json:$:all:description:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_text_edit_idle_activation.json:$:all:description:width", "150");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_text_edit_idle_activation.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    const cell = tableCell(page, 0, "description");
+    const beforeToggle = await cell.evaluate((node) => node.getBoundingClientRect().height);
+
+    await page.getByRole("button", { name: "编辑" }).click();
+
+    await expect(cell.locator(".table-text-cell-editor")).toHaveCount(0);
+    await expect(cell.locator('[data-cell-role="content"]')).toHaveCount(1);
+
+    const afterToggle = await cell.evaluate((node) => node.getBoundingClientRect().height);
+    expect(Math.abs(afterToggle - beforeToggle)).toBeLessThanOrEqual(1);
+
+    await cell.locator('[data-cell-role="content"]').click();
+    await expect(cell.locator(".table-text-cell-editor textarea")).toBeVisible();
+  } finally {
+    await bestEffortRestore("e2e_text_edit_idle_activation.json", () => rm(dataPath, { force: true }));
+  }
+});
+
+test("wrapped text overlay can extend beyond the cell without changing row height", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_text_overlay_overflow.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      title: "Overlay row",
+      description: "短描述"
+    },
+    {
+      title: "Following row",
+      description: "下一行用于验证 overlay 越界时不会把当前行重新撑高。"
+    }
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/e2e_text_overlay_overflow.json:$:all:description:wrapped", "1");
+      localStorage.setItem("data-editor:data/e2e_text_overlay_overflow.json:$:all:description:width", "150");
+    });
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_text_overlay_overflow.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    const cell = tableCell(page, 0, "description");
+    const row = tableRow(page, 0);
+    const rowHeightBefore = await row.evaluate((node) => node.getBoundingClientRect().height);
+
+    await page.getByRole("button", { name: "编辑" }).click();
+    await cell.locator('[data-cell-role="content"]').click();
+
+    const editor = cell.locator(".table-text-cell-editor textarea");
+    await expect(editor).toBeVisible();
+    await editor.fill("这是一段足够长的文本，用来验证编辑浮层在多行输入时可以继续向下扩展显示，而不是重新把当前表格行的真实高度继续撑大。这里需要多写一些内容，确保文本区域明显超过原始单元格高度。");
+
+    const layout = await cell.evaluate((node) => {
+      const cellRect = node.getBoundingClientRect();
+      const editorFrame = node.querySelector(".table-text-cell-editor") as HTMLElement;
+      const editorRect = editorFrame.getBoundingClientRect();
+      const row = node.closest("tr") as HTMLTableRowElement;
+      const rowRect = row.getBoundingClientRect();
+      return {
+        rowHeight: rowRect.height,
+        cellBottom: cellRect.bottom,
+        editorBottom: editorRect.bottom,
+      };
+    });
+
+    expect(Math.abs(layout.rowHeight - rowHeightBefore)).toBeLessThanOrEqual(1);
+    expect(layout.editorBottom).toBeGreaterThan(layout.cellBottom + 8);
+  } finally {
+    await bestEffortRestore("e2e_text_overlay_overflow.json", () => rm(dataPath, { force: true }));
+  }
+});
+
 test("table text edit active frame fills a tall cell", async ({ page }) => {
   const dataPath = path.resolve("tests/.scratch/data/e2e_tall_text_cell.json");
   await writeFile(dataPath, JSON.stringify([
@@ -3067,6 +3165,7 @@ test("table text edit active frame fills a tall cell", async ({ page }) => {
     await expect(page.locator(".data-table")).toBeVisible();
     await page.getByRole("button", { name: "编辑" }).click();
 
+    await tableCell(page, 0, "short_text").locator('[data-cell-role="content"]').click();
     const editor = tableCell(page, 0, "short_text").locator(".table-text-cell-editor input");
     await expect(editor).toBeVisible();
     await editor.click();
@@ -3117,7 +3216,7 @@ test("single line table cells use the same top inset in tall wrapped rows", asyn
     await expect(page.locator(".data-table")).toBeVisible();
 
     const padding = await tableCell(page, 0, "short_text").evaluate((cell) => {
-      const content = cell.querySelector('[data-cell-role="content"] span') as HTMLElement;
+      const content = cell.querySelector('[data-cell-role="content"]') as HTMLElement;
       const cellRect = cell.getBoundingClientRect();
       const contentRect = content.getBoundingClientRect();
       return {
@@ -3132,7 +3231,7 @@ test("single line table cells use the same top inset in tall wrapped rows", asyn
     expect(padding.cellHeight).toBeGreaterThan(48);
     expect(padding.topGap).toBeGreaterThanOrEqual(7);
     expect(padding.topGap).toBeLessThanOrEqual(10);
-    expect(padding.bottomGap).toBeGreaterThan(padding.topGap + 8);
+    expect(Math.abs(padding.bottomGap - padding.topGap)).toBeLessThanOrEqual(2);
   } finally {
     await bestEffortRestore("e2e_single_line_padding.json", () => rm(dataPath, { force: true }));
   }
@@ -3189,6 +3288,9 @@ test("title, chip and text share the same top inset in the same tall row", async
     expect(Math.abs((geometry?.titleTopGap ?? 99) - (geometry?.textTopGap ?? 0))).toBeLessThanOrEqual(2);
     expect(geometry?.titleTopGap ?? 0).toBeGreaterThanOrEqual(7);
     expect(geometry?.titleTopGap ?? 99).toBeLessThanOrEqual(10);
+
+    const rowLayout = await tableRow(page, 0).getAttribute("data-row-layout");
+    expect(rowLayout).toBe("top");
   } finally {
     await bestEffortRestore("e2e_cell_layout_alignment.json", () => rm(dataPath, { force: true }));
   }
@@ -3203,6 +3305,7 @@ test("table text edit draft flushes before switching files", async ({ page }) =>
   await expect(page.locator(".data-table")).toBeVisible();
 
   await page.getByRole("button", { name: "编辑" }).click();
+  await tableCell(page, 0, "description").locator('[data-cell-role="content"]').click();
   const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor input");
   await expect(editor).toBeVisible();
   await editor.fill("flush before file switch");

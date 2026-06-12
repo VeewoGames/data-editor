@@ -6,7 +6,9 @@ export type TableTextCellEditorProps = {
   cellId: string;
   value: unknown;
   wrapped?: boolean;
+  autoFocus?: boolean;
   onChangeValue: (value: string) => void;
+  onDeactivate?: () => void;
   onRegisterActiveEditor?: ActiveTextEditorRegistrar;
 };
 
@@ -18,7 +20,9 @@ export function TableTextCellEditor({
   cellId,
   value,
   wrapped = false,
+  autoFocus = false,
   onChangeValue,
+  onDeactivate,
   onRegisterActiveEditor,
 }: TableTextCellEditorProps) {
   const inputRef = useRef<StableTextInputHandle | null>(null);
@@ -65,12 +69,13 @@ export function TableTextCellEditor({
   return (
     <div
       className={`table-text-cell-editor editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
-      data-cell-role="content"
+      data-cell-role="editor"
       data-wrap-mode={wrapped ? "wrap" : "truncate"}
       onClick={(event) => event.stopPropagation()}
     >
       {wrapped ? (
         <StableTextarea
+          autoFocus={autoFocus}
           ref={inputRef}
           identityKey={cellId}
           value={value}
@@ -80,11 +85,13 @@ export function TableTextCellEditor({
           onBlur={() => {
             inputRef.current?.flushDraft();
             clearActiveEditor();
+            onDeactivate?.();
           }}
           onKeyDown={handleKeyDown}
         />
       ) : (
         <StableTextInput
+          autoFocus={autoFocus}
           ref={inputRef}
           identityKey={cellId}
           value={value}
@@ -94,6 +101,7 @@ export function TableTextCellEditor({
           onBlur={() => {
             inputRef.current?.flushDraft();
             clearActiveEditor();
+            onDeactivate?.();
           }}
           onKeyDown={handleKeyDown}
         />

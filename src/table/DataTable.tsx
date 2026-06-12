@@ -111,6 +111,7 @@ function DataTableComponent(props: DataTableProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(720);
   const [pressedField, setPressedField] = useState<string | null>(null);
+  const [activeTextCellId, setActiveTextCellId] = useState<string | null>(null);
   const [columnDragSession, setColumnDragSession] = useState<{
     draggingField: string;
     ghostTop: number;
@@ -163,6 +164,10 @@ function DataTableComponent(props: DataTableProps) {
   useEffect(() => {
     localWidthsRef.current = { ...snapshot.fieldConfig.widths };
   }, [snapshot.sourcePath, snapshot.collectionPath, snapshot.revision, snapshot.fieldConfig.widths]);
+
+  useEffect(() => {
+    setActiveTextCellId(null);
+  }, [snapshot.textEditable, snapshot.sourcePath, snapshot.collectionPath, snapshot.revision]);
 
   useEffect(() => {
     setScrollTop(0);
@@ -395,6 +400,13 @@ function DataTableComponent(props: DataTableProps) {
   const handleCommitSelectDraft = useCallback((rowIndex: number, rowId: string, fieldName: string, patch: OptionFieldDraftCommit) => {
     runtimeActionRef.current.onCommitSelectDraft(rowIndex, rowId, fieldName, patch);
   }, []);
+  const handleActivateTextCell = useCallback((cellId: string) => {
+    if (!snapshot.textEditable) return;
+    setActiveTextCellId((current) => current === cellId ? current : cellId);
+  }, [snapshot.textEditable]);
+  const handleDeactivateTextCell = useCallback((cellId: string) => {
+    setActiveTextCellId((current) => current === cellId ? null : current);
+  }, []);
 
   const selectRowByRuntime = useCallback((rowIndex: number, rowId: string | null) => {
     runtimeActionRef.current.onSelectRow(rowIndex, rowId);
@@ -479,12 +491,17 @@ function DataTableComponent(props: DataTableProps) {
     columnDragSessionRef.current = null;
     setColumnDragSession(null);
   }, []);
+  const tableLayoutMode: "center" | "top" = hasWrappedField ? "top" : "center";
 
   const tableColumnsRuntime = useMemo(() => ({
     backlinkValuesByRowId: snapshot.backlinkValuesByRowId,
+    tableLayoutMode,
     validation: snapshot.validation,
     textEditable: snapshot.textEditable,
+    activeTextCellId,
     onRegisterActiveTextEditor: snapshot.onRegisterActiveTextEditor,
+    onActivateTextCell: handleActivateTextCell,
+    onDeactivateTextCell: handleDeactivateTextCell,
     onSort: handleSort,
     onAddFilter: handleAddFilter,
     onHideField: handleHideField,
@@ -509,9 +526,13 @@ function DataTableComponent(props: DataTableProps) {
     onCommitSelectDraft: handleCommitSelectDraft,
   }), [
     snapshot.backlinkValuesByRowId,
+    tableLayoutMode,
     snapshot.validation,
     snapshot.textEditable,
+    activeTextCellId,
     snapshot.onRegisterActiveTextEditor,
+    handleActivateTextCell,
+    handleDeactivateTextCell,
     handleSort,
     handleAddFilter,
     handleHideField,
@@ -637,6 +658,12 @@ function DataTableComponent(props: DataTableProps) {
             if (current.viewportHeight !== nextViewportHeight) setViewportHeight(nextViewportHeight);
             if (snapshot.scrollRestoreKey) {
               props.onScrollPositionChange({ scrollTop: nextScrollTop, scrollLeft: nextScrollLeft });
+            }
+            if (activeTextCellId) {
+              const activeEditor = document.activeElement as HTMLElement | null;
+              if (activeEditor && event.currentTarget.contains(activeEditor) && (activeEditor.tagName === "INPUT" || activeEditor.tagName === "TEXTAREA")) {
+                activeEditor.blur();
+              }
             }
             if (columnDragPointerXRef.current != null && columnDragSessionRef.current) {
               updateColumnDragPreview(columnDragSessionRef.current.draggingField, columnDragPointerXRef.current);

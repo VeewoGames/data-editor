@@ -662,6 +662,7 @@ test("stable text editing structure is wired", async () => {
   const cellRendererSource = await readFile(new URL("../src/table/CellRenderer.tsx", import.meta.url), "utf8");
   const dataTableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
   const tableColumnsSource = await readFile(new URL("../src/table/table-columns.tsx", import.meta.url), "utf8");
+  const textCellSurfaceSource = await readFile(new URL("../src/table/TextCellSurface.tsx", import.meta.url), "utf8");
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
 
   assert.doesNotMatch(detailPanelSource, /key=\{`\$\{props\.fieldName\}:\$\{String\(props\.value \?\? ""\)\}`\}/);
@@ -675,16 +676,21 @@ test("stable text editing structure is wired", async () => {
   assert.match(appSource, /tableTextEditMode/);
 
   assert.match(dataTableSource, /textEditable: boolean/);
+  assert.match(dataTableSource, /const \[activeTextCellId, setActiveTextCellId\] = useState<string \| null>\(null\);/);
   assert.match(dataTableSource, /previous\.textEditable === next\.textEditable/);
   assert.match(dataTableSource, /previous\.onRegisterActiveTextEditor === next\.onRegisterActiveTextEditor/);
   assert.match(tableColumnsSource, /textEditable=\{runtime\.textEditable\}/);
-  assert.match(cellRendererSource, /TableTextCellEditor/);
+  assert.match(tableColumnsSource, /const textEditingActive = runtime\.activeTextCellId === cellId;/);
+  assert.match(cellRendererSource, /TextCellSurface/);
   assert.match(cellRendererSource, /displayType === "Text"[\s\S]+textEditable/);
   const tableTextCellEditorSource = await readFile(new URL("../src/editing/TableTextCellEditor.tsx", import.meta.url), "utf8");
   const handleKeyDownSection = tableTextCellEditorSource.slice(
     tableTextCellEditorSource.indexOf("function handleKeyDown"),
     tableTextCellEditorSource.indexOf("useEffect(() => () =>"),
   );
+  assert.match(textCellSurfaceSource, /data-cell-role="text-editor-overlay"/);
+  assert.match(textCellSurfaceSource, /editable-active/);
+  assert.match(textCellSurfaceSource, /onActivate\(cellId\)/);
   assert.doesNotMatch(handleKeyDownSection, /event\.key === "Enter"[\s\S]+flushDraft\(\)/);
   assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Select"'), cellRendererSource.indexOf('displayType === "Relation"')), /textEditable/);
   assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Multi-select"'), cellRendererSource.indexOf('displayType === "Select"')), /textEditable/);
@@ -702,12 +708,14 @@ test("table cell frame structure is centralized in table-columns", async () => {
   const tableCellFrameSource = await readFile(new URL("../src/table/TableCellFrame.tsx", import.meta.url), "utf8");
 
   assert.match(tableCellFrameSource, /export type TableCellContentKind/);
-  assert.match(tableCellFrameSource, /export type TableCellLayout/);
+  assert.match(tableCellFrameSource, /export type TableCellLayout = "center" \| "top";/);
   assert.match(tableCellFrameSource, /className="table-cell-frame"/);
   assert.match(tableCellFrameSource, /data-cell-frame-kind/);
   assert.match(tableCellFrameSource, /data-cell-frame-layout/);
   assert.match(tableColumnsSource, /import \{ TableCellFrame, type TableCellContentKind, type TableCellLayout \} from "\.\/TableCellFrame"/);
+  assert.match(tableColumnsSource, /tableLayoutMode: "center" \| "top";/);
   assert.match(tableColumnsSource, /function resolveCellFrameMeta/);
+  assert.match(tableColumnsSource, /resolveCellFrameMeta\(columnModel, displayType, value, runtime\.tableLayoutMode, runtime\.textEditable, textEditingActive\)/);
   assert.match(tableColumnsSource, /if \(columnModel\.backlinkColumn\) \{[\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>/);
   assert.match(tableColumnsSource, /if \(columnModel\.isNested\) \{[\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>/);
   assert.match(tableColumnsSource, /if \(columnModel\.isTitle\) \{[\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>/);

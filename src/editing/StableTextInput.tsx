@@ -9,6 +9,7 @@ export type StableTextInputProps = {
   className?: string;
   title?: string;
   placeholder?: string;
+  autoFocus?: boolean;
   commitMode?: StableDraftInputCommitMode;
   commitDelayMs?: number;
   onChangeValue: (value: string) => void;
@@ -28,6 +29,7 @@ export const StableTextInput = forwardRef<StableTextInputHandle, StableTextInput
     className,
     title,
     placeholder,
+    autoFocus,
     commitMode,
     commitDelayMs,
     onChangeValue,
@@ -47,6 +49,7 @@ export const StableTextInput = forwardRef<StableTextInputHandle, StableTextInput
       className={className}
       title={title}
       placeholder={placeholder}
+      autoFocus={autoFocus}
       value={api.draft}
       onFocus={() => {
         api.handleFocus();
@@ -71,6 +74,7 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
     className,
     title,
     placeholder,
+    autoFocus,
     commitMode,
     commitDelayMs,
     onChangeValue,
@@ -103,6 +107,7 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
       className={className}
       title={title}
       placeholder={placeholder}
+      autoFocus={autoFocus}
       value={api.draft}
       onFocus={() => {
         api.handleFocus();
@@ -128,4 +133,3 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
     />
   );
 });
-

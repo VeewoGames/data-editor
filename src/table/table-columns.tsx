@@ -16,9 +16,13 @@ import type { ActiveTextEditorRegistrar } from "../editing";
 
 type TableColumnsRuntime = {
   backlinkValuesByRowId: Record<number | string, Record<string, RelationBacklink[]>>;
+  tableLayoutMode: "center" | "top";
   validation: ValidationSnapshot | null;
   textEditable: boolean;
+  activeTextCellId: string | null;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
+  onActivateTextCell: (cellId: string) => void;
+  onDeactivateTextCell: (cellId: string) => void;
   onSort: (fieldName: string, direction: "asc" | "desc" | null) => void;
   onAddFilter: (fieldName: string, displayType: FieldDisplayType) => void;
   onHideField: (fieldName: string) => void;
@@ -178,7 +182,9 @@ function TableColumnCellView(
 ) {
   const runtime = useTableColumnsRuntime();
   const displayType = columnModel.relationConfig ? "Relation" : columnModel.displayType;
-  const frameMeta = resolveCellFrameMeta(columnModel, displayType, value, runtime.textEditable);
+  const cellId = `${rowId}:${columnModel.fieldName}`;
+  const textEditingActive = runtime.activeTextCellId === cellId;
+  const frameMeta = resolveCellFrameMeta(columnModel, displayType, value, runtime.tableLayoutMode, runtime.textEditable, textEditingActive);
 
   if (columnModel.backlinkColumn) {
     return (
@@ -228,7 +234,7 @@ function TableColumnCellView(
   return (
     <TableCellFrame kind={frameMeta.kind} layout={frameMeta.layout}>
       <CellRenderer
-        cellId={`${rowId}:${columnModel.fieldName}`}
+        cellId={cellId}
         value={value}
         displayType={displayType}
         wrapped={columnModel.wrapped}
@@ -240,7 +246,10 @@ function TableColumnCellView(
         onOpenRelationTarget={columnModel.relationConfig ? (nextValue) => runtime.onOpenRelationTarget(columnModel.relationConfig as RelationConfig, nextValue) : undefined}
         issue={resolveValidationIssue(runtime.validation, rowId, originalRowIndex, columnModel.fieldName)}
         textEditable={runtime.textEditable}
+        textEditingActive={textEditingActive}
         onRegisterActiveEditor={runtime.onRegisterActiveTextEditor}
+        onActivateTextCell={runtime.onActivateTextCell}
+        onDeactivateTextCell={runtime.onDeactivateTextCell}
         onEdit={(next) => runtime.onEditCell(originalRowIndex, rowId, columnModel.fieldName, next)}
         onCommitMultiSelectDraft={(patch) => runtime.onCommitMultiSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
         onCommitSelectDraft={(patch) => runtime.onCommitSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
@@ -263,32 +272,41 @@ function summarizeNestedValue(value: unknown) {
   return summarizeNested(value);
 }
 
-function resolveCellFrameMeta(columnModel: TableColumnModel, displayType: FieldDisplayType, value: unknown, textEditable: boolean): CellFrameMeta {
+function resolveCellFrameMeta(
+  columnModel: TableColumnModel,
+  displayType: FieldDisplayType,
+  value: unknown,
+  tableLayoutMode: "center" | "top",
+  textEditable: boolean,
+  textEditingActive: boolean,
+): CellFrameMeta {
+  const layout: TableCellLayout = tableLayoutMode;
   if (columnModel.backlinkColumn) {
-    return { kind: "backlink", layout: "center" };
+    return { kind: "backlink", layout };
   }
   if (columnModel.isNested) {
-    return { kind: "nested", layout: "center" };
+    return { kind: "nested", layout };
   }
   if (columnModel.isTitle) {
-    return { kind: "title", layout: "center" };
+    return { kind: "title", layout };
   }
   if (!isCompatible(displayType, value)) {
-    return { kind: "incompatible", layout: "center" };
+    return { kind: "incompatible", layout };
   }
   if (displayType === "Checkbox") {
-    return { kind: "checkbox", layout: "center" };
+    return { kind: "checkbox", layout };
   }
   if (displayType === "Select" || displayType === "Multi-select" || displayType === "Relation") {
-    return { kind: "token", layout: "center" };
+    return { kind: "token", layout };
   }
   if (
     displayType === "Text" &&
+    textEditable &&
     (value == null || typeof value === "string" || typeof value === "number")
   ) {
-    return { kind: "editor", layout: "editor" };
+    return { kind: "editor", layout };
   }
-  return { kind: "text", layout: "center" };
+  return { kind: "text", layout };
 }
 
 function createTableColumnsHeaderStore(initialState: TableColumnsHeaderState) {
