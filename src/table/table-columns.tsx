@@ -223,7 +223,6 @@ function TableColumnCellView(
               event.stopPropagation();
               runtime.onOpenDetail(originalRowIndex, rowId);
             }}
-            title="Open detail"
           >
             <span className="title-cell-text" data-cell-role="title-text">{value == null ? "" : String(value)}</span>
           </button>

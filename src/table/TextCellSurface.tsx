@@ -55,7 +55,6 @@ function TextCellSurfaceComponent({
         className={`table-text-cell-display text-cell-display-layer editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
         data-cell-role="content"
         data-wrap-mode={wrapped ? "wrap" : "truncate"}
-        title={textValue}
         tabIndex={editable && !active ? 0 : undefined}
         onClick={handleActivate}
         onKeyDown={handleActivateByKeyboard}

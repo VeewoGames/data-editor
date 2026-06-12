@@ -170,7 +170,6 @@ function CellRendererComponent({
           className={`table-text-cell-display editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
           data-cell-role="content"
           data-wrap-mode={wrapped ? "wrap" : "truncate"}
-          title={textValue}
         >
           <span>{textValue}</span>
         </div>

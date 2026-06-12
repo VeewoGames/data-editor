@@ -3142,6 +3142,29 @@ test("wrapped text overlay can extend beyond the cell without changing row heigh
   }
 });
 
+test("table cell content does not expose native title tooltips", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const cellTitles = await page.evaluate(() => {
+    const selectors = [
+      'td[data-column-field="title"] [data-cell-role="content"]',
+      'td[data-column-field="description"] [data-cell-role="content"]',
+      'td[data-column-field="title"] [data-cell-role="title-action"]',
+    ];
+    return selectors.map((selector) => {
+      const element = document.querySelector(selector);
+      return element?.getAttribute("title") ?? null;
+    });
+  });
+
+  expect(cellTitles).toEqual([null, null, null]);
+});
+
 test("table text edit active frame fills a tall cell", async ({ page }) => {
   const dataPath = path.resolve("tests/.scratch/data/e2e_tall_text_cell.json");
   await writeFile(dataPath, JSON.stringify([

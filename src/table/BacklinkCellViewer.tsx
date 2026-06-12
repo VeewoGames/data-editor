@@ -19,7 +19,6 @@ function BacklinkCellViewerComponent({ items, status = "active", message, wrappe
           className={`editable-cell cell-display cell-text-content backlink-display ${wrapped ? "cell-text-wrap" : ""} ${status === "missing-source" ? "backlink-display-invalid" : ""}`}
           data-cell-role="content"
           data-wrap-mode={wrapped ? "wrap" : "truncate"}
-          title={message}
         >
           <span className={`backlink-placeholder ${status === "missing-source" ? "backlink-placeholder-invalid" : ""}`}>{placeholder}</span>
         </div>
@@ -40,7 +39,6 @@ function BacklinkCellViewerComponent({ items, status = "active", message, wrappe
             }}
             type="button"
             style={chipStyleForValue(item.title, "gray")}
-            title={`${item.title} (${item.sourceFile})`}
           >
             {item.title}
           </button>

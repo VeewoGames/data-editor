@@ -663,6 +663,7 @@ test("stable text editing structure is wired", async () => {
   const dataTableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
   const tableColumnsSource = await readFile(new URL("../src/table/table-columns.tsx", import.meta.url), "utf8");
   const textCellSurfaceSource = await readFile(new URL("../src/table/TextCellSurface.tsx", import.meta.url), "utf8");
+  const backlinkCellViewerSource = await readFile(new URL("../src/table/BacklinkCellViewer.tsx", import.meta.url), "utf8");
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
 
   assert.doesNotMatch(detailPanelSource, /key=\{`\$\{props\.fieldName\}:\$\{String\(props\.value \?\? ""\)\}`\}/);
@@ -691,6 +692,10 @@ test("stable text editing structure is wired", async () => {
   assert.match(textCellSurfaceSource, /data-cell-role="text-editor-overlay"/);
   assert.match(textCellSurfaceSource, /editable-active/);
   assert.match(textCellSurfaceSource, /onActivate\(cellId\)/);
+  assert.doesNotMatch(textCellSurfaceSource, /title=\{textValue\}/);
+  assert.doesNotMatch(cellRendererSource, /data-cell-role="content"[\s\S]+title=\{textValue\}/);
+  assert.doesNotMatch(tableColumnsSource, /data-cell-role="title-action"[\s\S]+title=/);
+  assert.doesNotMatch(backlinkCellViewerSource, /title=\{message\}|title=\{`\$\{item\.title\} \(\$\{item\.sourceFile\}\)`\}/);
   assert.doesNotMatch(handleKeyDownSection, /event\.key === "Enter"[\s\S]+flushDraft\(\)/);
   assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Select"'), cellRendererSource.indexOf('displayType === "Relation"')), /textEditable/);
   assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Multi-select"'), cellRendererSource.indexOf('displayType === "Select"')), /textEditable/);
