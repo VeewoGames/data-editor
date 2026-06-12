@@ -235,7 +235,7 @@ export function Toolbar(props: ToolbarProps) {
         title="关闭服务"
         type="button"
       >
-        <icons.close size={16} />
+        <icons.power size={16} />
         {snapshot.closing ? "关闭中..." : null}
       </button>
     </header>

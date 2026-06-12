@@ -3324,7 +3324,10 @@ export function App() {
 
   async function handleCloseServer() {
     if (closing || commandSaving || rebuilding) return;
-    if (globalDirty && !window.confirm("有未保存更改，关闭服务会丢失这些更改。是否继续关闭？")) return;
+    const closeConfirmMessage = globalDirty
+      ? "确认关闭服务？当前有未保存更改，关闭后这些更改会丢失。"
+      : "确认关闭服务？关闭后需要重新打开才能继续使用编辑器。";
+    if (!window.confirm(closeConfirmMessage)) return;
     setClosing(true);
     setStatus("");
     try {

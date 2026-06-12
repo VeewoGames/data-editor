@@ -5513,9 +5513,16 @@ test("close button switches to server closed page", async ({ page }) => {
 
   await page.goto("/");
   const closeButton = page.locator(".toolbar .toolbar-close-button");
+  let confirmMessage = "";
+
+  page.once("dialog", async (dialog) => {
+    confirmMessage = dialog.message();
+    await dialog.accept();
+  });
 
   await expect(closeButton).toBeVisible();
   await closeButton.click();
+  await expect.poll(() => confirmMessage).toContain("确认关闭服务");
   await expect(closeButton).toBeDisabled();
   await expect(closeButton).toContainText("关闭中...");
   await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
@@ -5540,12 +5547,21 @@ test("close button asks for confirmation when unsaved changes would be lost", as
   await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await page.locator(".detail-panel.primary .detail-input").first().fill("Dirty name");
   await expect(page.locator(".dirty-pill")).toBeVisible();
+  let dialogCount = 0;
+  let confirmMessage = "";
 
-  page.once("dialog", (dialog) => dialog.dismiss());
+  page.once("dialog", async (dialog) => {
+    dialogCount += 1;
+    confirmMessage = dialog.message();
+    await dialog.dismiss();
+  });
   await page.locator(".toolbar .toolbar-close-button").click();
 
   await expect(page.locator(".workspace")).toBeVisible();
   await expect(page.locator(".server-closed-state")).toHaveCount(0);
+  expect(dialogCount).toBe(1);
+  expect(confirmMessage).toContain("确认关闭服务");
+  expect(confirmMessage).toContain("未保存更改");
   expect(shutdownCalls).toBe(0);
 });
 
