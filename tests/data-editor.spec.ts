@@ -728,6 +728,27 @@ test("column header menu copies the field name to the clipboard", async ({ page,
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("category");
 });
 
+test("column header field type menu is only available for text and select fields", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await expect(page.locator(".column-menu-popup")).toBeVisible();
+  await expect(page.locator('.column-menu-popup [data-field-type="Text"]')).toBeVisible();
+  await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
+  await expect(page.locator(".column-menu-popup [data-field-type]")).toHaveCount(2);
+
+  await page.locator("body").click({ position: { x: 8, y: 8 } });
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+
+  await page.locator('.sidebar-item[title="data/e2e_checkbox.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "enabled").click();
+  await expect(page.locator(".column-menu-popup")).toBeVisible();
+  await expect(page.locator(".column-menu-popup [data-field-type]")).toHaveCount(0);
+});
+
 test("column header full title tooltip only appears for truncated headers and hides on menu open", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

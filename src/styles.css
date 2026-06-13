@@ -2305,16 +2305,31 @@ th:hover .column-resize-handle,
 
 .backlink-chips-cell {
   align-items: flex-start;
+  min-height: 20px;
+  width: 100%;
+}
+
+.backlink-trigger {
+  cursor: default;
+  min-height: 0;
+}
+
+.backlink-trigger:hover {
+  background: transparent;
 }
 
 .backlink-chip-button {
   border: 0;
   cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
   max-width: 100%;
+  min-width: 0;
+  text-align: left;
 }
 
 .backlink-chips-cell.cell-token-flow .backlink-chip-button {
-  display: inline-flex;
+  align-items: flex-start;
   overflow: visible;
   text-overflow: clip;
   white-space: normal;

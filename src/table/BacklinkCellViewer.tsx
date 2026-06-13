@@ -28,21 +28,27 @@ function BacklinkCellViewerComponent({ items, status = "active", message, wrappe
 
   return (
     <div className="table-cell-content-main">
-      <div className={`chips-cell backlink-chips-cell ${wrapped ? "cell-token-flow" : ""}`} data-cell-role="token-content" data-wrap-mode={wrapped ? "wrap" : "truncate"}>
-        {items.map((item, index) => (
-          <button
-            className="chip backlink-chip-button"
-            key={`${item.sourceFile}:${item.rowIndex}:${index}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpen(item);
-            }}
-            type="button"
-            style={chipStyleForValue(item.title, "gray")}
-          >
-            {item.title}
-          </button>
-        ))}
+      <div
+        className={`multi-select-trigger backlink-trigger field-surface-table ${wrapped ? "cell-token-flow" : "cell-token-trigger"}`}
+        data-cell-role="token-trigger"
+        data-wrap-mode={wrapped ? "wrap" : "truncate"}
+      >
+        <div className={`chips-cell backlink-chips-cell ${wrapped ? "cell-token-flow" : ""}`} data-cell-role="token-content" data-wrap-mode={wrapped ? "wrap" : "truncate"}>
+          {items.map((item, index) => (
+            <button
+              className="chip backlink-chip-button"
+              key={`${item.sourceFile}:${item.rowIndex}:${index}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen(item);
+              }}
+              type="button"
+              style={chipStyleForValue(item.title, "gray")}
+            >
+              {item.title}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { FieldDisplayType } from "../model/fieldTypes";
-import { fieldTypes } from "../model/fieldTypes";
 import { icons } from "../components/icons";
 import { shouldStartColumnDrag } from "./column-dnd.mjs";
 
@@ -36,6 +35,7 @@ type ColumnHeaderProps = {
 
 const minColumnWidth = 56;
 const maxColumnWidth = 560;
+const changeableFieldTypes: readonly FieldDisplayType[] = ["Text", "Select"];
 const displayTypeLabels: Record<FieldDisplayType, string> = {
   Text: "文本",
   Number: "数字",
@@ -127,6 +127,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     !isPointerPressActive &&
     !props.isDragging &&
     !props.tooltipSuppressed;
+  const canShowTypeChangeMenu = props.allowTypeChange && changeableFieldTypes.includes(props.displayType);
 
   useEffect(() => {
     if (!shouldShowTooltip) return;
@@ -339,10 +340,10 @@ export function ColumnHeader(props: ColumnHeaderProps) {
           <button className="menu-item" onClick={copyFieldText} type="button">
             <icons.copy size={15} /> 复制字段文本
           </button>
-          {props.allowTypeChange ? (
+          {canShowTypeChangeMenu ? (
             <>
               <div className="menu-separator" />
-              {fieldTypes.map((type: FieldDisplayType) => (
+              {changeableFieldTypes.map((type) => (
                 <button
                   className="menu-item"
                   data-field-type={type}

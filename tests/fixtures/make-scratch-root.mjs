@@ -140,6 +140,19 @@ await writeFile(path.join(scratchData, "e2e_select_long.json"), JSON.stringify([
   }
 ], null, 2));
 
+await writeFile(path.join(scratchData, "e2e_checkbox.json"), JSON.stringify([
+  {
+    id: "checkbox_1",
+    name: "Checkbox One",
+    enabled: true
+  },
+  {
+    id: "checkbox_2",
+    name: "Checkbox Two",
+    enabled: false
+  }
+], null, 2));
+
 await writeFile(path.join(scratchData, "e2e_primary_key_candidates.json"), JSON.stringify({
   alpha: [
     { alpha_id: "alpha_focus", id: "1", name: "Alpha Focus" },

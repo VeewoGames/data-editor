@@ -696,6 +696,8 @@ test("stable text editing structure is wired", async () => {
   assert.doesNotMatch(cellRendererSource, /data-cell-role="content"[\s\S]+title=\{textValue\}/);
   assert.doesNotMatch(tableColumnsSource, /data-cell-role="title-action"[\s\S]+title=/);
   assert.doesNotMatch(backlinkCellViewerSource, /title=\{message\}|title=\{`\$\{item\.title\} \(\$\{item\.sourceFile\}\)`\}/);
+  assert.match(backlinkCellViewerSource, /className=\{`multi-select-trigger backlink-trigger field-surface-table/);
+  assert.match(backlinkCellViewerSource, /data-cell-role="token-trigger"/);
   assert.doesNotMatch(handleKeyDownSection, /event\.key === "Enter"[\s\S]+flushDraft\(\)/);
   assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Select"'), cellRendererSource.indexOf('displayType === "Relation"')), /textEditable/);
   assert.doesNotMatch(cellRendererSource.slice(cellRendererSource.indexOf('displayType === "Multi-select"'), cellRendererSource.indexOf('displayType === "Select"')), /textEditable/);
@@ -726,6 +728,16 @@ test("table cell frame structure is centralized in table-columns", async () => {
   assert.match(tableColumnsSource, /if \(columnModel\.isTitle\) \{[\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>/);
   assert.match(tableColumnsSource, /return \([\s\S]+<TableCellFrame kind=\{frameMeta\.kind\} layout=\{frameMeta\.layout\}>[\s\S]+<CellRenderer/);
   assert.doesNotMatch(cellRendererSource, /TableCellFrame/);
+});
+
+test("backlink chip renderer keeps the wrapped multi-tag contract", async () => {
+  const backlinkCellViewerSource = await readFile(new URL("../src/table/BacklinkCellViewer.tsx", import.meta.url), "utf8");
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+
+  assert.match(backlinkCellViewerSource, /multi-select-trigger backlink-trigger/);
+  assert.match(backlinkCellViewerSource, /data-wrap-mode=\{wrapped \? "wrap" : "truncate"\}/);
+  assert.match(stylesSource, /\.backlink-chip-button\s*\{[\s\S]*flex-shrink:\s*0;/);
+  assert.match(stylesSource, /\.backlink-chips-cell\s*\{[\s\S]*width:\s*100%;/);
 });
 
 test("duplicating a shared view copies the current user's personal layout and only drafts visible order when needed", async () => {
