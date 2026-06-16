@@ -125,7 +125,7 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
                     <icons.openDetail size={13} />
                   </span>
                 ) : null}
-                <span className="selected-chip-remove">x</span>
+                <span aria-hidden="true" className="selected-chip-remove"><icons.close size={12} strokeWidth={2.4} /></span>
               </button>
             ))}
             {configured ? (

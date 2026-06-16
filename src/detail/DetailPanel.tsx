@@ -11,7 +11,7 @@ import { getRecordTitle } from "../model/titleField";
 import type { ValidationIssue } from "../model/validation";
 import { NestedEditor } from "./NestedEditor";
 import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
-import type { OptionFieldDraftCommit } from "../table/OptionFieldEditor";
+import { forwardOptionFieldSurfaceClick, type OptionFieldDraftCommit } from "../table/OptionFieldEditor";
 import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
@@ -396,7 +396,7 @@ export function DetailPanel({
                       style={{ minHeight: dragState?.ghostHeight ?? 72 }}
                     />
                   ) : (
-                    <section className="property-block">
+                    <section className="property-block" onClick={forwardOptionFieldSurfaceClick}>
                       <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} />
                       {renderValueEditor({
                         cellId: `detail:${rowId ?? sourceRowIndex ?? "detail"}:${key}`,
@@ -618,7 +618,7 @@ function NestedObjectPanel(props: {
       </div>
       <div className="property-list nested-property-list">
         {Object.entries(props.value).map(([key, value]) => (
-          <section className="property-block" key={`${props.rootField}:${key}`}>
+          <section className="property-block" key={`${props.rootField}:${key}`} onClick={forwardOptionFieldSurfaceClick}>
             <PropertyHeading fieldName={key} fieldType={defaultTypeFor(value)} />
             {renderValueEditor({
               cellId: `nested-object:${props.rootField}:${key}`,
@@ -656,7 +656,7 @@ function renderNestedItemEditor(
 ) {
   if (Array.isArray(item)) {
     return (
-      <section className="property-block">
+      <section className="property-block" onClick={forwardOptionFieldSurfaceClick}>
         <PropertyHeading fieldName="value" fieldType="Nested" />
         <button className="nested-entry-button" onClick={() => onOpenNested(index, [], item)}>
           <icons.nested size={15} />
@@ -671,7 +671,7 @@ function renderNestedItemEditor(
       const relation = getRelationConfig([rootField, ...basePath, index, key], relationOptions, relationConfigs, sourcePath, collectionPath);
       const nextPath = [key];
       return (
-        <section className="property-block" key={`${index}:${key}`}>
+        <section className="property-block" key={`${index}:${key}`} onClick={forwardOptionFieldSurfaceClick}>
           <PropertyHeading fieldName={key} fieldType={defaultTypeFor(value)} />
           {relation && isRelationValue(value) ? (
             <RelationCellEditor
@@ -713,7 +713,7 @@ function renderNestedItemEditor(
   }
 
   return (
-    <section className="property-block">
+    <section className="property-block" onClick={forwardOptionFieldSurfaceClick}>
       <PropertyHeading fieldName="value" fieldType={defaultTypeFor(item)} />
       <input
         className="detail-input"
@@ -795,14 +795,16 @@ function renderValueEditor(props: {
       );
     }
     return (
-      <SelectCellEditor
-        cellId={props.cellId}
-        key={props.cellId}
-        onCommitDraft={(patch) => props.onCommitSelectDraft!(props.fieldName, patch)}
-        options={props.selectOptions}
-        surface="detail"
-        value={props.value as string | number | null}
-      />
+      <div className="option-field-click-surface" onClick={forwardOptionFieldSurfaceClick}>
+        <SelectCellEditor
+          cellId={props.cellId}
+          key={props.cellId}
+          onCommitDraft={(patch) => props.onCommitSelectDraft!(props.fieldName, patch)}
+          options={props.selectOptions}
+          surface="detail"
+          value={props.value as string | number | null}
+        />
+      </div>
     );
   }
   if (props.displayType === "Multi-select" && Array.isArray(props.value)) {
@@ -821,14 +823,16 @@ function renderValueEditor(props: {
       );
     }
     return (
-      <MultiSelectCellEditor
-        cellId={props.cellId}
-        key={props.cellId}
-        onCommitDraft={(patch) => props.onCommitMultiSelectDraft!(props.fieldName, patch)}
-        surface="detail"
-        value={props.value as Array<string | number>}
-        options={props.multiSelectOptions}
-      />
+      <div className="option-field-click-surface" onClick={forwardOptionFieldSurfaceClick}>
+        <MultiSelectCellEditor
+          cellId={props.cellId}
+          key={props.cellId}
+          onCommitDraft={(patch) => props.onCommitMultiSelectDraft!(props.fieldName, patch)}
+          surface="detail"
+          value={props.value as Array<string | number>}
+          options={props.multiSelectOptions}
+        />
+      </div>
     );
   }
   if (Array.isArray(props.value)) {

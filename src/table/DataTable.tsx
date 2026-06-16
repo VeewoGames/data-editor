@@ -9,7 +9,7 @@ import {
   resolveAutoScrollDirection,
   scrollColumnContainer,
 } from "./column-dnd.mjs";
-import type { OptionFieldDraftCommit } from "./OptionFieldEditor";
+import { forwardOptionFieldSurfaceClick, type OptionFieldDraftCommit } from "./OptionFieldEditor";
 import { buildTableColumns, TableColumnsRuntimeProvider } from "./table-columns";
 import { buildTableColumnModels, getColumnModelDisplayType } from "./table-column-models.mjs";
 import { buildTableColumnModelsSignature } from "./table-column-signatures.mjs";
@@ -746,6 +746,7 @@ function DataTableComponent(props: DataTableProps) {
                       data-cell-kind="data"
                       data-column-field={cell.column.id}
                       data-wrap-mode={snapshot.fieldConfig.wrapped.has(cell.column.id) ? "wrap" : "truncate"}
+                      onClick={forwardOptionFieldSurfaceClick}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>

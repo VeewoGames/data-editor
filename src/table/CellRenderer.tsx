@@ -5,7 +5,7 @@ import { isCompatible } from "../model/fieldTypes";
 import type { RelationOption } from "../model/relations";
 import type { ValidationIssue } from "../model/validation";
 import { MultiSelectCellEditor } from "./MultiSelectCellEditor";
-import type { OptionFieldDraftCommit } from "./OptionFieldEditor";
+import { forwardOptionFieldSurfaceClick, type OptionFieldDraftCommit } from "./OptionFieldEditor";
 import { RelationCellEditor } from "./RelationCellEditor";
 import { SelectCellEditor } from "./SelectCellEditor";
 import { TextCellSurface } from "./TextCellSurface";
@@ -85,7 +85,7 @@ function CellRendererComponent({
   if (displayType === "Multi-select" && Array.isArray(value)) {
     return (
       <>
-        <div className="table-cell-content-main">
+        <div className="table-cell-content-main option-field-click-surface" onClick={forwardOptionFieldSurfaceClick}>
           <MultiSelectCellEditor
             cellId={cellId}
             onCommitDraft={onCommitMultiSelectDraft ?? (() => {})}
@@ -103,7 +103,7 @@ function CellRendererComponent({
   if (displayType === "Select" && (value == null || typeof value === "string" || typeof value === "number")) {
     return (
       <>
-        <div className="table-cell-content-main">
+        <div className="table-cell-content-main option-field-click-surface" onClick={forwardOptionFieldSurfaceClick}>
           <SelectCellEditor
             cellId={cellId}
             onCommitDraft={onCommitSelectDraft ?? (() => {})}

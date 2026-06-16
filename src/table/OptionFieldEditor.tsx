@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { icons } from "../components/icons";
 import type { MultiSelectOptionColor, MultiSelectOptionView } from "../model/viewConfig";
 import { sortValuesByOptionOrder } from "../multiselect-config.mjs";
@@ -17,6 +17,16 @@ export type OptionFieldDraftCommit = {
   renamedOptions: Array<{ previousValue: string; nextValue: string }>;
   valueChanged: boolean;
 };
+
+export function forwardOptionFieldSurfaceClick(event: ReactMouseEvent<HTMLElement>) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.closest('[data-cell-role="token-trigger"], [data-cell-role="detail-trigger"], input, textarea, [data-radix-popper-content-wrapper]')) return;
+  const trigger = event.currentTarget.querySelector<HTMLButtonElement>('[data-cell-role="token-trigger"], [data-cell-role="detail-trigger"]');
+  if (!trigger) return;
+  event.stopPropagation();
+  trigger.click();
+}
 
 type OptionFieldEditorProps = {
   cellId: string;
@@ -330,6 +340,7 @@ export function OptionFieldEditor({
         >
           <div className="chips-cell">
             {selectedValues.length === 0 && placeholder ? <span className="select-placeholder">{placeholder}</span> : null}
+            {selectedValues.length === 0 && !placeholder ? <span aria-hidden="true" className="select-empty-hitbox" /> : null}
             {orderedSelectedValues.map((item, index) => {
               const option = optionMap[String(item)];
               return (
@@ -372,7 +383,7 @@ export function OptionFieldEditor({
                   style={chipStyleForValue(item, option?.color ?? null)}
                 >
                   <span>{option?.label ?? String(item)}</span>
-                  <span className="selected-chip-remove">x</span>
+                  <span aria-hidden="true" className="selected-chip-remove"><icons.close size={12} strokeWidth={2.4} /></span>
                 </button>
               );
             })}

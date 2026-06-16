@@ -2245,9 +2245,26 @@ th:hover .column-resize-handle,
   background: #f1f0ed;
 }
 
+.option-field-click-surface {
+  align-items: stretch;
+  display: flex;
+  min-height: 100%;
+  width: 100%;
+}
+
+.option-field-click-surface > .multi-select-trigger {
+  min-height: 100%;
+}
+
 .multi-select-trigger .chips-cell {
   align-items: flex-start;
   min-width: 0;
+  width: 100%;
+}
+
+.select-empty-hitbox {
+  display: block;
+  min-height: 24px;
   width: 100%;
 }
 
@@ -2307,6 +2324,10 @@ th:hover .column-resize-handle,
   align-items: flex-start;
   min-height: 20px;
   width: 100%;
+}
+
+.detail-field-trigger {
+  min-height: 28px;
 }
 
 .backlink-trigger {
@@ -2404,13 +2425,28 @@ th:hover .column-resize-handle,
 }
 
 .selected-chip-remove {
+  align-items: center;
   background: transparent;
-  border: 0;
   color: inherit;
   cursor: pointer;
-  color: inherit;
+  display: inline-flex;
+  border-radius: 999px;
+  height: 18px;
+  justify-content: center;
   opacity: 0.7;
   padding: 0;
+  transition: background 120ms ease, opacity 120ms ease, transform 120ms ease;
+  width: 18px;
+}
+
+.selected-chip-remove svg {
+  display: block;
+}
+
+.selected-chip:hover .selected-chip-remove,
+.selected-chip-remove:hover {
+  background: rgba(55, 53, 47, 0.12);
+  opacity: 1;
 }
 
 .multi-select-input {

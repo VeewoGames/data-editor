@@ -1,6 +1,7 @@
 ﻿import { expect, test, type Page } from "@playwright/test";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { Locator } from "@playwright/test";
 
 const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(process.cwd(), "..", "Nocturnel"));
 const fixtureRunesPath = path.join(fixtureProjectRoot, "data", "runes.json");
@@ -254,6 +255,17 @@ async function clickCellWhitespace(page: Page, rowIndex: number, fieldName: stri
   const box = await tableCell(page, rowIndex, fieldName).boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.click(box!.x + box!.width * xRatio, box!.y + box!.height * yRatio);
+}
+
+async function clickLocatorWhitespace(locator: Locator, xRatio = 0.5, yRatio = 0.78) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  await locator.click({
+    position: {
+      x: Math.max(1, Math.min(box!.width - 1, box!.width * xRatio)),
+      y: Math.max(1, Math.min(box!.height - 1, box!.height * yRatio)),
+    },
+  });
 }
 
 async function getSortRuleFields(page: Page) {
@@ -4410,6 +4422,65 @@ test("detail panel option field editors reuse the shared popover shell", async (
   await expect(selectPopover.locator(".option-field-popover-section-scroll")).toBeVisible();
 });
 
+test("empty select and multi-select fields open from whitespace in table and detail panel", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect_empty.json");
+  await writeFile(dataPath, JSON.stringify([
+    {
+      id: "multi_empty_1",
+      name: "Empty Multi",
+      features: [],
+    },
+    {
+      id: "multi_empty_2",
+      name: "Option Source",
+      features: ["attack", "spell"],
+    },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multiselect_empty.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await clickCellWhitespace(page, 0, "features", 0.5, 0.82);
+    await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+    await closePopoverByClickingOutside(page);
+
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    const featuresBlock = page.locator(".detail-panel.primary .property-block").filter({
+      has: page.locator(".property-heading span", { hasText: "features" }),
+    });
+    await clickLocatorWhitespace(featuresBlock.locator(".multi-select-trigger"));
+    await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+    await closePopoverByClickingOutside(page);
+
+    await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await columnHeaderTrigger(page, "category").click();
+    await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+    await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
+
+    await clickCellWhitespace(page, 2, "category", 0.5, 0.82);
+    await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+    await page.locator(".multi-select-option").filter({ hasText: "attack" }).click();
+    await expect(tableCell(page, 2, "category").locator(".multi-select-trigger")).toContainText("attack");
+    await closePopoverByClickingOutside(page);
+
+    await tableRow(page, 2).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
+      has: page.locator(".property-heading span", { hasText: "category" }),
+    });
+    await clickLocatorWhitespace(categoryBlock.locator(".multi-select-trigger"));
+    await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+  } finally {
+    await bestEffortRestore("e2e_multiselect_empty.json", () => rm(dataPath, { force: true }));
+  }
+});
+
 test("detail panel headings show shared field type icons in primary and nested panels", async ({ page }) => {
   await page.goto("/");
 
@@ -4511,6 +4582,11 @@ test("option field editor keeps create rename color and delete actions", async (
   await page.locator(".multi-select-input").fill("phase2_tag");
   await page.locator(".multi-select-input").press("Enter");
   await expect(page.locator(".multi-select-popover .selected-chip").filter({ hasText: "phase2_tag" })).toBeVisible();
+  const removeAffordance = page.locator(".multi-select-popover .selected-chip").filter({ hasText: "phase2_tag" }).locator(".selected-chip-remove");
+  await expect(removeAffordance.locator("svg")).toHaveCount(1);
+  await expect(removeAffordance).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await removeAffordance.hover();
+  await expect(removeAffordance).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await page.locator(".multi-select-input").fill("");
 
   const renameSource = await page.locator(".multi-select-option-row .chip").evaluateAll((items) => (
