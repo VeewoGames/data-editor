@@ -211,6 +211,9 @@ test("applyViewConfigPathMigrations migrates fields primaryKeys relations and re
     fields: {
       "data/old/items.json:$:name:with:colon": { type: "Text" },
     },
+    titleFields: {
+      "data/old/items.json:$": "name",
+    },
     primaryKeys: {
       "data/old/items.json:$": "id",
     },
@@ -236,6 +239,9 @@ test("applyViewConfigPathMigrations migrates fields primaryKeys relations and re
 
   assert.deepEqual(result.value.fields, {
     "data/new/items.json:$:name:with:colon": { type: "Text" },
+  });
+  assert.deepEqual(result.value.titleFields, {
+    "data/new/items.json:$": "name",
   });
   assert.deepEqual(result.value.primaryKeys, {
     "data/new/items.json:$": "id",

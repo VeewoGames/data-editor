@@ -61,6 +61,7 @@ export type ViewConfig = {
       color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "purple" | "pink" | "red" | null;
     }>;
   }>;
+  titleFields: Record<string, string>;
   primaryKeys: Record<string, string>;
   backlinks: Record<string, BacklinkConfig>;
   relations: Record<string, RelationConfig>;

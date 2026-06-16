@@ -18,6 +18,8 @@ type TableColumnsRuntime = {
   backlinkValuesByRowId: Record<number | string, Record<string, RelationBacklink[]>>;
   tableLayoutMode: "center" | "top";
   validation: ValidationSnapshot | null;
+  titleField: string | null;
+  primaryKeyField: string | null;
   textEditable: boolean;
   activeTextCellId: string | null;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
@@ -25,6 +27,8 @@ type TableColumnsRuntime = {
   onDeactivateTextCell: (cellId: string) => void;
   onSort: (fieldName: string, direction: "asc" | "desc" | null) => void;
   onAddFilter: (fieldName: string, displayType: FieldDisplayType) => void;
+  onSetTitleField: (fieldName: string) => void;
+  onSetPrimaryKeyField: (fieldName: string) => void;
   onHideField: (fieldName: string) => void;
   onResizeField: (fieldName: string, width: number) => void;
   onMoveField: (fieldName: string, direction: "left" | "right") => void;
@@ -147,6 +151,10 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       pressed={headerState.pressed}
       onSort={(direction) => runtime.onSort(columnModel.fieldName, direction)}
       onAddFilter={() => runtime.onAddFilter(columnModel.fieldName, columnModel.displayType)}
+      isTitleField={columnModel.fieldName === runtime.titleField}
+      isPrimaryKeyField={columnModel.fieldName === runtime.primaryKeyField}
+      onSetTitleField={() => runtime.onSetTitleField(columnModel.fieldName)}
+      onSetPrimaryKeyField={() => runtime.onSetPrimaryKeyField(columnModel.fieldName)}
       onHide={() => runtime.onHideField(columnModel.fieldName)}
       onResize={(width) => runtime.onResizeField(columnModel.fieldName, width)}
       onMove={(direction) => runtime.onMoveField(columnModel.fieldName, direction)}

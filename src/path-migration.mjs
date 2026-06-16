@@ -568,6 +568,7 @@ export function applyProfilePathMigrations(profile, migrations, context = {}) {
 export function applyViewConfigPathMigrations(viewConfig, migrations) {
   const context = collectViewConfigContext(viewConfig, migrations);
   const fields = migrateObjectKeys(viewConfig?.fields ?? {}, rewriteFieldViewConfigKey, migrations, context, "viewConfig.fields");
+  const titleFields = migrateObjectKeys(viewConfig?.titleFields ?? {}, rewriteCollectionConfigKey, migrations, context, "viewConfig.titleFields");
   const primaryKeys = migrateObjectKeys(viewConfig?.primaryKeys ?? {}, rewriteCollectionConfigKey, migrations, context, "viewConfig.primaryKeys");
   const relations = migrateRelations(viewConfig?.relations ?? {}, migrations, context);
   const backlinks = syncBacklinksWithRelations(relations.value, viewConfig?.backlinks ?? {});
@@ -576,12 +577,13 @@ export function applyViewConfigPathMigrations(viewConfig, migrations) {
     value: {
       ...(viewConfig ?? {}),
       fields: fields.value,
+      titleFields: titleFields.value,
       primaryKeys: primaryKeys.value,
       relations: relations.value,
       backlinks,
     },
-    changed: fields.changed || primaryKeys.changed || relations.changed || backlinksChanged,
-    report: mergeReports(fields.report, primaryKeys.report, relations.report, backlinksChanged ? {
+    changed: fields.changed || titleFields.changed || primaryKeys.changed || relations.changed || backlinksChanged,
+    report: mergeReports(fields.report, titleFields.report, primaryKeys.report, relations.report, backlinksChanged ? {
       ...emptyReport(),
       migrated: [{ surface: "viewConfig.backlinks" }],
     } : null),

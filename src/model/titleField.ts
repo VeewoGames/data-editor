@@ -1,6 +1,7 @@
 import type { DataRecord } from "./documentModel";
 
-export function findTitleField(fields: string[], rows: DataRecord[]) {
+export function findTitleField(fields: string[], rows: DataRecord[], configuredField?: string | null) {
+  if (configuredField && fields.includes(configuredField)) return configuredField;
   if (fields.includes("name")) return "name";
   const nameSuffix = fields.find((field) => field.endsWith("_name"));
   if (nameSuffix) return nameSuffix;

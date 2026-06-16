@@ -173,6 +173,44 @@ export function DetailPanel({
     if (!row || !activeNested) return null;
     return getValueAtPath(row[activeNested.rootField], activeNested.path);
   }, [row, activeNested]);
+  const title = row ? getRecordTitle(row, titleField ? [titleField] : [], sourceRowIndex ?? null) : null;
+  const currentRow = row ?? ({} as DataRecord);
+  const canGoPrevious = previousRowTarget != null;
+  const canGoNext = nextRowTarget != null;
+  const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""}`;
+  const naturalFieldOrder = useMemo(() => row ? Object.keys(row).filter((key) => key !== "__rowIndex") : [], [row]);
+  const orderedFields = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
+  const selectOptionsByField = useMemo<SelectOptionsByField>(() => {
+    if (!row) return {};
+    const result: SelectOptionsByField = {};
+    for (const key of naturalFieldOrder) {
+      if (displayTypes[key] !== "Select") continue;
+      const options = new Map<string, MultiSelectOptionView>();
+      for (const [value, option] of Object.entries(fieldViewConfigs[key]?.selectOptions ?? {})) {
+        options.set(value, { value, label: option.label, color: option.color ?? null });
+      }
+      const value = row[key];
+      if (value != null) {
+        const normalized = String(value).trim();
+        if (normalized) options.set(normalized, { value: normalized, label: normalized, color: null });
+      }
+      result[key] = [...options.values()];
+    }
+    return result;
+  }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
+  const multiSelectOptionsByField = useMemo(() => {
+    if (!row) return {};
+    const result: Record<string, { options: MultiSelectOptionView[]; optionMap: Record<string, MultiSelectOptionView> }> = {};
+    for (const key of naturalFieldOrder) {
+      if (displayTypes[key] !== "Multi-select") continue;
+      const value = row[key];
+      const discovered = Array.isArray(value)
+        ? value.filter((item): item is string | number => item != null && (typeof item === "string" || typeof item === "number"))
+        : [];
+      result[key] = buildMultiSelectFieldConfig(discovered, fieldViewConfigs[key]);
+    }
+    return result;
+  }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
 
   function beginPanelResize(event: ReactPointerEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -217,45 +255,6 @@ export function DetailPanel({
       </>
     );
   }
-
-  const title = getRecordTitle(row, titleField ? [titleField] : [], sourceRowIndex ?? null);
-  const currentRow = row;
-  const canGoPrevious = previousRowTarget != null;
-  const canGoNext = nextRowTarget != null;
-  const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""}`;
-  const naturalFieldOrder = Object.keys(row).filter((key) => key !== "__rowIndex");
-  const orderedFields = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
-  const selectOptionsByField = useMemo<SelectOptionsByField>(() => {
-    const result: SelectOptionsByField = {};
-    for (const key of naturalFieldOrder) {
-      if (displayTypes[key] !== "Select") continue;
-      const options = new Map<string, MultiSelectOptionView>();
-      for (const [value, option] of Object.entries(fieldViewConfigs[key]?.selectOptions ?? {})) {
-        options.set(value, { value, label: option.label, color: option.color ?? null });
-      }
-      for (const candidateRow of [row]) {
-        const value = candidateRow?.[key];
-        if (value == null) continue;
-        const normalized = String(value).trim();
-        if (!normalized) continue;
-        options.set(normalized, { value: normalized, label: normalized, color: null });
-      }
-      result[key] = [...options.values()];
-    }
-    return result;
-  }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
-  const multiSelectOptionsByField = useMemo(() => {
-    const result: Record<string, { options: MultiSelectOptionView[]; optionMap: Record<string, MultiSelectOptionView> }> = {};
-    for (const key of naturalFieldOrder) {
-      if (displayTypes[key] !== "Multi-select") continue;
-      const value = row?.[key];
-      const discovered = Array.isArray(value)
-        ? value.filter((item): item is string | number => item != null && (typeof item === "string" || typeof item === "number"))
-        : [];
-      result[key] = buildMultiSelectFieldConfig(discovered, fieldViewConfigs[key]);
-    }
-    return result;
-  }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
 
   function openNestedField(fieldName: string, value: unknown, path: Array<string | number> = [], customTitle?: string) {
     const itemCount = Array.isArray(value) ? value.length : 0;

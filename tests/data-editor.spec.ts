@@ -88,6 +88,10 @@ async function getColumnHeaderOrder(page: Page) {
   ));
 }
 
+async function readScratchViewConfigText() {
+  return readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8").catch(() => "");
+}
+
 async function dispatchRecoverableFailure(page: Page, message = "synthetic disconnect") {
   await page.evaluate((detail) => {
     window.dispatchEvent(new CustomEvent("data-editor:recoverable-request", {
@@ -728,6 +732,30 @@ test("column header menu copies the field name to the clipboard", async ({ page,
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("category");
 });
 
+test("column header menu can set the collection title field", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const firstTitleBefore = page.locator(".data-table tbody tr").first().locator('[data-cell-role="title-action"]');
+  await expect(firstTitleBefore).toContainText("Select One");
+
+  await columnHeaderTrigger(page, "category").click();
+  const setTitleAction = page.locator('.column-menu-popup .menu-item[data-column-action="set-title"]');
+  await expect(setTitleAction).toBeVisible();
+  await setTitleAction.click();
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+
+  const firstTitleAfter = page.locator(".data-table tbody tr").first().locator('[data-cell-role="title-action"]');
+  await expect(firstTitleAfter).toContainText("attack");
+  await expect.poll(async () => {
+    const text = await readScratchViewConfigText();
+    return text.includes('"titleFields"')
+      && text.includes('"data/e2e_select.json:$"')
+      && text.includes('"category"');
+  }).toBe(true);
+});
+
 test("column header field type menu is only available for text and select fields", async ({ page }) => {
   await page.goto("/");
 
@@ -747,6 +775,29 @@ test("column header field type menu is only available for text and select fields
   await columnHeaderTrigger(page, "enabled").click();
   await expect(page.locator(".column-menu-popup")).toBeVisible();
   await expect(page.locator(".column-menu-popup [data-field-type]")).toHaveCount(0);
+});
+
+test("column header menu can set the collection primary key field", async ({ page }) => {
+  await page.goto("/");
+
+  const collectionsSection = page.locator(".sidebar-section").filter({ hasText: "Collections" });
+  await page.locator('.sidebar-item[title="data/e2e_primary_key_candidates.json"]').click();
+  await collectionsSection.locator(".sidebar-item").filter({ hasText: "alpha" }).click();
+  await expect(page.locator(".primary-key-candidate-banner")).toBeVisible();
+
+  await columnHeaderTrigger(page, "id").click();
+  const setPrimaryKeyAction = page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]');
+  await expect(setPrimaryKeyAction).toBeVisible();
+  await setPrimaryKeyAction.click();
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+  await expect(page.locator(".primary-key-candidate-banner")).toHaveCount(0);
+
+  await expect.poll(async () => {
+    const text = await readScratchViewConfigText();
+    return text.includes('"primaryKeys"')
+      && text.includes('"data/e2e_primary_key_candidates.json:alpha"')
+      && text.includes('"id"');
+  }).toBe(true);
 });
 
 test("column header full title tooltip only appears for truncated headers and hides on menu open", async ({ page }) => {
@@ -3557,6 +3608,39 @@ test("column header drag previews reordered headers before drop and persists onl
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:data/runes.json:$:all:__order"))).toContain("description_zh,rune_name,description");
   const after = await getColumnHeaderOrder(page);
   expect(after.slice(0, 3)).toEqual(["description_zh", "rune_name", "description"]);
+});
+
+test("clicking an empty collection keeps the page usable", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_empty_collection.json");
+  const data = {
+    valid_components: [
+      { id: "component_1", name: "Valid Component" },
+    ],
+    invalid_components: [],
+  };
+  await writeFile(dataPath, JSON.stringify(data, null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_empty_collection.json"]').click();
+    await expect(page.locator(".toolbar strong")).toContainText("data/e2e_empty_collection.json");
+
+    const collectionsSection = page.locator(".sidebar-section").filter({ hasText: "Collections" });
+    const invalidCollection = collectionsSection.locator(".sidebar-item").filter({ hasText: "invalid_components" });
+    await expect(invalidCollection.locator("small")).toHaveText("0");
+
+    await invalidCollection.click();
+
+    await expect(page.locator(".toolbar strong")).toContainText("data/e2e_empty_collection.json");
+    await expect(page.locator(".toolbar .toolbar-title span")).toContainText("invalid_components");
+    await expect(page.locator(".data-table")).toBeVisible();
+    await expect(page.locator("tbody tr")).toHaveCount(0);
+  } finally {
+    await bestEffortRestore("e2e_empty_collection.json", () => rm(dataPath, { force: true }));
+  }
 });
 
 test("column header pointercancel rolls back preview without committing order", async ({ page }) => {

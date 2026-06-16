@@ -1698,9 +1698,13 @@ export function App() {
     void loadMaintenanceInfo();
   }, [selectedPath, collectionPath, selectedRowId, selectedSourceRowIndex, selectedRow, viewConfig.relations, tableRevision]);
   const hiddenFields = useMemo(() => allFields.filter((field) => tableFieldConfig.hidden.has(field)), [allFields, tableFieldConfig.hidden]);
+  const configuredTitleField = useMemo(
+    () => selectedPath ? (viewConfig.titleFields[buildCollectionKey(selectedPath, collectionPath)] ?? null) : null,
+    [selectedPath, collectionPath, viewConfig.titleFields],
+  );
   const titleField = useMemo(
-    () => model ? findTitleField(getMainColumns(model, collectionPath), rows) : null,
-    [model, collectionPath, rows],
+    () => model ? findTitleField(getMainColumns(model, collectionPath), rows, configuredTitleField) : null,
+    [model, collectionPath, rows, configuredTitleField],
   );
   useEffect(() => {
     titleFieldRef.current = titleField;
@@ -1828,6 +1832,7 @@ export function App() {
     sort: activeViewSort,
     validation: validationSnapshot,
     titleField,
+    primaryKeyField: activeValidationPrimaryKeyField,
     scrollRestoreKey,
     initialScrollPosition,
     textEditable: tableTextEditMode,
@@ -1847,6 +1852,7 @@ export function App() {
     activeViewSort,
     validationSnapshot,
     titleField,
+    activeValidationPrimaryKeyField,
     scrollRestoreKey,
     initialScrollPosition,
     tableTextEditMode,
@@ -2373,13 +2379,39 @@ export function App() {
 
   function confirmPrimaryKeyCandidate() {
     if (!selectedPath || !selectedPrimaryKeyCandidate) return;
-    mutateViewConfig((draft) => {
-      draft.primaryKeys[buildCollectionKey(selectedPath, collectionPath)] = selectedPrimaryKeyCandidate;
-    });
+    assignPrimaryKeyField(selectedPrimaryKeyCandidate);
     if (selectedCollectionKey) {
       setDismissedCandidateKeys((current) => current.filter((key) => key !== selectedCollectionKey));
     }
     setPrimaryKeyCandidateDialogOpen(false);
+  }
+
+  function handleSetTitleField(fieldName: string) {
+    if (!selectedPath) return;
+    const collectionKey = buildCollectionKey(selectedPath, collectionPath);
+    if (viewConfig.titleFields[collectionKey] === fieldName) return;
+    mutateViewConfig((draft) => {
+      draft.titleFields[collectionKey] = fieldName;
+    });
+    setStatus(`已将 ${fieldName} 设为标题字段`);
+  }
+
+  function handleSetPrimaryKeyField(fieldName: string) {
+    if (!selectedPath) return;
+    assignPrimaryKeyField(fieldName);
+    if (selectedCollectionKey) {
+      setDismissedCandidateKeys((current) => current.filter((key) => key !== selectedCollectionKey));
+    }
+    setStatus(`已将 ${fieldName} 设为主键ID`);
+  }
+
+  function assignPrimaryKeyField(fieldName: string) {
+    if (!selectedPath) return;
+    const collectionKey = buildCollectionKey(selectedPath, collectionPath);
+    if (viewConfig.primaryKeys[collectionKey] === fieldName) return;
+    mutateViewConfig((draft) => {
+      draft.primaryKeys[collectionKey] = fieldName;
+    });
   }
 
   function handleHideField(fieldName: string) {
@@ -3585,10 +3617,12 @@ export function App() {
                   onEditCell={handleTableEditCell}
                   onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
                   onCommitSelectDraft={handleTableCommitSelectOptionFieldDraft}
-                  onChangeFieldType={handleChangeFieldType}
-                  onHideField={handleHideField}
-                  onToggleWrapField={handleToggleWrapField}
-                  onResizeField={handleResizeField}
+                    onChangeFieldType={handleChangeFieldType}
+                    onHideField={handleHideField}
+                    onToggleWrapField={handleToggleWrapField}
+                    onSetTitleField={handleSetTitleField}
+                    onSetPrimaryKeyField={handleSetPrimaryKeyField}
+                    onResizeField={handleResizeField}
                   onMoveField={handleMoveField}
                   onReorderFields={handleReorderFields}
                   onSort={handleSort}
@@ -3668,6 +3702,8 @@ export function App() {
             onChangeFieldType={handleChangeFieldType}
             onHideField={handleHideField}
             onToggleWrapField={handleToggleWrapField}
+            onSetTitleField={handleSetTitleField}
+            onSetPrimaryKeyField={handleSetPrimaryKeyField}
             onResizeField={handleResizeField}
             onMoveField={handleMoveField}
             onReorderFields={handleReorderFields}
@@ -4541,6 +4577,7 @@ function hasSharedDrafts(draftState: SharedViewDraftState) {
 function emptyProjectViewConfig(): ViewConfig {
   return {
     fields: {},
+    titleFields: {},
     primaryKeys: defaultPrimaryKeys(),
     backlinks: defaultBacklinkConfigs() as Record<string, BacklinkConfig>,
     relations: cloneRelationConfigs(defaultRelationConfigs() as Record<string, RelationConfig>),
@@ -4558,6 +4595,7 @@ function cloneViewConfig(config: ViewConfig): ViewConfig {
         multiSelectOptions: { ...value.multiSelectOptions },
       },
     ])),
+    titleFields: { ...config.titleFields },
     primaryKeys: { ...config.primaryKeys },
     backlinks: Object.fromEntries(Object.entries(config.backlinks).map(([key, value]) => [
       key,

@@ -48,6 +48,7 @@ export type BacklinkConfig = {
 
 export type ViewConfig = {
   fields: Record<string, FieldViewConfig>;
+  titleFields: Record<string, string>;
   primaryKeys: Record<string, string>;
   backlinks: Record<string, BacklinkConfig>;
   relations: Record<string, RelationConfig>;

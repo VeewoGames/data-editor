@@ -73,6 +73,7 @@ export type TableSnapshot = {
   sort: { field: string; direction: "asc" | "desc" } | null;
   validation: ValidationSnapshot;
   titleField: string | null;
+  primaryKeyField: string | null;
   scrollRestoreKey: string | null;
   initialScrollPosition: { scrollTop: number; scrollLeft: number } | null;
   textEditable: boolean;
@@ -96,6 +97,8 @@ type DataTableProps = {
   onReorderFields: (order: string[]) => void;
   onSort: (fieldName: string, direction: "asc" | "desc" | null) => void;
   onAddFilter: (fieldName: string, fieldType: FieldDisplayType) => void;
+  onSetTitleField: (fieldName: string) => void;
+  onSetPrimaryKeyField: (fieldName: string) => void;
   onConfigureRelation: (fieldName: string) => void;
   onClearRelation: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
@@ -133,6 +136,8 @@ function DataTableComponent(props: DataTableProps) {
   const runtimeActionRef = useRef({
     onSort: props.onSort,
     onAddFilter: props.onAddFilter,
+    onSetTitleField: props.onSetTitleField,
+    onSetPrimaryKeyField: props.onSetPrimaryKeyField,
     onHideField: props.onHideField,
     onMoveField: props.onMoveField,
     onToggleWrapField: props.onToggleWrapField,
@@ -272,6 +277,8 @@ function DataTableComponent(props: DataTableProps) {
     runtimeActionRef.current = {
       onSort: props.onSort,
       onAddFilter: props.onAddFilter,
+      onSetTitleField: props.onSetTitleField,
+      onSetPrimaryKeyField: props.onSetPrimaryKeyField,
       onHideField: props.onHideField,
       onMoveField: props.onMoveField,
       onToggleWrapField: props.onToggleWrapField,
@@ -292,6 +299,8 @@ function DataTableComponent(props: DataTableProps) {
   }, [
     props.onSort,
     props.onAddFilter,
+    props.onSetTitleField,
+    props.onSetPrimaryKeyField,
     props.onHideField,
     props.onMoveField,
     props.onToggleWrapField,
@@ -363,6 +372,12 @@ function DataTableComponent(props: DataTableProps) {
   }, []);
   const handleAddFilter = useCallback((fieldName: string, displayType: FieldDisplayType) => {
     runtimeActionRef.current.onAddFilter(fieldName, displayType);
+  }, []);
+  const handleSetTitleField = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onSetTitleField(fieldName);
+  }, []);
+  const handleSetPrimaryKeyField = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onSetPrimaryKeyField(fieldName);
   }, []);
   const handleHideField = useCallback((fieldName: string) => {
     runtimeActionRef.current.onHideField(fieldName);
@@ -497,6 +512,8 @@ function DataTableComponent(props: DataTableProps) {
     backlinkValuesByRowId: snapshot.backlinkValuesByRowId,
     tableLayoutMode,
     validation: snapshot.validation,
+    titleField: snapshot.titleField,
+    primaryKeyField: snapshot.primaryKeyField,
     textEditable: snapshot.textEditable,
     activeTextCellId,
     onRegisterActiveTextEditor: snapshot.onRegisterActiveTextEditor,
@@ -504,6 +521,8 @@ function DataTableComponent(props: DataTableProps) {
     onDeactivateTextCell: handleDeactivateTextCell,
     onSort: handleSort,
     onAddFilter: handleAddFilter,
+    onSetTitleField: handleSetTitleField,
+    onSetPrimaryKeyField: handleSetPrimaryKeyField,
     onHideField: handleHideField,
     onResizeField: resizeField,
     onMoveField: handleMoveField,
@@ -528,6 +547,8 @@ function DataTableComponent(props: DataTableProps) {
     snapshot.backlinkValuesByRowId,
     tableLayoutMode,
     snapshot.validation,
+    snapshot.titleField,
+    snapshot.primaryKeyField,
     snapshot.textEditable,
     activeTextCellId,
     snapshot.onRegisterActiveTextEditor,
@@ -535,6 +556,8 @@ function DataTableComponent(props: DataTableProps) {
     handleDeactivateTextCell,
     handleSort,
     handleAddFilter,
+    handleSetTitleField,
+    handleSetPrimaryKeyField,
     handleHideField,
     resizeField,
     handleMoveField,
@@ -766,6 +789,7 @@ function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
     previous.sourcePath === next.sourcePath &&
     previous.collectionPath === next.collectionPath &&
     previous.titleField === next.titleField &&
+    previous.primaryKeyField === next.primaryKeyField &&
     previous.rowViews === next.rowViews &&
     previous.scrollRestoreKey === next.scrollRestoreKey &&
     sameScrollPosition(previous.initialScrollPosition, next.initialScrollPosition) &&

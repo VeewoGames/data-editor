@@ -47,6 +47,7 @@ async function loadLegacyViewConfig(context) {
 export function emptyViewConfig() {
   return {
     fields: {},
+    titleFields: {},
     primaryKeys: defaultPrimaryKeys(),
     backlinks: defaultBacklinkConfigs(),
     relations: defaultRelationConfigs(),
@@ -93,6 +94,7 @@ function normalizeViewConfig(value) {
 
   const normalized = {
     fields: normalizedFields,
+    titleFields: normalizeCollectionFields(value.titleFields),
     primaryKeys: normalizePrimaryKeys(value.primaryKeys),
     backlinks: normalizeBacklinks(value.backlinks),
     relations: normalizeRelations(value.relations),
@@ -110,6 +112,10 @@ function normalizeViewConfig(value) {
 }
 
 function normalizePrimaryKeys(value) {
+  return normalizeCollectionFields(value);
+}
+
+function normalizeCollectionFields(value) {
   const normalized = {};
   if (!value || typeof value !== "object" || Array.isArray(value)) return normalized;
   for (const [collectionKey, fieldName] of Object.entries(value)) {

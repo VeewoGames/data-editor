@@ -10,6 +10,8 @@ type ColumnHeaderProps = {
   roleKind?: "normal" | "relation" | "backlink";
   allowTypeChange: boolean;
   sortDirection: "asc" | "desc" | null;
+  isTitleField: boolean;
+  isPrimaryKeyField: boolean;
   wrapped: boolean;
   width: number;
   pressed: boolean;
@@ -18,6 +20,8 @@ type ColumnHeaderProps = {
   relationConfigured: boolean;
   onSort: (direction: "asc" | "desc" | null) => void;
   onAddFilter: () => void;
+  onSetTitleField: () => void;
+  onSetPrimaryKeyField: () => void;
   onHide: () => void;
   onResize: (width: number) => void;
   onMove: (direction: "left" | "right") => void;
@@ -358,6 +362,29 @@ export function ColumnHeader(props: ColumnHeaderProps) {
             </>
           ) : (
             <div className="menu-separator" />
+          )}
+          {props.roleKind === "backlink" ? null : (
+            <>
+              <button
+                className="menu-item"
+                data-column-action="set-title"
+                disabled={props.isTitleField}
+                onClick={() => runAfterMenuClose(props.onSetTitleField)}
+                type="button"
+              >
+                <icons.textField size={15} /> {props.isTitleField ? "已设为标题字段" : "设为标题"}
+              </button>
+              <button
+                className="menu-item"
+                data-column-action="set-primary-key"
+                disabled={props.isPrimaryKeyField}
+                onClick={() => runAfterMenuClose(props.onSetPrimaryKeyField)}
+                type="button"
+              >
+                <icons.numberField size={15} /> {props.isPrimaryKeyField ? "已设为主键ID" : "设为主键ID"}
+              </button>
+              <div className="menu-separator" />
+            </>
           )}
           {props.roleKind === "backlink" ? null : (
             props.relationConfigured ? (

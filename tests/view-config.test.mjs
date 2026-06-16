@@ -9,6 +9,7 @@ import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys } f
 test("emptyViewConfig includes project relations", () => {
   assert.deepEqual(emptyViewConfig(), {
     fields: {},
+    titleFields: {},
     primaryKeys: defaultPrimaryKeys(),
     backlinks: defaultBacklinkConfigs(),
     relations: defaultRelationConfigs(),
@@ -53,6 +54,7 @@ test("saveViewConfig preserves field type and select options", async () => {
           multiSelectOptions: {},
         },
       },
+      titleFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: defaultBacklinkConfigs(),
       relations: defaultRelationConfigs(),
@@ -110,6 +112,7 @@ test("loadViewConfig drops unsupported field type and normalizes malformed selec
           multiSelectOptions: {},
         },
       },
+      titleFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: defaultBacklinkConfigs(),
       relations: defaultRelationConfigs(),
@@ -187,6 +190,7 @@ test("loadViewConfig filters invalid relation configs", async () => {
     const loaded = await loadViewConfig(root);
     assert.deepEqual(loaded, {
       fields: {},
+      titleFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: {
         "data/skills.json:skills:back_skills": {
@@ -223,6 +227,7 @@ test("default relation migration runs once", async () => {
     const loaded = await loadViewConfig(root);
     assert.deepEqual(loaded, {
       fields: {},
+      titleFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: defaultBacklinkConfigs(),
       relations: defaultRelationConfigs(),
@@ -238,6 +243,9 @@ test("loadViewConfig filters primary key self relations while keeping valid rela
   try {
     await saveViewConfig(root, {
       fields: {},
+      titleFields: {
+        "data/keywords.json:$": "name",
+      },
       primaryKeys: {
         "data/keywords.json:$": "keyword_id",
         "data/skills.json:skills": "skill_id",
@@ -273,6 +281,9 @@ test("loadViewConfig filters primary key self relations while keeping valid rela
     });
 
     const loaded = await loadViewConfig(root);
+    assert.deepEqual(loaded.titleFields, {
+      "data/keywords.json:$": "name",
+    });
     assert.deepEqual(loaded.relations, {
       "data/status_effects.json:$:keyword_id": {
         targetFile: "data/keywords.json",
@@ -331,6 +342,33 @@ test("loadViewConfig prunes stale backlinks and persists active relation backlin
         sourceRelation: "data/status_effects.json:$:keyword_id",
         displayMode: "list",
       },
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewConfig preserves configured collection title fields and drops invalid values", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
+  try {
+    const target = path.join(root, ".data-editor", "view-config.json");
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, JSON.stringify({
+      fields: {},
+      titleFields: {
+        "data/e2e_select.json:$": "category",
+        "data/empty.json:$": "",
+        "": "name",
+      },
+      primaryKeys: defaultPrimaryKeys(),
+      backlinks: defaultBacklinkConfigs(),
+      relations: defaultRelationConfigs(),
+      relationsVersion: currentRelationsVersion,
+    }), "utf8");
+
+    const loaded = await loadViewConfig(root);
+    assert.deepEqual(loaded.titleFields, {
+      "data/e2e_select.json:$": "category",
     });
   } finally {
     await rm(root, { recursive: true, force: true });
