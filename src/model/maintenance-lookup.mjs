@@ -1,4 +1,5 @@
 import { buildDocumentModel, getRows } from "../document-model.mjs";
+import { listDocumentFieldsForCollection } from "./document-config.mjs";
 import { getPrimaryKeyField } from "./field-role.mjs";
 import { analyzePrimaryKeyChange, buildPrimaryKeySyncPlan, collectRelationBacklinks, parseRelationKey } from "./relation-maintenance.mjs";
 
@@ -57,8 +58,10 @@ export async function buildMaintenanceLookupState({
     && relationConfig.targetCollection === collectionPath
     && relationConfig.targetKey === primaryKeyField
   )));
+  const activeDocumentFields = listDocumentFieldsForCollection(viewConfig, selectedPath, collectionPath)
+    .filter(({ fieldPath }) => fieldPath.length === 1 && fieldPath[0] !== primaryKeyField);
   const activeRelationKeys = Object.keys(activeRelations);
-  if (!activeRelationKeys.length) {
+  if (!activeRelationKeys.length && !activeDocumentFields.length) {
     return emptyMaintenanceState();
   }
   const sourceFiles = [...new Set(activeRelationKeys.map((key) => parseRelationKey(key)?.sourceFile).filter(Boolean))];
@@ -101,11 +104,42 @@ export async function buildMaintenanceLookupState({
     documentsByPath,
     targetRows: rows,
   });
+  const documentRewrites = collectDocumentFieldRewrites({
+    selectedPath,
+    collectionPath,
+    selectedRow,
+    selectedSourceRowIndex,
+    selectedRowLabel,
+    activeDocumentFields,
+    oldValue: previousPrimaryKeyValue,
+    newValue: currentPrimaryKeyValue,
+  });
+  if (documentRewrites.length) {
+    primaryKeyImpacts[primaryKeyField] = {
+      ...primaryKeyImpacts[primaryKeyField],
+      affectedCount: primaryKeyImpacts[primaryKeyField].affectedCount + documentRewrites.length,
+    };
+    primaryKeySyncPlan.rewrites.push(...documentRewrites);
+    primaryKeySyncPlan.matchedBacklinks.push(...documentRewrites);
+    if (!primaryKeySyncPlan.sourceFiles.includes(selectedPath)) {
+      primaryKeySyncPlan.sourceFiles = [...primaryKeySyncPlan.sourceFiles, selectedPath].sort();
+    }
+  }
   return {
     relationBacklinks,
     primaryKeyImpacts,
     primaryKeySyncPlan,
   };
+}
+
+function collectDocumentFieldRewrites({
+  oldValue,
+  newValue,
+}) {
+  const normalizedOldValue = oldValue == null ? "" : String(oldValue);
+  const normalizedNewValue = newValue == null ? "" : String(newValue);
+  if (!normalizedOldValue || normalizedOldValue === normalizedNewValue) return [];
+  return [];
 }
 
 function emptyMaintenanceState() {

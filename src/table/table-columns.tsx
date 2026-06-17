@@ -41,6 +41,8 @@ type TableColumnsRuntime = {
   onChangeFieldType: (fieldName: string, type: FieldDisplayType) => void;
   onConfigureRelation: (fieldName: string) => void;
   onClearRelation: (fieldName: string) => void;
+  onConfigureDocument: (fieldName: string) => void;
+  onClearDocument: (fieldName: string) => void;
   onDeleteField: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onSelectRow: (rowIndex: number, rowId: string | null) => void;
@@ -110,6 +112,7 @@ export function buildTableColumns(columnModels: TableColumnModel[]): ColumnDef<D
         <MemoTableColumnCellView
           columnModel={columnModel}
           value={value}
+          row={ctx.row.original}
           originalRowIndex={originalRowIndex}
           rowId={rowId}
         />
@@ -144,6 +147,7 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       allowTypeChange={columnModel.allowTypeChange}
       displayType={columnModel.displayType}
       relationConfigured={columnModel.relationConfigured}
+      documentConfigured={columnModel.documentConfigured === true}
       sortDirection={headerState.sortDirection}
       tooltipSuppressed={headerState.tooltipSuppressed}
       wrapped={columnModel.wrapped}
@@ -168,6 +172,8 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       onChangeFieldType={(type) => runtime.onChangeFieldType(columnModel.fieldName, type)}
       onConfigureRelation={() => runtime.onConfigureRelation(columnModel.fieldName)}
       onClearRelation={() => runtime.onClearRelation(columnModel.fieldName)}
+      onConfigureDocument={() => runtime.onConfigureDocument(columnModel.fieldName)}
+      onClearDocument={() => runtime.onClearDocument(columnModel.fieldName)}
       onDeleteField={() => runtime.onDeleteField(columnModel.fieldName)}
     />
   );
@@ -179,11 +185,13 @@ function TableColumnCellView(
   {
     columnModel,
     value,
+    row,
     originalRowIndex,
     rowId,
   }: {
     columnModel: TableColumnModel;
     value: unknown;
+    row: DataRecord;
     originalRowIndex: number;
     rowId: string;
   },
@@ -192,6 +200,8 @@ function TableColumnCellView(
   const displayType = columnModel.relationConfig ? "Relation" : columnModel.displayType;
   const cellId = `${rowId}:${columnModel.fieldName}`;
   const textEditingActive = runtime.activeTextCellId === cellId;
+  const documentLabels = (columnModel as TableColumnModel & { documentLabels?: Record<string, string> }).documentLabels;
+  const primaryKeyValue = runtime.primaryKeyField ? row[runtime.primaryKeyField] : null;
   const frameMeta = resolveCellFrameMeta(columnModel, displayType, value, runtime.tableLayoutMode, runtime.textEditable, textEditingActive);
 
   if (columnModel.backlinkColumn) {
@@ -247,6 +257,11 @@ function TableColumnCellView(
         wrapped={columnModel.wrapped}
         multiSelectConfig={columnModel.multiSelectConfig}
         selectConfig={columnModel.selectConfig}
+        documentLabel={displayType === "Document"
+          ? (runtime.primaryKeyField
+            ? (documentLabels?.[String(primaryKeyValue ?? "").trim()] ?? null)
+            : null)
+          : null}
         relationOptions={columnModel.relationOptions}
         relationConfigured={columnModel.relationConfigured}
         relationMode={columnModel.relationConfig?.mode}
@@ -269,6 +284,7 @@ const MemoTableColumnCellView = memo(
   TableColumnCellView,
   (previous, next) =>
     previous.columnModel === next.columnModel &&
+    previous.row === next.row &&
     previous.value === next.value &&
     previous.originalRowIndex === next.originalRowIndex &&
     previous.rowId === next.rowId,

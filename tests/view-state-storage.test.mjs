@@ -27,10 +27,14 @@ test("profile mode reads the active view layout instead of collection-level fall
     detailOrder: ["description"],
     sidebarWidth: 444,
     detailPanelWidth: 488,
+    detailDocumentPanelOpen: true,
+    detailDocumentPanelWidth: 352,
   };
   const profile = {
     sidebarWidth: 260,
     detailPanelWidth: 420,
+    detailDocumentPanelOpen: false,
+    detailDocumentPanelWidth: 376,
     viewLayouts: {
       "data/runes.json:$": {
         "view:damage/main": {
@@ -61,6 +65,8 @@ test("profile mode reads the active view layout instead of collection-level fall
     widths: { description: 180 },
     sidebarWidth: 260,
     detailPanelWidth: 420,
+    detailDocumentPanelOpen: false,
+    detailDocumentPanelWidth: 376,
   });
 });
 
@@ -78,6 +84,8 @@ test("local mode reads only local state", () => {
       detailOrder: [],
       sidebarWidth: 350,
       detailPanelWidth: 430,
+      detailDocumentPanelOpen: true,
+      detailDocumentPanelWidth: 360,
     },
     profile: null,
   });
@@ -86,6 +94,8 @@ test("local mode reads only local state", () => {
   assert.deepEqual(state.hidden, ["description"]);
   assert.equal(state.sidebarWidth, 350);
   assert.equal(state.detailPanelWidth, 430);
+  assert.equal(state.detailDocumentPanelOpen, true);
+  assert.equal(state.detailDocumentPanelWidth, 360);
 });
 
 test("profile reset removes only target view layout and clears profile sidebar width", () => {
@@ -97,6 +107,8 @@ test("profile reset removes only target view layout and clears profile sidebar w
     profile: {
       sidebarWidth: 320,
       detailPanelWidth: 410,
+      detailDocumentPanelOpen: true,
+      detailDocumentPanelWidth: 372,
       fileOrder: ["data/status_effects.json", "data/runes.json"],
       lastActiveViews: {
         "data/runes.json:$": "damage",
@@ -141,6 +153,8 @@ test("profile reset removes only target view layout and clears profile sidebar w
   assert.equal(next.profile.collections["data/runes.json:$"], undefined);
   assert.equal(next.profile.sidebarWidth, null);
   assert.equal(next.profile.detailPanelWidth, null);
+  assert.equal(next.profile.detailDocumentPanelOpen, null);
+  assert.equal(next.profile.detailDocumentPanelWidth, null);
   assert.deepEqual(next.profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
 });
 
@@ -158,10 +172,14 @@ test("profile mode uses empty state when profile collection has no saved values"
       detailOrder: ["description"],
       sidebarWidth: 400,
       detailPanelWidth: 490,
+      detailDocumentPanelOpen: true,
+      detailDocumentPanelWidth: 364,
     },
     profile: {
       sidebarWidth: null,
       detailPanelWidth: 405,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 388,
       viewLayouts: {
         "data/runes.json:$": {
           all: {
@@ -181,6 +199,8 @@ test("profile mode uses empty state when profile collection has no saved values"
   assert.deepEqual(state.order, []);
   assert.equal(state.sidebarWidth, null);
   assert.equal(state.detailPanelWidth, 405);
+  assert.equal(state.detailDocumentPanelOpen, false);
+  assert.equal(state.detailDocumentPanelWidth, 388);
 });
 
 test("readLocalViewState reads only localStorage keys for the current encoded view id", () => {
@@ -192,6 +212,8 @@ test("readLocalViewState reads only localStorage keys for the current encoded vi
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order": "description,rune_name",
     "data-editor:sidebar-width": "333",
     "data-editor:detail-panel-width": "444",
+    "data-editor:detail-document-panel-open": "1",
+    "data-editor:detail-document-panel-width": "352",
     "data-editor:data/runes.json:$:damage:name:hidden": "1",
   });
 
@@ -209,6 +231,8 @@ test("readLocalViewState reads only localStorage keys for the current encoded vi
   assert.deepEqual(state.widths, { description: 280 });
   assert.equal(state.sidebarWidth, 333);
   assert.equal(state.detailPanelWidth, 444);
+  assert.equal(state.detailDocumentPanelOpen, true);
+  assert.equal(state.detailDocumentPanelWidth, 352);
 });
 
 test("writeLocalViewState overwrites only localStorage keys for the current encoded view id", () => {
@@ -220,6 +244,8 @@ test("writeLocalViewState overwrites only localStorage keys for the current enco
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order": "old",
     "data-editor:sidebar-width": "300",
     "data-editor:detail-panel-width": "450",
+    "data-editor:detail-document-panel-open": "1",
+    "data-editor:detail-document-panel-width": "344",
     "data-editor:data/runes.json:$:damage:name:hidden": "1",
   });
 
@@ -235,6 +261,8 @@ test("writeLocalViewState overwrites only localStorage keys for the current enco
       widths: { description: 180 },
       sidebarWidth: 260,
       detailPanelWidth: 410,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 370,
     },
     localStorage: storage,
   });
@@ -247,6 +275,8 @@ test("writeLocalViewState overwrites only localStorage keys for the current enco
   assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order"), "description,rune_name");
   assert.equal(storage.getItem("data-editor:sidebar-width"), "260");
   assert.equal(storage.getItem("data-editor:detail-panel-width"), "410");
+  assert.equal(storage.getItem("data-editor:detail-document-panel-open"), "0");
+  assert.equal(storage.getItem("data-editor:detail-document-panel-width"), "370");
   assert.equal(storage.getItem("data-editor:data/runes.json:$:damage:name:hidden"), "1");
 });
 
@@ -279,6 +309,8 @@ test("copyViewLayoutState duplicates the source profile layout into the target v
     profile: {
       sidebarWidth: 280,
       detailPanelWidth: 420,
+      detailDocumentPanelOpen: true,
+      detailDocumentPanelWidth: 368,
       fileOrder: ["data/runes.json"],
       lastActiveViews: { "data/runes.json:$": "all" },
       viewDrafts: {},
@@ -355,6 +387,8 @@ test("copyViewLayoutState duplicates only the targeted local view layout keys", 
     "data-editor:data/runes.json:$:other:name:hidden": "1",
     "data-editor:sidebar-width": "300",
     "data-editor:detail-panel-width": "420",
+    "data-editor:detail-document-panel-open": "1",
+    "data-editor:detail-document-panel-width": "360",
   });
 
   const result = copyViewLayoutState({
@@ -376,6 +410,8 @@ test("copyViewLayoutState duplicates only the targeted local view layout keys", 
   assert.equal(storage.getItem("data-editor:data/runes.json:$:other:name:hidden"), "1");
   assert.equal(storage.getItem("data-editor:sidebar-width"), "300");
   assert.equal(storage.getItem("data-editor:detail-panel-width"), "420");
+  assert.equal(storage.getItem("data-editor:detail-document-panel-open"), "1");
+  assert.equal(storage.getItem("data-editor:detail-document-panel-width"), "360");
 });
 
 test("copyViewLayoutState skips local target creation when the source view has no local layout keys", () => {
@@ -637,6 +673,8 @@ test("local reset returns an empty local view state", () => {
       widths: { description: 180 },
       sidebarWidth: 300,
       detailPanelWidth: 420,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 372,
     },
   });
 

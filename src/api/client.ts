@@ -1,4 +1,5 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
+import normalizeFetchedViewConfig from "../view-config-client.mjs";
 
 export const recoverableRequestEventName = "data-editor:recoverable-request";
 const defaultRecoveryBridgePort = 8791;
@@ -51,7 +52,7 @@ export type BacklinkConfig = {
 };
 export type ViewConfig = {
   fields: Record<string, {
-    type?: "Text" | "Select";
+    type?: "Text" | "Select" | "Document";
     selectOptions: Record<string, {
       label: string;
       color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "purple" | "pink" | "red" | null;
@@ -62,11 +63,28 @@ export type ViewConfig = {
     }>;
   }>;
   titleFields: Record<string, string>;
+  documentFiles: Record<string, {
+    docRoot: string;
+  }>;
+  documentFields: Record<string, {
+    enabled: true;
+  }>;
   primaryKeys: Record<string, string>;
   backlinks: Record<string, BacklinkConfig>;
   relations: Record<string, RelationConfig>;
   relationsVersion: number;
 };
+export type DocumentIndexEntry =
+  | { status: "resolved"; id: string; relativePath: string; title: string | null }
+  | { status: "conflict"; id: string; matches: string[] };
+export type DocumentIndexResponse = {
+  docRoot: string | null;
+  entries: Record<string, DocumentIndexEntry>;
+};
+export type DocumentContentResponse =
+  | { status: "resolved"; id: string; relativePath: string; title: string | null; content: string }
+  | { status: "conflict"; id: string; matches: string[] }
+  | { status: "missing"; id: string };
 export type UserThemeId = "light" | "dark";
 export type UserBaseFontSize = 14 | 14.5 | 15 | 16;
 export type UserThemeOverrides = {
@@ -92,6 +110,8 @@ export type SidebarTreePreferences = {
 export type UserViewProfile = {
   sidebarWidth: number | null;
   detailPanelWidth: number | null;
+  detailDocumentPanelOpen: boolean | null;
+  detailDocumentPanelWidth: number | null;
   fileOrder: string[];
   sidebarTree: SidebarTreePreferences;
   lastActiveViews: Record<string, string>;
@@ -180,7 +200,15 @@ export async function saveDocuments(items: PendingDocumentSave[], projectId?: st
 }
 
 export async function loadViewConfig(projectId?: string | null): Promise<ViewConfig> {
-  return fetchJson(withProjectId("/api/view-config", projectId));
+  return normalizeFetchedViewConfig(await fetchJson(withProjectId("/api/view-config", projectId))) as ViewConfig;
+}
+
+export async function loadDocumentIndex(path: string, projectId?: string | null): Promise<DocumentIndexResponse> {
+  return fetchJson(withProjectId(`/api/document-index?path=${encodeURIComponent(path)}`, projectId));
+}
+
+export async function loadDocumentContent(path: string, id: string, projectId?: string | null): Promise<DocumentContentResponse> {
+  return fetchJson(withProjectId(`/api/document-content?path=${encodeURIComponent(path)}&id=${encodeURIComponent(id)}`, projectId));
 }
 
 export async function saveViewConfig(config: ViewConfig, projectId?: string | null) {

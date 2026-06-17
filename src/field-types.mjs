@@ -1,10 +1,11 @@
-export const fieldTypes = ["Text", "Select"];
+export const fieldTypes = ["Text", "Select", "Document"];
 
 export function isCompatible(type, value) {
   if (type === "Text" || type === "JSON") return true;
   if (type === "Number") return value == null || typeof value === "number" || (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)));
   if (type === "Checkbox") return value == null || typeof value === "boolean";
   if (type === "Select") return value == null || ["string", "number"].includes(typeof value);
+  if (type === "Document") return value == null || ["string", "number"].includes(typeof value);
   if (type === "Multi-select") return value == null || (Array.isArray(value) && value.every((item) => item == null || ["string", "number"].includes(typeof item)));
   if (type === "Relation") {
     if (value == null) return true;

@@ -8,10 +8,12 @@ import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
  *   rows: Record<string, unknown>[];
  *   sourcePath: string | null;
  *   collectionPath: string;
+ *   primaryKeyField?: string | null;
  *   displayTypes: Record<string, import("../model/fieldTypes.mjs").FieldDisplayType>;
  *   fieldViewConfigs: Record<string, import("../model/viewConfig").FieldViewConfig>;
  *   relationConfigs: Record<string, import("../model/viewConfig").RelationConfig>;
  *   relationOptions: Record<string, import("../model/relations").RelationOption[]>;
+ *   documentIndexEntries?: Record<string, import("../api/client").DocumentIndexEntry>;
  * }} input
  */
 export function buildTableRuntimeDeps({
@@ -19,10 +21,12 @@ export function buildTableRuntimeDeps({
   rows,
   sourcePath,
   collectionPath,
+  primaryKeyField = null,
   displayTypes,
   fieldViewConfigs,
   relationConfigs,
   relationOptions,
+  documentIndexEntries = {},
 }) {
   /** @type {Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>} */
   const fieldOptions = {};
@@ -32,6 +36,8 @@ export function buildTableRuntimeDeps({
   const relationOptionsByField = {};
   /** @type {Record<string, import("../model/viewConfig").RelationConfig | null>} */
   const relationConfigByField = {};
+  /** @type {Record<string, Record<string, string>>} */
+  const documentLabelsByField = {};
 
   for (const fieldName of visibleFields) {
     const currentDisplayType = displayTypes[fieldName] ?? defaultTypeFor(rows.find((row) => row[fieldName] != null)?.[fieldName]);
@@ -68,6 +74,21 @@ export function buildTableRuntimeDeps({
       };
     }
 
+    if (currentDisplayType === "Document") {
+      const labels = {};
+      for (const row of rows) {
+        const value = primaryKeyField ? row[primaryKeyField] : null;
+        if (value == null) continue;
+        const normalized = String(value).trim();
+        if (!normalized || labels[normalized]) continue;
+        const entry = documentIndexEntries[normalized];
+        labels[normalized] = entry?.status === "resolved"
+          ? (entry.title ?? normalized)
+          : normalized;
+      }
+      documentLabelsByField[fieldName] = labels;
+    }
+
     const role = getFieldRole(sourcePath, collectionPath, fieldName, relationConfigs);
     relationOptionsByField[fieldName] = role.kind === "relation"
       ? (relationOptions[role.relationKey] ?? [])
@@ -80,6 +101,7 @@ export function buildTableRuntimeDeps({
     selectOptions,
     relationOptionsByField,
     relationConfigByField,
+    documentLabelsByField,
   };
 }
 

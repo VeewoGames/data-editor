@@ -2,6 +2,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { CollectionView } from "../api/client";
 import { icons } from "./icons";
+import { TableSettingsPopover } from "./TableSettingsPopover";
 
 export type ViewTabsProps = {
   snapshot: ViewTabsSnapshot;
@@ -14,6 +15,9 @@ export type ViewTabsProps = {
   onToggleFilterBar: () => void;
   onToggleTableTextEditMode: () => void;
   onToggleRowDeleteControls: () => void;
+  onSetDocumentFieldEnabled: (fieldName: string, enabled: boolean) => void;
+  onSaveDocumentRoot: (value: string) => void;
+  onRefreshDocumentIndex: () => void;
 };
 
 export type ViewTabsSnapshot = {
@@ -26,6 +30,12 @@ export type ViewTabsSnapshot = {
   tableTextEditMode: boolean;
   rowDeleteControlsVisible: boolean;
   viewOrderDirty: boolean;
+  selectedFilePath: string | null;
+  documentRoot: string;
+  documentFields: Array<{ fieldName: string; enabled: boolean }>;
+  documentResolvedCount: number;
+  documentConflictCount: number;
+  documentIndexError: string | null;
 };
 
 export function ViewTabs({
@@ -39,6 +49,9 @@ export function ViewTabs({
   onToggleFilterBar,
   onToggleTableTextEditMode,
   onToggleRowDeleteControls,
+  onSetDocumentFieldEnabled,
+  onSaveDocumentRoot,
+  onRefreshDocumentIndex,
 }: ViewTabsProps) {
   const {
     views,
@@ -50,10 +63,17 @@ export function ViewTabs({
     tableTextEditMode,
     rowDeleteControlsVisible,
     viewOrderDirty,
+    selectedFilePath,
+    documentRoot,
+    documentFields,
+    documentResolvedCount,
+    documentConflictCount,
+    documentIndexError,
   } = snapshot;
   const [draggingViewId, setDraggingViewId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ viewId: string; placement: "before" | "after" } | null>(null);
   const [openMenuViewId, setOpenMenuViewId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [renamingViewId, setRenamingViewId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [dragGhost, setDragGhost] = useState<null | {
@@ -361,20 +381,40 @@ export function ViewTabs({
           <icons.edit size={18} />
           <span>编辑</span>
         </button>
-        <button
-          type="button"
-          className={[
-            "view-tab-action row-delete-toggle view-tabs-row-delete-toggle",
-            rowDeleteControlsVisible ? "active" : "",
-          ].filter(Boolean).join(" ")}
-          onClick={onToggleRowDeleteControls}
-          aria-pressed={rowDeleteControlsVisible}
-          disabled={viewTabsDisabled}
-          title="调整显示选项"
-        >
-          <icons.adjust size={18} />
-          <span>调整</span>
-        </button>
+        <Popover.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              className={[
+                "view-tab-action row-delete-toggle view-tabs-row-delete-toggle",
+                settingsOpen ? "active" : "",
+              ].filter(Boolean).join(" ")}
+              aria-expanded={settingsOpen}
+              disabled={viewTabsDisabled}
+              title="调整显示选项"
+            >
+              <icons.adjust size={18} />
+              <span>调整</span>
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content align="end" className="table-settings-popover-shell" sideOffset={6}>
+              <TableSettingsPopover
+                conflictCount={documentConflictCount}
+                documentFields={documentFields}
+                documentRoot={documentRoot}
+                indexError={documentIndexError}
+                onRefreshDocumentIndex={onRefreshDocumentIndex}
+                onSaveDocumentRoot={onSaveDocumentRoot}
+                onSetDocumentFieldEnabled={onSetDocumentFieldEnabled}
+                onToggleRowDeleteControls={onToggleRowDeleteControls}
+                resolvedCount={documentResolvedCount}
+                rowDeleteControlsVisible={rowDeleteControlsVisible}
+                selectedFilePath={selectedFilePath}
+              />
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
       </div>
       {viewOrderDirty ? <div className="view-order-dirty">视图顺序有未保存更改</div> : null}
       {dragGhost ? (

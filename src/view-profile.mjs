@@ -44,6 +44,8 @@ export function emptyViewProfile() {
   return {
     sidebarWidth: null,
     detailPanelWidth: null,
+    detailDocumentPanelOpen: null,
+    detailDocumentPanelWidth: null,
     fileOrder: [],
     sidebarTree: buildSidebarTreePreferences(),
     lastActiveViews: {},
@@ -71,6 +73,8 @@ function normalizeViewProfile(value) {
   return {
     sidebarWidth: Number.isFinite(value.sidebarWidth) ? Math.round(value.sidebarWidth) : null,
     detailPanelWidth: Number.isFinite(value.detailPanelWidth) ? Math.round(value.detailPanelWidth) : null,
+    detailDocumentPanelOpen: typeof value.detailDocumentPanelOpen === "boolean" ? value.detailDocumentPanelOpen : null,
+    detailDocumentPanelWidth: Number.isFinite(value.detailDocumentPanelWidth) ? Math.round(value.detailDocumentPanelWidth) : null,
     fileOrder: normalizeStringArray(value.fileOrder),
     sidebarTree: buildSidebarTreePreferences(value.sidebarTree),
     lastActiveViews: sharedDrafts.lastActiveViews,
@@ -241,6 +245,8 @@ function serializeViewProfile(profile) {
   return {
     sidebarWidth: normalized.sidebarWidth,
     detailPanelWidth: normalized.detailPanelWidth,
+    detailDocumentPanelOpen: normalized.detailDocumentPanelOpen,
+    detailDocumentPanelWidth: normalized.detailDocumentPanelWidth,
     fileOrder: normalized.fileOrder,
     sidebarTree: normalized.sidebarTree,
     lastActiveViews: normalized.lastActiveViews,

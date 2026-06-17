@@ -143,3 +143,33 @@ test("resolveFieldRole returns backlink for derived backlink column", () => {
     },
   });
 });
+
+test("resolveFieldRole returns document for configured document field", () => {
+  const result = resolveFieldRole({
+    sourceFile: "data/keywords.json",
+    sourceCollection: "$",
+    fieldName: "keyword_doc",
+    viewConfig: {
+      fields: {},
+      documentFields: {
+        "data/keywords.json:$:keyword_doc": {
+          enabled: true,
+        },
+      },
+      primaryKeys: {
+        "data/keywords.json:$": "keyword_id",
+      },
+      backlinks: {},
+      relations: {},
+      relationsVersion: 3,
+    },
+  });
+
+  assert.deepEqual(result, {
+    kind: "document",
+    documentFieldKey: "data/keywords.json:$:keyword_doc",
+    config: {
+      enabled: true,
+    },
+  });
+});

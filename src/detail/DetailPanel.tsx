@@ -22,10 +22,13 @@ import { resolveValidationIssue } from "../validation/issue-lookup.mjs";
 import type { ValidationSnapshot } from "../validation/issue-map";
 import { StableTextInput, StableTextarea, type ActiveTextEditorHandle, type ActiveTextEditorRegistrar, type StableTextInputHandle } from "../editing";
 import { AutoSizeTextarea } from "./AutoSizeTextarea";
+import { DocumentPanel, type DocumentPanelSnapshot } from "./DocumentPanel";
+import { mergeDetailFieldOrder } from "../model/document-field-state.mjs";
 
 export type DetailSnapshot = {
   open: boolean;
   panelWidth: number;
+  documentPanel: DocumentPanelSnapshot;
   row: DataRecord | null;
   rowId: string | null;
   sourceRowIndex: number | null;
@@ -60,6 +63,10 @@ type DetailPanelProps = {
   onClose: () => void;
   onPanelWidthChange: (width: number) => void;
   onPanelWidthCommit: (width: number) => void;
+  onToggleDocumentPanel: (fieldName?: string) => void;
+  onCloseDocumentPanel: () => void;
+  onDocumentPanelWidthChange: (width: number) => void;
+  onDocumentPanelWidthCommit: (width: number) => void;
   onEditField: (fieldName: string, value: unknown) => void;
   onReorderFields: (nextOrder: string[]) => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
@@ -85,6 +92,10 @@ export function DetailPanel({
   onClose,
   onPanelWidthChange,
   onPanelWidthCommit,
+  onToggleDocumentPanel,
+  onCloseDocumentPanel,
+  onDocumentPanelWidthChange,
+  onDocumentPanelWidthCommit,
   onEditField,
   onReorderFields,
   onRegisterActiveTextEditor,
@@ -92,6 +103,7 @@ export function DetailPanel({
   const {
     open,
     panelWidth,
+    documentPanel,
     row,
     rowId,
     sourceRowIndex,
@@ -115,6 +127,7 @@ export function DetailPanel({
     commandSaving,
   } = snapshot;
   const panelRef = useRef<HTMLElement | null>(null);
+  const documentPanelRef = useRef<HTMLElement | null>(null);
   const nestedPanelRef = useRef<HTMLElement | null>(null);
   const propertyItemRefs = useRef<Record<string, HTMLElement | null>>({});
   const [nestedStack, setNestedStack] = useState<NestedPanelState[]>([]);
@@ -150,10 +163,12 @@ export function DetailPanel({
     function handleOutsidePointerDown(event: PointerEvent) {
       if (event.button !== 0) return;
       if (document.body.classList.contains("is-resizing-detail-panel")) return;
+      if (document.body.classList.contains("is-resizing-detail-document-panel")) return;
       if (document.body.classList.contains("is-dragging-detail-property")) return;
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (panelRef.current?.contains(target)) return;
+      if (documentPanelRef.current?.contains(target)) return;
       if (nestedPanelRef.current?.contains(target)) return;
       onClose();
     }
@@ -166,8 +181,12 @@ export function DetailPanel({
 
   const activeNested = nestedStack.at(-1) ?? null;
   const primaryPanelStyle = useMemo(
-    () => ({ "--detail-panel-width": `${panelWidth}px` }) as CSSProperties,
-    [panelWidth],
+    () => ({
+      "--detail-panel-width": `${panelWidth}px`,
+      "--detail-document-panel-width": `${documentPanel.width}px`,
+      "--detail-secondary-width": `${activeNested ? 360 : 0}px`,
+    }) as CSSProperties,
+    [panelWidth, documentPanel.width, activeNested],
   );
   const activeNestedValue = useMemo(() => {
     if (!row || !activeNested) return null;
@@ -177,8 +196,8 @@ export function DetailPanel({
   const currentRow = row ?? ({} as DataRecord);
   const canGoPrevious = previousRowTarget != null;
   const canGoNext = nextRowTarget != null;
-  const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""}`;
-  const naturalFieldOrder = useMemo(() => row ? Object.keys(row).filter((key) => key !== "__rowIndex") : [], [row]);
+  const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""} ${documentPanel.open ? "with-document" : ""}`;
+  const naturalFieldOrder = useMemo(() => row ? mergeDetailFieldOrder(row, displayTypes) : [], [row, displayTypes]);
   const orderedFields = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
   const selectOptionsByField = useMemo<SelectOptionsByField>(() => {
     if (!row) return {};
@@ -246,6 +265,14 @@ export function DetailPanel({
   if (!row) {
     return (
       <>
+        <DocumentPanel
+          snapshot={documentPanel}
+          style={primaryPanelStyle}
+          ref={documentPanelRef}
+          onClose={onCloseDocumentPanel}
+          onWidthChange={onDocumentPanelWidthChange}
+          onWidthCommit={onDocumentPanelWidthCommit}
+        />
         <aside className={`detail-panel primary empty ${open ? "open" : ""}`} ref={panelRef} style={primaryPanelStyle}>
           <div className="detail-panel-resize-handle" onPointerDown={beginPanelResize} aria-label="调整详情面板宽度" role="separator" />
           <div className="panel-kicker">Record detail</div>
@@ -334,6 +361,14 @@ export function DetailPanel({
 
   return (
     <>
+      <DocumentPanel
+        snapshot={documentPanel}
+        style={primaryPanelStyle}
+        ref={documentPanelRef}
+        onClose={onCloseDocumentPanel}
+        onWidthChange={onDocumentPanelWidthChange}
+        onWidthCommit={onDocumentPanelWidthCommit}
+      />
       <aside className={primaryClassName} ref={panelRef} style={primaryPanelStyle}>
         <div className="detail-panel-resize-handle" onPointerDown={beginPanelResize} aria-label="调整详情面板宽度" role="separator" />
         <div className="detail-header">
@@ -345,6 +380,15 @@ export function DetailPanel({
             </div>
           </div>
           <div className="detail-nav">
+            {Object.keys(documentPanel.fields).length ? (
+              <button
+                className={`icon-button ${documentPanel.open ? "active" : ""}`}
+                onClick={() => onToggleDocumentPanel(documentPanel.activeFieldName ?? undefined)}
+                title="Toggle document"
+              >
+                <icons.jsonFile size={16} />
+              </button>
+            ) : null}
             <button
               className="icon-button"
               disabled={!canGoPrevious}
@@ -415,6 +459,9 @@ export function DetailPanel({
                         onCommitSelectDraft,
                         onEditField,
                         onRegisterActiveTextEditor,
+                        documentFieldLabel: documentPanel.fields[key] ?? null,
+                        documentFieldActive: documentPanel.fieldName === key && documentPanel.open,
+                        onToggleDocument: onToggleDocumentPanel,
                         onOpenNested: (nestedValue, path, customTitle) => openNestedField(key, nestedValue, path, customTitle),
                       })}
                     </section>
@@ -755,6 +802,9 @@ function renderValueEditor(props: {
   onCommitSelectDraft?: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onEditField: (fieldName: string, value: unknown) => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
+  documentFieldLabel?: string | null;
+  documentFieldActive?: boolean;
+  onToggleDocument?: (fieldName?: string) => void;
   onOpenNested: (value: unknown, path: Array<string | number>, customTitle?: string) => void;
 }) {
   const relation = getRelationConfig(props.pathParts, props.relationOptions, props.relationConfigs, props.sourcePath, props.collectionPath);
@@ -781,6 +831,19 @@ function renderValueEditor(props: {
           onChange={(event) => props.onEditField(props.fieldName, event.target.checked)}
         />
       </label>
+    );
+  }
+  if (props.displayType === "Document") {
+    const triggerLabel = props.documentFieldLabel ?? (props.value == null || props.value === "" ? "未关联文档" : String(props.value));
+    return (
+      <button
+        className={`document-field-trigger ${props.documentFieldActive ? "active" : ""}`}
+        onClick={() => props.onToggleDocument?.(props.fieldName)}
+        type="button"
+      >
+        <icons.jsonFile size={15} />
+        <span>{triggerLabel}</span>
+      </button>
     );
   }
   if (props.displayType === "Select" && (props.value == null || typeof props.value === "string" || typeof props.value === "number")) {

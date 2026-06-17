@@ -21,6 +21,8 @@ export function emptyLocalViewState() {
     ...emptyCollectionViewState(),
     sidebarWidth: null,
     detailPanelWidth: null,
+    detailDocumentPanelOpen: null,
+    detailDocumentPanelWidth: null,
   };
 }
 
@@ -55,6 +57,8 @@ function viewDetailOrderStorageKey(path, collectionPath, viewId) {
 
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
 const detailPanelWidthStorageKey = "data-editor:detail-panel-width";
+const detailDocumentPanelOpenStorageKey = "data-editor:detail-document-panel-open";
+const detailDocumentPanelWidthStorageKey = "data-editor:detail-document-panel-width";
 const fileOrderStorageKey = "data-editor:__file-order";
 const sidebarTreePrefsStorageKey = "data-editor:__sidebar-tree-prefs";
 const sharedViewDraftsStorageKey = "data-editor:shared-view-drafts";
@@ -88,12 +92,16 @@ export function readViewLayoutState({ mode, path, collectionPath, viewId, localS
       ...cloneCollectionViewState(layout),
       sidebarWidth: profile.sidebarWidth ?? null,
       detailPanelWidth: profile.detailPanelWidth ?? null,
+      detailDocumentPanelOpen: profile.detailDocumentPanelOpen ?? null,
+      detailDocumentPanelWidth: profile.detailDocumentPanelWidth ?? null,
     };
   }
   return {
     ...cloneCollectionViewState(localState ?? emptyLocalViewState()),
     sidebarWidth: localState?.sidebarWidth ?? null,
     detailPanelWidth: localState?.detailPanelWidth ?? null,
+    detailDocumentPanelOpen: localState?.detailDocumentPanelOpen ?? null,
+    detailDocumentPanelWidth: localState?.detailDocumentPanelWidth ?? null,
   };
 }
 
@@ -134,6 +142,10 @@ export function readLocalViewLayoutState({ path, collectionPath, viewId, localSt
   state.sidebarWidth = Number.isFinite(sidebarWidth) && sidebarWidth > 0 ? sidebarWidth : null;
   const detailPanelWidth = Number(localStorage.getItem(detailPanelWidthStorageKey));
   state.detailPanelWidth = Number.isFinite(detailPanelWidth) && detailPanelWidth > 0 ? detailPanelWidth : null;
+  const detailDocumentPanelOpen = localStorage.getItem(detailDocumentPanelOpenStorageKey);
+  state.detailDocumentPanelOpen = detailDocumentPanelOpen === "1" ? true : detailDocumentPanelOpen === "0" ? false : null;
+  const detailDocumentPanelWidth = Number(localStorage.getItem(detailDocumentPanelWidthStorageKey));
+  state.detailDocumentPanelWidth = Number.isFinite(detailDocumentPanelWidth) && detailDocumentPanelWidth > 0 ? detailDocumentPanelWidth : null;
   return state;
 }
 
@@ -218,6 +230,16 @@ export function writeLocalViewLayoutState({ path, collectionPath, viewId, state,
   } else {
     localStorage.removeItem(detailPanelWidthStorageKey);
   }
+  if (typeof state.detailDocumentPanelOpen === "boolean") {
+    localStorage.setItem(detailDocumentPanelOpenStorageKey, state.detailDocumentPanelOpen ? "1" : "0");
+  } else {
+    localStorage.removeItem(detailDocumentPanelOpenStorageKey);
+  }
+  if (state.detailDocumentPanelWidth != null && Number.isFinite(state.detailDocumentPanelWidth) && state.detailDocumentPanelWidth > 0) {
+    localStorage.setItem(detailDocumentPanelWidthStorageKey, String(Math.round(state.detailDocumentPanelWidth)));
+  } else {
+    localStorage.removeItem(detailDocumentPanelWidthStorageKey);
+  }
 }
 
 export function deleteLocalViewState({ path, collectionPath, viewId, localStorage }) {
@@ -274,6 +296,8 @@ export function copyViewLayoutState({
     const nextProfile = {
       sidebarWidth: profile?.sidebarWidth ?? null,
       detailPanelWidth: profile?.detailPanelWidth ?? null,
+      detailDocumentPanelOpen: profile?.detailDocumentPanelOpen ?? null,
+      detailDocumentPanelWidth: profile?.detailDocumentPanelWidth ?? null,
       fileOrder: [...(profile?.fileOrder ?? [])],
       sidebarTree: buildSidebarTreePreferences(profile?.sidebarTree),
       lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
@@ -329,6 +353,8 @@ export function resetViewLayoutState({ mode, path, collectionPath, viewId, profi
     const nextProfile = {
       sidebarWidth: null,
       detailPanelWidth: null,
+      detailDocumentPanelOpen: null,
+      detailDocumentPanelWidth: null,
       fileOrder: [...(profile?.fileOrder ?? [])],
       sidebarTree: buildSidebarTreePreferences(profile?.sidebarTree),
       lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },

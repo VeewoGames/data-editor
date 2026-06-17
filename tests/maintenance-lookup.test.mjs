@@ -83,3 +83,56 @@ test("buildMaintenanceLookupState returns empty state when no applicable primary
   assert.deepEqual(result.primaryKeyImpacts, {});
   assert.equal(result.primaryKeySyncPlan, null);
 });
+
+test("buildMaintenanceLookupState includes document field rewrites for primary key rename", async () => {
+  const activeModel = buildDocumentModel([
+    { keyword_id: "burn_v2", keyword_doc: "burn", name: "Burn" },
+  ], "json", "data/keywords.json");
+
+  const result = await buildMaintenanceLookupState({
+    selectedPath: "data/keywords.json",
+    collectionPath: "$",
+    selectedRow: activeModel.root[0],
+    selectedSourceRowIndex: 0,
+    selectedRowLabel: "Burn",
+    model: activeModel,
+    rows: activeModel.root,
+    savedRoot: [
+      { keyword_id: "burn", keyword_doc: "burn", name: "Burn" },
+    ],
+    viewConfig: {
+      fields: {},
+      documentFiles: {
+        "data/keywords.json": {
+          docRoot: "docs/keywords",
+        },
+      },
+      documentFields: {
+        "data/keywords.json:$:keyword_doc": {
+          enabled: true,
+        },
+      },
+      relations: {},
+      backlinks: {},
+      primaryKeys: {
+        "data/keywords.json:$": "keyword_id",
+      },
+      relationsVersion: 3,
+    },
+    loadDocument: async () => activeModel,
+  });
+
+  assert.equal(result.primaryKeyImpacts.keyword_id?.affectedCount, 1);
+  assert.equal(result.primaryKeySyncPlan?.rewrites.length, 1);
+  assert.deepEqual(result.primaryKeySyncPlan?.rewrites[0], {
+    relationKey: "document:data/keywords.json:$:keyword_doc",
+    sourceFile: "data/keywords.json",
+    sourceCollection: "$",
+    fieldPath: ["keyword_doc"],
+    rowIndex: 0,
+    rowId: undefined,
+    rowLabel: "Burn",
+    oldValue: "burn",
+    newValue: "burn_v2",
+  });
+});

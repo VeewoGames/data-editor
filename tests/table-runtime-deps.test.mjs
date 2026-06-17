@@ -47,4 +47,37 @@ test("buildTableRuntimeDeps separates option caches and relation runtime deps by
   assert.deepEqual(result.relationOptionsByField.target_id.map((option) => option.value), ["a", "b"]);
   assert.deepEqual(result.relationOptionsByField.plain_text, []);
   assert.equal(result.relationConfigByField.plain_text, null);
+  assert.equal(result.documentLabelsByField.tags, undefined);
+});
+
+test("buildTableRuntimeDeps resolves document labels by field", () => {
+  const result = buildTableRuntimeDeps({
+    visibleFields: ["doc_id"],
+    rows: [
+      { doc_id: "doc_a" },
+      { doc_id: "doc_missing" },
+      {},
+    ],
+    sourcePath: "data/items.json",
+    collectionPath: "$",
+    displayTypes: {
+      doc_id: "Document",
+    },
+    fieldViewConfigs: {},
+    relationConfigs: {},
+    relationOptions: {},
+    documentIndexEntries: {
+      doc_a: {
+        status: "resolved",
+        id: "doc_a",
+        relativePath: "doc_a.md",
+        title: "Doc A",
+      },
+    },
+  });
+
+  assert.deepEqual(result.documentLabelsByField.doc_id, {
+    doc_a: "Doc A",
+    doc_missing: "doc_missing",
+  });
 });

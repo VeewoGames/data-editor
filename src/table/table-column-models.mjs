@@ -9,6 +9,7 @@ const emptyRelationOptions = [];
  *   roleKind: "normal" | "relation" | "backlink";
  *   allowTypeChange: boolean;
  *   relationConfigured: boolean;
+ *   documentConfigured: boolean;
  *   relationConfig: import("../model/viewConfig").RelationConfig | null;
  *   relationOptions: import("../model/relations").RelationOption[];
  *   wrapped: boolean;
@@ -18,6 +19,7 @@ const emptyRelationOptions = [];
  *   isBacklink: boolean;
  *   multiSelectConfig: { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> } | undefined;
  *   selectConfig: { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> } | undefined;
+ *   documentLabels: Record<string, string> | undefined;
  *   backlinkColumn: import("../model/backlinkGrid").BacklinkGridColumn | undefined;
  * }} TableColumnModel
  */
@@ -35,6 +37,8 @@ const emptyRelationOptions = [];
  *   relationConfigByField: Record<string, import("../model/viewConfig").RelationConfig | null>;
  *   fieldOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   selectOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
+ *   documentLabelsByField: Record<string, Record<string, string>>;
+ *   documentConfiguredFields?: Set<string>;
  *   getColumnWidth: (fieldName: string) => number;
  *   previousByField?: Record<string, TableColumnModel>;
  * }} input
@@ -52,6 +56,8 @@ export function buildTableColumnModels({
   relationConfigByField,
   fieldOptions,
   selectOptions,
+  documentLabelsByField = {},
+  documentConfiguredFields = new Set(),
   getColumnWidth,
   previousByField = {},
 }) {
@@ -62,6 +68,7 @@ export function buildTableColumnModels({
     const isNested = nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
     const relationConfigured = Boolean(relationConfig);
+    const documentConfigured = documentConfiguredFields.has(fieldName);
     const nextModel = {
       fieldName,
       displayType: isBacklink
@@ -72,6 +79,7 @@ export function buildTableColumnModels({
       roleKind: isBacklink ? "backlink" : relationConfigured ? "relation" : "normal",
       allowTypeChange: !isNested && !isBacklink,
       relationConfigured,
+      documentConfigured,
       relationConfig,
       relationOptions,
       wrapped: wrappedFields.has(fieldName),
@@ -81,6 +89,7 @@ export function buildTableColumnModels({
       isBacklink,
       multiSelectConfig: fieldOptions[fieldName],
       selectConfig: selectOptions[fieldName],
+      documentLabels: documentLabelsByField[fieldName],
       backlinkColumn,
     };
     const previousModel = previousByField[fieldName];
@@ -112,6 +121,7 @@ function sameColumnModel(previous, next) {
     previous.roleKind === next.roleKind &&
     previous.allowTypeChange === next.allowTypeChange &&
     previous.relationConfigured === next.relationConfigured &&
+    previous.documentConfigured === next.documentConfigured &&
     previous.relationConfig === next.relationConfig &&
     previous.relationOptions === next.relationOptions &&
     previous.wrapped === next.wrapped &&
@@ -121,5 +131,6 @@ function sameColumnModel(previous, next) {
     previous.isBacklink === next.isBacklink &&
     previous.multiSelectConfig === next.multiSelectConfig &&
     previous.selectConfig === next.selectConfig &&
+    previous.documentLabels === next.documentLabels &&
     previous.backlinkColumn === next.backlinkColumn;
 }

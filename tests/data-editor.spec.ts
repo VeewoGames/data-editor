@@ -2987,6 +2987,28 @@ test("table text edit mode preserves wrapped text layout", async ({ page }) => {
   expect(Math.abs(layout.editorWidth - layout.cellWidth)).toBeLessThanOrEqual(2);
 });
 
+test("table text edit mode keeps the active editor focused while typing", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "编辑" }).click();
+
+  const cell = tableCell(page, 0, "description");
+  await cell.locator('[data-cell-role="content"]').click();
+  const editor = cell.locator(".table-text-cell-editor input");
+  await expect(editor).toBeVisible();
+  await expect(editor).toBeFocused();
+
+  await editor.type("x");
+  await page.waitForTimeout(100);
+
+  await expect(editor).toBeVisible();
+  await expect(editor).toBeFocused();
+});
+
 test("wrapped table text editor expands beyond the base cell height while editing", async ({ page }) => {
   const dataPath = path.resolve("tests/.scratch/data/e2e_wrapped_text_editor_growth.json");
   await writeFile(dataPath, JSON.stringify([
@@ -4262,6 +4284,148 @@ test("detail panel width persists in selected profile after reload", async ({ pa
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:detail-panel-width"))).toBe(null);
 });
 
+test("document field opens left panel and persists its open state and width", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_document_field.json");
+  const docsRoot = path.resolve("tests/.scratch/docs/e2e_document_field");
+  const docPath = path.join(docsRoot, "fireball.md");
+  const viewConfigPath = path.resolve("tests/.scratch/tools/data-editor/view-config.json");
+  const originalViewConfig = await readFile(viewConfigPath, "utf8");
+  const fieldKey = "data/e2e_document_field.json:$:doc_id";
+
+  await mkdir(docsRoot, { recursive: true });
+  await writeFile(dataPath, JSON.stringify([
+    { id: "fireball", name: "Fireball", doc_id: "fireball" },
+    { id: "frostbolt", name: "Frostbolt", extra_doc: "fireball" },
+    { id: "arcane_blast", name: "Arcane Blast" },
+  ], null, 2), "utf8");
+  await writeFile(docPath, "# Fireball Guide\n\nA linked markdown document.\n", "utf8");
+
+  const nextViewConfig = JSON.parse(originalViewConfig);
+  nextViewConfig.fields = {
+    ...(nextViewConfig.fields ?? {}),
+    [fieldKey]: {
+      ...(nextViewConfig.fields?.[fieldKey] ?? {}),
+      type: "Document",
+      selectOptions: nextViewConfig.fields?.[fieldKey]?.selectOptions ?? {},
+      multiSelectOptions: nextViewConfig.fields?.[fieldKey]?.multiSelectOptions ?? {},
+    },
+    "data/e2e_document_field.json:$:extra_doc": {
+      ...(nextViewConfig.fields?.["data/e2e_document_field.json:$:extra_doc"] ?? {}),
+      type: "Document",
+      selectOptions: nextViewConfig.fields?.["data/e2e_document_field.json:$:extra_doc"]?.selectOptions ?? {},
+      multiSelectOptions: nextViewConfig.fields?.["data/e2e_document_field.json:$:extra_doc"]?.multiSelectOptions ?? {},
+    },
+  };
+  nextViewConfig.documentFiles = {
+    ...(nextViewConfig.documentFiles ?? {}),
+    "data/e2e_document_field.json": { docRoot: "docs/e2e_document_field" },
+  };
+  nextViewConfig.documentFields = {
+    ...(nextViewConfig.documentFields ?? {}),
+    [fieldKey]: { enabled: true },
+    "data/e2e_document_field.json:$:extra_doc": { enabled: true },
+  };
+  await writeFile(viewConfigPath, JSON.stringify(nextViewConfig, null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_document_field.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    await expect(tableCell(page, 0, "doc_id")).toContainText("Fireball Guide");
+
+    const documentBlock = page.locator(".detail-panel.primary .property-block").filter({ hasText: "doc_id" });
+    await expect(documentBlock.locator(".document-field-trigger")).toContainText("Fireball Guide");
+    const sparseDocumentBlock = page.locator(".detail-panel.primary .property-block").filter({ hasText: "extra_doc" });
+    await expect(sparseDocumentBlock.locator(".document-field-trigger")).toContainText("未关联文档");
+    await documentBlock.locator(".document-field-trigger").click();
+    await expect(page.locator(".detail-panel.document.open")).toBeVisible();
+    await expect(page.locator(".detail-panel.document")).toContainText("Fireball Guide");
+    await expect(page.locator(".detail-panel.document")).toContainText("A linked markdown document.");
+
+    await documentBlock.locator(".document-field-trigger").click();
+    await expect(page.locator(".detail-panel.document.open")).toHaveCount(0);
+    await expect(page.locator(".detail-panel.document")).not.toBeVisible();
+    await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:detail-document-panel-open"))).toBe("0");
+
+    await page.locator('.detail-panel.primary button[title="Toggle document"]').click();
+    await expect(page.locator(".detail-panel.document.open")).toBeVisible();
+    await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:detail-document-panel-open"))).toBe("1");
+
+    await page.locator('.detail-panel.document button[title="Close document"]').click();
+    await expect(page.locator(".detail-panel.document.open")).toHaveCount(0);
+    await expect(page.locator(".detail-panel.document")).not.toBeVisible();
+    await page.locator('.detail-panel.primary button[title="Close detail"]').click();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    await expect(page.locator(".detail-panel.document.open")).toHaveCount(0);
+    await expect(page.locator(".detail-panel.document")).not.toBeVisible();
+
+    await page.locator('.detail-panel.primary button[title="Toggle document"]').click();
+    await expect(page.locator(".detail-panel.document.open")).toBeVisible();
+
+    const handleBefore = await page.locator(".detail-document-panel-resize-handle").boundingBox();
+    expect(handleBefore).not.toBeNull();
+    await page.evaluate((point) => {
+      const handle = document.querySelector(".detail-document-panel-resize-handle") as HTMLElement;
+      handle.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: point.x,
+        clientY: point.y,
+        pointerId: 1,
+      }));
+      window.dispatchEvent(new PointerEvent("pointermove", {
+        bubbles: true,
+        button: 0,
+        buttons: 1,
+        clientX: point.x - 96,
+        clientY: point.y,
+        pointerId: 1,
+      }));
+      window.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        button: 0,
+        buttons: 0,
+        clientX: point.x - 96,
+        clientY: point.y,
+        pointerId: 1,
+      }));
+    }, {
+      x: handleBefore!.x + handleBefore!.width / 2,
+      y: handleBefore!.y + handleBefore!.height / 2,
+    });
+
+    const documentWidth = await page.locator(".detail-panel.document").evaluate((element) => Math.round(element.getBoundingClientRect().width));
+    await expect.poll(async () => page.evaluate(() => localStorage.getItem("data-editor:detail-document-panel-width"))).toBe(String(documentWidth));
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_document_field.json"]').click();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.document.open")).toBeVisible();
+    await expect.poll(async () => page.locator(".detail-panel.document").evaluate((element) => Math.round(element.getBoundingClientRect().width))).toBe(documentWidth);
+
+    await page.locator('.detail-panel.primary button[title="Close detail"]').click();
+    await tableRow(page, 1).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.document.open")).toBeVisible();
+    await expect(page.locator(".detail-panel.document")).toContainText("Fireball Guide");
+    await expect(page.locator(".detail-panel.document")).not.toContainText("当前记录没有可展示的关联文档。");
+
+    await page.locator('.detail-panel.primary button[title="Close detail"]').click();
+    await tableRow(page, 2).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.document.open")).toHaveCount(0);
+    await expect(page.locator(".detail-panel.document")).not.toBeVisible();
+  } finally {
+    await bestEffortRestore("view-config.json", () => writeFile(viewConfigPath, originalViewConfig, "utf8"));
+    await bestEffortRestore("e2e_document_field.json", () => rm(dataPath, { force: true }));
+    await bestEffortRestore("e2e_document_field docs", () => rm(docsRoot, { recursive: true, force: true }));
+  }
+});
+
 test("clicking outside detail panels closes primary and nested detail panels", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
@@ -4314,6 +4478,34 @@ test("detail panel reuses table select and multi-select editors", async ({ page 
   await categoryBlock.locator(".multi-select-trigger").evaluate((element) => (element as HTMLButtonElement).click());
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(1);
+});
+
+test("detail panel multi-select removal keeps the popover ready for continued input", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const outputTagsBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "output_tags" }),
+  });
+  await expect(outputTagsBlock.locator(".multi-select-trigger")).toBeVisible();
+
+  await page.evaluate(() => {
+    const panel = document.querySelector(".detail-panel.primary") as HTMLElement | null;
+    panel?.scrollTo({ top: panel.scrollHeight });
+  });
+  await page.waitForTimeout(100);
+  await outputTagsBlock.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(1);
+  await page.locator(".multi-select-popover .selected-chip").first().click();
+  await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(0);
+  await expect(page.locator(".multi-select-popover")).toBeVisible();
+  await expect(page.locator(".multi-select-input")).toBeFocused();
 });
 
 test("detail panel textarea height follows actual text content", async ({ page }) => {
@@ -5079,6 +5271,88 @@ test("add field dialog type select is clickable", async ({ page }) => {
   await expect(page.locator(".select-content")).toBeVisible();
   await page.locator('[role="option"]').filter({ hasText: "Select" }).click();
   await expect(trigger).toContainText("Select");
+  await trigger.click();
+  await page.locator('[role="option"]').filter({ hasText: "Document" }).click();
+  await expect(trigger).toContainText("Document");
+});
+
+test("add field dialog persists document field type into project config", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('button[title="Add field"]').click();
+  await expect(page.locator(".dialog-content")).toBeVisible();
+  await page.getByRole("textbox", { name: "字段名" }).fill("doc_link");
+  const trigger = page.locator(".dialog-content .select-trigger");
+  await trigger.click();
+  await page.locator('[role="option"]').filter({ hasText: "Document" }).click();
+  await page.locator(".dialog-content .primary-button").click();
+
+  await waitForProjectConfigWrite(page, (text) => {
+    const config = JSON.parse(text);
+    return config.fields?.["data/e2e_select.json:$:doc_link"]?.type === "Document";
+  });
+});
+
+test("table settings popover saves docRoot for the current file", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.locator('.view-tabs-row-delete-toggle').click();
+  const settingsPopover = page.locator(".table-settings-popover");
+  await expect(settingsPopover).toBeVisible();
+  await expect(settingsPopover).toContainText("关联文档");
+
+  const docRootInput = settingsPopover.getByLabel("文档根目录");
+  await docRootInput.fill("docs/e2e_document_field");
+  await settingsPopover.getByRole("button", { name: "保存文档根目录", exact: true }).click();
+
+  await waitForProjectConfigWrite(page, (text) => {
+    const config = JSON.parse(text);
+    return config.documentFiles?.["data/e2e_select.json"]?.docRoot === "docs/e2e_document_field";
+  });
+});
+
+test("document column menu can enable and disable linked document behavior", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.locator('button[title="Add field"]').click();
+  await expect(page.locator(".dialog-content")).toBeVisible();
+  await page.getByRole("textbox", { name: "字段名" }).fill("doc_link");
+  const trigger = page.locator(".dialog-content .select-trigger");
+  await trigger.click();
+  await page.locator('[role="option"]').filter({ hasText: "Document" }).click();
+  await page.locator(".dialog-content .primary-button").click();
+  await waitForProjectConfigWrite(page, (text) => {
+    const config = JSON.parse(text);
+    return config.fields?.["data/e2e_select.json:$:doc_link"]?.type === "Document";
+  });
+
+  await columnHeaderTrigger(page, "doc_link").click();
+  await page.locator('.column-menu-popup [data-document-action="configure"]').click();
+  const dialog = page.locator(".dialog-content.document-field-config-dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("启用关联文档").check();
+  await dialog.getByRole("button", { name: "保存配置", exact: true }).click();
+
+  await waitForProjectConfigWrite(page, (text) => {
+    const config = JSON.parse(text);
+    return config.documentFields?.["data/e2e_select.json:$:doc_link"]?.enabled === true;
+  });
+
+  await columnHeaderTrigger(page, "doc_link").click();
+  await page.locator('.column-menu-popup [data-document-action="configure"]').click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("启用关联文档").uncheck();
+  await dialog.getByRole("button", { name: "保存配置", exact: true }).click();
+
+  await waitForProjectConfigWrite(page, (text) => {
+    const config = JSON.parse(text);
+    return !config.documentFields || !config.documentFields["data/e2e_select.json:$:doc_link"];
+  });
 });
 
 test("toolbar view profile picker uses the custom select surface", async ({ page }) => {

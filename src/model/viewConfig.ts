@@ -22,7 +22,7 @@ export type SingleSelectOptionView = {
   color: MultiSelectOptionColor | null;
 };
 
-export type RealFieldType = "Text" | "Select";
+export type RealFieldType = "Text" | "Select" | "Document";
 export type RelationMode = "single" | "multi";
 export type BacklinkDisplayMode = "list";
 
@@ -46,9 +46,19 @@ export type BacklinkConfig = {
   displayMode: BacklinkDisplayMode;
 };
 
+export type DocumentFileConfig = {
+  docRoot: string;
+};
+
+export type DocumentFieldConfig = {
+  enabled: true;
+};
+
 export type ViewConfig = {
   fields: Record<string, FieldViewConfig>;
   titleFields: Record<string, string>;
+  documentFiles: Record<string, DocumentFileConfig>;
+  documentFields: Record<string, DocumentFieldConfig>;
   primaryKeys: Record<string, string>;
   backlinks: Record<string, BacklinkConfig>;
   relations: Record<string, RelationConfig>;

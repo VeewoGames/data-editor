@@ -9,6 +9,7 @@ export function FieldTypeIcon({ fieldType, ...props }: { fieldType: FieldDisplay
   if (fieldType === "Select") return <icons.selectField aria-hidden="true" {...props} />;
   if (fieldType === "Multi-select") return <icons.multiSelectField aria-hidden="true" {...props} />;
   if (fieldType === "Relation" || fieldType === "Backlink") return <icons.relation aria-hidden="true" {...props} />;
+  if (fieldType === "Document") return <icons.jsonFile aria-hidden="true" {...props} />;
   if (fieldType === "Number") return <icons.numberField aria-hidden="true" {...props} />;
   if (fieldType === "Date") return <icons.dateField aria-hidden="true" {...props} />;
   if (fieldType === "JSON") return <icons.json aria-hidden="true" {...props} />;

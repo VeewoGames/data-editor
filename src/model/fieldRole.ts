@@ -1,8 +1,9 @@
-import type { BacklinkConfig, RelationConfig, ViewConfig } from "./viewConfig";
+import type { BacklinkConfig, DocumentFieldConfig, RelationConfig, ViewConfig } from "./viewConfig";
 
 export type ResolvedFieldRole =
   | { kind: "normal" }
   | { kind: "primaryKey"; primaryKey: string }
+  | { kind: "document"; documentFieldKey: string; config: DocumentFieldConfig }
   | { kind: "relation"; relationKey: string; config: RelationConfig }
   | { kind: "backlink"; backlinkKey: string; config: BacklinkConfig };
 

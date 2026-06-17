@@ -11,6 +11,8 @@ import {
   listProjects,
   listViewProfiles,
   loadDocument,
+  loadDocumentContent,
+  loadDocumentIndex,
   loadViewConfig,
   loadSharedViews,
   loadViewProfile,
@@ -28,6 +30,8 @@ import {
   type ProjectDefinition,
   type SaveDocumentsResult,
   type CollectionView,
+  type DocumentContentResponse,
+  type DocumentIndexResponse,
   type FilterGroup,
   type SharedViewsConfig,
   type SortRule,
@@ -42,6 +46,7 @@ import { ViewTabs, type ViewTabsSnapshot } from "./components/ViewTabs";
 import { ViewFilterBar, type ViewFilterBarSnapshot } from "./components/ViewFilterBar";
 import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editing";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
+import { DocumentFieldConfigDialog } from "./components/DocumentFieldConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
 import { icons } from "./components/icons";
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
@@ -74,6 +79,12 @@ import type { BacklinkGridColumn } from "./model/backlinkGrid";
 import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RealFieldType, RelationConfig } from "./model/viewConfig";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
 import { normalizeFileOrder } from "./file-order.mjs";
+import {
+  buildSelectedDocumentFields,
+  findPreferredActiveDocumentField,
+  shouldOpenDetailDocumentPanel,
+} from "./model/document-field-state.mjs";
+import { buildDocumentFieldKey, parseDocumentFieldKey } from "./model/document-config.mjs";
 import {
   buildOptionConfigFromOptions,
   removeMultiSelectOptionFromRows,
@@ -454,6 +465,12 @@ export function App() {
   const [primaryKeySyncPlan, setPrimaryKeySyncPlan] = useState<PrimaryKeySyncPlan | null>(null);
   const [primaryKeySyncDialogOpen, setPrimaryKeySyncDialogOpen] = useState(false);
   const [primaryKeySyncResult, setPrimaryKeySyncResult] = useState<SaveDocumentsResult | null>(null);
+  const [documentIndex, setDocumentIndex] = useState<DocumentIndexResponse>({ docRoot: null, entries: {} });
+  const [documentIndexError, setDocumentIndexError] = useState<string | null>(null);
+  const [activeDocumentFieldName, setActiveDocumentFieldName] = useState<string | null>(null);
+  const [documentContent, setDocumentContent] = useState<DocumentContentResponse | null>(null);
+  const [documentContentLoading, setDocumentContentLoading] = useState(false);
+  const [documentContentError, setDocumentContentError] = useState<string | null>(null);
   const [addFieldOpen, setAddFieldOpen] = useState(false);
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldType, setNewFieldType] = useState<FieldDisplayType>("Text");
@@ -482,6 +499,7 @@ export function App() {
   const [newProfileOpen, setNewProfileOpen] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
   const [relationConfigField, setRelationConfigField] = useState<string | null>(null);
+  const [documentConfigField, setDocumentConfigField] = useState<string | null>(null);
   const [dismissedCandidateKeys, setDismissedCandidateKeys] = useState<string[]>([]);
   const [primaryKeyCandidateDialogOpen, setPrimaryKeyCandidateDialogOpen] = useState(false);
   const [selectedPrimaryKeyCandidate, setSelectedPrimaryKeyCandidate] = useState<string>("");
@@ -533,6 +551,8 @@ export function App() {
   const manualClosedRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => readSidebarWidth());
   const [detailPanelWidth, setDetailPanelWidth] = useState(() => readDetailPanelWidth());
+  const [detailDocumentPanelOpen, setDetailDocumentPanelOpen] = useState(() => readDetailDocumentPanelOpen());
+  const [detailDocumentPanelWidth, setDetailDocumentPanelWidth] = useState(() => readDetailDocumentPanelWidth());
   const primaryKeySyncSnapshotRef = useRef<PrimaryKeySyncSaveSnapshot | null>(null);
   const primaryKeySyncPlanRef = useRef<PrimaryKeySyncPlan | null>(null);
   const autosaveStateRef = useRef<AutosaveState>("idle");
@@ -657,6 +677,8 @@ export function App() {
       localStorage.removeItem(selectedViewProfileStorageKey);
       setSidebarWidth(readSidebarWidth());
       setDetailPanelWidth(readDetailPanelWidth());
+      setDetailDocumentPanelOpen(readDetailDocumentPanelOpen());
+      setDetailDocumentPanelWidth(readDetailDocumentPanelWidth());
       setUiPreferences(readLocalUiPreferences(window.localStorage));
       return;
     }
@@ -668,9 +690,34 @@ export function App() {
         setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
         setSidebarWidth(clampSidebarWidth(normalizedProfile.sidebarWidth ?? defaultSidebarWidth));
         setDetailPanelWidth(clampDetailPanelWidth(normalizedProfile.detailPanelWidth ?? defaultDetailPanelWidth));
+        setDetailDocumentPanelOpen(normalizedProfile.detailDocumentPanelOpen ?? false);
+        setDetailDocumentPanelWidth(clampDetailDocumentPanelWidth(normalizedProfile.detailDocumentPanelWidth ?? defaultDetailDocumentPanelWidth));
       })
       .catch((error) => setStatus(error.message));
   }, [selectedViewProfileName, activeProjectId]);
+
+  useEffect(() => {
+    if (!selectedPath || !viewConfig.documentFiles[selectedPath]?.docRoot) {
+      setDocumentIndex({ docRoot: null, entries: {} });
+      setDocumentIndexError(null);
+      return;
+    }
+    let cancelled = false;
+    setDocumentIndexError(null);
+    loadDocumentIndex(selectedPath, activeProjectId)
+      .then((response) => {
+        if (cancelled) return;
+        setDocumentIndex(response);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setDocumentIndex({ docRoot: viewConfig.documentFiles[selectedPath]?.docRoot ?? null, entries: {} });
+        setDocumentIndexError(error instanceof Error ? error.message : String(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPath, activeProjectId, viewConfig.documentFiles]);
 
   async function reloadProjectWorkspace(projectId: string, options: { resetProfile?: boolean } = {}) {
     const previousFiles = loadedProjectIdRef.current === projectId ? filesRef.current : [];
@@ -766,8 +813,12 @@ export function App() {
         setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
         setSidebarWidth(clampSidebarWidth(normalizedProfile.sidebarWidth ?? defaultSidebarWidth));
         setDetailPanelWidth(clampDetailPanelWidth(normalizedProfile.detailPanelWidth ?? defaultDetailPanelWidth));
+        setDetailDocumentPanelOpen(normalizedProfile.detailDocumentPanelOpen ?? false);
+        setDetailDocumentPanelWidth(clampDetailDocumentPanelWidth(normalizedProfile.detailDocumentPanelWidth ?? defaultDetailDocumentPanelWidth));
       } else if (!profileNameForInitialOrder) {
         setUiPreferences(readLocalUiPreferences(window.localStorage));
+        setDetailDocumentPanelOpen(readDetailDocumentPanelOpen());
+        setDetailDocumentPanelWidth(readDetailDocumentPanelWidth());
       }
       const sidebarTree = buildResolvedSidebarTree(nextFiles, profileNameForInitialOrder, normalizedInitialProfile, window.localStorage);
       const preferredPath = findSidebarFallbackFilePath(
@@ -820,7 +871,15 @@ export function App() {
       setSelectedViewProfile(emptyUserViewProfile());
       selectedViewProfileRef.current = emptyUserViewProfile();
       setUiPreferences(readLocalUiPreferences(window.localStorage));
+      setDetailDocumentPanelOpen(readDetailDocumentPanelOpen());
+      setDetailDocumentPanelWidth(readDetailDocumentPanelWidth());
     }
+    setDocumentIndex({ docRoot: null, entries: {} });
+    setDocumentIndexError(null);
+    setActiveDocumentFieldName(null);
+    setDocumentContent(null);
+    setDocumentContentLoading(false);
+    setDocumentContentError(null);
     setRelationIndexes({});
     setRelationOptions({});
     setRelationBacklinks([]);
@@ -1684,6 +1743,74 @@ export function App() {
     previousRowTarget: previousVisibleRowTarget,
     nextRowTarget: nextVisibleRowTarget,
   } = detailSelectionState;
+  const selectedDocumentFields = useMemo(() => {
+    return buildSelectedDocumentFields({
+      sourcePath: selectedPath,
+      collectionPath,
+      row: selectedRow,
+      primaryKeyField: activeValidationPrimaryKeyField,
+      displayTypes: fieldConfig.displayTypes,
+      documentFieldConfigs: viewConfig.documentFields,
+      documentIndexEntries: documentIndex.entries,
+    }) as Array<{
+      fieldName: string;
+      key: string;
+      documentId: string;
+      label: string;
+      indexEntry: DocumentIndexResponse["entries"][string] | null;
+    }>;
+  }, [selectedPath, selectedRow, activeValidationPrimaryKeyField, fieldConfig.displayTypes, collectionPath, viewConfig.documentFields, documentIndex.entries]);
+  const activeDocumentField = useMemo(
+    () => findPreferredActiveDocumentField({
+      selectedDocumentFields,
+      activeFieldName: activeDocumentFieldName,
+      preferLinkedField: detailDocumentPanelOpen,
+    }) as {
+      fieldName: string;
+      key: string;
+      documentId: string;
+      label: string;
+      indexEntry: DocumentIndexResponse["entries"][string] | null;
+    } | null,
+    [selectedDocumentFields, activeDocumentFieldName, detailDocumentPanelOpen],
+  );
+  useEffect(() => {
+    setActiveDocumentFieldName(activeDocumentField?.fieldName ?? null);
+  }, [activeDocumentField]);
+  const detailDocumentPanelVisible = useMemo(() => shouldOpenDetailDocumentPanel({
+    detailOpen,
+    panelPreferenceOpen: detailDocumentPanelOpen,
+    selectedDocumentFields,
+  }), [detailOpen, detailDocumentPanelOpen, selectedDocumentFields]);
+  const activeDocumentId = activeDocumentField?.documentId ?? null;
+  useEffect(() => {
+    if (!selectedPath || !activeDocumentId) {
+      setDocumentContent(null);
+      setDocumentContentLoading(false);
+      setDocumentContentError(null);
+      return;
+    }
+    let cancelled = false;
+    setDocumentContentLoading(true);
+    setDocumentContentError(null);
+    loadDocumentContent(selectedPath, activeDocumentId, activeProjectId)
+      .then((response) => {
+        if (cancelled) return;
+        setDocumentContent(response);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setDocumentContent(null);
+        setDocumentContentError(error instanceof Error ? error.message : String(error));
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setDocumentContentLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPath, activeDocumentId, activeProjectId]);
   useEffect(() => {
     previousVisibleRowViewsRef.current = visibleRowViews;
   }, [visibleRowViews]);
@@ -1723,6 +1850,41 @@ export function App() {
     [selectedPath, collectionPath, relationConfigField],
   );
   const relationConfigForDialog = relationConfigKey ? (viewConfig.relations[relationConfigKey] ?? null) : null;
+  const documentConfigKey = useMemo(
+    () => selectedPath && documentConfigField
+      ? buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [documentConfigField] })
+      : null,
+    [selectedPath, collectionPath, documentConfigField],
+  );
+  const documentFieldConfigEnabled = documentConfigKey ? viewConfig.documentFields[documentConfigKey]?.enabled === true : false;
+  const documentResolvedCount = useMemo(
+    () => Object.values(documentIndex.entries).filter((entry) => entry?.status === "resolved").length,
+    [documentIndex.entries],
+  );
+  const documentConflictCount = useMemo(
+    () => Object.values(documentIndex.entries).filter((entry) => entry?.status === "conflict").length,
+    [documentIndex.entries],
+  );
+  const configuredDocumentFields = useMemo(
+    () => selectedPath
+      ? Object.entries(viewConfig.documentFields)
+        .filter(([, config]) => config?.enabled === true)
+        .map(([key]) => parseDocumentFieldKey(key))
+        .filter((parsed): parsed is NonNullable<ReturnType<typeof parseDocumentFieldKey>> => Boolean(parsed))
+        .filter((parsed) => parsed.sourceFile === selectedPath && parsed.sourceCollection === collectionPath && parsed.fieldPath.length === 1)
+        .map((parsed) => parsed.fieldPath[0]!)
+      : [],
+    [selectedPath, collectionPath, viewConfig.documentFields],
+  );
+  const documentFieldOptions = useMemo(
+    () => Object.entries(fieldConfig.displayTypes)
+      .filter(([, displayType]) => displayType === "Document")
+      .map(([fieldName]) => ({
+        fieldName,
+        enabled: configuredDocumentFields.includes(fieldName),
+      })),
+    [fieldConfig.displayTypes, configuredDocumentFields],
+  );
   const validationSnapshot = useMemo(
     () => {
       const perfState = detailReorderPerfRef.current;
@@ -1835,6 +1997,8 @@ export function App() {
     backlinkValuesByRowId: backlinkValuesByRowIdState,
     relationOptions,
     relationConfigs: viewConfig.relations,
+    documentIndexEntries: documentIndex.entries,
+    documentConfiguredFields: configuredDocumentFields,
     revision: tableRevision,
     sort: activeViewSort,
     validation: validationSnapshot,
@@ -1855,6 +2019,8 @@ export function App() {
     backlinkValuesByRowIdState,
     relationOptions,
     viewConfig.relations,
+    documentIndex.entries,
+    configuredDocumentFields,
     tableRevision,
     activeViewSort,
     validationSnapshot,
@@ -1868,6 +2034,29 @@ export function App() {
   const detailSnapshot = useMemo<DetailSnapshot>(() => ({
     open: detailOpen,
     panelWidth: detailPanelWidth,
+    documentPanel: {
+      open: detailDocumentPanelVisible,
+      width: detailDocumentPanelWidth,
+      activeFieldName: activeDocumentFieldName,
+      fields: Object.fromEntries(selectedDocumentFields.map((entry) => [entry.fieldName, entry.label])),
+      status: documentContentError
+        ? "error"
+        : documentContentLoading
+          ? "loading"
+          : activeDocumentField?.documentId
+            ? (documentContent?.status ?? "missing")
+            : "empty",
+      fieldName: activeDocumentField?.fieldName ?? null,
+      documentId: activeDocumentField?.documentId || null,
+      title: documentContent?.status === "resolved"
+        ? (documentContent.title ?? activeDocumentField?.label ?? activeDocumentField?.documentId ?? null)
+        : activeDocumentField?.label ?? null,
+      relativePath: documentContent?.status === "resolved" ? documentContent.relativePath : null,
+      docRoot: documentIndex.docRoot,
+      content: documentContent?.status === "resolved" ? documentContent.content : null,
+      matches: documentContent?.status === "conflict" ? documentContent.matches : [],
+      errorMessage: documentContentError ?? documentIndexError,
+    },
     row: selectedRow,
     rowId: selectedRowId,
     sourceRowIndex: selectedSourceRowIndex,
@@ -1892,6 +2081,16 @@ export function App() {
   }), [
     detailOpen,
     detailPanelWidth,
+    detailDocumentPanelOpen,
+    detailDocumentPanelWidth,
+    activeDocumentFieldName,
+    selectedDocumentFields,
+    activeDocumentField,
+    documentContent,
+    documentContentLoading,
+    documentContentError,
+    documentIndex.docRoot,
+    documentIndexError,
     selectedRow,
     selectedRowId,
     selectedSourceRowIndex,
@@ -1957,6 +2156,12 @@ export function App() {
     tableTextEditMode,
     rowDeleteControlsVisible,
     viewOrderDirty,
+    selectedFilePath: selectedPath,
+    documentRoot: selectedPath ? (viewConfig.documentFiles[selectedPath]?.docRoot ?? "") : "",
+    documentFields: documentFieldOptions,
+    documentResolvedCount,
+    documentConflictCount,
+    documentIndexError,
   }), [
     orderedCollectionViews,
     activeSharedView,
@@ -1967,6 +2172,12 @@ export function App() {
     tableTextEditMode,
     rowDeleteControlsVisible,
     viewOrderDirty,
+    selectedPath,
+    viewConfig.documentFiles,
+    documentFieldOptions,
+    documentResolvedCount,
+    documentConflictCount,
+    documentIndexError,
   ]);
   const viewFilterBarSnapshot = useMemo<ViewFilterBarSnapshot>(() => ({
     collectionKey: activeCollectionKey,
@@ -2088,6 +2299,8 @@ export function App() {
     const next: UserViewProfile = {
       sidebarWidth: current.sidebarWidth,
       detailPanelWidth: current.detailPanelWidth,
+      detailDocumentPanelOpen: current.detailDocumentPanelOpen,
+      detailDocumentPanelWidth: current.detailDocumentPanelWidth,
       fileOrder: [...current.fileOrder],
       sidebarTree: cloneStoredSidebarTreeState(current.sidebarTree),
       lastActiveViews: { ...current.lastActiveViews },
@@ -2331,7 +2544,7 @@ export function App() {
   }
 
   function handleChangeFieldType(fieldName: string, displayType: FieldDisplayType) {
-    if (!selectedPath || !model || (displayType !== "Text" && displayType !== "Select")) return;
+    if (!selectedPath || !model || (displayType !== "Text" && displayType !== "Select" && displayType !== "Document")) return;
     const rowsInCollection = getRows(model, collectionPath) as DataRecord[];
     mutateViewConfig((draft) => {
       const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
@@ -2360,6 +2573,66 @@ export function App() {
       delete draft.relations[key];
     });
     setStatus(`已清除关联字段 ${fieldName}，对应反向关联列将自动隐藏`);
+  }
+
+  function handleConfigureDocument(fieldName: string) {
+    if (!selectedPath) return;
+    setDocumentConfigField(fieldName);
+  }
+
+  function handleClearDocument(fieldName: string) {
+    if (!selectedPath) return;
+    const key = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
+    mutateViewConfig((draft) => {
+      delete draft.documentFields[key];
+    });
+    setStatus(`已取消字段 ${fieldName} 的关联文档配置`);
+  }
+
+  function confirmDocumentFieldConfig(enabled: boolean) {
+    if (!selectedPath || !documentConfigField) return;
+    setDocumentFieldEnabled(documentConfigField, enabled);
+    setDocumentConfigField(null);
+  }
+
+  function setDocumentFieldEnabled(fieldName: string, enabled: boolean) {
+    if (!selectedPath) return;
+    const key = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
+    mutateViewConfig((draft) => {
+      if (enabled) {
+        draft.documentFields[key] = { enabled: true };
+      } else {
+        delete draft.documentFields[key];
+      }
+    });
+    setStatus(enabled ? `已启用字段 ${fieldName} 的关联文档` : `已关闭字段 ${fieldName} 的关联文档`);
+  }
+
+  function handleSaveDocumentRoot(docRoot: string) {
+    if (!selectedPath) return;
+    const nextDocRoot = docRoot.trim();
+    mutateViewConfig((draft) => {
+      if (!nextDocRoot) {
+        delete draft.documentFiles[selectedPath];
+        return;
+      }
+      draft.documentFiles[selectedPath] = { docRoot: nextDocRoot };
+    });
+    setStatus(nextDocRoot ? `已更新 ${selectedPath} 的文档根目录` : `已清除 ${selectedPath} 的文档根目录`);
+  }
+
+  function handleRefreshDocumentIndex() {
+    if (!selectedPath) return;
+    setDocumentIndexError(null);
+    loadDocumentIndex(selectedPath, activeProjectId)
+      .then((response) => {
+        setDocumentIndex(response);
+        setStatus(`已重新加载 ${selectedPath} 的文档索引`);
+      })
+      .catch((error) => {
+        setDocumentIndex({ docRoot: viewConfig.documentFiles[selectedPath]?.docRoot ?? null, entries: {} });
+        setDocumentIndexError(error instanceof Error ? error.message : String(error));
+      });
   }
 
   function confirmRelationConfig(config: RelationConfig) {
@@ -2629,7 +2902,7 @@ export function App() {
       widths: { ...activeSnapshot.widths },
       order: [...activeSnapshot.order],
       detailOrder: [...activeSnapshot.detailOrder],
-    }, activeViewLayoutId, activeSnapshot.sidebarWidth ?? sidebarWidth, activeSnapshot.detailPanelWidth ?? detailPanelWidth, normalizeFileOrder(
+    }, activeViewLayoutId, activeSnapshot.sidebarWidth ?? sidebarWidth, activeSnapshot.detailPanelWidth ?? detailPanelWidth, detailDocumentPanelOpen, detailDocumentPanelWidth, normalizeFileOrder(
       files,
       selectedViewProfileName ? selectedViewProfile.fileOrder : readLocalFileOrder(window.localStorage),
     ), resolveActiveSidebarPreferences(files, selectedViewProfileName, selectedViewProfile, window.localStorage).sidebarTree, uiPreferences);
@@ -2739,6 +3012,29 @@ export function App() {
     }
   }
 
+  function persistDetailDocumentPanelOpen(nextOpen: boolean) {
+    setDetailDocumentPanelOpen(nextOpen);
+    if (mutateSelectedViewProfile((draft) => { draft.detailDocumentPanelOpen = nextOpen; })) return;
+    localStorage.setItem(detailDocumentPanelOpenStorageKey, nextOpen ? "1" : "0");
+  }
+
+  function handleDetailDocumentPanelWidthChange(width: number) {
+    setDetailDocumentPanelWidth(clampDetailDocumentPanelWidth(width));
+  }
+
+  function commitDetailDocumentPanelWidth(width: number) {
+    const nextWidth = clampDetailDocumentPanelWidth(width);
+    setDetailDocumentPanelWidth(nextWidth);
+    if (mutateSelectedViewProfile((draft) => { draft.detailDocumentPanelWidth = nextWidth; })) return;
+    localStorage.setItem(detailDocumentPanelWidthStorageKey, String(nextWidth));
+  }
+
+  function toggleDocumentPanel(fieldName?: string) {
+    if (fieldName) setActiveDocumentFieldName(fieldName);
+    const shouldClose = detailDocumentPanelOpen && (!fieldName || fieldName === activeDocumentFieldName);
+    persistDetailDocumentPanelOpen(!shouldClose);
+  }
+
   function openDetail(rowIndex: number) {
     flushSync(() => {
       setSelectedRowIndex(rowIndex);
@@ -2814,7 +3110,7 @@ export function App() {
       }
       addField(model, collectionPath, selectedSourceRowIndex, fieldName, defaultEmptyValue(newFieldType), newFieldApplyAll);
     });
-    if (selectedPath && (newFieldType === "Text" || newFieldType === "Select")) {
+    if (selectedPath && (newFieldType === "Text" || newFieldType === "Select" || newFieldType === "Document")) {
       mutateViewConfig((draft) => {
         const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
         if (!key) return;
@@ -2848,6 +3144,8 @@ export function App() {
       });
       draft.sidebarWidth = result.profile.sidebarWidth;
       draft.detailPanelWidth = result.profile.detailPanelWidth;
+      draft.detailDocumentPanelOpen = result.profile.detailDocumentPanelOpen;
+      draft.detailDocumentPanelWidth = result.profile.detailDocumentPanelWidth;
       draft.fileOrder = result.profile.fileOrder;
       draft.sidebarTree = result.profile.sidebarTree;
       draft.lastActiveViews = result.profile.lastActiveViews;
@@ -2858,6 +3156,8 @@ export function App() {
       if (result.profile.appearance) draft.appearance = result.profile.appearance;
       setSidebarWidth(defaultSidebarWidth);
       setDetailPanelWidth(defaultDetailPanelWidth);
+      setDetailDocumentPanelOpen(false);
+      setDetailDocumentPanelWidth(defaultDetailDocumentPanelWidth);
     })) return;
     writeLocalViewState({
       path: selectedPath,
@@ -2868,6 +3168,8 @@ export function App() {
     });
     setSidebarWidth(readSidebarWidth());
     setDetailPanelWidth(readDetailPanelWidth());
+    setDetailDocumentPanelOpen(readDetailDocumentPanelOpen());
+    setDetailDocumentPanelWidth(readDetailDocumentPanelWidth());
     bumpLayoutRevision((value) => value + 1);
     bumpTableRevision((value) => value + 1);
   }
@@ -3588,6 +3890,9 @@ export function App() {
                   onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
                   onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
                   onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
+                  onSetDocumentFieldEnabled={setDocumentFieldEnabled}
+                  onSaveDocumentRoot={handleSaveDocumentRoot}
+                  onRefreshDocumentIndex={handleRefreshDocumentIndex}
                 />
               </Profiler>
               {filterBarVisible ? (
@@ -3624,18 +3929,20 @@ export function App() {
                   onEditCell={handleTableEditCell}
                   onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
                   onCommitSelectDraft={handleTableCommitSelectOptionFieldDraft}
-                    onChangeFieldType={handleChangeFieldType}
-                    onHideField={handleHideField}
-                    onToggleWrapField={handleToggleWrapField}
-                    onSetTitleField={handleSetTitleField}
-                    onSetPrimaryKeyField={handleSetPrimaryKeyField}
-                    onResizeField={handleResizeField}
+                  onChangeFieldType={handleChangeFieldType}
+                  onHideField={handleHideField}
+                  onToggleWrapField={handleToggleWrapField}
+                  onSetTitleField={handleSetTitleField}
+                  onSetPrimaryKeyField={handleSetPrimaryKeyField}
+                  onResizeField={handleResizeField}
                   onMoveField={handleMoveField}
                   onReorderFields={handleReorderFields}
                   onSort={handleSort}
                   onAddFilter={handleAddFilter}
                   onConfigureRelation={handleConfigureRelation}
                   onClearRelation={handleClearRelation}
+                  onConfigureDocument={handleConfigureDocument}
+                  onClearDocument={handleClearDocument}
                   onOpenRelationTarget={handleOpenRelationTarget}
                   onAddRow={handleAddRow}
                   onDeleteRow={handleDeleteRow}
@@ -3656,6 +3963,10 @@ export function App() {
                   onClose={() => setDetailOpen(false)}
                   onPanelWidthChange={handleDetailPanelWidthChange}
                   onPanelWidthCommit={commitDetailPanelWidth}
+                  onToggleDocumentPanel={toggleDocumentPanel}
+                  onCloseDocumentPanel={() => persistDetailDocumentPanelOpen(false)}
+                  onDocumentPanelWidthChange={handleDetailDocumentPanelWidthChange}
+                  onDocumentPanelWidthCommit={commitDetailDocumentPanelWidth}
                   onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
                   onReorderFields={handleReorderDetailFields}
                   onRegisterActiveTextEditor={registerActiveTextEditor}
@@ -3665,82 +3976,91 @@ export function App() {
           </Profiler>
         ) : (
           <div className="main-content">
-          <ViewTabs
-            snapshot={viewTabsSnapshot}
-            onSelectView={handleSelectSharedView}
-            onCreateView={handleCreateSharedView}
-            onRenameView={handleRenameSharedView}
-            onDeleteView={handleDeleteSharedView}
-            onDuplicateView={handleDuplicateSharedView}
-            onReorderViews={handleReorderSharedViews}
-            onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
-            onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
-            onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
-          />
-          {filterBarVisible ? (
-            <ViewFilterBar
-              snapshot={viewFilterBarSnapshot}
-              onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
-              onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
+            <ViewTabs
+              snapshot={viewTabsSnapshot}
+              onSelectView={handleSelectSharedView}
+              onCreateView={handleCreateSharedView}
+              onRenameView={handleRenameSharedView}
+              onDeleteView={handleDeleteSharedView}
+              onDuplicateView={handleDuplicateSharedView}
+              onReorderViews={handleReorderSharedViews}
+              onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
+              onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
+              onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
+              onSetDocumentFieldEnabled={setDocumentFieldEnabled}
+              onSaveDocumentRoot={handleSaveDocumentRoot}
+              onRefreshDocumentIndex={handleRefreshDocumentIndex}
+            />
+            {filterBarVisible ? (
+              <ViewFilterBar
+                snapshot={viewFilterBarSnapshot}
+                onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
+                onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
+                onAddFilter={handleAddFilter}
+                onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
+                onResetView={handleResetSharedViewDraft}
+                onSaveForEveryone={() => void handleSaveViewForEveryone()}
+              />
+            ) : null}
+            {showPrimaryKeyCandidateBanner && selectedPath ? (
+              <PrimaryKeyCandidateBanner
+                filePath={selectedPath}
+                collectionPath={collectionPath}
+                candidates={activePrimaryKeyCandidates}
+                onConfirm={openPrimaryKeyCandidateDialog}
+                onDismiss={dismissPrimaryKeyCandidates}
+              />
+            ) : null}
+            <DataTable
+              snapshot={tableSnapshot}
+              onScrollPositionChange={handleTableScrollPositionChange}
+              onSelectRow={selectRow}
+              onOpenDetail={openDetailForRow}
+              onOpenBacklink={handleOpenBacklink}
+              onEditCell={handleTableEditCell}
+              onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
+              onCommitSelectDraft={handleTableCommitSelectOptionFieldDraft}
+              onChangeFieldType={handleChangeFieldType}
+              onHideField={handleHideField}
+              onToggleWrapField={handleToggleWrapField}
+              onSetTitleField={handleSetTitleField}
+              onSetPrimaryKeyField={handleSetPrimaryKeyField}
+              onResizeField={handleResizeField}
+              onMoveField={handleMoveField}
+              onReorderFields={handleReorderFields}
+              onSort={handleSort}
               onAddFilter={handleAddFilter}
-              onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
-              onResetView={handleResetSharedViewDraft}
-              onSaveForEveryone={() => void handleSaveViewForEveryone()}
+              onConfigureRelation={handleConfigureRelation}
+              onClearRelation={handleClearRelation}
+              onConfigureDocument={handleConfigureDocument}
+              onClearDocument={handleClearDocument}
+              onOpenRelationTarget={handleOpenRelationTarget}
+              onAddRow={handleAddRow}
+              onDeleteRow={handleDeleteRow}
+              showRowDeleteControls={rowDeleteControlsVisible}
+              onAddField={handleAddField}
+              onDeleteField={handleDeleteField}
             />
-          ) : null}
-          {showPrimaryKeyCandidateBanner && selectedPath ? (
-            <PrimaryKeyCandidateBanner
-              filePath={selectedPath}
-              collectionPath={collectionPath}
-              candidates={activePrimaryKeyCandidates}
-              onConfirm={openPrimaryKeyCandidateDialog}
-              onDismiss={dismissPrimaryKeyCandidates}
+            <DetailPanel
+              snapshot={detailSnapshot}
+              onCommitMultiSelectDraft={(fieldName, patch) => selectedRowId && handleCommitMultiSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
+              onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
+              onOpenBacklink={handleOpenBacklink}
+              onRequestSyncSave={() => void persistChanges(true)}
+              onOpenRelationTarget={handleOpenRelationTarget}
+              onSelectRow={selectRowById}
+              onClose={() => setDetailOpen(false)}
+              onPanelWidthChange={handleDetailPanelWidthChange}
+              onPanelWidthCommit={commitDetailPanelWidth}
+              onToggleDocumentPanel={toggleDocumentPanel}
+              onCloseDocumentPanel={() => persistDetailDocumentPanelOpen(false)}
+              onDocumentPanelWidthChange={handleDetailDocumentPanelWidthChange}
+              onDocumentPanelWidthCommit={commitDetailDocumentPanelWidth}
+              onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
+              onReorderFields={handleReorderDetailFields}
+              onRegisterActiveTextEditor={registerActiveTextEditor}
             />
-          ) : null}
-          <DataTable
-            snapshot={tableSnapshot}
-            onScrollPositionChange={handleTableScrollPositionChange}
-            onSelectRow={selectRow}
-            onOpenDetail={openDetailForRow}
-            onOpenBacklink={handleOpenBacklink}
-            onEditCell={handleTableEditCell}
-            onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
-            onCommitSelectDraft={handleTableCommitSelectOptionFieldDraft}
-            onChangeFieldType={handleChangeFieldType}
-            onHideField={handleHideField}
-            onToggleWrapField={handleToggleWrapField}
-            onSetTitleField={handleSetTitleField}
-            onSetPrimaryKeyField={handleSetPrimaryKeyField}
-            onResizeField={handleResizeField}
-            onMoveField={handleMoveField}
-            onReorderFields={handleReorderFields}
-            onSort={handleSort}
-            onAddFilter={handleAddFilter}
-            onConfigureRelation={handleConfigureRelation}
-            onClearRelation={handleClearRelation}
-            onOpenRelationTarget={handleOpenRelationTarget}
-            onAddRow={handleAddRow}
-            onDeleteRow={handleDeleteRow}
-            showRowDeleteControls={rowDeleteControlsVisible}
-            onAddField={handleAddField}
-            onDeleteField={handleDeleteField}
-          />
-          <DetailPanel
-            snapshot={detailSnapshot}
-            onCommitMultiSelectDraft={(fieldName, patch) => selectedRowId && handleCommitMultiSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
-            onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
-            onOpenBacklink={handleOpenBacklink}
-            onRequestSyncSave={() => void persistChanges(true)}
-            onOpenRelationTarget={handleOpenRelationTarget}
-            onSelectRow={selectRowById}
-            onClose={() => setDetailOpen(false)}
-            onPanelWidthChange={handleDetailPanelWidthChange}
-            onPanelWidthCommit={commitDetailPanelWidth}
-            onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
-            onReorderFields={handleReorderDetailFields}
-            onRegisterActiveTextEditor={registerActiveTextEditor}
-          />
-        </div>
+          </div>
         )}
       </section>
       <AddFieldDialog
@@ -3768,6 +4088,15 @@ export function App() {
         config={relationConfigForDialog}
         onOpenChange={(open) => !open && setRelationConfigField(null)}
         onConfirm={confirmRelationConfig}
+      />
+      <DocumentFieldConfigDialog
+        open={documentConfigField != null}
+        fieldName={documentConfigField}
+        sourcePath={selectedPath}
+        docRoot={selectedPath ? (viewConfig.documentFiles[selectedPath]?.docRoot ?? null) : null}
+        enabled={documentFieldConfigEnabled}
+        onOpenChange={(open) => !open && setDocumentConfigField(null)}
+        onConfirm={confirmDocumentFieldConfig}
       />
       <ConfirmDialog
         open={pendingDeleteRow != null}
@@ -3846,7 +4175,7 @@ function AddFieldDialog(props: {
               <Select.Portal>
                 <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
-                    {["Text", "Select"].map((type) => (
+                    {["Text", "Select", "Document"].map((type) => (
                       <Select.Item className="menu-item" key={type} value={type}><Select.ItemText>{type}</Select.ItemText></Select.Item>
                     ))}
                   </Select.Viewport>
@@ -4484,9 +4813,13 @@ const minSidebarWidth = 180;
 const maxSidebarWidth = 520;
 const defaultSidebarWidth = 260;
 const detailPanelWidthStorageKey = "data-editor:detail-panel-width";
+const detailDocumentPanelOpenStorageKey = "data-editor:detail-document-panel-open";
+const detailDocumentPanelWidthStorageKey = "data-editor:detail-document-panel-width";
 const minDetailPanelWidth = 320;
 const maxDetailPanelWidth = 920;
 const defaultDetailPanelWidth = 400;
+const minDetailDocumentPanelWidth = 280;
+const defaultDetailDocumentPanelWidth = 360;
 
 function readSidebarWidth() {
   const stored = Number(localStorage.getItem(sidebarWidthStorageKey));
@@ -4496,6 +4829,18 @@ function readSidebarWidth() {
 function readDetailPanelWidth() {
   const stored = Number(localStorage.getItem(detailPanelWidthStorageKey));
   return clampDetailPanelWidth(Number.isFinite(stored) && stored > 0 ? stored : defaultDetailPanelWidth);
+}
+
+function readDetailDocumentPanelOpen() {
+  const stored = localStorage.getItem(detailDocumentPanelOpenStorageKey);
+  if (stored === "1") return true;
+  if (stored === "0") return false;
+  return false;
+}
+
+function readDetailDocumentPanelWidth() {
+  const stored = Number(localStorage.getItem(detailDocumentPanelWidthStorageKey));
+  return clampDetailDocumentPanelWidth(Number.isFinite(stored) && stored > 0 ? stored : defaultDetailDocumentPanelWidth);
 }
 
 function rememberTransientStatus(message: string) {
@@ -4519,6 +4864,10 @@ function clampDetailPanelWidth(width: number) {
   return Math.min(maxDetailPanelWidth, Math.max(minDetailPanelWidth, Math.round(width)));
 }
 
+function clampDetailDocumentPanelWidth(width: number) {
+  return Math.max(minDetailDocumentPanelWidth, Math.round(width));
+}
+
 function cloneDataRoot<T>(value: T): T {
   return value == null ? value : structuredClone(value);
 }
@@ -4527,6 +4876,8 @@ function emptyUserViewProfile(): UserViewProfile {
   return {
     sidebarWidth: null,
     detailPanelWidth: null,
+    detailDocumentPanelOpen: null,
+    detailDocumentPanelWidth: null,
     fileOrder: [],
     sidebarTree: serializeSidebarTreeState(cloneSidebarTreePreferences(), false),
     lastActiveViews: {},
@@ -4542,6 +4893,8 @@ function normalizeUserViewProfile(profile: Partial<UserViewProfile> | null | und
   return {
     sidebarWidth: Number.isFinite(profile.sidebarWidth) ? Number(profile.sidebarWidth) : null,
     detailPanelWidth: Number.isFinite(profile.detailPanelWidth) ? Number(profile.detailPanelWidth) : null,
+    detailDocumentPanelOpen: typeof profile.detailDocumentPanelOpen === "boolean" ? profile.detailDocumentPanelOpen : null,
+    detailDocumentPanelWidth: Number.isFinite(profile.detailDocumentPanelWidth) ? Number(profile.detailDocumentPanelWidth) : null,
     fileOrder: Array.isArray(profile.fileOrder) ? [...profile.fileOrder] : [],
     sidebarTree: cloneStoredSidebarTreeState(profile.sidebarTree),
     lastActiveViews: { ...(profile.lastActiveViews ?? {}) },
@@ -4585,6 +4938,8 @@ function emptyProjectViewConfig(): ViewConfig {
   return {
     fields: {},
     titleFields: {},
+    documentFiles: {},
+    documentFields: {},
     primaryKeys: defaultPrimaryKeys(),
     backlinks: defaultBacklinkConfigs() as Record<string, BacklinkConfig>,
     relations: cloneRelationConfigs(defaultRelationConfigs() as Record<string, RelationConfig>),
@@ -4603,6 +4958,8 @@ function cloneViewConfig(config: ViewConfig): ViewConfig {
       },
     ])),
     titleFields: { ...config.titleFields },
+    documentFiles: Object.fromEntries(Object.entries(config.documentFiles ?? {}).map(([key, value]) => [key, { docRoot: value.docRoot }])),
+    documentFields: Object.fromEntries(Object.entries(config.documentFields ?? {}).map(([key, value]) => [key, { enabled: value.enabled }])),
     primaryKeys: { ...config.primaryKeys },
     backlinks: Object.fromEntries(Object.entries(config.backlinks).map(([key, value]) => [
       key,
@@ -4786,11 +5143,25 @@ function insertViewIdAfter(viewIds: string[], sourceViewId: string, targetViewId
   return normalized;
 }
 
-function buildProfileFromCurrentView(path: string | null, collectionPath: string, fieldConfig: FieldConfig, viewId: string | null, sidebarWidth: number, detailPanelWidth: number, fileOrder: string[], sidebarTree: UserViewProfile["sidebarTree"], appearance: UiPreferences): UserViewProfile {
+function buildProfileFromCurrentView(
+  path: string | null,
+  collectionPath: string,
+  fieldConfig: FieldConfig,
+  viewId: string | null,
+  sidebarWidth: number,
+  detailPanelWidth: number,
+  detailDocumentPanelOpen: boolean,
+  detailDocumentPanelWidth: number,
+  fileOrder: string[],
+  sidebarTree: UserViewProfile["sidebarTree"],
+  appearance: UiPreferences,
+): UserViewProfile {
   if (!path) {
     return {
       sidebarWidth,
       detailPanelWidth,
+      detailDocumentPanelOpen,
+      detailDocumentPanelWidth,
       fileOrder: [...fileOrder],
       sidebarTree: cloneStoredSidebarTreeState(sidebarTree),
       lastActiveViews: {},
@@ -4805,6 +5176,8 @@ function buildProfileFromCurrentView(path: string | null, collectionPath: string
   return {
     sidebarWidth,
     detailPanelWidth,
+    detailDocumentPanelOpen,
+    detailDocumentPanelWidth,
     fileOrder: [...fileOrder],
     sidebarTree: cloneStoredSidebarTreeState(sidebarTree),
     lastActiveViews: viewId ? { [collectionKey]: viewId } : {},

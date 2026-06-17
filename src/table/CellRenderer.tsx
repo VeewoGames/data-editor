@@ -21,6 +21,7 @@ type CellRendererProps = {
   wrapped?: boolean;
   multiSelectConfig?: MultiSelectFieldOptionConfig;
   selectConfig?: SelectFieldOptionConfig;
+  documentLabel?: string | null;
   relationOptions?: RelationOption[];
   relationConfigured?: boolean;
   relationMode?: RelationMode;
@@ -43,6 +44,7 @@ function CellRendererComponent({
   wrapped = false,
   multiSelectConfig,
   selectConfig,
+  documentLabel,
   relationOptions = [],
   relationConfigured = false,
   relationMode,
@@ -139,6 +141,21 @@ function CellRendererComponent({
     );
   }
 
+  if (displayType === "Document" && (value == null || typeof value === "string" || typeof value === "number")) {
+    const displayLabel = documentLabel ?? (value == null || value === "" ? "未关联文档" : String(value));
+    return (
+      <>
+        <div className="table-cell-content-main">
+          <div className={`document-cell-display cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}>
+            <icons.jsonFile size={14} />
+            <span>{displayLabel}</span>
+          </div>
+        </div>
+        {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
+      </>
+    );
+  }
+
   const textValue = value == null ? "" : String(value);
   if (
     displayType === "Text" &&
@@ -187,6 +204,7 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.wrapped === next.wrapped &&
   previous.multiSelectConfig === next.multiSelectConfig &&
   previous.selectConfig === next.selectConfig &&
+  previous.documentLabel === next.documentLabel &&
   previous.relationOptions === next.relationOptions &&
   previous.relationConfigured === next.relationConfigured &&
   previous.relationMode === next.relationMode &&

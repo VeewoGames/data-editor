@@ -34,6 +34,8 @@ test("saveViewProfile writes normalized profile file", async () => {
     const result = await saveViewProfile(root, "lans", {
       sidebarWidth: 311.8,
       detailPanelWidth: 455.6,
+      detailDocumentPanelOpen: true,
+      detailDocumentPanelWidth: 366.4,
       fileOrder: ["data/skills.json", "data/runes.json", "data/skills.json", " "],
       sidebarTree: {
         childOrderByParent: {
@@ -108,6 +110,8 @@ test("saveViewProfile writes normalized profile file", async () => {
     assert.deepEqual(stored, {
       sidebarWidth: 312,
       detailPanelWidth: 456,
+      detailDocumentPanelOpen: true,
+      detailDocumentPanelWidth: 366,
       fileOrder: ["data/skills.json", "data/runes.json"],
       sidebarTree: {
         childOrderByParent: {
@@ -263,6 +267,8 @@ test("loadViewProfile de-duplicates repeated order fields", async () => {
     await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
       sidebarWidth: null,
       detailPanelWidth: 470,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 380,
       fileOrder: ["data/status_effects.json", "data/runes.json", "data/status_effects.json"],
       lastActiveViews: {
         "data/status_effects.json:$": "all",
@@ -281,9 +287,29 @@ test("loadViewProfile de-duplicates repeated order fields", async () => {
     }, null, 2));
     const profile = await loadViewProfile(root, "lans");
     assert.equal(profile.detailPanelWidth, 470);
+    assert.equal(profile.detailDocumentPanelOpen, false);
+    assert.equal(profile.detailDocumentPanelWidth, 380);
     assert.deepEqual(profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
     assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.order, ["effects", "dot", "buildup"]);
     assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.detailOrder, ["effect_name", "description"]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile normalizes document panel preferences", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      detailDocumentPanelOpen: true,
+      detailDocumentPanelWidth: 402.8,
+    }, null, 2));
+
+    const profile = await loadViewProfile(root, "lans");
+    assert.equal(profile.detailDocumentPanelOpen, true);
+    assert.equal(profile.detailDocumentPanelWidth, 403);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

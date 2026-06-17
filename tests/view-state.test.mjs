@@ -762,17 +762,21 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /onToggleFilterBar/);
   assert.match(viewTabsSource, /onToggleTableTextEditMode/);
   assert.match(viewTabsSource, /onToggleRowDeleteControls/);
+  assert.match(viewTabsSource, /onSaveDocumentRoot/);
+  assert.match(viewTabsSource, /onRefreshDocumentIndex/);
   assert.match(viewTabsSource, /hasActiveFilters/);
   assert.match(viewTabsSource, /rowDeleteControlsVisible/);
   assert.match(viewTabsSource, /aria-pressed=\{filterBarVisible\}/);
   assert.match(viewTabsSource, /aria-pressed=\{tableTextEditMode\}/);
-  assert.match(viewTabsSource, /aria-pressed=\{rowDeleteControlsVisible\}/);
+  assert.match(viewTabsSource, /aria-expanded=\{settingsOpen\}/);
   assert.match(viewTabsSource, /view-tabs-filter-toggle/);
   assert.match(viewTabsSource, /view-tabs-table-edit-toggle/);
   assert.match(viewTabsSource, /hasActiveFilters \? "has-filters" : ""/);
   assert.match(viewTabsSource, /filterBarVisible \? "visible" : ""/);
   assert.match(viewTabsSource, /view-tabs-row-delete-toggle/);
-  assert.match(viewTabsSource, /rowDeleteControlsVisible \? "active" : ""/);
+  assert.match(viewTabsSource, /settingsOpen \? "active" : ""/);
+  assert.match(viewTabsSource, /table-settings-popover-shell/);
+  assert.match(viewTabsSource, /<TableSettingsPopover/);
   assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.edit size=\{18\} \/>/);
   assert.match(viewTabsSource, /<span>编辑<\/span>/);
@@ -803,6 +807,11 @@ test("row delete controls stay hidden until the temporary toolbar mode is enable
   assert.match(appSource, /const \[rowDeleteControlsVisible, setRowDeleteControlsVisible\] = useState\(false\);/);
   assert.match(appSource, /rowDeleteControlsVisible,/);
   assert.match(appSource, /onToggleRowDeleteControls=\{\(\) => setRowDeleteControlsVisible\(\(value\) => !value\)\}/);
+  assert.match(appSource, /onSaveDocumentRoot=\{handleSaveDocumentRoot\}/);
+  assert.match(appSource, /onRefreshDocumentIndex=\{handleRefreshDocumentIndex\}/);
+  assert.match(appSource, /documentConfiguredFields: configuredDocumentFields,/);
+  assert.match(appSource, /onConfigureDocument=\{handleConfigureDocument\}/);
+  assert.match(appSource, /onClearDocument=\{handleClearDocument\}/);
   assert.match(appSource, /showRowDeleteControls=\{rowDeleteControlsVisible\}/);
   assert.doesNotMatch(appSource, /localStorage\.(?:getItem|setItem)\([^)]*rowDeleteControlsVisible/);
 

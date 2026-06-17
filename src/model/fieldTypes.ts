@@ -9,6 +9,7 @@ export type FieldDisplayType =
   | "Number"
   | "Checkbox"
   | "Select"
+  | "Document"
   | "Multi-select"
   | "Relation"
   | "Backlink"

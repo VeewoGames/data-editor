@@ -48,6 +48,8 @@ export function emptyViewConfig() {
   return {
     fields: {},
     titleFields: {},
+    documentFiles: {},
+    documentFields: {},
     primaryKeys: defaultPrimaryKeys(),
     backlinks: defaultBacklinkConfigs(),
     relations: defaultRelationConfigs(),
@@ -55,7 +57,7 @@ export function emptyViewConfig() {
   };
 }
 
-function normalizeViewConfig(value) {
+export function normalizeViewConfig(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return emptyViewConfig();
   const fields = value.fields;
   const normalizedFields = {};
@@ -85,7 +87,7 @@ function normalizeViewConfig(value) {
         }
       }
       normalizedFields[fieldKey] = {
-        type: fieldConfig.type === "Select" || fieldConfig.type === "Text" ? fieldConfig.type : undefined,
+        type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
         selectOptions: normalizedSelectOptions,
         multiSelectOptions: normalizedOptions,
       };
@@ -95,6 +97,8 @@ function normalizeViewConfig(value) {
   const normalized = {
     fields: normalizedFields,
     titleFields: normalizeCollectionFields(value.titleFields),
+    documentFiles: normalizeDocumentFiles(value.documentFiles),
+    documentFields: normalizeDocumentFields(value.documentFields),
     primaryKeys: normalizePrimaryKeys(value.primaryKeys),
     backlinks: normalizeBacklinks(value.backlinks),
     relations: normalizeRelations(value.relations),
@@ -113,6 +117,29 @@ function normalizeViewConfig(value) {
 
 function normalizePrimaryKeys(value) {
   return normalizeCollectionFields(value);
+}
+
+function normalizeDocumentFiles(value) {
+  const normalized = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return normalized;
+  for (const [filePath, config] of Object.entries(value)) {
+    const nextFilePath = normalizeNonEmptyString(filePath);
+    const docRoot = normalizeNonEmptyString(config?.docRoot);
+    if (!nextFilePath || !docRoot) continue;
+    normalized[nextFilePath] = { docRoot };
+  }
+  return normalized;
+}
+
+function normalizeDocumentFields(value) {
+  const normalized = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return normalized;
+  for (const [fieldKey, config] of Object.entries(value)) {
+    const nextFieldKey = normalizeNonEmptyString(fieldKey);
+    if (!nextFieldKey || config?.enabled !== true) continue;
+    normalized[nextFieldKey] = { enabled: true };
+  }
+  return normalized;
 }
 
 function normalizeCollectionFields(value) {

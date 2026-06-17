@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { parseCsv, serializeCsv } from "./src/csv-codec.mjs";
 import { parseJson, serializeJson } from "./src/json-codec.mjs";
 import { buildDocumentModel } from "./src/document-model.mjs";
+import { buildDocumentIndex, readResolvedDocument } from "./src/document-service.mjs";
 import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
@@ -41,6 +42,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/project-activate" && req.method === "POST") return await handleActivateProject(req, res);
     if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/document") return await handleDocument(url, res);
+    if (url.pathname === "/api/document-index") return await handleDocumentIndex(url, res);
+    if (url.pathname === "/api/document-content") return await handleDocumentContent(url, res);
     if (url.pathname === "/api/save" && req.method === "POST") return await handleSave(req, res);
     if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-config" && req.method === "POST") return await handleSaveViewConfig(req, res);
@@ -92,6 +95,24 @@ async function handleSave(req, res) {
   const text = ext === ".csv" ? serializeCsv(body.root) : serializeJson(body.root);
   await writeTextFile(projectContext, body.path, text);
   sendJson(res, { ok: true });
+}
+
+async function handleDocumentIndex(url, res) {
+  const relativePath = url.searchParams.get("path");
+  if (!relativePath) throw new Error("Missing document path");
+  const projectContext = await projectContextForUrl(url);
+  const viewConfig = await loadViewConfig(projectContext);
+  sendJson(res, await buildDocumentIndex(projectContext, viewConfig.documentFiles, relativePath));
+}
+
+async function handleDocumentContent(url, res) {
+  const relativePath = url.searchParams.get("path");
+  const documentId = url.searchParams.get("id");
+  if (!relativePath) throw new Error("Missing document path");
+  if (!documentId) throw new Error("Missing document id");
+  const projectContext = await projectContextForUrl(url);
+  const viewConfig = await loadViewConfig(projectContext);
+  sendJson(res, await readResolvedDocument(projectContext, viewConfig.documentFiles, relativePath, documentId));
 }
 
 async function handleSaveViewConfig(req, res) {

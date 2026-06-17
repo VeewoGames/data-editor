@@ -29,6 +29,7 @@ import { mergeMeasuredRowHeights, resolveRowHeight as resolveMeasuredRowHeight }
 import { buildTableRuntimeDeps } from "./table-runtime-deps.mjs";
 import { buildVariableRowWindow } from "./variable-row-window.mjs";
 import type { ActiveTextEditorRegistrar } from "../editing";
+import type { DocumentIndexEntry } from "../api/client";
 
 export type TableFieldConfig = {
   displayTypes: Record<string, FieldDisplayType>;
@@ -69,6 +70,8 @@ export type TableSnapshot = {
   backlinkValuesByRowId: Record<string, Record<string, RelationBacklink[]>>;
   relationOptions: Record<string, RelationOption[]>;
   relationConfigs: Record<string, RelationConfig>;
+  documentIndexEntries: Record<string, DocumentIndexEntry>;
+  documentConfiguredFields: string[];
   revision: number;
   sort: { field: string; direction: "asc" | "desc" } | null;
   validation: ValidationSnapshot;
@@ -101,6 +104,8 @@ type DataTableProps = {
   onSetPrimaryKeyField: (fieldName: string) => void;
   onConfigureRelation: (fieldName: string) => void;
   onClearRelation: (fieldName: string) => void;
+  onConfigureDocument: (fieldName: string) => void;
+  onClearDocument: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onAddRow: () => void;
   onDeleteRow: (rowIndex: number, rowId: string | null) => void;
@@ -144,6 +149,8 @@ function DataTableComponent(props: DataTableProps) {
     onChangeFieldType: props.onChangeFieldType,
     onConfigureRelation: props.onConfigureRelation,
     onClearRelation: props.onClearRelation,
+    onConfigureDocument: props.onConfigureDocument,
+    onClearDocument: props.onClearDocument,
     onDeleteField: props.onDeleteField,
     onOpenRelationTarget: props.onOpenRelationTarget,
     onSelectRow: props.onSelectRow,
@@ -172,7 +179,7 @@ function DataTableComponent(props: DataTableProps) {
 
   useEffect(() => {
     setActiveTextCellId(null);
-  }, [snapshot.textEditable, snapshot.sourcePath, snapshot.collectionPath, snapshot.revision]);
+  }, [snapshot.textEditable, snapshot.sourcePath, snapshot.collectionPath]);
 
   useEffect(() => {
     setScrollTop(0);
@@ -231,24 +238,29 @@ function DataTableComponent(props: DataTableProps) {
     selectOptions,
     relationOptionsByField,
     relationConfigByField,
+    documentLabelsByField,
   } = useMemo(() => buildTableRuntimeDeps({
     visibleFields,
     rows,
     sourcePath: snapshot.sourcePath,
     collectionPath: snapshot.collectionPath,
+    primaryKeyField: snapshot.primaryKeyField,
     displayTypes: snapshot.fieldConfig.displayTypes,
     fieldViewConfigs: snapshot.fieldViewConfigs,
     relationConfigs: snapshot.relationConfigs,
     relationOptions: snapshot.relationOptions,
+    documentIndexEntries: snapshot.documentIndexEntries,
   }), [
     visibleFields,
     rows,
     snapshot.sourcePath,
     snapshot.collectionPath,
+    snapshot.primaryKeyField,
     snapshot.fieldConfig.displayTypes,
     snapshot.fieldViewConfigs,
     snapshot.relationConfigs,
     snapshot.relationOptions,
+    snapshot.documentIndexEntries,
   ]);
   const windowSize = hasWrappedField ? (variableRowWindow?.windowEnd ?? rows.length) - (variableRowWindow?.windowStart ?? 0) : Math.ceil(viewportHeight / compactRowHeight) + rowOverscan * 2;
   const rawWindowStart = Math.max(0, Math.floor(scrollTop / compactRowHeight) - rowOverscan);
@@ -285,6 +297,8 @@ function DataTableComponent(props: DataTableProps) {
       onChangeFieldType: props.onChangeFieldType,
       onConfigureRelation: props.onConfigureRelation,
       onClearRelation: props.onClearRelation,
+      onConfigureDocument: props.onConfigureDocument,
+      onClearDocument: props.onClearDocument,
       onDeleteField: props.onDeleteField,
       onOpenRelationTarget: props.onOpenRelationTarget,
       onSelectRow: props.onSelectRow,
@@ -307,6 +321,8 @@ function DataTableComponent(props: DataTableProps) {
     props.onChangeFieldType,
     props.onConfigureRelation,
     props.onClearRelation,
+    props.onConfigureDocument,
+    props.onClearDocument,
     props.onDeleteField,
     props.onOpenRelationTarget,
     props.onSelectRow,
@@ -331,6 +347,7 @@ function DataTableComponent(props: DataTableProps) {
     relationConfigByField,
     fieldOptions,
     selectOptions,
+    documentLabelsByField,
     widths: snapshot.fieldConfig.widths,
     textEditable: snapshot.textEditable,
   }), [
@@ -345,6 +362,7 @@ function DataTableComponent(props: DataTableProps) {
     relationConfigByField,
     fieldOptions,
     selectOptions,
+    documentLabelsByField,
     snapshot.fieldConfig.widths,
     snapshot.textEditable,
   ]);
@@ -360,9 +378,11 @@ function DataTableComponent(props: DataTableProps) {
     relationConfigByField,
     fieldOptions,
     selectOptions,
+    documentLabelsByField,
+    documentConfiguredFields: new Set(snapshot.documentConfiguredFields),
     getColumnWidth,
     previousByField: previousColumnModelsByFieldRef.current,
-  }), [columnModelSignature]);
+  }), [columnModelSignature, snapshot.documentConfiguredFields]);
   useEffect(() => {
     previousColumnModelsByFieldRef.current = Object.fromEntries(columnModels.map((model) => [model.fieldName, model]));
   }, [columnModels]);
@@ -396,6 +416,12 @@ function DataTableComponent(props: DataTableProps) {
   }, []);
   const handleClearRelation = useCallback((fieldName: string) => {
     runtimeActionRef.current.onClearRelation(fieldName);
+  }, []);
+  const handleConfigureDocument = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onConfigureDocument(fieldName);
+  }, []);
+  const handleClearDocument = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onClearDocument(fieldName);
   }, []);
   const handleDeleteField = useCallback((fieldName: string) => {
     runtimeActionRef.current.onDeleteField(fieldName);
@@ -535,6 +561,8 @@ function DataTableComponent(props: DataTableProps) {
     onChangeFieldType: handleChangeFieldType,
     onConfigureRelation: handleConfigureRelation,
     onClearRelation: handleClearRelation,
+    onConfigureDocument: handleConfigureDocument,
+    onClearDocument: handleClearDocument,
     onDeleteField: handleDeleteField,
     onOpenRelationTarget: handleOpenRelationTarget,
     onSelectRow: selectRowByRuntime,
@@ -570,6 +598,8 @@ function DataTableComponent(props: DataTableProps) {
     handleChangeFieldType,
     handleConfigureRelation,
     handleClearRelation,
+    handleConfigureDocument,
+    handleClearDocument,
     handleDeleteField,
     handleOpenRelationTarget,
     selectRowByRuntime,
@@ -600,7 +630,6 @@ function DataTableComponent(props: DataTableProps) {
   }, [
     snapshot.sourcePath,
     snapshot.collectionPath,
-    snapshot.revision,
     snapshot.fieldConfig.wrapped,
     snapshot.fieldConfig.widths,
     visibleFields,
@@ -798,6 +827,7 @@ function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
     sameBacklinkValues(previous.backlinkValuesByRowId, next.backlinkValuesByRowId) &&
     sameRelationOptions(previous.relationOptions, next.relationOptions) &&
     sameRelationConfigs(previous.relationConfigs, next.relationConfigs) &&
+    previous.documentIndexEntries === next.documentIndexEntries &&
     sameFieldConfig(previous.fieldConfig, next.fieldConfig) &&
     sameSort(previous.sort, next.sort) &&
     previous.validation === next.validation &&

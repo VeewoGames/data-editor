@@ -18,6 +18,7 @@ type ColumnHeaderProps = {
   isDragging: boolean;
   tooltipSuppressed: boolean;
   relationConfigured: boolean;
+  documentConfigured: boolean;
   onSort: (direction: "asc" | "desc" | null) => void;
   onAddFilter: () => void;
   onSetTitleField: () => void;
@@ -34,17 +35,20 @@ type ColumnHeaderProps = {
   onChangeFieldType: (type: FieldDisplayType) => void;
   onConfigureRelation: () => void;
   onClearRelation: () => void;
+  onConfigureDocument: () => void;
+  onClearDocument: () => void;
   onDeleteField: () => void;
 };
 
 const minColumnWidth = 56;
 const maxColumnWidth = 560;
-const changeableFieldTypes: readonly FieldDisplayType[] = ["Text", "Select"];
+const changeableFieldTypes: readonly FieldDisplayType[] = ["Text", "Select", "Document"];
 const displayTypeLabels: Record<FieldDisplayType, string> = {
   Text: "文本",
   Number: "数字",
   Checkbox: "复选框",
   Select: "单选",
+  Document: "关联文档",
   "Multi-select": "多选",
   Relation: "关联",
   Backlink: "反向关联",
@@ -132,6 +136,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     !props.isDragging &&
     !props.tooltipSuppressed;
   const canShowTypeChangeMenu = props.allowTypeChange && changeableFieldTypes.includes(props.displayType);
+  const canConfigureDocument = props.roleKind !== "backlink" && props.displayType === "Document";
 
   useEffect(() => {
     if (!shouldShowTooltip) return;
@@ -386,6 +391,29 @@ export function ColumnHeader(props: ColumnHeaderProps) {
               <div className="menu-separator" />
             </>
           )}
+          {canConfigureDocument ? (
+            <>
+              <button
+                className="menu-item"
+                data-document-action="configure"
+                onClick={() => runDialogAction(props.onConfigureDocument)}
+                type="button"
+              >
+                <icons.jsonFile size={15} /> {props.documentConfigured ? "编辑关联文档配置" : "设为关联文档字段"}
+              </button>
+              {props.documentConfigured ? (
+                <button
+                  className="menu-item"
+                  data-document-action="clear"
+                  onClick={() => runAfterMenuClose(props.onClearDocument)}
+                  type="button"
+                >
+                  <icons.close size={15} /> 取消关联文档字段
+                </button>
+              ) : null}
+              <div className="menu-separator" />
+            </>
+          ) : null}
           {props.roleKind === "backlink" ? null : (
             props.relationConfigured ? (
               <>

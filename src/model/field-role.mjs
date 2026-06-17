@@ -1,3 +1,5 @@
+import { getDocumentFieldConfig } from "./document-config.mjs";
+
 export function getPrimaryKeyField(viewConfig, sourceFile, sourceCollection) {
   return viewConfig?.primaryKeys?.[`${sourceFile}:${sourceCollection}`] ?? null;
 }
@@ -47,6 +49,14 @@ export function resolveFieldRole({ sourceFile, sourceCollection, fieldName, view
       kind: "backlink",
       backlinkKey,
       config: backlinkConfig,
+    };
+  }
+  const documentField = getDocumentFieldConfig(viewConfig, sourceFile, sourceCollection, [fieldName]);
+  if (documentField) {
+    return {
+      kind: "document",
+      documentFieldKey: documentField.key,
+      config: documentField.config,
     };
   }
   const relationKey = `${sourceFile}:${sourceCollection}:${fieldName}`;

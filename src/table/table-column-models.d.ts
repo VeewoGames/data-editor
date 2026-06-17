@@ -15,6 +15,7 @@ export type TableColumnModel = {
   roleKind: "normal" | "relation" | "backlink";
   allowTypeChange: boolean;
   relationConfigured: boolean;
+  documentConfigured: boolean;
   relationConfig: RelationConfig | null;
   relationOptions: RelationOption[];
   wrapped: boolean;
@@ -24,6 +25,7 @@ export type TableColumnModel = {
   isBacklink: boolean;
   multiSelectConfig?: OptionConfig;
   selectConfig?: OptionConfig;
+  documentLabels?: Record<string, string>;
   backlinkColumn?: BacklinkGridColumn;
 };
 
@@ -39,6 +41,8 @@ export function buildTableColumnModels(input: {
   relationConfigByField: Record<string, RelationConfig | null>;
   fieldOptions: Record<string, OptionConfig>;
   selectOptions: Record<string, OptionConfig>;
+  documentLabelsByField?: Record<string, Record<string, string>>;
+  documentConfiguredFields?: Set<string>;
   getColumnWidth: (fieldName: string) => number;
   previousByField?: Record<string, TableColumnModel>;
 }): TableColumnModel[];

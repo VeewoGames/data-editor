@@ -4,6 +4,7 @@ import { icons } from "../components/icons";
 import type { RelationOption } from "../model/relations";
 import type { RelationMode } from "../model/viewConfig";
 import { getRelationOptionLabel } from "../model/relations";
+import { focusWithoutScroll } from "../editing/focus-without-scroll.mjs";
 import { chipStyleForValue } from "./chipColors";
 
 type RelationCellEditorProps = {
@@ -29,6 +30,10 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
   const [selectedValues, setSelectedValues] = useState<Array<string | number>>(() => stickyValuesByCellId.get(cellId) ?? normalizedValue);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  function restoreInputFocus() {
+    queueMicrotask(() => focusWithoutScroll(inputRef.current));
+  }
+
   const filteredOptions = useMemo(() => {
     const needle = draft.trim().toLowerCase();
     if (!needle) return options;
@@ -46,14 +51,15 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
   }, [cellId, open, normalizedValue]);
 
   useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open, selectedValues]);
+    if (open) focusWithoutScroll(inputRef.current);
+  }, [open]);
 
   function commit(nextValues: Array<string | number>) {
     stickyOpenCellId = cellId;
     stickyValuesByCellId.set(cellId, nextValues);
     setSelectedValues(nextValues);
     onEdit(multiple ? nextValues : (nextValues[0] ?? null));
+    restoreInputFocus();
   }
 
   function toggleOption(option: RelationOption) {

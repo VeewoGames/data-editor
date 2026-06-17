@@ -3,6 +3,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type M
 import { icons } from "../components/icons";
 import type { MultiSelectOptionColor, MultiSelectOptionView } from "../model/viewConfig";
 import { sortValuesByOptionOrder } from "../multiselect-config.mjs";
+import { focusWithoutScroll } from "../editing/focus-without-scroll.mjs";
 import { namedChipPalette, chipStyleForValue } from "./chipColors";
 import { useOptionFieldDragReorder } from "./useOptionFieldDragReorder";
 
@@ -94,6 +95,10 @@ export function OptionFieldEditor({
   const sessionCommitRef = useRef(onCommitDraft);
   const settledCloseRef = useRef(false);
 
+  function restoreInputFocus() {
+    queueMicrotask(() => focusWithoutScroll(inputRef.current));
+  }
+
   useEffect(() => {
     localOptionsRef.current = localOptions;
   }, [localOptions]);
@@ -127,11 +132,11 @@ export function OptionFieldEditor({
   }, [cellId, open, options, value]);
 
   useEffect(() => {
-    if (open && !editing) inputRef.current?.focus();
-  }, [open, editing, selectedValues]);
+    if (open && !editing) focusWithoutScroll(inputRef.current);
+  }, [open, editing]);
 
   useEffect(() => {
-    if (editing) renameInputRef.current?.focus();
+    if (editing) focusWithoutScroll(renameInputRef.current);
   }, [editing]);
 
   const optionMap = useMemo(() => {
@@ -219,6 +224,7 @@ export function OptionFieldEditor({
       const nextSelectedValues = exists ? [] : [optionValue];
       selectedValuesRef.current = nextSelectedValues;
       setSelectedValues(nextSelectedValues);
+      restoreInputFocus();
       return;
     }
     const nextSelectedValues = exists
@@ -226,6 +232,7 @@ export function OptionFieldEditor({
       : [...selectedValues, optionValue];
     selectedValuesRef.current = nextSelectedValues;
     setSelectedValues(nextSelectedValues);
+    restoreInputFocus();
   }
 
   function createOption() {
@@ -241,6 +248,7 @@ export function OptionFieldEditor({
     selectedValuesRef.current = nextSelectedValues;
     setSelectedValues(nextSelectedValues);
     setDraft("");
+    restoreInputFocus();
   }
 
   function beginEdit(option: DraftOptionView) {
@@ -261,6 +269,7 @@ export function OptionFieldEditor({
     selectedValuesRef.current = nextSelectedValues;
     setSelectedValues(nextSelectedValues);
     setEditing(null);
+    restoreInputFocus();
   }
 
   function removeOption(optionValue: string) {

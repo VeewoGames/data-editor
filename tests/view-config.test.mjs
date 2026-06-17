@@ -10,6 +10,8 @@ test("emptyViewConfig includes project relations", () => {
   assert.deepEqual(emptyViewConfig(), {
     fields: {},
     titleFields: {},
+    documentFiles: {},
+    documentFields: {},
     primaryKeys: defaultPrimaryKeys(),
     backlinks: defaultBacklinkConfigs(),
     relations: defaultRelationConfigs(),
@@ -55,6 +57,8 @@ test("saveViewConfig preserves field type and select options", async () => {
         },
       },
       titleFields: {},
+      documentFiles: {},
+      documentFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: defaultBacklinkConfigs(),
       relations: defaultRelationConfigs(),
@@ -113,6 +117,8 @@ test("loadViewConfig drops unsupported field type and normalizes malformed selec
         },
       },
       titleFields: {},
+      documentFiles: {},
+      documentFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: defaultBacklinkConfigs(),
       relations: defaultRelationConfigs(),
@@ -191,6 +197,8 @@ test("loadViewConfig filters invalid relation configs", async () => {
     assert.deepEqual(loaded, {
       fields: {},
       titleFields: {},
+      documentFiles: {},
+      documentFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: {
         "data/skills.json:skills:back_skills": {
@@ -228,6 +236,8 @@ test("default relation migration runs once", async () => {
     assert.deepEqual(loaded, {
       fields: {},
       titleFields: {},
+      documentFiles: {},
+      documentFields: {},
       primaryKeys: defaultPrimaryKeys(),
       backlinks: defaultBacklinkConfigs(),
       relations: defaultRelationConfigs(),
@@ -370,6 +380,98 @@ test("loadViewConfig preserves configured collection title fields and drops inva
     assert.deepEqual(loaded.titleFields, {
       "data/e2e_select.json:$": "category",
     });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("saveViewConfig preserves document file roots and document field toggles", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
+  try {
+    const result = await saveViewConfig(root, {
+      fields: {
+        "data/keywords.json:$:keyword_doc": {
+          type: "Document",
+          selectOptions: {},
+          multiSelectOptions: {},
+        },
+      },
+      documentFiles: {
+        "data/keywords.json": {
+          docRoot: "docs/keywords",
+        },
+      },
+      documentFields: {
+        "data/keywords.json:$:keyword_doc": {
+          enabled: true,
+        },
+      },
+    });
+
+    const stored = JSON.parse(await readFile(path.join(root, result.path), "utf8"));
+    assert.deepEqual(stored.documentFiles, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    });
+    assert.deepEqual(stored.documentFields, {
+      "data/keywords.json:$:keyword_doc": {
+        enabled: true,
+      },
+    });
+    assert.equal(stored.fields["data/keywords.json:$:keyword_doc"].type, "Document");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewConfig normalizes invalid document config entries", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
+  try {
+    const target = path.join(root, ".data-editor", "view-config.json");
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, JSON.stringify({
+      fields: {
+        "data/keywords.json:$:keyword_doc": {
+          type: "Document",
+          selectOptions: {},
+          multiSelectOptions: {},
+        },
+      },
+      documentFiles: {
+        "data/keywords.json": {
+          docRoot: " docs/keywords ",
+        },
+        "data/empty.json": {
+          docRoot: " ",
+        },
+      },
+      documentFields: {
+        "data/keywords.json:$:keyword_doc": {
+          enabled: true,
+        },
+        "data/keywords.json:$:bad_doc": {
+          enabled: false,
+        },
+      },
+      primaryKeys: defaultPrimaryKeys(),
+      backlinks: defaultBacklinkConfigs(),
+      relations: defaultRelationConfigs(),
+      relationsVersion: currentRelationsVersion,
+    }), "utf8");
+
+    const loaded = await loadViewConfig(root);
+    assert.deepEqual(loaded.documentFiles, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    });
+    assert.deepEqual(loaded.documentFields, {
+      "data/keywords.json:$:keyword_doc": {
+        enabled: true,
+      },
+    });
+    assert.equal(loaded.fields["data/keywords.json:$:keyword_doc"].type, "Document");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

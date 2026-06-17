@@ -13,6 +13,7 @@ import { defaultTypeFor } from "../model/fieldTypes.mjs";
  *   relationConfigByField: Record<string, import("../model/viewConfig").RelationConfig | null>;
  *   fieldOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   selectOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
+ *   documentLabelsByField: Record<string, Record<string, string>>;
  *   widths: Record<string, number>;
  *   textEditable: boolean;
  * }} input
@@ -29,6 +30,7 @@ export function buildTableColumnModelsSignature({
   relationConfigByField,
   fieldOptions,
   selectOptions,
+  documentLabelsByField = {},
   widths,
   textEditable,
 }) {
@@ -55,6 +57,7 @@ export function buildTableColumnModelsSignature({
       signatureRelationOptions(relationOptionsByField[fieldName] ?? []),
       signatureOptionConfig(fieldOptions[fieldName]),
       signatureOptionConfig(selectOptions[fieldName]),
+      signatureDocumentLabels(documentLabelsByField[fieldName]),
       textEditable && displayType === "Text" && fieldName !== detectedTitleField ? "text-editable" : "text-readonly",
     ].join("::");
   }).join("||");
@@ -99,4 +102,9 @@ function signatureRelationOptions(options) {
 function signatureOptionConfig(config) {
   if (!config) return "";
   return config.options.map((option) => [option.value, option.label, option.color ?? ""].join("|")).join(",");
+}
+
+function signatureDocumentLabels(labels) {
+  if (!labels) return "";
+  return Object.entries(labels).map(([value, label]) => `${value}|${label}`).join(",");
 }
