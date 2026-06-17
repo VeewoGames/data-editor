@@ -12,6 +12,7 @@ export function runView({
   filters = emptyFilters,
   sorts = emptySorts,
   fieldTypes = {},
+  optionOrdersByField = {},
 }) {
   const searchResult = runSearch({ rows, query, candidateRowIds });
   const filteredRows = materializeRows(
@@ -19,7 +20,7 @@ export function runView({
     searchResult.searchRows,
   );
   const visibleRows = materializeRows(
-    applyViewSorts(filteredRows.map(createRuntimeRow), sorts),
+    applyViewSorts(filteredRows.map(createRuntimeRow), sorts, fieldTypes, optionOrdersByField),
     filteredRows,
   );
 

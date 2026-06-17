@@ -1631,6 +1631,12 @@ export function App() {
     },
     [allFields, selectedPath, collectionPath, viewConfig.relations, relationOptions, viewFilterFieldTypes, rows, fieldViewConfigs],
   );
+  const viewSortOptionOrders = useMemo(
+    () => Object.fromEntries(
+      Object.entries(viewFilterOptions).map(([field, options]) => [field, options.map((option) => String(option.value))]),
+    ) as Record<string, string[]>,
+    [viewFilterOptions],
+  );
   const viewEngineRows = useMemo<ViewEngineRow[]>(() => {
     return buildStableViewEngineRows(collectionStore, previousViewEngineRowsRef.current);
   }, [collectionStore]);
@@ -1649,6 +1655,7 @@ export function App() {
       filters: activeViewRenderState.filters,
       sorts: activeViewRenderState.sorts,
       fieldTypes: viewFilterFieldTypes,
+      optionOrdersByField: viewSortOptionOrders,
     });
     if (perfState.active && perfState.awaitingViewRows) {
       markPerf("detail-reorder:after-view-rows");
@@ -1656,7 +1663,7 @@ export function App() {
       perfState.awaitingViewRows = false;
     }
     return stabilizeViewResult(previousViewResultRef.current, nextViewResult);
-  }, [viewEngineRows, activeViewRenderState, viewFilterFieldTypes]);
+  }, [viewEngineRows, activeViewRenderState, viewFilterFieldTypes, viewSortOptionOrders]);
   useEffect(() => {
     previousViewResultRef.current = viewResult;
   }, [viewResult]);

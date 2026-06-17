@@ -28,6 +28,7 @@ export type ViewInput = SearchInput & {
   filters: FilterGroup;
   sorts: SortRule[];
   fieldTypes?: Record<string, string>;
+  optionOrdersByField?: Record<string, string[]>;
 };
 
 export type ViewResult = {
