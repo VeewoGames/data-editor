@@ -16,11 +16,13 @@ export function buildTableColumnModelsSignature(input: {
   displayTypes: Record<string, FieldDisplayType>;
   wrappedFields: Set<string>;
   detectedTitleField: string | null;
+  primaryKeyField?: string | null;
   backlinkColumns: BacklinkGridColumn[];
   relationOptionsByField: Record<string, RelationOption[]>;
   relationConfigByField: Record<string, RelationConfig | null>;
   fieldOptions: Record<string, OptionConfig>;
   selectOptions: Record<string, OptionConfig>;
+  documentConfiguredFields?: Set<string>;
   widths: Record<string, number>;
   textEditable: boolean;
 }): string;

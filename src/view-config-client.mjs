@@ -8,7 +8,7 @@ export default function normalizeFetchedViewConfig(value) {
     documentFields: normalizeDocumentFields(source.documentFields),
     primaryKeys: normalizeCollectionFields(source.primaryKeys),
     backlinks: normalizeBacklinks(source.backlinks),
-    relations: normalizeRelations(source.relations),
+    relations: filterDocumentFieldRelations(normalizeRelations(source.relations), normalizeDocumentFields(source.documentFields)),
     relationsVersion: Number.isInteger(source.relationsVersion) ? source.relationsVersion : 0,
   };
 }
@@ -126,6 +126,16 @@ function normalizeBacklinks(value) {
     };
   }
   return normalized;
+}
+
+function filterDocumentFieldRelations(relations, documentFields) {
+  const filtered = {};
+  const documentFieldKeys = new Set(Object.keys(documentFields ?? {}));
+  for (const [relationKey, relationConfig] of Object.entries(relations ?? {})) {
+    if (documentFieldKeys.has(relationKey)) continue;
+    filtered[relationKey] = relationConfig;
+  }
+  return filtered;
 }
 
 function normalizeNonEmptyString(value) {

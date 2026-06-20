@@ -1366,6 +1366,25 @@ select {
   color: var(--color-text-warning);
 }
 
+.toolbar-status-icon {
+  flex: 0 0 auto;
+}
+
+.toolbar-status-icon.spinning {
+  animation: toolbar-status-icon-spin 1s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes toolbar-status-icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .hidden-fields-panel {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-default);
@@ -4143,6 +4162,14 @@ th:hover .column-resize-handle,
 }
 
 .menu-item.danger svg {
+  color: currentColor;
+}
+
+.menu-item.active {
+  color: #2f8f57;
+}
+
+.menu-item.active svg {
   color: currentColor;
 }
 

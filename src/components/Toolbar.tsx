@@ -72,6 +72,9 @@ export function Toolbar(props: ToolbarProps) {
         : snapshot.autosaveState === "blocked-confirmation"
           ? "待确认"
           : "";
+  const showHourglassIcon = snapshot.autosaveState === "pending" || snapshot.autosaveState === "saving";
+  const AutosaveIcon = showHourglassIcon ? icons.hourglassEmpty : icons.dirty;
+  const autosaveIconClassName = snapshot.autosaveState === "saving" ? "toolbar-status-icon spinning" : "toolbar-status-icon";
 
   return (
     <header className="toolbar">
@@ -84,7 +87,7 @@ export function Toolbar(props: ToolbarProps) {
       <span className="row-count">Visible {snapshot.visibleCount} / Total {snapshot.rowCount}</span>
       {autosaveLabel ? (
         <span className="dirty-pill">
-          <icons.dirty size={14} />
+          <AutosaveIcon size={14} className={autosaveIconClassName} />
           {autosaveLabel}
         </span>
       ) : null}

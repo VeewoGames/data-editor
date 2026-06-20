@@ -145,7 +145,9 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       fieldName={columnModel.fieldName}
       roleKind={columnModel.roleKind}
       allowTypeChange={columnModel.allowTypeChange}
-      displayType={columnModel.displayType}
+      baseDisplayType={columnModel.baseDisplayType}
+      effectiveDisplayType={columnModel.effectiveDisplayType}
+      capabilities={columnModel.capabilities}
       relationConfigured={columnModel.relationConfigured}
       documentConfigured={columnModel.documentConfigured === true}
       sortDirection={headerState.sortDirection}
@@ -154,7 +156,7 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       width={columnModel.width}
       pressed={headerState.pressed}
       onSort={(direction) => runtime.onSort(columnModel.fieldName, direction)}
-      onAddFilter={() => runtime.onAddFilter(columnModel.fieldName, columnModel.displayType)}
+      onAddFilter={() => runtime.onAddFilter(columnModel.fieldName, columnModel.effectiveDisplayType)}
       isTitleField={columnModel.fieldName === runtime.titleField}
       isPrimaryKeyField={columnModel.fieldName === runtime.primaryKeyField}
       onSetTitleField={() => runtime.onSetTitleField(columnModel.fieldName)}
@@ -197,7 +199,7 @@ function TableColumnCellView(
   },
 ) {
   const runtime = useTableColumnsRuntime();
-  const displayType = columnModel.relationConfig ? "Relation" : columnModel.displayType;
+  const displayType = columnModel.effectiveDisplayType;
   const cellId = `${rowId}:${columnModel.fieldName}`;
   const textEditingActive = runtime.activeTextCellId === cellId;
   const documentLabels = (columnModel as TableColumnModel & { documentLabels?: Record<string, string> }).documentLabels;

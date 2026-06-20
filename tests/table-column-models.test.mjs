@@ -18,6 +18,7 @@ test("buildTableColumnModels compiles per-column descriptors from runtime deps a
     },
     wrappedFields: new Set(["title"]),
     detectedTitleField: "title",
+    primaryKeyField: "title",
     backlinkColumns: [{
       backlinkKey: "target<-source",
       fieldName: "backlinks",
@@ -55,24 +56,34 @@ test("buildTableColumnModels compiles per-column descriptors from runtime deps a
   const nested = models.find((model) => model.fieldName === "payload");
 
   assert.ok(title);
-  assert.equal(title.displayType, "Text");
+  assert.equal(title.baseDisplayType, "Text");
+  assert.equal(title.effectiveDisplayType, "Text");
   assert.equal(title.isTitle, true);
+  assert.equal(title.isPrimaryKey, true);
   assert.equal(title.wrapped, true);
   assert.equal(title.width, 240);
+  assert.equal(title.capabilities.canBeTitle, true);
+  assert.equal(title.capabilities.canBePrimaryKey, true);
+  assert.equal(title.capabilities.canConfigureRelation, false);
 
   assert.ok(relation);
-  assert.equal(relation.displayType, "Relation");
+  assert.equal(relation.baseDisplayType, "Text");
+  assert.equal(relation.effectiveDisplayType, "Relation");
   assert.equal(relation.roleKind, "relation");
   assert.equal(relation.relationConfigured, true);
+  assert.equal(relation.allowTypeChange, false);
+  assert.deepEqual(relation.capabilities.allowedTypeTargets, []);
   assert.deepEqual(relation.relationOptions.map((option) => option.value), ["enemy_a"]);
 
   assert.ok(backlink);
-  assert.equal(backlink.displayType, "Backlink");
+  assert.equal(backlink.baseDisplayType, "Text");
+  assert.equal(backlink.effectiveDisplayType, "Backlink");
   assert.equal(backlink.roleKind, "backlink");
   assert.equal(backlink.allowTypeChange, false);
 
   assert.ok(nested);
-  assert.equal(nested.displayType, "Nested");
+  assert.equal(nested.baseDisplayType, "Nested");
+  assert.equal(nested.effectiveDisplayType, "Nested");
   assert.equal(nested.isNested, true);
   assert.equal(nested.allowTypeChange, false);
 
@@ -88,6 +99,7 @@ test("buildTableColumnModels reuses previous column objects when per-field shape
     displayTypes: { title: "Text", status: "Text" },
     wrappedFields: new Set(["title"]),
     detectedTitleField: "title",
+    primaryKeyField: "status",
     backlinkColumns: [],
     relationOptionsByField: {},
     relationConfigByField: {},

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { defaultRelationConfigs, emptyViewConfig, loadViewConfig, saveViewConfig } from "../src/view-config.mjs";
+import { defaultRelationConfigs, emptyViewConfig, loadViewConfig, normalizeViewConfig, saveViewConfig } from "../src/view-config.mjs";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys } from "../src/relation-defaults.mjs";
 
 test("emptyViewConfig includes project relations", () => {
@@ -385,6 +385,37 @@ test("loadViewConfig preserves configured collection title fields and drops inva
   }
 });
 
+test("normalizeViewConfig preserves legacy non-text title and primary key assignments", () => {
+  const normalized = normalizeViewConfig({
+    fields: {
+      "data/e2e_select.json:$:category": {
+        type: "Select",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+      "data/e2e_primary_key_candidates.json:alpha:code": {
+        type: "Document",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+    },
+    titleFields: {
+      "data/e2e_select.json:$": "category",
+    },
+    primaryKeys: {
+      "data/e2e_primary_key_candidates.json:alpha": "code",
+    },
+    backlinks: defaultBacklinkConfigs(),
+    relations: defaultRelationConfigs(),
+    relationsVersion: currentRelationsVersion,
+  });
+
+  assert.deepEqual(normalized.titleFields, {
+    "data/e2e_select.json:$": "category",
+  });
+  assert.equal(normalized.primaryKeys["data/e2e_primary_key_candidates.json:alpha"], "code");
+});
+
 test("saveViewConfig preserves document file roots and document field toggles", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
   try {
@@ -423,6 +454,41 @@ test("saveViewConfig preserves document file roots and document field toggles", 
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("normalizeViewConfig removes relation configs for enabled document fields", () => {
+  const normalized = normalizeViewConfig({
+    fields: {
+      "data/keywords.json:$:keyword_doc": {
+        type: "Document",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+    },
+    documentFields: {
+      "data/keywords.json:$:keyword_doc": {
+        enabled: true,
+      },
+    },
+    relations: {
+      "data/keywords.json:$:keyword_doc": {
+        targetFile: "data/docs.json",
+        targetCollection: "$",
+        targetKey: "id",
+        mode: "single",
+        titleFields: ["title"],
+        allowMissing: false,
+      },
+    },
+    relationsVersion: currentRelationsVersion,
+  });
+
+  assert.deepEqual(normalized.documentFields, {
+    "data/keywords.json:$:keyword_doc": {
+      enabled: true,
+    },
+  });
+  assert.equal(normalized.relations["data/keywords.json:$:keyword_doc"], undefined);
 });
 
 test("loadViewConfig normalizes invalid document config entries", async () => {

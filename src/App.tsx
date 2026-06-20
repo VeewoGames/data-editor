@@ -2688,11 +2688,15 @@ export function App() {
   function handleChangeFieldType(fieldName: string, displayType: FieldDisplayType) {
     if (!selectedPath || !model || (displayType !== "Text" && displayType !== "Select" && displayType !== "Document")) return;
     const rowsInCollection = getRows(model, collectionPath) as DataRecord[];
+    const relationKey = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
     mutateViewConfig((draft) => {
       const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
       if (!key) return;
       const current = ensureFieldViewConfig(draft, key);
       current.type = displayType as RealFieldType;
+      if (displayType === "Document") {
+        delete draft.relations[relationKey];
+      }
       if (displayType === "Select") {
         const discoveredValues = collectSingleSelectValues(rowsInCollection, fieldName);
         current.selectOptions = {
@@ -2705,6 +2709,10 @@ export function App() {
 
   function handleConfigureRelation(fieldName: string) {
     if (!selectedPath) return;
+    if (!canConfigureRelationForField(fieldName)) {
+      setStatus(`只有非标题、非主键的 Text 字段可以设为关联字段`);
+      return;
+    }
     setRelationConfigField(fieldName);
   }
 
@@ -2719,6 +2727,10 @@ export function App() {
 
   function handleConfigureDocument(fieldName: string) {
     if (!selectedPath) return;
+    if (!canConfigureDocumentForField(fieldName)) {
+      setStatus(`只有未配置关联的 Text 或 Document 字段可以设为关联文档字段`);
+      return;
+    }
     setDocumentConfigField(fieldName);
   }
 
@@ -2739,9 +2751,15 @@ export function App() {
 
   function setDocumentFieldEnabled(fieldName: string, enabled: boolean) {
     if (!selectedPath) return;
+    if (enabled && !canConfigureDocumentForField(fieldName)) {
+      setStatus(`只有未配置关联的 Text 或 Document 字段可以设为关联文档字段`);
+      return;
+    }
     const key = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
+    const relationKey = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
     mutateViewConfig((draft) => {
       if (enabled) {
+        delete draft.relations[relationKey];
         draft.documentFields[key] = { enabled: true };
       } else {
         delete draft.documentFields[key];
@@ -2779,8 +2797,15 @@ export function App() {
 
   function confirmRelationConfig(config: RelationConfig) {
     if (!selectedPath || !relationConfigField) return;
+    if (!canConfigureRelationForField(relationConfigField)) {
+      setStatus(`只有非标题、非主键的 Text 字段可以设为关联字段`);
+      setRelationConfigField(null);
+      return;
+    }
     const key = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [relationConfigField] });
+    const documentKey = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [relationConfigField] });
     mutateViewConfig((draft) => {
+      delete draft.documentFields[documentKey];
       draft.relations[key] = config;
     });
     setRelationConfigField(null);
@@ -2810,6 +2835,10 @@ export function App() {
 
   function handleSetTitleField(fieldName: string) {
     if (!selectedPath) return;
+    if (!canSetTitleField(fieldName)) {
+      setStatus(`只有未配置关联的 Text 字段可以设为标题字段`);
+      return;
+    }
     const collectionKey = buildCollectionKey(selectedPath, collectionPath);
     if (viewConfig.titleFields[collectionKey] === fieldName) return;
     mutateViewConfig((draft) => {
@@ -2820,6 +2849,10 @@ export function App() {
 
   function handleSetPrimaryKeyField(fieldName: string) {
     if (!selectedPath) return;
+    if (!canSetPrimaryKeyField(fieldName)) {
+      setStatus(`只有未配置关联的 Text 字段可以设为主键ID`);
+      return;
+    }
     assignPrimaryKeyField(fieldName);
     if (selectedCollectionKey) {
       setDismissedCandidateKeys((current) => current.filter((key) => key !== selectedCollectionKey));
@@ -2834,6 +2867,41 @@ export function App() {
     mutateViewConfig((draft) => {
       draft.primaryKeys[collectionKey] = fieldName;
     });
+  }
+
+  function getCurrentBaseFieldType(fieldName: string): FieldDisplayType {
+    if (!model) return fieldConfig.displayTypes[fieldName] ?? "Text";
+    const rowsInCollection = getRows(model, collectionPath) as DataRecord[];
+    return inferViewFilterFieldType(fieldName, rowsInCollection, fieldConfig.displayTypes);
+  }
+
+  function fieldHasRelationConfig(fieldName: string): boolean {
+    if (!selectedPath) return false;
+    const relationKey = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
+    return Boolean(viewConfig.relations[relationKey]);
+  }
+
+  function canSetTitleField(fieldName: string): boolean {
+    return getCurrentBaseFieldType(fieldName) === "Text" && !fieldHasRelationConfig(fieldName);
+  }
+
+  function canSetPrimaryKeyField(fieldName: string): boolean {
+    return getCurrentBaseFieldType(fieldName) === "Text" && !fieldHasRelationConfig(fieldName);
+  }
+
+  function canConfigureRelationForField(fieldName: string): boolean {
+    if (!selectedPath) return false;
+    const collectionKey = buildCollectionKey(selectedPath, collectionPath);
+    const documentKey = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
+    return getCurrentBaseFieldType(fieldName) === "Text"
+      && viewConfig.titleFields[collectionKey] !== fieldName
+      && viewConfig.primaryKeys[collectionKey] !== fieldName
+      && !viewConfig.documentFields[documentKey]?.enabled;
+  }
+
+  function canConfigureDocumentForField(fieldName: string): boolean {
+    const baseType = getCurrentBaseFieldType(fieldName);
+    return (baseType === "Text" || baseType === "Document") && !fieldHasRelationConfig(fieldName);
   }
 
   function handleHideField(fieldName: string) {
@@ -5686,8 +5754,8 @@ function buildFieldViewConfigs(path: string | null, collectionPath: string, mode
 
 function emptyFieldViewConfig(): FieldViewConfig {
   return {
-    selectOptions: {},
-    multiSelectOptions: {},
+    selectOptions: {} as FieldViewConfig["selectOptions"],
+    multiSelectOptions: {} as FieldViewConfig["multiSelectOptions"],
   };
 }
 

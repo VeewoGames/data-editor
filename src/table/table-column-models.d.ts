@@ -3,6 +3,7 @@ import type { DataRecord } from "../model/documentModel";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import type { RelationOption } from "../model/relations";
 import type { MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
+import type { FieldMenuCapabilities } from "./field-capabilities";
 
 type OptionConfig = {
   options: MultiSelectOptionView[];
@@ -11,8 +12,10 @@ type OptionConfig = {
 
 export type TableColumnModel = {
   fieldName: string;
-  displayType: FieldDisplayType;
+  baseDisplayType: FieldDisplayType;
+  effectiveDisplayType: FieldDisplayType;
   roleKind: "normal" | "relation" | "backlink";
+  capabilities: FieldMenuCapabilities;
   allowTypeChange: boolean;
   relationConfigured: boolean;
   documentConfigured: boolean;
@@ -22,6 +25,7 @@ export type TableColumnModel = {
   width: number;
   isNested: boolean;
   isTitle: boolean;
+  isPrimaryKey: boolean;
   isBacklink: boolean;
   multiSelectConfig?: OptionConfig;
   selectConfig?: OptionConfig;
@@ -36,6 +40,7 @@ export function buildTableColumnModels(input: {
   displayTypes: Record<string, FieldDisplayType>;
   wrappedFields: Set<string>;
   detectedTitleField: string | null;
+  primaryKeyField?: string | null;
   backlinkColumns: BacklinkGridColumn[];
   relationOptionsByField: Record<string, RelationOption[]>;
   relationConfigByField: Record<string, RelationConfig | null>;

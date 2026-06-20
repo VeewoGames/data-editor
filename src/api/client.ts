@@ -56,11 +56,11 @@ export type ViewConfig = {
     type?: "Text" | "Select" | "Document";
     selectOptions: Record<string, {
       label: string;
-      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "purple" | "pink" | "red" | null;
+      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "rose" | "amber" | "purple" | "pink" | "red" | null;
     }>;
     multiSelectOptions: Record<string, {
       label: string;
-      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "purple" | "pink" | "red" | null;
+      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "rose" | "amber" | "purple" | "pink" | "red" | null;
     }>;
   }>;
   titleFields: Record<string, string>;

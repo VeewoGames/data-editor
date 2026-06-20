@@ -390,7 +390,7 @@ export function ViewTabs({
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
             >
-              <icons.table size={17} />
+              <icons.borderAll size={17} />
               <span className="view-tab-name">{view.name}</span>
               {dirtyViewIds.has(view.id) ? <span className="view-tab-dirty-dot" aria-label="未保存的视图更改" /> : null}
             </button>
@@ -420,7 +420,7 @@ export function ViewTabs({
                 </button>
               )}
               <button className="view-tab-menu-item" type="button" disabled role="menuitem">
-                <icons.table size={20} />
+                <icons.borderAll size={20} />
                 <span>显示为</span>
                 <icons.next size={16} className="view-tab-menu-chevron" />
               </button>
@@ -728,7 +728,7 @@ export function ViewTabs({
             height: dragGhost.height,
           }}
         >
-          <icons.table size={17} />
+          <icons.borderAll size={17} />
           <span>{dragGhost.label}</span>
         </div>
       ) : null}

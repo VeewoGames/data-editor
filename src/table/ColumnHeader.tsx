@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { FieldDisplayType } from "../model/fieldTypes";
+import { FieldTypeIcon } from "../components/FieldTypeIcon";
 import { icons } from "../components/icons";
+import type { FieldMenuCapabilities } from "./field-capabilities";
 import { shouldStartColumnDrag } from "./column-dnd.mjs";
 
 type ColumnHeaderProps = {
   fieldName: string;
-  displayType: FieldDisplayType;
+  baseDisplayType: FieldDisplayType;
+  effectiveDisplayType: FieldDisplayType;
   roleKind?: "normal" | "relation" | "backlink";
+  capabilities: FieldMenuCapabilities;
   allowTypeChange: boolean;
   sortDirection: "asc" | "desc" | null;
   isTitleField: boolean;
@@ -42,7 +46,6 @@ type ColumnHeaderProps = {
 
 const minColumnWidth = 56;
 const maxColumnWidth = 560;
-const changeableFieldTypes: readonly FieldDisplayType[] = ["Text", "Select", "Document"];
 const displayTypeLabels: Record<FieldDisplayType, string> = {
   Text: "文本",
   Number: "数字",
@@ -135,8 +138,12 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     !isPointerPressActive &&
     !props.isDragging &&
     !props.tooltipSuppressed;
-  const canShowTypeChangeMenu = props.allowTypeChange && changeableFieldTypes.includes(props.displayType);
-  const canConfigureDocument = props.roleKind !== "backlink" && props.displayType === "Document";
+  const showTypeActions = props.capabilities.allowedTypeTargets.length > 0;
+  const showTitleAction = props.capabilities.canBeTitle;
+  const showPrimaryKeyAction = props.capabilities.canBePrimaryKey;
+  const showDocumentActions = props.capabilities.canConfigureDocument;
+  const showRelationActions = props.relationConfigured || props.capabilities.canConfigureRelation;
+  const showFieldSemanticSection = showTitleAction || showPrimaryKeyAction || showDocumentActions || showRelationActions;
 
   useEffect(() => {
     if (!shouldShowTooltip) return;
@@ -324,7 +331,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
         type="button"
       >
         <span ref={titleRef}>{props.fieldName}</span>
-        <small>{displayTypeLabels[props.displayType]}</small>
+        <small>{displayTypeLabels[props.effectiveDisplayType]}</small>
       </button>
       {menuOpen ? (
         <div className="menu-content column-menu-popup" ref={menuRef}>
@@ -349,10 +356,10 @@ export function ColumnHeader(props: ColumnHeaderProps) {
           <button className="menu-item" onClick={copyFieldText} type="button">
             <icons.copy size={15} /> 复制字段文本
           </button>
-          {canShowTypeChangeMenu ? (
+          {showTypeActions ? (
             <>
               <div className="menu-separator" />
-              {changeableFieldTypes.map((type) => (
+              {props.capabilities.allowedTypeTargets.map((type) => (
                 <button
                   className="menu-item"
                   data-field-type={type}
@@ -360,76 +367,77 @@ export function ColumnHeader(props: ColumnHeaderProps) {
                   onClick={() => runAfterMenuClose(() => props.onChangeFieldType(type))}
                   type="button"
                 >
+                  <FieldTypeIcon fieldType={type} size={15} strokeWidth={2.2} />
                   {displayTypeLabels[type]}
                 </button>
               ))}
-              <div className="menu-separator" />
-            </>
-          ) : (
-            <div className="menu-separator" />
-          )}
-          {props.roleKind === "backlink" ? null : (
-            <>
-              <button
-                className="menu-item"
-                data-column-action="set-title"
-                disabled={props.isTitleField}
-                onClick={() => runAfterMenuClose(props.onSetTitleField)}
-                type="button"
-              >
-                <icons.textField size={15} /> {props.isTitleField ? "已设为标题字段" : "设为标题"}
-              </button>
-              <button
-                className="menu-item"
-                data-column-action="set-primary-key"
-                disabled={props.isPrimaryKeyField}
-                onClick={() => runAfterMenuClose(props.onSetPrimaryKeyField)}
-                type="button"
-              >
-                <icons.numberField size={15} /> {props.isPrimaryKeyField ? "已设为主键ID" : "设为主键ID"}
-              </button>
-              <div className="menu-separator" />
-            </>
-          )}
-          {canConfigureDocument ? (
-            <>
-              <button
-                className="menu-item"
-                data-document-action="configure"
-                onClick={() => runDialogAction(props.onConfigureDocument)}
-                type="button"
-              >
-                <icons.jsonFile size={15} /> {props.documentConfigured ? "编辑关联文档配置" : "设为关联文档字段"}
-              </button>
-              {props.documentConfigured ? (
-                <button
-                  className="menu-item"
-                  data-document-action="clear"
-                  onClick={() => runAfterMenuClose(props.onClearDocument)}
-                  type="button"
-                >
-                  <icons.close size={15} /> 取消关联文档字段
-                </button>
-              ) : null}
-              <div className="menu-separator" />
             </>
           ) : null}
-          {props.roleKind === "backlink" ? null : (
-            props.relationConfigured ? (
-              <>
-                <button className="menu-item" data-relation-action="edit" onClick={() => runDialogAction(props.onConfigureRelation)} type="button">
-                  <icons.relation size={15} /> 编辑关联配置
+          {showFieldSemanticSection ? (
+            <>
+              {showTypeActions ? <div className="menu-separator" /> : null}
+              {showTitleAction ? (
+                <button
+                  className={`menu-item${props.isTitleField ? " active" : ""}`}
+                  data-column-action="set-title"
+                  disabled={props.isTitleField}
+                  onClick={() => runAfterMenuClose(props.onSetTitleField)}
+                  type="button"
+                >
+                  <icons.textField size={15} /> {props.isTitleField ? "已设为标题字段" : "设为标题"}
                 </button>
-                <button className="menu-item" data-relation-action="clear" onClick={() => runAfterMenuClose(props.onClearRelation)} type="button">
-                  <icons.relationOff size={15} /> 取消关联字段
+              ) : null}
+              {showPrimaryKeyAction ? (
+                <button
+                  className={`menu-item${props.isPrimaryKeyField ? " active" : ""}`}
+                  data-column-action="set-primary-key"
+                  disabled={props.isPrimaryKeyField}
+                  onClick={() => runAfterMenuClose(props.onSetPrimaryKeyField)}
+                  type="button"
+                >
+                  <icons.numberField size={15} /> {props.isPrimaryKeyField ? "已设为主键ID" : "设为主键ID"}
                 </button>
-              </>
-            ) : (
-              <button className="menu-item" data-relation-action="create" onClick={() => runDialogAction(props.onConfigureRelation)} type="button">
-                <icons.relation size={15} /> 设为关联字段
-              </button>
-            )
-          )}
+              ) : null}
+              {showDocumentActions ? (
+                <>
+                  <button
+                    className={`menu-item${props.documentConfigured ? " active" : ""}`}
+                    data-document-action="configure"
+                    onClick={() => runDialogAction(props.onConfigureDocument)}
+                    type="button"
+                  >
+                    <icons.jsonFile size={15} /> {props.documentConfigured ? "已设为关联文档字段" : "设为关联文档字段"}
+                  </button>
+                  {props.documentConfigured ? (
+                    <button
+                      className="menu-item"
+                      data-document-action="clear"
+                      onClick={() => runAfterMenuClose(props.onClearDocument)}
+                      type="button"
+                    >
+                      <icons.close size={15} /> 取消关联文档字段
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+              {showRelationActions ? (
+                props.relationConfigured ? (
+                  <>
+                    <button className="menu-item" data-relation-action="edit" onClick={() => runDialogAction(props.onConfigureRelation)} type="button">
+                      <icons.relation size={15} /> 编辑关联配置
+                    </button>
+                    <button className="menu-item" data-relation-action="clear" onClick={() => runAfterMenuClose(props.onClearRelation)} type="button">
+                      <icons.relationOff size={15} /> 取消关联字段
+                    </button>
+                  </>
+                ) : (
+                  <button className="menu-item" data-relation-action="create" onClick={() => runDialogAction(props.onConfigureRelation)} type="button">
+                    <icons.relation size={15} /> 设为关联字段
+                  </button>
+                )
+              ) : null}
+            </>
+          ) : null}
           <div className="menu-separator" />
           <button className="menu-item" onClick={() => runAfterMenuClose(props.onHide)} type="button">
             <icons.hidden size={15} /> 隐藏字段

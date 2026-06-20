@@ -6,6 +6,12 @@ export type MultiSelectOptionColor =
   | "yellow"
   | "green"
   | "blue"
+  | "teal"
+  | "cyan"
+  | "lime"
+  | "indigo"
+  | "rose"
+  | "amber"
   | "purple"
   | "pink"
   | "red";

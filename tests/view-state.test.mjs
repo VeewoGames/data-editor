@@ -906,6 +906,7 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /settingsOpen \? "active" : ""/);
   assert.match(viewTabsSource, /table-settings-popover-shell/);
   assert.match(viewTabsSource, /<TableSettingsPopover/);
+  assert.match(viewTabsSource, /<icons\.borderAll size=\{17\} \/>/);
   assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.edit size=\{18\} \/>/);
   assert.match(viewTabsSource, /<span>编辑<\/span>/);
@@ -937,6 +938,10 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(toolbarSource, /<ExpandableSearch className="search-box"/);
   assert.match(toolbarSource, /toolbar-profile-picker/);
   assert.match(toolbarSource, /toolbar-hidden-fields/);
+  assert.match(toolbarSource, /const showHourglassIcon = snapshot\.autosaveState === "pending" \|\| snapshot\.autosaveState === "saving";/);
+  assert.match(toolbarSource, /const AutosaveIcon = showHourglassIcon \? icons\.hourglassEmpty : icons\.dirty;/);
+  assert.match(toolbarSource, /const autosaveIconClassName = snapshot\.autosaveState === "saving" \? "toolbar-status-icon spinning" : "toolbar-status-icon";/);
+  assert.match(toolbarSource, /<AutosaveIcon size=\{14\} className=\{autosaveIconClassName\} \/>/);
 
   assert.match(filterBarSource, /onSaveForEveryone/);
   assert.match(filterBarSource, /onResetView/);

@@ -102,6 +102,10 @@ async function readScratchViewConfigText() {
   return readFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), "utf8").catch(() => "");
 }
 
+async function writeScratchViewConfig(value: unknown) {
+  await writeFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
 async function dispatchRecoverableFailure(page: Page, message = "synthetic disconnect") {
   await page.evaluate((detail) => {
     window.dispatchEvent(new CustomEvent("data-editor:recoverable-request", {
@@ -909,19 +913,19 @@ test("column header menu can set the collection title field", async ({ page }) =
   const firstTitleBefore = page.locator(".data-table tbody tr").first().locator('[data-cell-role="title-action"]');
   await expect(firstTitleBefore).toContainText("Select One");
 
-  await columnHeaderTrigger(page, "category").click();
+  await columnHeaderTrigger(page, "id").click();
   const setTitleAction = page.locator('.column-menu-popup .menu-item[data-column-action="set-title"]');
   await expect(setTitleAction).toBeVisible();
   await setTitleAction.click();
   await expect(page.locator(".column-menu-popup")).toHaveCount(0);
 
   const firstTitleAfter = page.locator(".data-table tbody tr").first().locator('[data-cell-role="title-action"]');
-  await expect(firstTitleAfter).toContainText("attack");
+  await expect(firstTitleAfter).toContainText("select_1");
   await expect.poll(async () => {
     const text = await readScratchViewConfigText();
     return text.includes('"titleFields"')
       && text.includes('"data/e2e_select.json:$"')
-      && text.includes('"category"');
+      && text.includes('"id"');
   }).toBe(true);
 });
 
@@ -934,7 +938,8 @@ test("column header field type menu is only available for text and select fields
   await expect(page.locator(".column-menu-popup")).toBeVisible();
   await expect(page.locator('.column-menu-popup [data-field-type="Text"]')).toBeVisible();
   await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
-  await expect(page.locator(".column-menu-popup [data-field-type]")).toHaveCount(2);
+  await expect(page.locator('.column-menu-popup [data-field-type="Document"]')).toBeVisible();
+  await expect(page.locator(".column-menu-popup [data-field-type]")).toHaveCount(3);
 
   await page.locator("body").click({ position: { x: 8, y: 8 } });
   await expect(page.locator(".column-menu-popup")).toHaveCount(0);
@@ -944,6 +949,65 @@ test("column header field type menu is only available for text and select fields
   await columnHeaderTrigger(page, "enabled").click();
   await expect(page.locator(".column-menu-popup")).toBeVisible();
   await expect(page.locator(".column-menu-popup [data-field-type]")).toHaveCount(0);
+});
+
+test("column header menu only shows title, primary key, and relation actions for eligible text fields", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_checkbox.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await columnHeaderTrigger(page, "enabled").click();
+  await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-title"]')).toHaveCount(0);
+  await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]')).toHaveCount(0);
+  await expect(page.locator('.column-menu-popup [data-relation-action]')).toHaveCount(0);
+  await page.locator("body").click({ position: { x: 8, y: 8 } });
+
+  await columnHeaderTrigger(page, "id").click();
+  await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-title"]')).toBeVisible();
+  await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]')).toBeVisible();
+  await expect(page.locator('.column-menu-popup [data-relation-action="create"]')).toBeVisible();
+});
+
+test("relation-configured fields hide type change, title, and primary key actions", async ({ page }) => {
+  const originalConfig = await readScratchViewConfigText();
+  try {
+    await writeScratchViewConfig({
+      fields: {
+        "data/e2e_relation.json:$:skill_id": {
+          type: "Text",
+          selectOptions: {},
+          multiSelectOptions: {},
+        },
+      },
+      relations: {
+        "data/e2e_relation.json:$:skill_id": {
+          targetFile: "data/skills.json",
+          targetCollection: "$",
+          targetKey: "skill_id",
+          mode: "single",
+          titleFields: ["skill_name", "name", "*_name"],
+          allowMissing: false,
+        },
+      },
+      relationsVersion: 3,
+    });
+    await page.goto("/");
+
+    await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await columnHeaderTrigger(page, "skill_id").click();
+    await expect(page.locator(".column-menu-popup [data-field-type]")).toHaveCount(0);
+    await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-title"]')).toHaveCount(0);
+    await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]')).toHaveCount(0);
+    await expect(page.locator('.column-menu-popup [data-relation-action="edit"]')).toBeVisible();
+    await expect(page.locator('.column-menu-popup [data-relation-action="clear"]')).toBeVisible();
+  } finally {
+    if (originalConfig) {
+      await writeFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), originalConfig, "utf8");
+    }
+  }
 });
 
 test("column header menu can set the collection primary key field", async ({ page }) => {
@@ -3193,7 +3257,8 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await columnHeaderTrigger(page, "category").click();
   await expect(page.locator('.column-menu-popup [data-field-type="Text"]')).toBeVisible();
   await expect(page.locator('.column-menu-popup [data-field-type="Select"]')).toBeVisible();
-  await expect(page.locator('.column-menu-popup [data-field-type]')).toHaveCount(2);
+  await expect(page.locator('.column-menu-popup [data-field-type="Document"]')).toBeVisible();
+  await expect(page.locator('.column-menu-popup [data-field-type]')).toHaveCount(3);
   await page.locator('.column-menu-popup [data-field-type="Select"]').click();
   await expect(page.locator(".dirty-pill")).toBeVisible();
   await waitForAutosaveWrite(page, async () => {
@@ -3238,9 +3303,17 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".option-menu-trigger").click();
   const pinkItem = page.locator('.multi-select-color-item[data-color-choice="pink"]');
   const redItem = page.locator('.multi-select-color-item[data-color-choice="red"]');
+  const tealItem = page.locator('.multi-select-color-item[data-color-choice="teal"]');
+  const cyanItem = page.locator('.multi-select-color-item[data-color-choice="cyan"]');
+  const limeItem = page.locator('.multi-select-color-item[data-color-choice="lime"]');
+  const indigoItem = page.locator('.multi-select-color-item[data-color-choice="indigo"]');
   await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-width", "0px");
   await expect(pinkItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(247, 216, 238)");
   await expect(redItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(255, 217, 214)");
+  await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(211, 238, 234)");
+  await expect(cyanItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(215, 239, 248)");
+  await expect(limeItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(232, 242, 203)");
+  await expect(indigoItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(227, 231, 246)");
   await pinkItem.click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".chip")).toHaveCSS("background-color", "rgb(247, 216, 238)");
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "custom_tag" }).locator(".chip")).toHaveCSS("color", "rgb(138, 63, 116)");
@@ -5834,6 +5907,37 @@ test("option field editor popover uses shared shell and scroll section from tabl
   });
   expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
   await expect(tableRow(page, 0).locator('td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
+});
+
+test("option field color menu exposes additional distinct pastel swatches", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await tableRow(page, 0).locator(".multi-select-trigger").last().click();
+  await page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".option-menu-trigger").click();
+
+  const tealItem = page.locator('.multi-select-color-item[data-color-choice="teal"]');
+  const cyanItem = page.locator('.multi-select-color-item[data-color-choice="cyan"]');
+  const limeItem = page.locator('.multi-select-color-item[data-color-choice="lime"]');
+  const indigoItem = page.locator('.multi-select-color-item[data-color-choice="indigo"]');
+  const roseItem = page.locator('.multi-select-color-item[data-color-choice="rose"]');
+  const amberItem = page.locator('.multi-select-color-item[data-color-choice="amber"]');
+
+  await expect(tealItem).toContainText("青绿");
+  await expect(cyanItem).toContainText("青色");
+  await expect(limeItem).toContainText("黄绿");
+  await expect(indigoItem).toContainText("靛蓝");
+  await expect(roseItem).toContainText("玫瑰");
+  await expect(amberItem).toContainText("琥珀");
+  await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(211, 238, 234)");
+  await expect(cyanItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(215, 239, 248)");
+  await expect(limeItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(232, 242, 203)");
+  await expect(indigoItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(227, 231, 246)");
+  await expect(roseItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(248, 219, 231)");
+  await expect(amberItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(242, 226, 196)");
 });
 
 test("option field popover focuses the search input on open for shared select and multi-select editors", async ({ page }) => {

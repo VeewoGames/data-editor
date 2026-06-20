@@ -10,6 +10,7 @@ test("buildTableColumnModelsSignature stays stable when runtime refs churn witho
     displayTypes: { title: "Text" },
     wrappedFields: new Set(["title"]),
     detectedTitleField: "title",
+    primaryKeyField: null,
     backlinkColumns: [],
     relationOptionsByField: {
       target_id: [{ value: "enemy_a", label: "Enemy A", description: "boss" }],
@@ -51,6 +52,7 @@ test("buildTableColumnModelsSignature changes when compiled column output should
     displayTypes: { title: "Text" },
     wrappedFields: new Set(),
     detectedTitleField: "title",
+    primaryKeyField: null,
     backlinkColumns: [],
     relationOptionsByField: {
       target_id: [{ value: "enemy_a", label: "Enemy A", description: "boss" }],
@@ -74,6 +76,7 @@ test("buildTableColumnModelsSignature changes when compiled column output should
   const first = buildTableColumnModelsSignature(base);
   const wrapped = buildTableColumnModelsSignature({ ...base, wrappedFields: new Set(["title"]) });
   const resized = buildTableColumnModelsSignature({ ...base, widths: { title: 260, target_id: 180 } });
+  const primaryKeyChanged = buildTableColumnModelsSignature({ ...base, primaryKeyField: "target_id" });
   const relabeled = buildTableColumnModelsSignature({
     ...base,
     relationOptionsByField: {
@@ -83,6 +86,7 @@ test("buildTableColumnModelsSignature changes when compiled column output should
 
   assert.notEqual(wrapped, first);
   assert.notEqual(resized, first);
+  assert.notEqual(primaryKeyChanged, first);
   assert.notEqual(relabeled, first);
 });
 
@@ -94,6 +98,7 @@ test("buildTableColumnModelsSignature changes when table text editing changes te
     displayTypes: { title: "Text", description: "Text", target_id: "Relation" },
     wrappedFields: new Set(),
     detectedTitleField: "title",
+    primaryKeyField: null,
     backlinkColumns: [],
     relationOptionsByField: {
       target_id: [{ value: "enemy_a", label: "Enemy A", description: "boss" }],

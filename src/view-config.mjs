@@ -110,6 +110,7 @@ export function normalizeViewConfig(value) {
     normalized.relations = { ...defaultRelationConfigs(), ...normalized.relations };
     normalized.relationsVersion = currentRelationsVersion;
   }
+  normalized.relations = filterDocumentFieldRelations(normalized.relations, normalized.documentFields);
   normalized.relations = filterInvalidPrimaryKeySelfRelations(normalized.relations, normalized.primaryKeys);
   normalized.backlinks = syncBacklinksWithRelations(normalized.relations, normalized.backlinks);
   return normalized;
@@ -207,6 +208,16 @@ function filterInvalidPrimaryKeySelfRelations(relations, primaryKeys) {
   const filtered = {};
   for (const [relationKey, relationConfig] of Object.entries(relations ?? {})) {
     if (isInvalidPrimaryKeySelfRelation(relationKey, relationConfig, primaryKeys)) continue;
+    filtered[relationKey] = relationConfig;
+  }
+  return filtered;
+}
+
+function filterDocumentFieldRelations(relations, documentFields) {
+  const filtered = {};
+  const documentFieldKeys = new Set(Object.keys(documentFields ?? {}));
+  for (const [relationKey, relationConfig] of Object.entries(relations ?? {})) {
+    if (documentFieldKeys.has(relationKey)) continue;
     filtered[relationKey] = relationConfig;
   }
   return filtered;
