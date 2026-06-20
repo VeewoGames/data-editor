@@ -15,7 +15,7 @@ export function normalizeCollectionView(value) {
     name: normalizeString(source.name),
     type: "table",
     query: normalizeString(source.query),
-    filters: normalizeFilterGroup(source.filters),
+    filters: normalizeViewFilters(source.filters),
     sorts: normalizeSorts(source.sorts),
     hidden: normalizeStringArray(source.hidden),
     wrapped: normalizeStringArray(source.wrapped),
@@ -32,8 +32,8 @@ export function normalizeCollectionViewDraft(value) {
     draft.query = normalizeString(source.query);
   }
   if (Object.hasOwn(source, "filters")) {
-    const filters = normalizeFilterGroup(source.filters);
-    if (shouldKeepDraftFilterGroup(source.filters, filters)) draft.filters = filters;
+    const filters = normalizeViewFilters(source.filters);
+    if (shouldKeepDraftFilters(source.filters, filters)) draft.filters = filters;
   }
   if (Object.hasOwn(source, "sorts")) {
     const sorts = normalizeSorts(source.sorts);
@@ -56,6 +56,7 @@ export function emptySharedViewDraftState() {
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
+    structureDrafts: {},
   };
 }
 
@@ -65,6 +66,7 @@ export function normalizeSharedViewDraftState(value) {
     lastActiveViews: normalizeStringRecord(value.lastActiveViews),
     viewDrafts: normalizeViewDrafts(value.viewDrafts),
     viewOrderDrafts: normalizeViewOrderDrafts(value.viewOrderDrafts),
+    structureDrafts: normalizeStructureDrafts(value.structureDrafts),
   };
 }
 
@@ -76,15 +78,7 @@ export function normalizeSharedViewsConfig(value) {
     for (const [collectionKey, collectionConfig] of Object.entries(rawCollections)) {
       const normalizedKey = normalizeString(collectionKey);
       if (!normalizedKey || !collectionConfig || typeof collectionConfig !== "object" || Array.isArray(collectionConfig)) continue;
-      const views = Array.isArray(collectionConfig.views)
-        ? collectionConfig.views
-          .filter((view) => view && typeof view === "object" && !Array.isArray(view))
-          .map((view) => normalizeCollectionView(view))
-        : [];
-      collections[normalizedKey] = {
-        defaultViewId: normalizeNullableString(collectionConfig.defaultViewId),
-        views,
-      };
+      collections[normalizedKey] = normalizeSharedCollection(collectionConfig);
     }
   }
   return {
@@ -93,15 +87,71 @@ export function normalizeSharedViewsConfig(value) {
   };
 }
 
-function normalizeFilterGroup(value) {
-  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+function normalizeSharedCollection(collectionConfig) {
+  const rawItems = Array.isArray(collectionConfig.items)
+    ? collectionConfig.items
+    : Array.isArray(collectionConfig.views)
+      ? collectionConfig.views.map((view) => ({ kind: "view", view }))
+      : [];
   return {
-    op: "and",
-    rules: normalizeFilterRules(source.rules),
+    defaultViewId: normalizeNullableString(collectionConfig.defaultViewId),
+    items: normalizeSharedViewItems(rawItems),
   };
 }
 
-function normalizeFilterRules(value) {
+function normalizeSharedViewItems(value) {
+  if (!Array.isArray(value)) return [];
+  const items = [];
+  const usedGroupIds = new Set();
+  const usedViewIds = new Set();
+  for (const item of value) {
+    const normalized = normalizeSharedViewItem(item, usedGroupIds, usedViewIds);
+    if (normalized) items.push(normalized);
+  }
+  return items;
+}
+
+function normalizeSharedViewItem(value, usedGroupIds, usedViewIds) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (value.kind === "group") {
+    const id = normalizeString(value.id);
+    const name = normalizeString(value.name);
+    const views = Array.isArray(value.views)
+      ? value.views
+        .map((view) => normalizeCollectionView(view))
+        .filter((view) => keepNormalizedView(view, usedViewIds))
+      : [];
+    if (!id || usedGroupIds.has(id) || !name || views.length === 0) return null;
+    usedGroupIds.add(id);
+    return { kind: "group", id, name, views };
+  }
+  const rawView = value.kind === "view" ? value.view : value;
+  const view = normalizeCollectionView(rawView);
+  if (!keepNormalizedView(view, usedViewIds)) return null;
+  return { kind: "view", view };
+}
+
+function keepNormalizedView(view, usedViewIds) {
+  if (!view?.id || !view?.name || usedViewIds.has(view.id)) return false;
+  usedViewIds.add(view.id);
+  return true;
+}
+
+function normalizeViewFilters(value) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  if (Array.isArray(source.rules)) {
+    return {
+      topLevelRules: normalizeLegacyFilterRules(source.rules),
+      advancedRoot: null,
+    };
+  }
+  return {
+    topLevelRules: normalizeRuleNodes(source.topLevelRules),
+    advancedRoot: normalizeGroupNode(source.advancedRoot),
+  };
+}
+
+function normalizeLegacyFilterRules(value) {
   if (!Array.isArray(value)) return [];
   const result = [];
   for (const item of value) {
@@ -110,9 +160,42 @@ function normalizeFilterRules(value) {
     const field = normalizeString(item.field);
     const operator = normalizeString(item.operator);
     if (!id || !field || !filterOperators.has(operator)) continue;
-    const rule = { id, field, operator };
+    const rule = { kind: "rule", id, field, operator };
     if ("value" in item) rule.value = item.value;
     result.push(rule);
+  }
+  return result;
+}
+
+function normalizeRuleNodes(value) {
+  return normalizeLegacyFilterRules(value);
+}
+
+function normalizeGroupNode(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const id = normalizeString(value.id);
+  const op = normalizeString(value.op);
+  if (!id || (op !== "and" && op !== "or")) return null;
+  return {
+    kind: "group",
+    id,
+    op,
+    children: normalizeFilterNodes(value.children),
+  };
+}
+
+function normalizeFilterNodes(value) {
+  if (!Array.isArray(value)) return [];
+  const result = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    if (item.kind === "group") {
+      const group = normalizeGroupNode(item);
+      if (group) result.push(group);
+      continue;
+    }
+    const [rule] = normalizeLegacyFilterRules([item]);
+    if (rule) result.push(rule);
   }
   return result;
 }
@@ -186,6 +269,51 @@ function normalizeViewOrderDrafts(value) {
   return result;
 }
 
+function normalizeStructureDrafts(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const result = {};
+  for (const [collectionKey, rawDraft] of Object.entries(value)) {
+    const normalizedCollectionKey = normalizeString(collectionKey);
+    if (!normalizedCollectionKey || !rawDraft || typeof rawDraft !== "object" || Array.isArray(rawDraft)) continue;
+    const items = normalizeStructureDraftItems(rawDraft.items);
+    if (!items.length) continue;
+    result[normalizedCollectionKey] = { items };
+  }
+  return result;
+}
+
+function normalizeStructureDraftItems(value) {
+  if (!Array.isArray(value)) return [];
+  const items = [];
+  const usedViewIds = new Set();
+  const usedGroupIds = new Set();
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    if (item.kind === "view") {
+      const viewId = normalizeString(item.viewId);
+      if (!viewId || usedViewIds.has(viewId)) continue;
+      usedViewIds.add(viewId);
+      items.push({ kind: "view", viewId });
+      continue;
+    }
+    if (item.kind === "group") {
+      const groupId = normalizeString(item.groupId);
+      const viewIds = normalizeStringArray(item.viewIds).filter((viewId) => {
+        if (usedViewIds.has(viewId)) return false;
+        usedViewIds.add(viewId);
+        return true;
+      });
+      if (!groupId || usedGroupIds.has(groupId) || viewIds.length === 0) continue;
+      usedGroupIds.add(groupId);
+      const normalized = { kind: "group", groupId, viewIds };
+      const name = normalizeString(item.name);
+      if (name) normalized.name = name;
+      items.push(normalized);
+    }
+  }
+  return items;
+}
+
 function normalizeWidthRecord(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const result = {};
@@ -198,10 +326,21 @@ function normalizeWidthRecord(value) {
   return result;
 }
 
-function shouldKeepDraftFilterGroup(rawValue, normalizedValue) {
+function shouldKeepDraftFilters(rawValue, normalizedValue) {
   if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) return false;
-  const rawRules = Array.isArray(rawValue.rules) ? rawValue.rules : [];
-  return rawRules.length === 0 || normalizedValue.rules.length > 0;
+  if (Array.isArray(rawValue.rules)) {
+    return rawValue.rules.length === 0 || normalizedValue.topLevelRules.length > 0;
+  }
+  const rawTopLevelRules = Array.isArray(rawValue.topLevelRules) ? rawValue.topLevelRules : [];
+  const explicitEmptyNewFilters = rawTopLevelRules.length === 0
+    && Object.hasOwn(rawValue, "topLevelRules")
+    && Object.hasOwn(rawValue, "advancedRoot")
+    && rawValue.advancedRoot == null;
+  return rawTopLevelRules.length > 0
+    || explicitEmptyNewFilters
+    || Boolean(rawValue.advancedRoot)
+    || normalizedValue.topLevelRules.length > 0
+    || Boolean(normalizedValue.advancedRoot);
 }
 
 function shouldKeepDraftArray(rawValue, normalizedValue) {

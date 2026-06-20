@@ -492,14 +492,16 @@ export function rewriteSharedDraftState(draftState, migrations, context = {}) {
   const lastActiveViews = migrateCollectionKeyMap(draftState?.lastActiveViews, migrations, "sharedDraft.lastActiveViews", context);
   const viewDrafts = migrateCollectionKeyMap(draftState?.viewDrafts, migrations, "sharedDraft.viewDrafts", context);
   const viewOrderDrafts = migrateCollectionKeyMap(draftState?.viewOrderDrafts, migrations, "sharedDraft.viewOrderDrafts", context);
+  const structureDrafts = migrateCollectionKeyMap(draftState?.structureDrafts, migrations, "sharedDraft.structureDrafts", context);
   return {
     value: {
       lastActiveViews: lastActiveViews.value,
       viewDrafts: viewDrafts.value,
       viewOrderDrafts: viewOrderDrafts.value,
+      structureDrafts: structureDrafts.value,
     },
-    changed: lastActiveViews.changed || viewDrafts.changed || viewOrderDrafts.changed,
-    report: mergeReports(lastActiveViews.report, viewDrafts.report, viewOrderDrafts.report),
+    changed: lastActiveViews.changed || viewDrafts.changed || viewOrderDrafts.changed || structureDrafts.changed,
+    report: mergeReports(lastActiveViews.report, viewDrafts.report, viewOrderDrafts.report, structureDrafts.report),
   };
 }
 
@@ -557,6 +559,7 @@ export function applyProfilePathMigrations(profile, migrations, context = {}) {
       lastActiveViews: drafts.value.lastActiveViews,
       viewDrafts: drafts.value.viewDrafts,
       viewOrderDrafts: drafts.value.viewOrderDrafts,
+      structureDrafts: drafts.value.structureDrafts,
       viewLayouts: viewLayouts.value,
       collections: collections.value,
     },
@@ -623,10 +626,25 @@ export function applyPageContextPathMigrations(pageContext, migrations, context 
       selectedPath,
       collectionPath: pageContext?.collectionPath ?? "$",
       scrollByView,
+      expandedGroupId: typeof pageContext?.expandedGroupId === "string" && pageContext.expandedGroupId.trim()
+        ? pageContext.expandedGroupId.trim()
+        : null,
+      lastActiveViewIdByGroupId: migrateStringRecord(pageContext?.lastActiveViewIdByGroupId),
     },
     changed: changed || report.conflicts.length > 0 || report.skipped.length > 0,
     report,
   };
+}
+
+function migrateStringRecord(value) {
+  const next = {};
+  for (const [key, item] of Object.entries(value ?? {})) {
+    const normalizedKey = String(key ?? "").trim();
+    const normalizedValue = String(item ?? "").trim();
+    if (!normalizedKey || !normalizedValue) continue;
+    next[normalizedKey] = normalizedValue;
+  }
+  return next;
 }
 
 function collectViewConfigContext(viewConfig, migrations) {

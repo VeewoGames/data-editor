@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   applyLocalPathMigrations,
+  applyPageContextPathMigrations,
   applyProfilePathMigrations,
   applyViewConfigPathMigrations,
   detectPathMigrations,
@@ -183,6 +184,28 @@ test("shared draft state and shared views migrate collection keys without overwr
   assert.equal(sharedResult.report.conflicts.length, 1);
 });
 
+test("rewriteSharedDraftState migrates structureDrafts collection keys together with other shared draft surfaces", () => {
+  const oldKey = "data/old/items.json:$";
+  const newKey = "data/new/items.json:$";
+
+  const result = rewriteSharedDraftState({
+    lastActiveViews: { [oldKey]: "view:alpha" },
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    structureDrafts: {
+      [oldKey]: {
+        items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["view:alpha"] }],
+      },
+    },
+  }, migrations);
+
+  assert.deepEqual(result.value.structureDrafts, {
+    [newKey]: {
+      items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["view:alpha"] }],
+    },
+  });
+});
+
 test("applyProfilePathMigrations migrates profile path surfaces", () => {
   const oldKey = "data/old/items.json:$";
   const newKey = "data/new/items.json:$";
@@ -204,6 +227,20 @@ test("applyProfilePathMigrations migrates profile path surfaces", () => {
   assert.deepEqual(result.value.lastActiveViews, { [newKey]: "view:alpha" });
   assert.deepEqual(result.value.viewLayouts[newKey]["view:alpha"].widths, { "field:one": 120 });
   assert.deepEqual(result.value.collections[newKey], { hidden: ["field:one"] });
+});
+
+test("applyPageContextPathMigrations keeps grouping state and rewrites selectedPath", () => {
+  const result = applyPageContextPathMigrations({
+    selectedPath: "data/old/items.json",
+    collectionPath: "$",
+    scrollByView: {},
+    expandedGroupId: "combat",
+    lastActiveViewIdByGroupId: { combat: "view:alpha" },
+  }, migrations);
+
+  assert.equal(result.value.selectedPath, "data/new/items.json");
+  assert.equal(result.value.expandedGroupId, "combat");
+  assert.deepEqual(result.value.lastActiveViewIdByGroupId, { combat: "view:alpha" });
 });
 
 test("applyViewConfigPathMigrations migrates fields primaryKeys relations and re-syncs backlinks", () => {

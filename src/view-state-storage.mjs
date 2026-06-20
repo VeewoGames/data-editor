@@ -83,13 +83,19 @@ export function readViewLayoutState({ mode, path, collectionPath, viewId, localS
   if (mode === "profile" && profile) {
     const collectionKey = collectionConfigKey(path, collectionPath);
     const normalizedViewId = normalizeViewId(viewId);
-    const layout = (
-      normalizedViewId
-        ? profile.viewLayouts?.[collectionKey]?.[normalizedViewId]
-        : null
-    ) ?? profile.collections?.[collectionKey] ?? emptyCollectionViewState();
+    const collectionLayouts = profile.viewLayouts?.[collectionKey] ?? null;
+    const activeLayout = normalizedViewId
+      ? collectionLayouts?.[normalizedViewId]
+      : null;
+    const baseLayout = normalizedViewId && normalizedViewId !== "all"
+      ? collectionLayouts?.all
+      : null;
+    const layout = mergeCollectionViewState(
+      baseLayout ?? profile.collections?.[collectionKey] ?? emptyCollectionViewState(),
+      activeLayout,
+    );
     return {
-      ...cloneCollectionViewState(layout),
+      ...layout,
       sidebarWidth: profile.sidebarWidth ?? null,
       detailPanelWidth: profile.detailPanelWidth ?? null,
       detailDocumentPanelOpen: profile.detailDocumentPanelOpen ?? null,
@@ -102,6 +108,19 @@ export function readViewLayoutState({ mode, path, collectionPath, viewId, localS
     detailPanelWidth: localState?.detailPanelWidth ?? null,
     detailDocumentPanelOpen: localState?.detailDocumentPanelOpen ?? null,
     detailDocumentPanelWidth: localState?.detailDocumentPanelWidth ?? null,
+  };
+}
+
+function mergeCollectionViewState(baseState, overrideState) {
+  const base = cloneCollectionViewState(baseState ?? emptyCollectionViewState());
+  if (!overrideState) return base;
+  const override = cloneCollectionViewState(overrideState);
+  return {
+    hidden: override.hidden.length ? override.hidden : base.hidden,
+    wrapped: override.wrapped.length ? override.wrapped : base.wrapped,
+    order: override.order.length ? override.order : base.order,
+    detailOrder: override.detailOrder.length ? override.detailOrder : base.detailOrder,
+    widths: { ...base.widths, ...override.widths },
   };
 }
 
@@ -182,6 +201,7 @@ export function writeLocalSharedViewDrafts(localStorage, value) {
     Object.keys(normalized.lastActiveViews).length === 0
     && Object.keys(normalized.viewDrafts).length === 0
     && Object.keys(normalized.viewOrderDrafts).length === 0
+    && Object.keys(normalized.structureDrafts).length === 0
   ) {
     localStorage.removeItem(sharedViewDraftsStorageKey);
     return;

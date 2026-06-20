@@ -15,15 +15,32 @@ const discreteScalarFieldTypes = new Set(["Select", "Relation"]);
 
 export function applyViewFilters(rows, query, filters, fieldTypes = {}) {
   const normalizedQuery = normalizeText(query).toLowerCase();
-  const rules = Array.isArray(filters?.rules) ? filters.rules : [];
-  if (!normalizedQuery && rules.length === 0) return rows;
+  const topLevelRules = Array.isArray(filters?.topLevelRules)
+    ? filters.topLevelRules
+    : Array.isArray(filters?.rules)
+      ? filters.rules
+      : [];
+  const advancedRoot = filters?.advancedRoot ?? null;
+  if (!normalizedQuery && topLevelRules.length === 0 && !advancedRoot) return rows;
   const indexedRows = attachRowIndexes(rows);
 
   return indexedRows.filter((row) => {
     if (normalizedQuery && !rowMatchesQuery(row, normalizedQuery)) return false;
-    if (!rules.length) return true;
-    return rules.every((rule) => matchesFilterRule(row, rule, fieldTypes));
+    if (!topLevelRules.every((rule) => matchNode(row, rule, fieldTypes))) return false;
+    return advancedRoot ? matchNode(row, advancedRoot, fieldTypes) : true;
   });
+}
+
+function matchNode(row, node, fieldTypes = {}) {
+  if (!node || typeof node !== "object") return true;
+  if (node.kind === "group") return matchGroupNode(row, node, fieldTypes);
+  return matchesFilterRule(row, node, fieldTypes);
+}
+
+function matchGroupNode(row, group, fieldTypes = {}) {
+  const children = Array.isArray(group?.children) ? group.children : [];
+  if (group?.op === "or") return children.some((child) => matchNode(row, child, fieldTypes));
+  return children.every((child) => matchNode(row, child, fieldTypes));
 }
 
 export function matchesFilterRule(row, rule, fieldTypes = {}) {

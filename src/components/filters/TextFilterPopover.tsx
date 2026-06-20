@@ -1,26 +1,20 @@
 import * as Select from "@radix-ui/react-select";
 import type { FilterGroup, FilterOperator, FilterRule } from "../../api/client";
+import { removeNodeFromFilters, replaceNodeInFilters } from "../../view/filter-tree.mjs";
 import { icons } from "../icons";
+import { textOperatorOptions } from "./filter-rule-ui";
 import { FilterActionMenu } from "./FilterActionMenu";
 
 type TextFilterPopoverProps = {
   filters: FilterGroup;
   rule: FilterRule;
+  onMergeIntoAdvanced?: (() => void) | null;
   onChangeFilters: (filters: FilterGroup) => void;
 };
 
-const textOperators: Array<{ value: FilterOperator; label: string; needsValue: boolean }> = [
-  { value: "contains", label: "包含", needsValue: true },
-  { value: "does_not_contain", label: "不包含", needsValue: true },
-  { value: "is", label: "等于", needsValue: true },
-  { value: "is_not", label: "不等于", needsValue: true },
-  { value: "is_empty", label: "为空", needsValue: false },
-  { value: "is_not_empty", label: "不为空", needsValue: false },
-];
-
-export function TextFilterPopover({ filters, rule, onChangeFilters }: TextFilterPopoverProps) {
-  const activeOperator = textOperators.some((item) => item.value === rule.operator) ? rule.operator : "contains";
-  const operatorConfig = textOperators.find((item) => item.value === activeOperator) ?? textOperators[0];
+export function TextFilterPopover({ filters, rule, onMergeIntoAdvanced = null, onChangeFilters }: TextFilterPopoverProps) {
+  const activeOperator = textOperatorOptions.some((item) => item.value === rule.operator) ? rule.operator : "contains";
+  const operatorConfig = textOperatorOptions.find((item) => item.value === activeOperator) ?? textOperatorOptions[0];
 
   function updateRule(nextRule: FilterRule) {
     onChangeFilters(replaceRule(filters, nextRule));
@@ -34,7 +28,7 @@ export function TextFilterPopover({ filters, rule, onChangeFilters }: TextFilter
     <div className="filter-popover filter-popover-shell">
       <div className="filter-popover-header">
         <strong>{rule.field}</strong>
-        <FilterActionMenu onDelete={deleteRule} />
+        <FilterActionMenu onDelete={deleteRule} onMergeIntoAdvanced={onMergeIntoAdvanced} />
       </div>
       <div className="filter-popover-section">
         <label className="filter-field-label">
@@ -43,8 +37,8 @@ export function TextFilterPopover({ filters, rule, onChangeFilters }: TextFilter
             value={activeOperator}
             onValueChange={(value) => {
               const operator = value as FilterOperator;
-              const nextConfig = textOperators.find((item) => item.value === operator);
-              updateRule(nextConfig?.needsValue ? { ...rule, operator, value: stringValue(rule.value) } : { id: rule.id, field: rule.field, operator });
+              const nextConfig = textOperatorOptions.find((item) => item.value === operator);
+              updateRule(nextConfig?.needsValue ? { ...rule, operator, value: stringValue(rule.value) } : { kind: "rule", id: rule.id, field: rule.field, operator });
             }}
           >
             <Select.Trigger className="select-trigger filter-select-trigger" aria-label="筛选条件">
@@ -54,7 +48,7 @@ export function TextFilterPopover({ filters, rule, onChangeFilters }: TextFilter
             <Select.Portal>
               <Select.Content className="menu-content select-content filter-select-content" position="popper" sideOffset={6}>
                 <Select.Viewport>
-                  {textOperators.map((operator) => (
+                  {textOperatorOptions.map((operator) => (
                     <Select.Item className="menu-item" data-filter-operator={operator.value} key={operator.value} value={operator.value}>
                       <Select.ItemText>{operator.label}</Select.ItemText>
                     </Select.Item>
@@ -83,17 +77,11 @@ export function TextFilterPopover({ filters, rule, onChangeFilters }: TextFilter
 }
 
 function replaceRule(filters: FilterGroup, nextRule: FilterRule): FilterGroup {
-  return {
-    op: "and",
-    rules: filters.rules.map((item) => item.id === nextRule.id ? nextRule : item),
-  };
+  return replaceNodeInFilters(filters, nextRule);
 }
 
 function removeRule(filters: FilterGroup, ruleId: string): FilterGroup {
-  return {
-    op: "and",
-    rules: filters.rules.filter((item) => item.id !== ruleId),
-  };
+  return removeNodeFromFilters(filters, ruleId);
 }
 
 function stringValue(value: unknown) {

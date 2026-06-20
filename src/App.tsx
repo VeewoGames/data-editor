@@ -33,6 +33,8 @@ import {
   type DocumentContentResponse,
   type DocumentIndexResponse,
   type FilterGroup,
+  type FilterGroupNode,
+  type FilterNode,
   type SharedViewsConfig,
   type SortRule,
   type SidebarTreePreferences,
@@ -42,7 +44,7 @@ import {
 } from "./api/client";
 import { Sidebar } from "./components/Sidebar";
 import { Toolbar, type ToolbarSnapshot } from "./components/Toolbar";
-import { ViewTabs, type ViewTabsSnapshot } from "./components/ViewTabs";
+import { ViewTabs, type ViewTabsSnapshot, type ViewTabReorderOperation } from "./components/ViewTabs";
 import { ViewFilterBar, type ViewFilterBarSnapshot } from "./components/ViewFilterBar";
 import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editing";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
@@ -96,6 +98,7 @@ import {
   buildScrollContextKey,
   readPageContextState,
   readProjectPageContext,
+  updatePageContextViewGrouping,
   writePageContextState,
   updatePageContextScroll,
   updatePageContextSelection,
@@ -147,23 +150,40 @@ import { buildDocumentStore, type CollectionStore, type DocumentStore, type Tabl
 import { addFieldByRowId, deleteRowByRowId, setCellValueByRowId } from "./model/writeback-adapter";
 import { applySidebarTreePreferences, buildSidebarTree, buildSidebarTreePreferences, findSidebarFallbackFilePath } from "./sidebar-tree.mjs";
 import {
-  applyViewOrderDraft,
   collectionConfigKey,
   createSharedViewConfig,
   deleteSharedViewConfig,
-  draftSharedViewOrder,
   hasViewDraft,
   mergeSharedViewWithDraft,
   renameSharedViewConfig,
   resetActiveSharedViewDraft,
-  resolveActiveView,
-  resolveCollectionViews,
-  resolveDefaultViewId,
   saveSharedViewDraftsToConfig,
 } from "./view/view-state.mjs";
+import {
+  createViewGroupConfig,
+  createViewInGroupConfig,
+  draftSharedViewStructure,
+  deleteViewGroupConfig,
+  renameViewGroupConfig,
+  resolveSharedViewStructure,
+} from "./view/shared-view-structure.mjs";
 
 type ServiceLifecycleState = "running" | "closed" | "recovering" | "disconnected" | "recoveredPendingReload" | "bridgeUnavailable";
-type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts">;
+type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts" | "structureDrafts">;
+type ResolvedCollectionViewsState = {
+  topLevelItems: Array<
+    | { kind: "view"; view: CollectionView }
+    | { kind: "group"; id: string; name: string; views: CollectionView[] }
+  >;
+  flattenedViews: CollectionView[];
+  activeView: CollectionView | null;
+  activeViewId: string | null;
+  activeGroupId: string | null;
+  expandedGroupId: string | null;
+  viewsById: Record<string, CollectionView>;
+  parentGroupIdByViewId: Record<string, string | null>;
+  lastActiveViewIdByGroupId: Record<string, string>;
+};
 type SidebarTreeNodeLike = {
   id: string;
   kind: string;
@@ -174,7 +194,7 @@ type SidebarTreeNodeLike = {
 type DeferredTaskHandle = { kind: "idle"; id: number } | { kind: "timeout"; id: number } | null;
 const defaultRecoveryBridgePort = 8791;
 const detailReorderReactProfilingStorageKey = "data-editor:enable-detail-reorder-profiling";
-const emptyFilterGroup: FilterGroup = { op: "and", rules: [] };
+const emptyFilterGroup: FilterGroup = { topLevelRules: [], advancedRoot: null };
 const emptySortRules: SortRule[] = [];
 const buildDocumentStoreTyped = buildDocumentStore as (input: {
   documentId: string;
@@ -290,10 +310,18 @@ function addCollectionKeyToRewriteContext(context: PathRewriteContext, collectio
 
 function collectViewIdsFromSharedViews(sharedViewsConfig: SharedViewsConfig, collectionKey: string) {
   const collection = sharedViewsConfig.collections?.[collectionKey];
+  const viewIds: string[] = [];
+  for (const item of collection?.items ?? []) {
+    if (item.kind === "group") {
+      for (const view of item.views) viewIds.push(view.id);
+      continue;
+    }
+    viewIds.push(item.view.id);
+  }
   return [
     "all",
     collection?.defaultViewId ?? "",
-    ...(collection?.views ?? []).map((view) => view.id),
+    ...viewIds,
   ].filter(Boolean);
 }
 
@@ -1453,25 +1481,42 @@ export function App() {
       && !dismissedCandidateKeys.includes(selectedCollectionKey),
   );
   const draftSource = selectedViewProfileName ? selectedViewProfile : localSharedViewDrafts;
+  const projectPageContext = useMemo(
+    () => readProjectPageContext(readPageContextState(window.localStorage), activeProjectId),
+    [activeProjectId, activeCollectionKey, sharedViewsConfig, draftSource],
+  );
+  const resolvedCollectionViews = useMemo<ResolvedCollectionViewsState>(
+    () => activeCollectionKey
+      ? resolveSharedViewStructure({
+        sharedViewsConfig,
+        collectionKey: activeCollectionKey,
+        draftState: draftSource,
+        pageContext: projectPageContext,
+      }) as ResolvedCollectionViewsState
+      : {
+        topLevelItems: [],
+        flattenedViews: [],
+        activeView: null,
+        activeViewId: null,
+        activeGroupId: null,
+        expandedGroupId: null,
+        viewsById: {},
+        parentGroupIdByViewId: {},
+        lastActiveViewIdByGroupId: {},
+      },
+    [activeCollectionKey, sharedViewsConfig, draftSource, projectPageContext],
+  );
   const collectionSharedViews = useMemo(
-    () => activeCollectionKey ? resolveCollectionViews(sharedViewsConfig, activeCollectionKey) : [],
-    [sharedViewsConfig, activeCollectionKey],
+    () => activeCollectionKey ? resolvedCollectionViews.flattenedViews : [],
+    [resolvedCollectionViews, activeCollectionKey],
   );
   const orderedCollectionViews = useMemo(
-    () => activeCollectionKey
-      ? applyViewOrderDraft(collectionSharedViews, draftSource.viewOrderDrafts?.[activeCollectionKey])
-      : collectionSharedViews,
-    [collectionSharedViews, draftSource, activeCollectionKey],
+    () => collectionSharedViews,
+    [collectionSharedViews],
   );
   const activeSharedView = useMemo(
-    () => activeCollectionKey
-      ? resolveActiveView(
-        orderedCollectionViews,
-        draftSource.lastActiveViews?.[activeCollectionKey],
-        resolveDefaultViewId(sharedViewsConfig, activeCollectionKey),
-      )
-      : null,
-    [orderedCollectionViews, draftSource, sharedViewsConfig, activeCollectionKey],
+    () => resolvedCollectionViews.activeView,
+    [resolvedCollectionViews],
   );
   const activeView = useMemo(
     () => activeCollectionKey && activeSharedView
@@ -1484,7 +1529,10 @@ export function App() {
   const previousViewEngineRowsRef = useRef<ViewEngineRow[] | null>(null);
   const stableActiveViewRenderStateRef = useRef<{ query: string; filters: FilterGroup; sorts: SortRule[] } | null>(null);
   const activeViewLayoutId = activeSharedView?.id ?? null;
-  const activeViewHasFilters = Boolean(activeView?.filters?.rules?.length);
+  const activeViewHasFilters = Boolean(
+    (activeView?.filters?.topLevelRules?.length ?? 0) > 0
+    || activeView?.filters?.advancedRoot,
+  );
   const activeViewSort = activeView?.sorts?.[0] ?? null;
   const activeViewRenderState = useMemo(() => {
     const nextState = {
@@ -1496,7 +1544,7 @@ export function App() {
     if (
       previous
       && previous.query === nextState.query
-      && sameFilterGroup(previous.filters, nextState.filters)
+      && sameViewFilters(previous.filters, nextState.filters)
       && sameSortRules(previous.sorts, nextState.sorts)
     ) {
       return previous;
@@ -1513,7 +1561,13 @@ export function App() {
     && activeSharedView
     && draftSource.viewDrafts?.[activeCollectionKey]?.[activeSharedView.id],
   );
-  const viewOrderDirty = Boolean(activeCollectionKey && draftSource.viewOrderDrafts?.[activeCollectionKey]?.length);
+  const viewOrderDirty = Boolean(
+    activeCollectionKey
+    && (
+      draftSource.viewOrderDrafts?.[activeCollectionKey]?.length
+      || draftSource.structureDrafts?.[activeCollectionKey]?.items?.length
+    ),
+  );
   const handleTableScrollPositionChange = useCallback((position: { scrollTop: number; scrollLeft: number }) => {
     if (!activeProjectId || !selectedPath || !activeViewLayoutId) return;
     updatePageContextScroll(window.localStorage, activeProjectId, {
@@ -2148,7 +2202,11 @@ export function App() {
   ]);
   const viewTabsSnapshot = useMemo<ViewTabsSnapshot>(() => ({
     views: orderedCollectionViews,
+    topLevelItems: resolvedCollectionViews.topLevelItems,
     activeViewId: activeSharedView?.id ?? null,
+    activeGroupId: resolvedCollectionViews.activeGroupId,
+    expandedGroupId: resolvedCollectionViews.expandedGroupId,
+    lastActiveViewIdByGroupId: resolvedCollectionViews.lastActiveViewIdByGroupId,
     dirtyViewIds,
     commandSaving,
     filterBarVisible,
@@ -2164,6 +2222,7 @@ export function App() {
     documentIndexError,
   }), [
     orderedCollectionViews,
+    resolvedCollectionViews,
     activeSharedView,
     dirtyViewIds,
     commandSaving,
@@ -2410,6 +2469,7 @@ export function App() {
         },
       };
     })) {
+      void commitProfileSave(selectedViewProfileNameRef.current!, selectedViewProfileRef.current);
       setViewDraftDirty(true);
       return;
     }
@@ -2485,12 +2545,19 @@ export function App() {
   }
 
   async function commitProfileSave(name: string, profile: UserViewProfile) {
-    const task = saveViewProfile(name, profile, activeProjectIdRef.current);
-    profileSavePromiseRef.current = task;
+    const projectId = activeProjectIdRef.current;
+    const snapshot = cloneDataRoot(normalizeUserViewProfile(profile));
+    const previousTask = profileSavePromiseRef.current?.catch(() => {}) ?? Promise.resolve();
+    const task = previousTask.then(() => saveViewProfile(name, snapshot, projectId));
+    const trackedTask = task.finally(() => {
+      if (profileSavePromiseRef.current === trackedTask) profileSavePromiseRef.current = null;
+    });
+    profileSavePromiseRef.current = trackedTask;
     try {
-      await task;
-    } finally {
-      if (profileSavePromiseRef.current === task) profileSavePromiseRef.current = null;
+      await trackedTask;
+    } catch (error) {
+      if (profileSavePromiseRef.current === trackedTask) profileSavePromiseRef.current = null;
+      throw error;
     }
   }
 
@@ -2782,8 +2849,7 @@ export function App() {
 
   function handleAddFilter(fieldName: string, fieldType: FieldDisplayType) {
     if (!activeView) return;
-    const currentRules = activeView.filters?.rules ?? [];
-    if (currentRules.some((rule) => rule.field === fieldName)) return;
+    const currentRules = activeView.filters?.topLevelRules ?? [];
     const nextRule = createDefaultFilterRule(fieldName, fieldType, currentRules);
     setFilterBarVisible(true);
     setPendingOpenFilterRuleId(nextRule.id);
@@ -3179,12 +3245,14 @@ export function App() {
       draft.lastActiveViews = next.lastActiveViews;
       draft.viewDrafts = next.viewDrafts;
       draft.viewOrderDrafts = next.viewOrderDrafts;
+      draft.structureDrafts = next.structureDrafts;
     })) {
       selectedViewProfileRef.current = {
         ...selectedViewProfileRef.current,
         lastActiveViews: next.lastActiveViews,
         viewDrafts: next.viewDrafts,
         viewOrderDrafts: next.viewOrderDrafts,
+        structureDrafts: next.structureDrafts,
       };
       setViewDraftDirty(hasSharedDrafts(next));
       return;
@@ -3201,10 +3269,19 @@ export function App() {
   function handleSelectSharedView(viewId: string) {
     if (commandSaving || !activeCollectionKey) return;
     const current = currentSharedViewDraftState();
+    const parentGroupId = resolvedCollectionViews.parentGroupIdByViewId?.[viewId] ?? null;
+    const nextLastActiveViewIdByGroupId = parentGroupId
+      ? { ...projectPageContext.lastActiveViewIdByGroupId, [parentGroupId]: viewId }
+      : { ...projectPageContext.lastActiveViewIdByGroupId };
     updateSharedViewDraftState({
       lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: viewId },
       viewDrafts: { ...current.viewDrafts },
       viewOrderDrafts: { ...current.viewOrderDrafts },
+      structureDrafts: { ...current.structureDrafts },
+    });
+    updatePageContextViewGrouping(window.localStorage, activeProjectId, {
+      expandedGroupId: parentGroupId,
+      lastActiveViewIdByGroupId: nextLastActiveViewIdByGroupId,
     });
     setSelectedSourceRow(0);
     setDetailOpen(false);
@@ -3224,6 +3301,7 @@ export function App() {
         lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
         viewDrafts: { ...current.viewDrafts },
         viewOrderDrafts: { ...current.viewOrderDrafts },
+        structureDrafts: { ...current.structureDrafts },
       });
       setStatus("已创建团队共享视图");
     } catch (error) {
@@ -3287,6 +3365,7 @@ export function App() {
         lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
         viewDrafts: { ...current.viewDrafts },
         viewOrderDrafts: nextViewOrderDrafts,
+        structureDrafts: { ...current.structureDrafts },
       });
       setStatus("已创建团队共享视图副本");
     } catch (error) {
@@ -3356,10 +3435,37 @@ export function App() {
     }
   }
 
-  function handleReorderSharedViews(viewIds: string[]) {
+  function handleReorderSharedViews(operation: ViewTabReorderOperation) {
     if (commandSaving || !activeCollectionKey) return;
-    const next = draftSharedViewOrder(currentSharedViewDraftState(), activeCollectionKey, collectionSharedViews, viewIds);
+    const next = draftSharedViewStructure({
+      draftState: currentSharedViewDraftState(),
+      collectionKey: activeCollectionKey,
+      topLevelItems: resolvedCollectionViews.topLevelItems,
+      operation,
+    });
     updateSharedViewDraftState(next);
+    const previousGroupId = resolvedCollectionViews.parentGroupIdByViewId?.[operation.sourceViewId] ?? null;
+    const previousGroupItem = previousGroupId
+      ? resolvedCollectionViews.topLevelItems.find((item) => item.kind === "group" && item.id === previousGroupId)
+      : null;
+    const previousGroupViews = previousGroupItem?.kind === "group" ? previousGroupItem.views : [];
+    const nextLastActiveViewIdByGroupId = { ...projectPageContext.lastActiveViewIdByGroupId };
+    if (previousGroupId && nextLastActiveViewIdByGroupId[previousGroupId] === operation.sourceViewId) {
+      delete nextLastActiveViewIdByGroupId[previousGroupId];
+    }
+    if (operation.type === "group") {
+      nextLastActiveViewIdByGroupId[operation.groupId] = operation.sourceViewId;
+    }
+    updatePageContextViewGrouping(window.localStorage, activeProjectId, {
+      expandedGroupId: operation.type === "group"
+        ? operation.groupId
+        : previousGroupId && previousGroupViews.length === 1 && projectPageContext.expandedGroupId === previousGroupId
+          ? null
+          : activeSharedView?.id === operation.sourceViewId
+            ? null
+            : projectPageContext.expandedGroupId,
+      lastActiveViewIdByGroupId: nextLastActiveViewIdByGroupId,
+    });
   }
 
   function handleResetSharedViewDraft() {
@@ -3369,6 +3475,7 @@ export function App() {
       draft.lastActiveViews = result.draftState.lastActiveViews;
       draft.viewDrafts = result.draftState.viewDrafts;
       draft.viewOrderDrafts = result.draftState.viewOrderDrafts;
+      draft.structureDrafts = result.draftState.structureDrafts;
       setViewDraftDirty(result.dirty);
     })) return;
     setLocalSharedViewDrafts((current) => {
@@ -3377,6 +3484,129 @@ export function App() {
       setViewDraftDirty(result.dirty);
       return result.draftState;
     });
+  }
+
+  async function handleCreateTopLevelSharedView() {
+    await handleCreateSharedView();
+  }
+
+  async function handleCreateSharedViewGroup() {
+    if (commandSaving || !activeCollectionKey || !activeSharedView || !activeView) return;
+    setCommandSaving(true);
+    setStatus("");
+    try {
+      const result = createViewGroupConfig({
+        sharedViewsConfig,
+        collectionKey: activeCollectionKey,
+        activeViewId: activeSharedView.id,
+        activeViewSnapshot: activeView,
+      });
+      const nextConfig = result.config as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      const current = currentSharedViewDraftState();
+      updateSharedViewDraftState({
+        lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
+        viewDrafts: { ...current.viewDrafts },
+        viewOrderDrafts: { ...current.viewOrderDrafts },
+        structureDrafts: { ...current.structureDrafts },
+      });
+      updatePageContextViewGrouping(window.localStorage, activeProjectId, {
+        expandedGroupId: result.group.id,
+        lastActiveViewIdByGroupId: {
+          ...projectPageContext.lastActiveViewIdByGroupId,
+          [result.group.id]: result.view.id,
+        },
+      });
+      setStatus("已创建视图组");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCommandSaving(false);
+    }
+  }
+
+  async function handleCreateSharedViewInGroup(groupId: string) {
+    if (commandSaving || !activeCollectionKey || !activeView) return;
+    setCommandSaving(true);
+    setStatus("");
+    try {
+      const result = createViewInGroupConfig({
+        sharedViewsConfig,
+        collectionKey: activeCollectionKey,
+        groupId,
+        activeViewSnapshot: activeView,
+      });
+      const nextConfig = result.config as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      const current = currentSharedViewDraftState();
+      updateSharedViewDraftState({
+        lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
+        viewDrafts: { ...current.viewDrafts },
+        viewOrderDrafts: { ...current.viewOrderDrafts },
+        structureDrafts: { ...current.structureDrafts },
+      });
+      updatePageContextViewGrouping(window.localStorage, activeProjectId, {
+        expandedGroupId: groupId,
+        lastActiveViewIdByGroupId: {
+          ...projectPageContext.lastActiveViewIdByGroupId,
+          [groupId]: result.view.id,
+        },
+      });
+      setStatus("已在组内创建视图");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCommandSaving(false);
+    }
+  }
+
+  async function handleRenameSharedViewGroup(groupId: string, name: string) {
+    if (commandSaving || !activeCollectionKey) return;
+    setCommandSaving(true);
+    setStatus("");
+    try {
+      const nextConfig = renameViewGroupConfig({
+        sharedViewsConfig,
+        collectionKey: activeCollectionKey,
+        groupId,
+        name,
+      }) as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      setStatus("已重命名视图组");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCommandSaving(false);
+    }
+  }
+
+  async function handleDeleteSharedViewGroup(groupId: string) {
+    if (commandSaving || !activeCollectionKey) return;
+    setCommandSaving(true);
+    setStatus("");
+    try {
+      const nextConfig = deleteViewGroupConfig({
+        sharedViewsConfig,
+        collectionKey: activeCollectionKey,
+        groupId,
+      }) as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      const nextLastActiveViewIdByGroupId = { ...projectPageContext.lastActiveViewIdByGroupId };
+      delete nextLastActiveViewIdByGroupId[groupId];
+      updatePageContextViewGrouping(window.localStorage, activeProjectId, {
+        expandedGroupId: projectPageContext.expandedGroupId === groupId ? null : projectPageContext.expandedGroupId,
+        lastActiveViewIdByGroupId: nextLastActiveViewIdByGroupId,
+      });
+      setStatus("已删除视图组");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCommandSaving(false);
+    }
   }
 
   function handleCommitSelectOptionFieldDraftByRowId(rowId: string, fieldName: string, patch: OptionFieldDraftCommit) {
@@ -3882,7 +4112,11 @@ export function App() {
                 <ViewTabs
                   snapshot={viewTabsSnapshot}
                   onSelectView={handleSelectSharedView}
-                  onCreateView={handleCreateSharedView}
+                  onCreateTopLevelView={handleCreateTopLevelSharedView}
+                  onCreateViewGroup={handleCreateSharedViewGroup}
+                  onCreateViewInGroup={handleCreateSharedViewInGroup}
+                  onRenameGroup={handleRenameSharedViewGroup}
+                  onDeleteGroup={handleDeleteSharedViewGroup}
                   onRenameView={handleRenameSharedView}
                   onDeleteView={handleDeleteSharedView}
                   onDuplicateView={handleDuplicateSharedView}
@@ -3979,7 +4213,11 @@ export function App() {
             <ViewTabs
               snapshot={viewTabsSnapshot}
               onSelectView={handleSelectSharedView}
-              onCreateView={handleCreateSharedView}
+              onCreateTopLevelView={handleCreateTopLevelSharedView}
+              onCreateViewGroup={handleCreateSharedViewGroup}
+              onCreateViewInGroup={handleCreateSharedViewInGroup}
+              onRenameGroup={handleRenameSharedViewGroup}
+              onDeleteGroup={handleDeleteSharedViewGroup}
               onRenameView={handleRenameSharedView}
               onDeleteView={handleDeleteSharedView}
               onDuplicateView={handleDuplicateSharedView}
@@ -4633,17 +4871,45 @@ function sameStringArray(previous: string[], next: string[]) {
   return previous.length === next.length && previous.every((value, index) => next[index] === value);
 }
 
-function sameFilterGroup(previous: FilterGroup, next: FilterGroup) {
-  return previous.op === next.op
-    && previous.rules.length === next.rules.length
-    && previous.rules.every((rule, index) => {
-      const candidate = next.rules[index];
+function sameViewFilters(previous: FilterGroup, next: FilterGroup) {
+  return sameRuleNodes(previous.topLevelRules ?? [], next.topLevelRules ?? [])
+    && sameGroupNode(previous.advancedRoot ?? null, next.advancedRoot ?? null);
+}
+
+function sameRuleNodes(previous: Array<{ id: string; field: string; operator: string; value?: unknown }>, next: Array<{ id: string; field: string; operator: string; value?: unknown }>) {
+  return previous.length === next.length
+    && previous.every((rule, index) => {
+      const candidate = next[index];
       if (!candidate) return false;
       return rule.id === candidate.id
         && rule.field === candidate.field
         && rule.operator === candidate.operator
         && sameUnknownValue(rule.value, candidate.value);
     });
+}
+
+function sameGroupNode(previous: FilterGroupNode | null, next: FilterGroupNode | null): boolean {
+  if (previous === next) return true;
+  if (!previous || !next) return false;
+  const previousChildren = Array.isArray(previous.children) ? previous.children : [];
+  const nextChildren = Array.isArray(next.children) ? next.children : [];
+  return previous.id === next.id
+    && previous.op === next.op
+    && previousChildren.length === nextChildren.length
+    && previousChildren.every((node, index) => sameFilterNode(node, nextChildren[index] ?? null));
+}
+
+function sameFilterNode(previous: FilterNode, next: FilterNode | null): boolean {
+  if (!next) return false;
+  if (previous.kind !== next.kind) return false;
+  if (previous.kind === "group" && next.kind === "group") return sameGroupNode(previous, next);
+  if (previous.kind === "rule" && next.kind === "rule") {
+    return previous.id === next.id
+      && previous.field === next.field
+      && previous.operator === next.operator
+      && sameUnknownValue(previous.value, next.value);
+  }
+  return false;
 }
 
 function sameSortRules(previous: SortRule[], next: SortRule[]) {
@@ -4931,7 +5197,8 @@ function emptySharedViewsConfig(): SharedViewsConfig {
 
 function hasSharedDrafts(draftState: SharedViewDraftState) {
   return Object.values(draftState.viewDrafts).some((views) => Object.keys(views).length > 0)
-    || Object.values(draftState.viewOrderDrafts).some((order) => order.length > 0);
+    || Object.values(draftState.viewOrderDrafts).some((order) => order.length > 0)
+    || Object.values(draftState.structureDrafts ?? {}).some((draft) => Array.isArray(draft?.items) && draft.items.length > 0);
 }
 
 function emptyProjectViewConfig(): ViewConfig {

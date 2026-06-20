@@ -2,7 +2,7 @@ import { applyViewFilters } from "./filtering.mjs";
 import { applyViewSorts } from "./sorting.mjs";
 import { runSearch } from "./search-engine.mjs";
 
-const emptyFilters = { op: "and", rules: [] };
+const emptyFilters = { topLevelRules: [], advancedRoot: null };
 const emptySorts = [];
 
 export function runView({

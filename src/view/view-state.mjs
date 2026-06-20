@@ -4,15 +4,17 @@ import {
   normalizeSharedViewDraftState,
   normalizeSharedViewsConfig,
 } from "./shared-view-normalize.mjs";
+import { applyStructureDraftToConfig } from "./shared-view-structure.mjs";
 
 export function collectionConfigKey(path, collectionPath) {
   return `${path}:${collectionPath}`;
 }
 
 export function resolveCollectionViews(sharedViewsConfig, collectionKey) {
-  const views = sharedViewsConfig?.collections?.[collectionKey]?.views;
-  if (!Array.isArray(views) || views.length === 0) return [defaultAllView()];
-  return views.map((view) => normalizeCollectionView(view));
+  const collection = normalizeSharedViewsConfig(sharedViewsConfig)?.collections?.[collectionKey];
+  const views = listCollectionViews(collection);
+  if (!views.length) return [defaultAllView()];
+  return views;
 }
 
 export function resolveDefaultViewId(sharedViewsConfig, collectionKey) {
@@ -56,7 +58,8 @@ export function resolveActiveView(views, lastActiveViewId, defaultViewId) {
 export function hasViewDraft(draftState, collectionKey, viewId) {
   return Boolean(
     draftState?.viewDrafts?.[collectionKey]?.[viewId]
-      || draftState?.viewOrderDrafts?.[collectionKey]?.length,
+      || draftState?.viewOrderDrafts?.[collectionKey]?.length
+      || draftState?.structureDrafts?.[collectionKey]?.items?.length,
   );
 }
 
@@ -71,7 +74,7 @@ export function resetActiveSharedViewDraft(draftState, collectionKey, viewId) {
 export function createSharedViewConfig(sharedViewsConfig, collectionKey, activeViewId, activeViewSnapshot, options = {}) {
   const config = cloneSharedViewsConfig(sharedViewsConfig);
   const collection = ensureSharedCollection(config, collectionKey);
-  const views = collection.views.length ? collection.views : [defaultAllView()];
+  const views = listCollectionViews(collection);
   const activeIndex = Math.max(0, views.findIndex((view) => view.id === activeViewId));
   const snapshot = normalizeCollectionView(activeViewSnapshot ?? views[activeIndex] ?? defaultAllView());
   const duplicateNameBase = typeof options.nameBase === "string" ? options.nameBase.trim() : "";
@@ -80,9 +83,7 @@ export function createSharedViewConfig(sharedViewsConfig, collectionKey, activeV
     id: uniqueViewId(views, snapshot.id || "view"),
     name: uniqueViewName(views, duplicateNameBase || snapshot.name || "View", { preserveBase: Boolean(duplicateNameBase) }),
   };
-  const nextViews = [...views];
-  nextViews.splice(activeIndex + 1, 0, nextView);
-  collection.views = nextViews;
+  collection.items = insertViewAfter(collection.items, activeViewId, nextView);
   collection.defaultViewId = resolveDefaultFromCollection(collection);
   return { config, view: nextView };
 }
@@ -92,7 +93,7 @@ export function renameSharedViewConfig(sharedViewsConfig, collectionKey, viewId,
   if (!trimmed) return cloneSharedViewsConfig(sharedViewsConfig);
   const config = cloneSharedViewsConfig(sharedViewsConfig);
   const collection = ensureSharedCollection(config, collectionKey);
-  collection.views = collection.views.map((view) => view.id === viewId ? { ...view, name: trimmed } : view);
+  collection.items = renameViewInItems(collection.items, viewId, trimmed);
   return config;
 }
 
@@ -100,7 +101,7 @@ export function deleteSharedViewConfig(sharedViewsConfig, draftState, collection
   const config = cloneSharedViewsConfig(sharedViewsConfig);
   const normalizedDraftState = normalizeSharedViewDraftState(draftState);
   const collection = ensureSharedCollection(config, collectionKey);
-  const views = collection.views.length ? collection.views : [defaultAllView()];
+  const views = listCollectionViews(collection);
   if (views.length <= 1) {
     return {
       config: sharedViewsConfig,
@@ -124,7 +125,7 @@ export function deleteSharedViewConfig(sharedViewsConfig, draftState, collection
   const nextActiveViewId = currentActiveViewId && currentActiveViewId !== viewId && nextViews.some((view) => view.id === currentActiveViewId)
     ? currentActiveViewId
     : replacement.id;
-  collection.views = nextViews;
+  collection.items = deleteViewFromItems(collection.items, viewId);
   collection.defaultViewId = collection.defaultViewId === viewId ? nextViews[0].id : resolveDefaultFromCollection(collection);
   const nextDraftState = clearViewDraft(normalizedDraftState, collectionKey, viewId);
   nextDraftState.lastActiveViews = { ...nextDraftState.lastActiveViews, [collectionKey]: nextActiveViewId };
@@ -147,18 +148,24 @@ export function draftSharedViewOrder(draftState, collectionKey, views, viewIds) 
 }
 
 export function saveSharedViewDraftsToConfig(sharedViewsConfig, draftState, collectionKey, activeViewId) {
-  const config = cloneSharedViewsConfig(sharedViewsConfig);
   const normalizedDraftState = normalizeSharedViewDraftState(draftState);
+  const config = normalizedDraftState.structureDrafts?.[collectionKey]?.items?.length
+    ? applyStructureDraftToConfig(sharedViewsConfig, collectionKey, normalizedDraftState.structureDrafts[collectionKey])
+    : cloneSharedViewsConfig(sharedViewsConfig);
   const collection = ensureSharedCollection(config, collectionKey);
-  const views = collection.views.length ? collection.views : [defaultAllView()];
   const activeDraft = normalizedDraftState.viewDrafts[collectionKey]?.[activeViewId];
-  const draftedViews = views.map((view) => view.id === activeViewId ? mergeSharedViewWithDraft(view, activeDraft) : view);
-  collection.views = applyViewOrderDraft(draftedViews, normalizedDraftState.viewOrderDrafts[collectionKey]);
+  collection.items = applyDraftsToItems(
+    collection.items,
+    activeViewId,
+    activeDraft,
+    normalizedDraftState.viewOrderDrafts[collectionKey],
+  );
   collection.defaultViewId = resolveDefaultFromCollection(collection);
   const nextDraftState = {
     ...normalizedDraftState,
     viewDrafts: { ...normalizedDraftState.viewDrafts },
     viewOrderDrafts: { ...normalizedDraftState.viewOrderDrafts },
+    structureDrafts: { ...normalizedDraftState.structureDrafts },
   };
   if (nextDraftState.viewDrafts[collectionKey]) {
     const nextCollectionDrafts = { ...nextDraftState.viewDrafts[collectionKey] };
@@ -170,6 +177,7 @@ export function saveSharedViewDraftsToConfig(sharedViewsConfig, draftState, coll
     }
   }
   delete nextDraftState.viewOrderDrafts[collectionKey];
+  delete nextDraftState.structureDrafts[collectionKey];
   return {
     config,
     draftState: nextDraftState,
@@ -182,6 +190,7 @@ export function clearViewDraft(draftState, collectionKey, viewId) {
     ...draftState,
     viewDrafts: { ...(draftState?.viewDrafts ?? {}) },
     viewOrderDrafts: { ...(draftState?.viewOrderDrafts ?? {}) },
+    structureDrafts: { ...(draftState?.structureDrafts ?? {}) },
   };
 
   if (next.viewDrafts[collectionKey]) {
@@ -194,12 +203,14 @@ export function clearViewDraft(draftState, collectionKey, viewId) {
     }
   }
   delete next.viewOrderDrafts[collectionKey];
+  delete next.structureDrafts[collectionKey];
   return next;
 }
 
 function hasAnyViewDraft(draftState) {
   return Object.values(draftState?.viewDrafts ?? {}).some((views) => Object.keys(views ?? {}).length > 0)
-    || Object.values(draftState?.viewOrderDrafts ?? {}).some((order) => Array.isArray(order) && order.length > 0);
+    || Object.values(draftState?.viewOrderDrafts ?? {}).some((order) => Array.isArray(order) && order.length > 0)
+    || Object.values(draftState?.structureDrafts ?? {}).some((draft) => Array.isArray(draft?.items) && draft.items.length > 0);
 }
 
 function cloneSharedViewsConfig(sharedViewsConfig) {
@@ -210,22 +221,25 @@ function cloneSharedViewsConfig(sharedViewsConfig) {
       key,
       {
         defaultViewId: collection.defaultViewId,
-        views: collection.views.map((view) => ({ ...view })),
+        items: cloneCollectionItems(collection.items),
       },
     ])),
   };
 }
 
 function ensureSharedCollection(config, collectionKey) {
-  config.collections[collectionKey] ??= { views: [defaultAllView()], defaultViewId: "all" };
-  if (!config.collections[collectionKey].views.length) config.collections[collectionKey].views = [defaultAllView()];
+  config.collections[collectionKey] ??= { items: [{ kind: "view", view: defaultAllView() }], defaultViewId: "all" };
+  if (!Array.isArray(config.collections[collectionKey].items) || !config.collections[collectionKey].items.length) {
+    config.collections[collectionKey].items = [{ kind: "view", view: defaultAllView() }];
+  }
   config.collections[collectionKey].defaultViewId = resolveDefaultFromCollection(config.collections[collectionKey]);
   return config.collections[collectionKey];
 }
 
 function resolveDefaultFromCollection(collection) {
-  if (!collection.views.length) return null;
-  return collection.views.some((view) => view.id === collection.defaultViewId) ? collection.defaultViewId : collection.views[0].id;
+  const views = listCollectionViews(collection);
+  if (!views.length) return null;
+  return views.some((view) => view.id === collection.defaultViewId) ? collection.defaultViewId : views[0].id;
 }
 
 function normalizeViewOrder(views, viewIds) {
@@ -269,13 +283,134 @@ function uniqueViewName(views, baseName, options = {}) {
   return candidate;
 }
 
+function listCollectionViews(collection) {
+  if (!collection || typeof collection !== "object") return [];
+  if (Array.isArray(collection.items)) {
+    const views = [];
+    for (const item of collection.items) {
+      if (item?.kind === "group") {
+        for (const view of item.views ?? []) {
+          views.push(normalizeCollectionView(view));
+        }
+        continue;
+      }
+      const rawView = item?.kind === "view" ? item.view : item;
+      views.push(normalizeCollectionView(rawView));
+    }
+    return views.filter((view) => view.id && view.name);
+  }
+  if (Array.isArray(collection.views)) {
+    return collection.views.map((view) => normalizeCollectionView(view)).filter((view) => view.id && view.name);
+  }
+  return [];
+}
+
+function cloneCollectionItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => {
+    if (item?.kind === "group") {
+      return {
+        kind: "group",
+        id: item.id,
+        name: item.name,
+        views: Array.isArray(item.views) ? item.views.map((view) => ({ ...view })) : [],
+      };
+    }
+    return {
+      kind: "view",
+      view: { ...(item?.kind === "view" ? item.view : item) },
+    };
+  });
+}
+
+function insertViewAfter(items, activeViewId, nextView) {
+  const nextItems = [];
+  let inserted = false;
+  for (const item of Array.isArray(items) ? items : []) {
+    if (item?.kind === "group") {
+      const views = [];
+      for (const view of item.views ?? []) {
+        views.push({ ...view });
+        if (view.id === activeViewId) {
+          views.push(nextView);
+          inserted = true;
+        }
+      }
+      nextItems.push({ ...item, views });
+      continue;
+    }
+    const rawView = item?.kind === "view" ? item.view : item;
+    nextItems.push({ kind: "view", view: { ...rawView } });
+    if (rawView?.id === activeViewId) {
+      nextItems.push({ kind: "view", view: nextView });
+      inserted = true;
+    }
+  }
+  if (!inserted) nextItems.push({ kind: "view", view: nextView });
+  return nextItems;
+}
+
+function renameViewInItems(items, viewId, name) {
+  return (Array.isArray(items) ? items : []).map((item) => {
+    if (item?.kind === "group") {
+      return {
+        ...item,
+        views: (item.views ?? []).map((view) => view.id === viewId ? { ...view, name } : { ...view }),
+      };
+    }
+    const rawView = item?.kind === "view" ? item.view : item;
+    return {
+      kind: "view",
+      view: rawView?.id === viewId ? { ...rawView, name } : { ...rawView },
+    };
+  });
+}
+
+function deleteViewFromItems(items, viewId) {
+  const nextItems = [];
+  for (const item of Array.isArray(items) ? items : []) {
+    if (item?.kind === "group") {
+      const views = (item.views ?? []).filter((view) => view.id !== viewId).map((view) => ({ ...view }));
+      if (views.length) nextItems.push({ ...item, views });
+      continue;
+    }
+    const rawView = item?.kind === "view" ? item.view : item;
+    if (rawView?.id === viewId) continue;
+    nextItems.push({ kind: "view", view: { ...rawView } });
+  }
+  return nextItems;
+}
+
+function applyDraftsToItems(items, activeViewId, activeDraft, orderDraft) {
+  const nextItems = (Array.isArray(items) ? items : []).map((item) => {
+    if (item?.kind === "group") {
+      return {
+        ...item,
+        views: (item.views ?? []).map((view) => {
+          if (view.id !== activeViewId) return { ...view };
+          return mergeSharedViewWithDraft(view, activeDraft);
+        }),
+      };
+    }
+    const rawView = item?.kind === "view" ? item.view : item;
+    return {
+      kind: "view",
+      view: rawView?.id === activeViewId ? mergeSharedViewWithDraft(rawView, activeDraft) : { ...rawView },
+    };
+  });
+  if (!Array.isArray(orderDraft) || !orderDraft.length) return nextItems;
+  if (nextItems.some((item) => item?.kind === "group")) return nextItems;
+  const orderedViews = applyViewOrderDraft(nextItems.map((item) => item.view), orderDraft);
+  return orderedViews.map((view) => ({ kind: "view", view }));
+}
+
 function defaultAllView() {
   return {
     id: "all",
     name: "全部",
     type: "table",
     query: "",
-    filters: { op: "and", rules: [] },
+    filters: { topLevelRules: [], advancedRoot: null },
     sorts: [],
     hidden: [],
     wrapped: [],

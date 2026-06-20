@@ -65,26 +65,29 @@ test("normalizeSharedViewsConfig keeps valid views and cleans invalid rules sort
     collections: {
       "data/runes.json:$": {
         defaultViewId: "damage",
-        views: [
+        items: [
           {
-            id: "damage",
-            name: "Damage",
-            type: "table",
-            query: "fire",
-            filters: {
-              op: "and",
-              rules: [
-                { id: "r1", field: "element", operator: "contains", value: "fire" },
+            kind: "view",
+            view: {
+              id: "damage",
+              name: "Damage",
+              type: "table",
+              query: "fire",
+              filters: {
+                topLevelRules: [
+                  { kind: "rule", id: "r1", field: "element", operator: "contains", value: "fire" },
+                ],
+                advancedRoot: null,
+              },
+              sorts: [
+                { id: "s1", field: "power", direction: "desc" },
               ],
+              hidden: ["icon", "tags"],
+              wrapped: ["desc"],
+              order: ["power", "name"],
+              detailOrder: ["notes"],
+              widths: { power: 121 },
             },
-            sorts: [
-              { id: "s1", field: "power", direction: "desc" },
-            ],
-            hidden: ["icon", "tags"],
-            wrapped: ["desc"],
-            order: ["power", "name"],
-            detailOrder: ["notes"],
-            widths: { power: 121 },
           },
         ],
       },
@@ -98,7 +101,7 @@ test("normalizeCollectionView fills missing fields with defaults", () => {
     name: "",
     type: "table",
     query: "",
-    filters: { op: "and", rules: [] },
+    filters: { topLevelRules: [], advancedRoot: null },
     sorts: [],
     hidden: [],
     wrapped: [],
@@ -114,7 +117,10 @@ test("normalizeCollectionViewDraft only keeps draft override fields", () => {
     name: "Damage",
     type: "table",
     query: " fire ",
-    filters: { op: "and", rules: [{ id: "r1", field: "element", operator: "is", value: "fire" }] },
+    filters: {
+      topLevelRules: [{ kind: "rule", id: "r1", field: "element", operator: "is", value: "fire" }],
+      advancedRoot: null,
+    },
     sorts: [{ id: "s1", field: "power", direction: "asc" }],
     hidden: [" icon ", "icon"],
     wrapped: [" desc "],
@@ -123,7 +129,10 @@ test("normalizeCollectionViewDraft only keeps draft override fields", () => {
     widths: { power: 99.4 },
   }), {
     query: "fire",
-    filters: { op: "and", rules: [{ id: "r1", field: "element", operator: "is", value: "fire" }] },
+    filters: {
+      topLevelRules: [{ kind: "rule", id: "r1", field: "element", operator: "is", value: "fire" }],
+      advancedRoot: null,
+    },
     sorts: [{ id: "s1", field: "power", direction: "asc" }],
     hidden: ["icon"],
     wrapped: ["desc"],
@@ -136,6 +145,20 @@ test("normalizeCollectionViewDraft only keeps draft override fields", () => {
 test("normalizeCollectionViewDraft keeps query-only draft partial", () => {
   assert.deepEqual(normalizeCollectionViewDraft({ query: " fire " }), {
     query: "fire",
+  });
+});
+
+test("normalizeCollectionViewDraft keeps explicit empty filters override", () => {
+  assert.deepEqual(normalizeCollectionViewDraft({
+    filters: {
+      topLevelRules: [],
+      advancedRoot: null,
+    },
+  }), {
+    filters: {
+      topLevelRules: [],
+      advancedRoot: null,
+    },
   });
 });
 
@@ -204,6 +227,7 @@ test("normalizeSharedViewDraftState trims collection and view keys consistently"
     viewOrderDrafts: {
       "data/runes.json:$": ["view-2", "view-1"],
     },
+    structureDrafts: {},
   });
 });
 
@@ -219,7 +243,7 @@ test("saveSharedViews writes normalized shared views file", async () => {
               id: " all ",
               name: " All ",
               query: " ",
-              filters: { op: "and", rules: [] },
+              filters: { topLevelRules: [], advancedRoot: null },
               sorts: [{ id: "sort-name", field: "name", direction: "asc" }],
               hidden: [" internal_id "],
               wrapped: [],
@@ -239,24 +263,65 @@ test("saveSharedViews writes normalized shared views file", async () => {
       collections: {
         "data/runes.json:$": {
           defaultViewId: "all",
-          views: [
+          items: [
             {
-              id: "all",
-              name: "All",
-              type: "table",
-              query: "",
-              filters: { op: "and", rules: [] },
-              sorts: [{ id: "sort-name", field: "name", direction: "asc" }],
-              hidden: ["internal_id"],
-              wrapped: [],
-              order: ["name"],
-              detailOrder: [],
-              widths: { name: 180 },
+              kind: "view",
+              view: {
+                id: "all",
+                name: "All",
+                type: "table",
+                query: "",
+                filters: { topLevelRules: [], advancedRoot: null },
+                sorts: [{ id: "sort-name", field: "name", direction: "asc" }],
+                hidden: ["internal_id"],
+                wrapped: [],
+                order: ["name"],
+                detailOrder: [],
+                widths: { name: 180 },
+              },
             },
           ],
         },
       },
     });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("saveSharedViews writes grouped items to disk", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-shared-views-"));
+  try {
+    await saveSharedViews(root, {
+      version: 1,
+      collections: {
+        "data/runes.json:$": {
+          defaultViewId: "damage",
+          items: [{
+            kind: "group",
+            id: "combat",
+            name: "Combat",
+            views: [{
+              id: "damage",
+              name: "Damage",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            }],
+          }],
+        },
+      },
+    });
+
+    const stored = JSON.parse(await readFile(path.join(root, ".data-editor/shared-views.json"), "utf8"));
+    assert.equal(Array.isArray(stored.collections["data/runes.json:$"].items), true);
+    assert.equal(Object.hasOwn(stored.collections["data/runes.json:$"], "views"), false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

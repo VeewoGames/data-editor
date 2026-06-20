@@ -203,6 +203,79 @@ test("profile mode uses empty state when profile collection has no saved values"
   assert.equal(state.detailDocumentPanelWidth, 388);
 });
 
+test("profile mode inherits all layout when active group view has no dedicated layout", () => {
+  const state = readViewLayoutState({
+    mode: "profile",
+    path: "data/traits.json",
+    collectionPath: "traits",
+    viewId: "tag-mana",
+    localState: emptyLocalViewState(),
+    profile: {
+      sidebarWidth: null,
+      detailPanelWidth: 405,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 388,
+      viewLayouts: {
+        "data/traits.json:traits": {
+          all: {
+            hidden: ["id"],
+            wrapped: ["description"],
+            order: ["use", "dev_status", "budget_left"],
+            detailOrder: ["trait_name", "description"],
+            widths: { use: 44, trait_name: 220 },
+          },
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(state.hidden, ["id"]);
+  assert.deepEqual(state.wrapped, ["description"]);
+  assert.deepEqual(state.order, ["use", "dev_status", "budget_left"]);
+  assert.deepEqual(state.detailOrder, ["trait_name", "description"]);
+  assert.deepEqual(state.widths, { use: 44, trait_name: 220 });
+});
+
+test("profile mode merges sparse group view layout with all layout", () => {
+  const state = readViewLayoutState({
+    mode: "profile",
+    path: "data/traits.json",
+    collectionPath: "traits",
+    viewId: "tag-evasion",
+    localState: emptyLocalViewState(),
+    profile: {
+      sidebarWidth: null,
+      detailPanelWidth: 405,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 388,
+      viewLayouts: {
+        "data/traits.json:traits": {
+          all: {
+            hidden: ["id"],
+            wrapped: ["description"],
+            order: ["use", "dev_status", "budget_left"],
+            detailOrder: ["trait_name", "description"],
+            widths: { use: 44, trait_name: 220, description: 360 },
+          },
+          "tag-evasion": {
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: { trait_name: 260 },
+          },
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(state.hidden, ["id"]);
+  assert.deepEqual(state.wrapped, ["description"]);
+  assert.deepEqual(state.order, ["use", "dev_status", "budget_left"]);
+  assert.deepEqual(state.detailOrder, ["trait_name", "description"]);
+  assert.deepEqual(state.widths, { use: 44, trait_name: 260, description: 360 });
+});
+
 test("readLocalViewState reads only localStorage keys for the current encoded view id", () => {
   const storage = createMemoryStorage({
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden": "1",
@@ -547,16 +620,16 @@ test("local shared view drafts are stored independently from collection view sta
   assert.deepEqual(readLocalSharedViewDrafts(storage), {
     lastActiveViews: {
       "data/runes.json:$": "view-1",
-      },
-      viewDrafts: {
-        "data/runes.json:$": {
-          "view-1": {
-            query: "fire",
-            filters: {
-            op: "and",
-            rules: [
-              { id: "rule-1", field: "element", operator: "contains", value: "fire" },
+    },
+    viewDrafts: {
+      "data/runes.json:$": {
+        "view-1": {
+          query: "fire",
+          filters: {
+            topLevelRules: [
+              { kind: "rule", id: "rule-1", field: "element", operator: "contains", value: "fire" },
             ],
+            advancedRoot: null,
           },
         },
       },
@@ -564,6 +637,7 @@ test("local shared view drafts are stored independently from collection view sta
     viewOrderDrafts: {
       "data/runes.json:$": ["view-2", "view-1"],
     },
+    structureDrafts: {},
   });
 
   writeLocalSharedViewDrafts(storage, {
@@ -596,8 +670,30 @@ test("local shared view drafts are stored independently from collection view sta
     viewOrderDrafts: {
       "data/runes.json:$": ["view-2", "view-1"],
     },
+    structureDrafts: {},
   });
   assert.equal(storage.getItem("data-editor:data/runes.json:$:damage:__order"), "description,rune_name");
+});
+
+test("readLocalSharedViewDrafts keeps shared view structure draft payload", () => {
+  const storage = createMemoryStorage({
+    "data-editor:shared-view-drafts": JSON.stringify({
+      lastActiveViews: { "data/runes.json:$": "damage" },
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      structureDrafts: {
+        "data/runes.json:$": {
+          items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["damage"] }],
+        },
+      },
+    }),
+  });
+
+  assert.deepEqual(readLocalSharedViewDrafts(storage).structureDrafts, {
+    "data/runes.json:$": {
+      items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["damage"] }],
+    },
+  });
 });
 
 test("writeLocalSharedViewDrafts removes storage when all shared drafts are empty", () => {

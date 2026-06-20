@@ -1,13 +1,15 @@
 import type { FilterGroup, FilterRule } from "../../api/client";
+import { removeNodeFromFilters, replaceNodeInFilters } from "../../view/filter-tree.mjs";
 import { FilterActionMenu } from "./FilterActionMenu";
 
 type BooleanFilterPopoverProps = {
   filters: FilterGroup;
   rule: FilterRule;
+  onMergeIntoAdvanced?: (() => void) | null;
   onChangeFilters: (filters: FilterGroup) => void;
 };
 
-export function BooleanFilterPopover({ filters, rule, onChangeFilters }: BooleanFilterPopoverProps) {
+export function BooleanFilterPopover({ filters, rule, onMergeIntoAdvanced = null, onChangeFilters }: BooleanFilterPopoverProps) {
   function updateRule(nextRule: FilterRule) {
     onChangeFilters(replaceRule(filters, nextRule));
   }
@@ -22,7 +24,7 @@ export function BooleanFilterPopover({ filters, rule, onChangeFilters }: Boolean
     <div className="filter-popover filter-popover-shell">
       <div className="filter-popover-header">
         <strong>{rule.field}</strong>
-        <FilterActionMenu onDelete={deleteRule} />
+        <FilterActionMenu onDelete={deleteRule} onMergeIntoAdvanced={onMergeIntoAdvanced} />
       </div>
       <div className="filter-popover-section">
         <div className="filter-section-label">条件</div>
@@ -55,15 +57,9 @@ export function BooleanFilterPopover({ filters, rule, onChangeFilters }: Boolean
 }
 
 function replaceRule(filters: FilterGroup, nextRule: FilterRule): FilterGroup {
-  return {
-    op: "and",
-    rules: filters.rules.map((item) => item.id === nextRule.id ? nextRule : item),
-  };
+  return replaceNodeInFilters(filters, nextRule);
 }
 
 function removeRule(filters: FilterGroup, ruleId: string): FilterGroup {
-  return {
-    op: "and",
-    rules: filters.rules.filter((item) => item.id !== ruleId),
-  };
+  return removeNodeFromFilters(filters, ruleId);
 }

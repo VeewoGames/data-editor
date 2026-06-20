@@ -1,17 +1,17 @@
 export function createDefaultFilterRule(field, fieldType, rules) {
   if (fieldType === "Checkbox") {
-    return { id: createFilterId(field, rules), field, operator: "is" };
+    return { kind: "rule", id: createFilterId(field, rules), field, operator: "is" };
   }
   if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
-    return { id: createFilterId(field, rules), field, operator: "contains", value: [] };
+    return { kind: "rule", id: createFilterId(field, rules), field, operator: "contains", value: [] };
   }
-  return { id: createFilterId(field, rules), field, operator: "contains", value: "" };
+  return { kind: "rule", id: createFilterId(field, rules), field, operator: "contains", value: "" };
 }
 
 export function withRules(filters, rules) {
   return {
-    op: "and",
-    rules,
+    topLevelRules: Array.isArray(rules) ? rules : [],
+    advancedRoot: filters?.advancedRoot ?? null,
   };
 }
 

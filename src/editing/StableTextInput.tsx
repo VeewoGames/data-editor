@@ -1,7 +1,9 @@
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, type KeyboardEventHandler } from "react";
 import { useStableDraftInput, type StableDraftInputApi, type StableDraftInputCommitMode } from "./useStableDraftInput";
 
-export type StableTextInputHandle = Pick<StableDraftInputApi, "flushDraft" | "replaceDraft">;
+export type StableTextInputHandle = Pick<StableDraftInputApi, "flushDraft" | "replaceDraft"> & {
+  moveCaretToEnd: () => void;
+};
 
 export type StableTextInputProps = {
   identityKey: string;
@@ -40,9 +42,19 @@ export const StableTextInput = forwardRef<StableTextInputHandle, StableTextInput
   ref,
 ) {
   const api = useStableDraftInput({ identityKey, value, commitMode, commitDelayMs, onChangeValue });
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  function moveCaretToEnd() {
+    const input = inputRef.current;
+    if (!input) return;
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  }
+
   useImperativeHandle(ref, () => ({
     flushDraft: api.flushDraft,
     replaceDraft: api.replaceDraft,
+    moveCaretToEnd,
   }), [api.flushDraft, api.replaceDraft]);
   return (
     <input
@@ -63,6 +75,7 @@ export const StableTextInput = forwardRef<StableTextInputHandle, StableTextInput
       onCompositionStart={api.handleCompositionStart}
       onCompositionEnd={(event) => api.handleCompositionEnd(event.currentTarget.value)}
       onKeyDown={onKeyDown}
+      ref={inputRef}
     />
   );
 });
@@ -93,9 +106,17 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
     node.style.height = `${node.scrollHeight}px`;
   }
 
+  function moveCaretToEnd() {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+  }
+
   useImperativeHandle(ref, () => ({
     flushDraft: api.flushDraft,
     replaceDraft: api.replaceDraft,
+    moveCaretToEnd,
   }), [api.flushDraft, api.replaceDraft]);
 
   useLayoutEffect(() => {

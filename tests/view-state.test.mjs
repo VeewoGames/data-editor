@@ -19,7 +19,7 @@ const allView = {
   name: "全部",
   type: "table",
   query: "",
-  filters: { op: "and", rules: [] },
+  filters: { topLevelRules: [], advancedRoot: null },
   sorts: [],
   hidden: [],
   wrapped: [],
@@ -61,8 +61,9 @@ test("App wires shared view filter bar draft changes through active view drafts"
   assert.match(filterBarSource, /add-filter-field-option/);
   assert.match(filterBarSource, /onChangeFilters: \(filters: FilterGroup\) => void;/);
   assert.match(filterBarSource, /createDefaultFilterRule/);
-  assert.match(filterBarSource, /if \(fieldTypes\[field\] === "Relation"\) return "Relation";/);
-  assert.match(filterBarSource, /if \(fieldType === "Relation"\) \{\s*return relationFilterOptions\[field\] \?\? \[\];\s*\}/);
+  assert.match(filterBarSource, /import \{ optionsForField, resolveFieldType \} from "\.\/filters\/filter-rule-ui";/);
+  assert.match(filterBarSource, /const fieldType = resolveFieldType\(field, displayTypes, fieldViewConfigs, fieldTypes\);/);
+  assert.match(filterBarSource, /optionsForField\(rule\.field, fieldType, fieldViewConfigs, relationFilterOptions\)/);
   assert.match(appSource, /viewConfig\.relations\[buildRelationKey\(\{ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: \[field\] \}\)\]/);
   assert.match(appSource, /relationOptions\[relationKey\] \?\? \[\]/);
   assert.match(appSource, /buildValueFilterOptions\(field, rows, fieldViewConfigs\[field\], fieldType\)/);
@@ -74,6 +75,44 @@ test("App wires shared view filter bar draft changes through active view drafts"
   for (const source of [filterBarSource, sortPopoverSource, multiSelectFilterSource, booleanFilterSource, textFilterSource]) {
     assert.doesNotMatch(source, /高级筛选|合并筛选|嵌套筛选|filter merge|advanced filter/i);
   }
+});
+
+test("App compares view filters with sameViewFilters instead of sameFilterGroup", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /function sameViewFilters\(/);
+  assert.doesNotMatch(appSource, /function sameFilterGroup\(/);
+});
+
+test("handleAddFilter no longer blocks duplicate field names", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const section = appSource.slice(
+    appSource.indexOf("function handleAddFilter"),
+    appSource.indexOf("function handleCommitMultiSelectOptionFieldDraft"),
+  );
+
+  assert.doesNotMatch(section, /currentRules\.some\(\(rule\) => rule\.field === fieldName\)/);
+});
+
+test("ViewFilterBar renders advanced filter chip and does not dedupe fields", async () => {
+  const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
+
+  assert.match(filterBarSource, /advancedRoot/);
+  assert.match(filterBarSource, /AdvancedFilterPanel/);
+  assert.doesNotMatch(filterBarSource, /fields\.filter\(\(field\) => !visibleFilterRules\.some\(\(rule\) => rule\.field === field\)\)/);
+});
+
+test("FilterActionMenu exposes merge into advanced filter action", async () => {
+  const source = await readFile(new URL("../src/components/filters/FilterActionMenu.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /合并到高级筛选中/);
+});
+
+test("pendingOpenFilterRuleId only targets top-level quick chips", async () => {
+  const source = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /topLevelRules/);
+  assert.doesNotMatch(source, /advancedRoot\.children\.some\(\(rule\) => rule\.id === autoOpenRuleId\)/);
 });
 
 test("mergeSharedViewWithDraft overlays only normalized draft fields", () => {
@@ -98,6 +137,29 @@ test("mergeSharedViewWithDraft overlays only normalized draft fields", () => {
     hidden: ["icon"],
     widths: { power: 121 },
   });
+});
+
+test("mergeSharedViewWithDraft keeps duplicate-field rules and advancedRoot", () => {
+  const sharedView = {
+    ...allView,
+    filters: {
+      topLevelRules: [],
+      advancedRoot: null,
+    },
+  };
+
+  const merged = mergeSharedViewWithDraft(sharedView, {
+    filters: {
+      topLevelRules: [
+        { kind: "rule", id: "a", field: "skill_category", operator: "is", value: "general" },
+        { kind: "rule", id: "b", field: "skill_category", operator: "is_not", value: "summon" },
+      ],
+      advancedRoot: null,
+    },
+  });
+
+  assert.equal(merged.filters.topLevelRules.length, 2);
+  assert.deepEqual(merged.filters.advancedRoot, null);
 });
 
 test("applyViewOrderDraft reorders known ids and appends missing views", () => {
@@ -177,6 +239,7 @@ test("clearViewDraft preserves other view drafts and clears collection order dra
   assert.notEqual(next, draftState);
   assert.deepEqual(next, {
     lastActiveViews: { "data/runes.json:$": "damage" },
+    structureDrafts: {},
     viewDrafts: {
       "data/runes.json:$": {
         utility: { hidden: ["debug"] },
@@ -192,7 +255,7 @@ test("clearViewDraft preserves other view drafts and clears collection order dra
   assert.deepEqual(draftState.viewDrafts["data/runes.json:$"].damage, { query: "fire" });
 });
 
-test("hasViewDraft detects view draft or collection order draft", () => {
+test("hasViewDraft detects view draft, collection order draft, or structure draft", () => {
   const draftState = {
     viewDrafts: {
       "data/runes.json:$": {
@@ -202,10 +265,16 @@ test("hasViewDraft detects view draft or collection order draft", () => {
     viewOrderDrafts: {
       "data/keywords.json:$": ["all"],
     },
+    structureDrafts: {
+      "data/skills.json:$": {
+        items: [{ kind: "group", groupId: "combat", viewIds: ["all"] }],
+      },
+    },
   };
 
   assert.equal(hasViewDraft(draftState, "data/runes.json:$", "damage"), true);
   assert.equal(hasViewDraft(draftState, "data/keywords.json:$", "all"), true);
+  assert.equal(hasViewDraft(draftState, "data/skills.json:$", "all"), true);
   assert.equal(hasViewDraft(draftState, "data/runes.json:$", "utility"), false);
 });
 
@@ -223,6 +292,11 @@ test("resetActiveSharedViewDraft clears active draft and reports remaining dirty
     viewOrderDrafts: {
       "data/runes.json:$": ["damage", "all"],
     },
+    structureDrafts: {
+      "data/runes.json:$": {
+        items: [{ kind: "view", viewId: "damage" }, { kind: "view", viewId: "all" }],
+      },
+    },
   };
 
   assert.equal(typeof viewState.resetActiveSharedViewDraft, "function");
@@ -238,6 +312,7 @@ test("resetActiveSharedViewDraft clears active draft and reports remaining dirty
         },
       },
       viewOrderDrafts: {},
+      structureDrafts: {},
     },
     dirty: true,
   });
@@ -247,6 +322,7 @@ test("resetActiveSharedViewDraft clears active draft and reports remaining dirty
       lastActiveViews: { "data/runes.json:$": "damage" },
       viewDrafts: {},
       viewOrderDrafts: {},
+      structureDrafts: {},
     },
     dirty: false,
   });
@@ -269,7 +345,7 @@ test("createSharedViewConfig inserts snapshot after active view without clearing
   const activeSnapshot = { ...allView, id: "damage", name: "Damage", query: "fire", hidden: ["debug"] };
   const result = viewState.createSharedViewConfig(config, "data/runes.json:$", "damage", activeSnapshot);
 
-  assert.deepEqual(result.config.collections["data/runes.json:$"].views.map((view) => view.id), [
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items.map((item) => item.view.id), [
     "all",
     "damage",
     result.view.id,
@@ -338,9 +414,10 @@ test("deleteSharedViewConfig refuses last view and selects adjacent replacement"
 
   assert.equal(result.deleted, true);
   assert.equal(result.nextActiveViewId, "utility");
-  assert.deepEqual(result.config.collections["data/runes.json:$"].views.map((view) => view.id), ["all", "utility"]);
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items.map((item) => item.view.id), ["all", "utility"]);
   assert.deepEqual(result.draftState, {
     lastActiveViews: { "data/runes.json:$": "utility" },
+    structureDrafts: {},
     viewDrafts: {
       "data/runes.json:$": {
         utility: { query: "support" },
@@ -397,9 +474,10 @@ test("deleteSharedViewConfig keeps current active view when deleting a different
 
   assert.equal(result.deleted, true);
   assert.equal(result.nextActiveViewId, "all");
-  assert.deepEqual(result.config.collections["data/runes.json:$"].views.map((view) => view.id), ["all", "utility"]);
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items.map((item) => item.view.id), ["all", "utility"]);
   assert.deepEqual(result.draftState, {
     lastActiveViews: { "data/runes.json:$": "all" },
+    structureDrafts: {},
     viewDrafts: {},
     viewOrderDrafts: {},
   });
@@ -420,6 +498,7 @@ test("draftSharedViewOrder stores normalized order without saving shared config"
 
   assert.deepEqual(viewState.draftSharedViewOrder(draftState, "data/runes.json:$", views, ["utility", "missing", "damage"]), {
     lastActiveViews: {},
+    structureDrafts: {},
     viewDrafts: {},
     viewOrderDrafts: {
       "data/runes.json:$": ["utility", "damage", "all"],
@@ -456,20 +535,27 @@ test("saveSharedViewDraftsToConfig applies active draft and order draft then cle
       "data/runes.json:$": ["utility", "damage", "all"],
       "data/keywords.json:$": ["all"],
     },
+    structureDrafts: {
+      "data/runes.json:$": {
+        items: [{ kind: "group", groupId: "combat", name: "战斗", viewIds: ["utility", "damage"] }, { kind: "view", viewId: "all" }],
+      },
+    },
   };
 
   const result = viewState.saveSharedViewDraftsToConfig(config, draftState, "data/runes.json:$", "damage");
 
-  assert.deepEqual(result.config.collections["data/runes.json:$"].views.map((view) => [view.id, view.query]), [
+  assert.equal(result.config.collections["data/runes.json:$"].items[0].kind, "group");
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items[0].views.map((view) => [view.id, view.query]), [
     ["utility", ""],
     ["damage", "fire"],
-    ["all", ""],
   ]);
-  assert.deepEqual(result.config.collections["data/runes.json:$"].views[1].sorts, [
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items[0].views[1].sorts, [
     { id: "sort:power", field: "power", direction: "desc" },
   ]);
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items[1], { kind: "view", view: { ...allView, id: "all", name: "All" } });
   assert.deepEqual(result.draftState, {
     lastActiveViews: { "data/runes.json:$": "damage" },
+    structureDrafts: {},
     viewDrafts: {
       "data/keywords.json:$": {
         all: { query: "shadow" },
@@ -510,13 +596,14 @@ test("saveSharedViewDraftsToConfig only persists the explicit active shared view
 
   const result = viewState.saveSharedViewDraftsToConfig(config, draftState, "data/runes.json:$", "damage");
 
-  assert.deepEqual(result.config.collections["data/runes.json:$"].views.map((view) => [view.id, view.query]), [
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items.map((item) => [item.view.id, item.view.query]), [
     ["damage", "fire"],
     ["utility", "support"],
     ["all", ""],
   ]);
   assert.deepEqual(result.draftState, {
     lastActiveViews: { "data/runes.json:$": "damage" },
+    structureDrafts: {},
     viewDrafts: {
       "data/runes.json:$": {
         utility: { query: "shield" },
@@ -525,6 +612,15 @@ test("saveSharedViewDraftsToConfig only persists the explicit active shared view
     viewOrderDrafts: {},
   });
   assert.equal(result.dirty, true);
+});
+
+test("App dirty state treats structure drafts as shared view dirty", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /draftSource\.viewOrderDrafts\?\.\[activeCollectionKey\]\?\.length/);
+  assert.match(appSource, /draftSource\.structureDrafts\?\.\[activeCollectionKey\]\?\.items\?\.length/);
+  assert.match(appSource, /setStatus\("已创建视图组"\)/);
+  assert.match(appSource, /setStatus\("已在组内创建视图"\)/);
 });
 
 test("persistChanges and primary-key sync keep shared view drafts behind explicit save-for-everyone actions", async () => {
@@ -740,6 +836,18 @@ test("backlink chip renderer keeps the wrapped multi-tag contract", async () => 
   assert.match(stylesSource, /\.backlink-chips-cell\s*\{[\s\S]*width:\s*100%;/);
 });
 
+test("add-filter field picker doubles its maximum height", async () => {
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+
+  assert.match(stylesSource, /\.add-filter-popover\s*\{[\s\S]*max-height:\s*680px;/);
+});
+
+test("filter condition trigger exposes a hover feedback state", async () => {
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+
+  assert.match(stylesSource, /\.filter-select-trigger:hover\s*\{[\s\S]*background:\s*color-mix\(in srgb, var\(--color-bg-hover\) 78%, white 22%\);/);
+});
+
 test("duplicating a shared view copies the current user's personal layout and only drafts visible order when needed", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const duplicateSection = appSource.slice(
@@ -787,6 +895,21 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.doesNotMatch(viewTabsSource, /onResetView/);
   assert.match(viewTabsSource, /创建视图副本/);
   assert.match(viewTabsSource, /拷贝视图链接/);
+  assert.match(viewTabsSource, /view-tabs-top-level/);
+  assert.match(viewTabsSource, /view-tabs-group-row/);
+  assert.match(viewTabsSource, /topLevelItems\.map/);
+  assert.match(viewTabsSource, /expandedGroup\.views\.map/);
+  assert.match(viewTabsSource, /view-tab-create-top-level/);
+  assert.match(viewTabsSource, /view-tab-create-in-group/);
+  assert.match(viewTabsSource, /创建视图组/);
+  assert.match(viewTabsSource, /onCreateTopLevelView/);
+  assert.match(viewTabsSource, /onCreateViewGroup/);
+  assert.match(viewTabsSource, /onCreateViewInGroup/);
+  assert.match(viewTabsSource, /onRenameGroup/);
+  assert.match(viewTabsSource, /onDeleteGroup/);
+  assert.match(viewTabsSource, /重命名组/);
+  assert.match(viewTabsSource, /删除组/);
+  assert.match(viewTabsSource, /在组内创建视图/);
 
   assert.match(toolbarSource, /<ExpandableSearch className="search-box"/);
   assert.match(toolbarSource, /toolbar-profile-picker/);
@@ -798,6 +921,28 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(filterBarSource, /view-filter-actions/);
   assert.match(filterBarSource, /为所有人保存/);
   assert.match(filterBarSource, /重置/);
+});
+
+test("App routes resolved shared view structure into ViewTabs snapshot and page context grouping", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /resolveSharedViewStructure/);
+  assert.match(appSource, /const resolvedCollectionViews = useMemo/);
+  assert.match(appSource, /topLevelItems: resolvedCollectionViews\.topLevelItems,/);
+  assert.match(appSource, /expandedGroupId: resolvedCollectionViews\.expandedGroupId,/);
+  assert.match(appSource, /activeGroupId: resolvedCollectionViews\.activeGroupId,/);
+  assert.match(appSource, /updatePageContextViewGrouping/);
+  assert.match(appSource, /lastActiveViewIdByGroupId:/);
+  assert.match(appSource, /onCreateTopLevelView=\{handleCreateTopLevelSharedView\}/);
+  assert.match(appSource, /onCreateViewGroup=\{handleCreateSharedViewGroup\}/);
+  assert.match(appSource, /onCreateViewInGroup=\{handleCreateSharedViewInGroup\}/);
+  assert.match(appSource, /onRenameGroup=\{handleRenameSharedViewGroup\}/);
+  assert.match(appSource, /onDeleteGroup=\{handleDeleteSharedViewGroup\}/);
+
+  assert.match(viewTabsSource, /topLevelItems:/);
+  assert.match(viewTabsSource, /expandedGroupId:/);
+  assert.match(viewTabsSource, /activeGroupId:/);
 });
 
 test("row delete controls stay hidden until the temporary toolbar mode is enabled", async () => {

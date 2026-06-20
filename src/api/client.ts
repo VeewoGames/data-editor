@@ -117,13 +117,16 @@ export type UserViewProfile = {
   lastActiveViews: Record<string, string>;
   viewDrafts: Record<string, Record<string, Partial<CollectionView>>>;
   viewOrderDrafts: Record<string, string[]>;
+  structureDrafts?: Record<string, SharedViewStructureDraft>;
   appearance?: UserAppearancePreferences;
   viewLayouts: Record<string, Record<string, UserViewLayoutState>>;
   collections?: Record<string, UserViewLayoutState>;
 };
 export type FilterOperator = "is" | "is_not" | "contains" | "does_not_contain" | "is_empty" | "is_not_empty";
-export type FilterRule = { id: string; field: string; operator: FilterOperator; value?: unknown };
-export type FilterGroup = { op: "and"; rules: FilterRule[] };
+export type FilterRule = { kind: "rule"; id: string; field: string; operator: FilterOperator; value?: unknown };
+export type FilterGroupNode = { kind: "group"; id: string; op: "and" | "or"; children: FilterNode[] };
+export type FilterNode = FilterRule | FilterGroupNode;
+export type FilterGroup = { topLevelRules: FilterRule[]; advancedRoot: FilterGroupNode | null };
 export type SortRule = { id: string; field: string; direction: "asc" | "desc" };
 export type CollectionView = {
   id: string;
@@ -138,9 +141,26 @@ export type CollectionView = {
   detailOrder: string[];
   widths: Record<string, number>;
 };
+export type SharedViewStructureDraft = {
+  items: Array<
+    | { kind: "view"; viewId: string }
+    | { kind: "group"; groupId: string; name?: string; viewIds: string[] }
+  >;
+};
+export type SharedViewLeafItem = {
+  kind: "view";
+  view: CollectionView;
+};
+export type SharedViewGroupItem = {
+  kind: "group";
+  id: string;
+  name: string;
+  views: CollectionView[];
+};
+export type SharedViewItem = SharedViewLeafItem | SharedViewGroupItem;
 export type SharedViewsConfig = {
   version: 1;
-  collections: Record<string, { views: CollectionView[]; defaultViewId: string | null }>;
+  collections: Record<string, { items: SharedViewItem[]; defaultViewId: string | null }>;
 };
 
 export async function listProjects(): Promise<ProjectRegistry> {
@@ -242,6 +262,7 @@ export async function loadViewProfile(name: string, projectId?: string | null): 
 export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null) {
   return fetchJson("/api/view-profile", {
     method: "POST",
+    keepalive: true,
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ projectId, name, profile }),
   });

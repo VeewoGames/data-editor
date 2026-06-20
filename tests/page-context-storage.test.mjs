@@ -7,6 +7,7 @@ import {
   readProjectPageContext,
   updatePageContextScroll,
   updatePageContextSelection,
+  updatePageContextViewGrouping,
   writePageContextState,
 } from "../src/page-context-storage.ts";
 
@@ -63,11 +64,15 @@ test("readPageContextState normalizes malformed persisted state", () => {
             scrollLeft: 40,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
       beta: {
         selectedPath: "data/status_effects.json",
         collectionPath: "$.effects",
         scrollByView: {},
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
     },
   });
@@ -115,6 +120,8 @@ test("writePageContextState persists only normalized project buckets", () => {
             scrollLeft: 8,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
     },
   });
@@ -158,6 +165,8 @@ test("readProjectPageContext returns empty project context for missing or invali
             scrollLeft: 16,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
     },
   };
@@ -167,11 +176,15 @@ test("readProjectPageContext returns empty project context for missing or invali
     selectedPath: null,
     collectionPath: "$",
     scrollByView: {},
+    expandedGroupId: null,
+    lastActiveViewIdByGroupId: {},
   });
   assert.deepEqual(readProjectPageContext(state, "missing"), {
     selectedPath: null,
     collectionPath: "$",
     scrollByView: {},
+    expandedGroupId: null,
+    lastActiveViewIdByGroupId: {},
   });
 });
 
@@ -219,6 +232,8 @@ test("updatePageContextSelection writes only the targeted project bucket", () =>
             scrollLeft: 10,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
       beta: {
         selectedPath: "data/keep.json",
@@ -229,6 +244,8 @@ test("updatePageContextSelection writes only the targeted project bucket", () =>
             scrollLeft: 4,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
     },
   });
@@ -267,6 +284,8 @@ test("updatePageContextSelection applies partial patch without resetting unspeci
             scrollLeft: 10,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
     },
   });
@@ -325,6 +344,8 @@ test("updatePageContextScroll ignores invalid inputs and isolates scroll by proj
             scrollLeft: 6,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
       alpha: {
         selectedPath: null,
@@ -335,9 +356,59 @@ test("updatePageContextScroll ignores invalid inputs and isolates scroll by proj
             scrollLeft: 44,
           },
         },
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
       },
     },
   });
+});
+
+test("updatePageContextViewGrouping persists expanded group and last active child by group", () => {
+  const storage = createMemoryStorage();
+
+  updatePageContextViewGrouping(storage, "alpha", {
+    expandedGroupId: "combat",
+    lastActiveViewIdByGroupId: {
+      combat: "damage",
+    },
+  });
+
+  assert.deepEqual(readPageContextState(storage), {
+    projects: {
+      alpha: {
+        selectedPath: null,
+        collectionPath: "$",
+        scrollByView: {},
+        expandedGroupId: "combat",
+        lastActiveViewIdByGroupId: { combat: "damage" },
+      },
+    },
+  });
+});
+
+test("readPageContextState drops invalid grouping state payload", () => {
+  const storage = createMemoryStorage({
+    "data-editor:page-context": JSON.stringify({
+      projects: {
+        alpha: {
+          selectedPath: null,
+          collectionPath: "$",
+          scrollByView: {},
+          expandedGroupId: "   ",
+          lastActiveViewIdByGroupId: {
+            combat: "damage",
+            "": "bad",
+            utility: "",
+          },
+        },
+      },
+    }),
+  });
+
+  assert.deepEqual(readPageContextState(storage).projects.alpha.lastActiveViewIdByGroupId, {
+    combat: "damage",
+  });
+  assert.equal(readPageContextState(storage).projects.alpha.expandedGroupId, null);
 });
 
 test("buildScrollContextKey normalizes collection path and rejects empty view id", () => {

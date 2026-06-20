@@ -4,9 +4,12 @@ import { createPortal } from "react-dom";
 import type { CollectionView, FilterGroup, FilterRule, SortRule } from "../api/client";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import type { FieldViewConfig, MultiSelectOptionView } from "../model/viewConfig";
+import { mergeTopLevelRuleIntoAdvancedRoot } from "../view/filter-tree.mjs";
 import { FieldTypeIcon } from "./FieldTypeIcon";
 import { icons } from "./icons";
+import { AdvancedFilterPanel } from "./filters/AdvancedFilterPanel";
 import { BooleanFilterPopover } from "./filters/BooleanFilterPopover";
+import { optionsForField, resolveFieldType } from "./filters/filter-rule-ui";
 import { MultiSelectFilterPopover } from "./filters/MultiSelectFilterPopover";
 import { TextFilterPopover } from "./filters/TextFilterPopover";
 import { SortPopover } from "./sort/SortPopover";
@@ -61,6 +64,7 @@ export function ViewFilterBar({
   const [addFilterOpen, setAddFilterOpen] = useState(false);
   const [openRuleId, setOpenRuleId] = useState<string | null>(null);
   const [openRuleRect, setOpenRuleRect] = useState<{ left: number; top: number } | null>(null);
+  const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const handledAutoOpenRuleIdRef = useRef<string | null>(null);
   const suppressCloseRuleIdRef = useRef<string | null>(null);
   const filterChipWrapRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -68,8 +72,10 @@ export function ViewFilterBar({
 
   if (!view) return null;
 
-  const visibleFilterRules = view.filters?.rules ?? [];
-  const availableFilterFields = fields.filter((field) => !visibleFilterRules.some((rule) => rule.field === field));
+  const activeFilters = view.filters ?? { topLevelRules: [], advancedRoot: null };
+  const visibleFilterRules = activeFilters.topLevelRules ?? [];
+  const advancedRoot = activeFilters.advancedRoot ?? null;
+  const availableFilterFields = fields;
   const sorts = view.sorts ?? [];
   const showSharedViewActions = !commandSaving && (dirty || viewOrderDirty);
   const currentScopeKey = `${collectionKey ?? "__unknown_collection__"}::${view.id}`;
@@ -135,10 +141,6 @@ export function ViewFilterBar({
 
   function addFilter(field: string) {
     if (!view || !field) return;
-    if (visibleFilterRules.some((rule) => rule.field === field)) {
-      setAddFilterOpen(false);
-      return;
-    }
     const fieldType = resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes);
     const nextRule = createDefaultFilterRule(field, fieldType, visibleFilterRules);
     suppressCloseRuleIdRef.current = nextRule.id;
@@ -236,6 +238,11 @@ export function ViewFilterBar({
                       if (!values?.length) recentValueCacheRef.current.delete(key);
                       else recentValueCacheRef.current.set(key, values);
                     },
+                    () => {
+                      setOpenRuleId(null);
+                      setAdvancedPanelOpen(true);
+                      onChangeFilters(mergeTopLevelRuleIntoAdvancedRoot(activeFilters, rule.id));
+                    },
                     onChangeFilters,
                   )}
                 </div>,
@@ -244,6 +251,20 @@ export function ViewFilterBar({
               : null}
           </div>
         ))}
+        {advancedRoot ? (
+          <AdvancedFilterPanel
+            filters={activeFilters}
+            advancedRoot={advancedRoot}
+            fields={fields}
+            displayTypes={displayTypes}
+            fieldViewConfigs={fieldViewConfigs}
+            fieldTypes={fieldTypes}
+            relationFilterOptions={relationFilterOptions}
+            onChangeFilters={onChangeFilters}
+            open={advancedPanelOpen}
+            onOpenChange={setAdvancedPanelOpen}
+          />
+        ) : null}
       </div>
       {showSharedViewActions ? (
         <div className="view-filter-actions">
@@ -268,11 +289,12 @@ function renderFilterPopover(
   relationFilterOptions: Record<string, MultiSelectOptionView[]>,
   cachedValues: string[] | null,
   onCachedValuesChange: (values: string[] | null) => void,
+  onMergeIntoAdvanced: (() => void) | null,
   onChangeFilters: (filters: FilterGroup) => void,
 ) {
   const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
   if (fieldType === "Checkbox") {
-    return <BooleanFilterPopover filters={filters} rule={rule} onChangeFilters={onChangeFilters} />;
+    return <BooleanFilterPopover filters={filters} rule={rule} onMergeIntoAdvanced={onMergeIntoAdvanced} onChangeFilters={onChangeFilters} />;
   }
   if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
     return (
@@ -283,44 +305,12 @@ function renderFilterPopover(
         options={optionsForField(rule.field, fieldType, fieldViewConfigs, relationFilterOptions)}
         cachedValues={cachedValues}
         onCachedValuesChange={onCachedValuesChange}
+        onMergeIntoAdvanced={onMergeIntoAdvanced}
         onChangeFilters={onChangeFilters}
       />
     );
   }
-  return <TextFilterPopover filters={filters} rule={rule} onChangeFilters={onChangeFilters} />;
-}
-
-function resolveFieldType(
-  field: string,
-  displayTypes: Record<string, FieldDisplayType>,
-  fieldViewConfigs: Record<string, FieldViewConfig>,
-  fieldTypes: Record<string, FieldDisplayType>,
-): FieldDisplayType {
-  if (fieldTypes[field] === "Relation") return "Relation";
-  return displayTypes[field] ?? fieldTypes[field] ?? fieldViewConfigs[field]?.type ?? "Text";
-}
-
-function optionsForField(
-  field: string,
-  fieldType: FieldDisplayType,
-  fieldViewConfigs: Record<string, FieldViewConfig>,
-  relationFilterOptions: Record<string, MultiSelectOptionView[]> = {},
-): MultiSelectOptionView[] {
-  if (fieldType === "Relation") {
-    return relationFilterOptions[field] ?? [];
-  }
-  const config = fieldViewConfigs[field];
-  const optionSource = fieldType === "Select" ? config?.selectOptions : config?.multiSelectOptions;
-  const configuredOptions = Object.entries(optionSource ?? {}).map(([value, option]) => ({
-    value,
-    label: option.label,
-    color: option.color,
-  }));
-  const optionByValue = new Map(configuredOptions.map((option) => [option.value, option]));
-  for (const option of relationFilterOptions[field] ?? []) {
-    if (!optionByValue.has(option.value)) optionByValue.set(option.value, option);
-  }
-  return [...optionByValue.values()];
+  return <TextFilterPopover filters={filters} rule={rule} onMergeIntoAdvanced={onMergeIntoAdvanced} onChangeFilters={onChangeFilters} />;
 }
 
 function filterChipLabel(

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   normalizeCollectionViewDraft,
+  normalizeSharedViewsConfig,
   normalizeSharedViewDraftState,
 } from "../src/view/shared-view-normalize.mjs";
 
@@ -33,4 +34,133 @@ test("shared view normalize module is browser-safe and keeps draft semantics", a
       },
     },
   });
+});
+
+test("normalizeSharedViewsConfig upgrades legacy flat filters into topLevelRules", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        views: [{
+          id: "all",
+          name: "全部",
+          type: "table",
+          query: "",
+          filters: {
+            op: "and",
+            rules: [{ id: "filter:owner", field: "owner", operator: "is", value: "player" }],
+          },
+          sorts: [],
+          hidden: [],
+          wrapped: [],
+          order: [],
+          detailOrder: [],
+          widths: {},
+        }],
+      },
+    },
+  });
+
+  assert.deepEqual(config.collections["data/runes.json:$"].items[0].view.filters, {
+    topLevelRules: [{ kind: "rule", id: "filter:owner", field: "owner", operator: "is", value: "player" }],
+    advancedRoot: null,
+  });
+});
+
+test("normalizeSharedViewsConfig upgrades legacy flat views into top-level items", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        views: [{
+          id: "all",
+          name: "全部",
+          type: "table",
+          query: "",
+          filters: { topLevelRules: [], advancedRoot: null },
+          sorts: [],
+          hidden: [],
+          wrapped: [],
+          order: [],
+          detailOrder: [],
+          widths: {},
+        }],
+      },
+    },
+  });
+
+  assert.deepEqual(config.collections["data/runes.json:$"].items, [{
+    kind: "view",
+    view: {
+      id: "all",
+      name: "全部",
+      type: "table",
+      query: "",
+      filters: { topLevelRules: [], advancedRoot: null },
+      sorts: [],
+      hidden: [],
+      wrapped: [],
+      order: [],
+      detailOrder: [],
+      widths: {},
+    },
+  }]);
+});
+
+test("normalizeSharedViewsConfig keeps group items and removes empty groups", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "damage",
+        items: [
+          {
+            kind: "group",
+            id: " combat ",
+            name: " Combat ",
+            views: [{
+              id: " damage ",
+              name: " Damage ",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            }],
+          },
+          {
+            kind: "group",
+            id: " empty ",
+            name: " Empty ",
+            views: [],
+          },
+        ],
+      },
+    },
+  });
+
+  assert.deepEqual(config.collections["data/runes.json:$"].items, [{
+    kind: "group",
+    id: "combat",
+    name: "Combat",
+    views: [{
+      id: "damage",
+      name: "Damage",
+      type: "table",
+      query: "",
+      filters: { topLevelRules: [], advancedRoot: null },
+      sorts: [],
+      hidden: [],
+      wrapped: [],
+      order: [],
+      detailOrder: [],
+      widths: {},
+    }],
+  }]);
 });

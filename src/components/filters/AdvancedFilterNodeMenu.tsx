@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { icons } from "../icons";
 
-type FilterActionMenuProps = {
+type AdvancedFilterNodeMenuProps = {
   onDelete: () => void;
-  onMergeIntoAdvanced?: (() => void) | null;
+  onDuplicate?: (() => void) | null;
+  onConvertToGroup?: (() => void) | null;
 };
 
-export function FilterActionMenu({ onDelete, onMergeIntoAdvanced = null }: FilterActionMenuProps) {
+export function AdvancedFilterNodeMenu({
+  onDelete,
+  onDuplicate = null,
+  onConvertToGroup = null,
+}: AdvancedFilterNodeMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -35,39 +40,55 @@ export function FilterActionMenu({ onDelete, onMergeIntoAdvanced = null }: Filte
         className="ghost-button icon-button filter-action-trigger"
         type="button"
         aria-expanded={open}
-        aria-label="筛选操作"
+        aria-label="高级筛选节点操作"
         onClick={() => setOpen((value) => !value)}
       >
         <icons.more size={15} />
       </button>
       {open ? (
         <div className="menu-content filter-action-menu filter-action-menu-side" role="menu">
-          {onMergeIntoAdvanced ? (
+          {onDelete ? (
             <button
-              className="menu-item"
+              className="menu-item danger"
               onClick={() => {
                 setOpen(false);
-                onMergeIntoAdvanced();
+                onDelete();
               }}
               type="button"
               role="menuitem"
             >
-              <icons.filter size={15} />
-              合并到高级筛选中
+              <icons.delete size={15} />
+              移除
             </button>
           ) : null}
-          <button
-            className="menu-item danger"
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-            type="button"
-            role="menuitem"
-          >
-            <icons.delete size={15} />
-            删除筛选
-          </button>
+          {onDuplicate ? (
+            <button
+              className="menu-item"
+              onClick={() => {
+                setOpen(false);
+                onDuplicate();
+              }}
+              type="button"
+              role="menuitem"
+            >
+              <icons.copy size={15} />
+              创建副本
+            </button>
+          ) : null}
+          {onConvertToGroup ? (
+            <button
+              className="menu-item"
+              onClick={() => {
+                setOpen(false);
+                onConvertToGroup();
+              }}
+              type="button"
+              role="menuitem"
+            >
+              <icons.nested size={15} />
+              转换成分组
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

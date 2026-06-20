@@ -157,3 +157,39 @@ test("applyViewFilters treats unsupported filter op values as AND", () => {
     ],
   }, discreteFieldTypes).map((row) => row.name), ["Fire Rune"]);
 });
+
+test("applyViewFilters matches topLevelRules and advancedRoot together", () => {
+  const rows = [
+    { owner: "player", skill_category: "general", dev_status: "草稿" },
+    { owner: "player", skill_category: "general", dev_status: "完成" },
+  ];
+
+  const filtered = applyViewFilters(rows, "", {
+    topLevelRules: [{ kind: "rule", id: "owner", field: "owner", operator: "is", value: "player" }],
+    advancedRoot: {
+      kind: "group",
+      id: "advanced-root",
+      op: "and",
+      children: [
+        { kind: "rule", id: "general", field: "skill_category", operator: "is", value: "general" },
+        { kind: "rule", id: "not-draft", field: "dev_status", operator: "is_not", value: "草稿" },
+      ],
+    },
+  }, discreteFieldTypes);
+
+  assert.deepEqual(filtered.map((row) => row.dev_status), ["完成"]);
+});
+
+test("applyViewFilters allows duplicate-field rules", () => {
+  const rows = [{ skill_category: "general" }, { skill_category: "summon" }];
+
+  const filtered = applyViewFilters(rows, "", {
+    topLevelRules: [
+      { kind: "rule", id: "a", field: "skill_category", operator: "is", value: "general" },
+      { kind: "rule", id: "b", field: "skill_category", operator: "is_not", value: "summon" },
+    ],
+    advancedRoot: null,
+  }, discreteFieldTypes);
+
+  assert.equal(filtered.length, 1);
+});

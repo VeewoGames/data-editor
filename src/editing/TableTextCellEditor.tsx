@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent } from "react";
 import { StableTextarea, StableTextInput, type StableTextInputHandle } from "./StableTextInput";
 import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./types";
 
@@ -65,6 +65,11 @@ export function TableTextCellEditor({
   useEffect(() => () => {
     onRegisterActiveEditor?.(null, handleRef.current);
   }, [onRegisterActiveEditor]);
+
+  useLayoutEffect(() => {
+    if (!autoFocus) return;
+    queueMicrotask(() => inputRef.current?.moveCaretToEnd());
+  }, [autoFocus, cellId]);
 
   return (
     <div

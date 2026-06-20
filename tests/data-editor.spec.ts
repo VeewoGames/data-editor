@@ -13,12 +13,21 @@ type SharedViewConfig = {
   name: string;
   type?: string;
   query?: string;
-  filters?: { op?: string; rules?: Array<Record<string, unknown>> } | null;
+  filters?: {
+    op?: string;
+    rules?: Array<Record<string, unknown>>;
+    topLevelRules?: Array<Record<string, unknown>>;
+    advancedRoot?: Record<string, unknown> | null;
+  } | null;
   sorts?: Array<{ id?: string; field?: string; direction?: string }>;
 };
 
+type SharedViewItemConfig =
+  | { kind: "view"; view: SharedViewConfig }
+  | { kind: "group"; id: string; name: string; views: SharedViewConfig[] };
+
 type SharedViewsConfig = {
-  collections: Record<string, { views: SharedViewConfig[]; defaultViewId: string | null }>;
+  collections: Record<string, { items?: SharedViewItemConfig[]; views?: SharedViewConfig[]; defaultViewId: string | null }>;
 };
 
 async function configureRelation(page: Page, fieldName: string, options: {
@@ -591,10 +600,131 @@ async function dragViewTab(page: Page, sourceName: string, targetName: string, p
   await page.mouse.up();
 }
 
+function topLevelViewTab(page: Page, name: string) {
+  return page.locator(".view-tabs-top-level .view-tab").filter({ hasText: name }).first();
+}
+
+function topLevelGroupTab(page: Page, name: string) {
+  return page.locator(".view-tabs-top-level .view-tab-group").filter({ hasText: name }).first();
+}
+
+function groupRowViewTab(page: Page, name: string) {
+  return page.locator(".view-tabs-group-row .view-tab").filter({ hasText: name }).first();
+}
+
+async function getTopLevelTabNames(page: Page) {
+  return page.locator(".view-tabs-top-level .view-tab").evaluateAll((tabs) => (
+    tabs.map((tab) => tab.textContent?.trim() ?? "").filter(Boolean)
+  ));
+}
+
+async function getGroupRowTabNames(page: Page) {
+  return page.locator(".view-tabs-group-row .view-tab").evaluateAll((tabs) => (
+    tabs.map((tab) => tab.textContent?.trim() ?? "").filter(Boolean)
+  ));
+}
+
+async function openTopLevelCreateMenu(page: Page) {
+  await page.locator(".view-tab-create-top-level").click();
+  await expect(page.locator(".view-tab-create-menu")).toBeVisible();
+}
+
+async function createTopLevelViewGroup(page: Page) {
+  await openTopLevelCreateMenu(page);
+  await page.locator(".view-tab-create-menu").getByRole("menuitem", { name: "创建视图组", exact: true }).click();
+}
+
+async function createTopLevelView(page: Page) {
+  await openTopLevelCreateMenu(page);
+  await page.locator(".view-tab-create-menu").getByRole("menuitem", { name: "创建视图", exact: true }).click();
+}
+
+async function createViewInExpandedGroup(page: Page) {
+  await page.locator(".view-tab-create-in-group").click();
+}
+
+async function dragViewTabToGroup(page: Page, sourceName: string, groupName: string) {
+  const sourceLocator = page.locator(".view-tab").filter({ hasText: sourceName }).first();
+  const targetLocator = topLevelGroupTab(page, groupName);
+  const source = await sourceLocator.boundingBox();
+  const target = await targetLocator.boundingBox();
+  expect(source).not.toBeNull();
+  expect(target).not.toBeNull();
+  await page.mouse.move(source!.x + source!.width / 2, source!.y + source!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(source!.x + source!.width / 2 - 12, source!.y + source!.height / 2, { steps: 3 });
+  await expect(page.locator(".view-tab-shell.dragging .view-tab")).toContainText(sourceName);
+  await page.mouse.move(target!.x + target!.width * 0.5, target!.y + target!.height / 2, { steps: 10 });
+  await expect(page.locator(".view-tab-group-shell.drop-into .view-tab-group").filter({ hasText: groupName }).first()).toBeVisible();
+  await page.mouse.up();
+}
+
+async function dragGroupedViewToTopLevel(page: Page, sourceName: string, targetName: string, placement: "before" | "after" = "before") {
+  const sourceLocator = groupRowViewTab(page, sourceName);
+  const targetShell = page.locator(".view-tabs-top-level .view-tab-shell").filter({ hasText: targetName }).first();
+  const source = await sourceLocator.boundingBox();
+  const target = await targetShell.boundingBox();
+  expect(source).not.toBeNull();
+  expect(target).not.toBeNull();
+  const targetX = placement === "before" ? target!.x + target!.width * 0.08 : target!.x + target!.width * 0.92;
+  await sourceLocator.evaluate(async (element, payload) => {
+    const node = element as HTMLElement;
+    const shared = {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+    };
+    node.dispatchEvent(new PointerEvent("pointerdown", {
+      ...shared,
+      button: 0,
+      buttons: 1,
+      clientX: payload.startX,
+      clientY: payload.startY,
+    }));
+    node.dispatchEvent(new PointerEvent("pointermove", {
+      ...shared,
+      button: 0,
+      buttons: 1,
+      clientX: payload.startX - 12,
+      clientY: payload.startY,
+    }));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    node.dispatchEvent(new PointerEvent("pointermove", {
+      ...shared,
+      button: 0,
+      buttons: 1,
+      clientX: payload.targetX,
+      clientY: payload.targetY,
+    }));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    const pointerUp = new PointerEvent("pointerup", {
+      ...shared,
+      button: 0,
+      buttons: 0,
+      clientX: payload.targetX,
+      clientY: payload.targetY,
+    });
+    node.dispatchEvent(pointerUp);
+    window.dispatchEvent(pointerUp);
+  }, {
+    startX: source!.x + source!.width / 2,
+    startY: source!.y + source!.height / 2,
+    targetX,
+    targetY: target!.y + target!.height / 2,
+  });
+}
+
 async function saveSharedViewForEveryone(page: Page, persisted: (config: SharedViewsConfig) => boolean | Promise<boolean>) {
+  if (await page.locator(".view-filter-actions").count() === 0) {
+    await page.locator(".view-tabs-filter-toggle").click();
+    await expect(page.locator(".view-filter-actions")).toBeVisible();
+  }
   const enabledSaveButtons = page.locator(".view-filter-actions .save-shared:not([disabled])");
   await expect(enabledSaveButtons.first()).toBeVisible();
-  await enabledSaveButtons.first().evaluate((element) => (element as HTMLButtonElement).click());
+  await enabledSaveButtons.first().click();
   await expect.poll(async () => persisted(await loadSharedViewsConfig(page))).toBe(true);
 }
 
@@ -716,17 +846,44 @@ async function bestEffortRestore(label: string, restore: () => Promise<void>) {
 }
 
 function getSharedView(config: SharedViewsConfig, collectionKey: string, viewId: string) {
-  return config.collections[collectionKey]?.views.find((view) => view.id === viewId);
+  return listSharedViews(config, collectionKey).find((view) => view.id === viewId);
+}
+
+function listSharedViews(config: SharedViewsConfig, collectionKey: string) {
+  const collection = config.collections[collectionKey];
+  if (!collection) return [];
+  if (Array.isArray(collection.items)) {
+    return collection.items.flatMap((item) => item.kind === "group" ? item.views : [item.view]);
+  }
+  return Array.isArray(collection.views) ? collection.views : [];
+}
+
+function listTopLevelSharedItemLabels(config: SharedViewsConfig, collectionKey: string) {
+  const collection = config.collections[collectionKey];
+  if (!collection) return [];
+  if (Array.isArray(collection.items)) {
+    return collection.items.map((item) => item.kind === "group" ? item.name : item.view.name);
+  }
+  return Array.isArray(collection.views) ? collection.views.map((view) => view.name) : [];
 }
 
 function filterValues(view: SharedViewConfig | undefined, field: string) {
-  const rule = view?.filters?.rules?.find((candidate) => candidate.field === field);
+  const flatRules = Array.isArray(view?.filters?.rules) ? view?.filters?.rules : [];
+  const topLevelRules = Array.isArray(view?.filters?.topLevelRules) ? view?.filters?.topLevelRules : [];
+  const rule = [...topLevelRules, ...flatRules].find((candidate) => candidate.field === field);
   const value = rule?.value;
   return Array.isArray(value) ? value.map((item) => String(item)) : value == null || value === "" ? [] : [String(value)];
 }
 
 function hasSort(view: SharedViewConfig | undefined, field: string, direction: string) {
   return Boolean(view?.sorts?.some((sort) => sort.field === field && sort.direction === direction));
+}
+
+function countAdvancedRules(node: Record<string, unknown> | null | undefined): number {
+  if (!node || typeof node !== "object") return 0;
+  if (node.kind === "rule") return 1;
+  if (!Array.isArray(node.children)) return 0;
+  return node.children.reduce((total, child) => total + countAdvancedRules((child ?? null) as Record<string, unknown> | null), 0);
 }
 
 test("column header menu copies the field name to the clipboard", async ({ page, context }) => {
@@ -928,7 +1085,7 @@ test("shared view filter and sort drafts persist through save and reload", async
     const defaultViewName = (await page.locator(".view-tab-shell.active .view-tab").textContent())?.trim();
     expect(defaultViewName).toBeTruthy();
 
-    await page.locator(".view-tab-create").click();
+    await createTopLevelView(page);
     await expect(page.locator(".view-tab")).toHaveCount(initialTabs.length + 1);
     const createdViewName = (await getViewTabNames(page))[initialTabs.length]!;
     await page.reload();
@@ -936,7 +1093,7 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect(page.locator(".view-tab").filter({ hasText: createdViewName })).toBeVisible();
 
     const sharedViews = await loadSharedViewsConfig(page);
-    const createdView = sharedViews.collections[collectionKey].views.find((view) => view.name === createdViewName)!;
+    const createdView = listSharedViews(sharedViews, collectionKey).find((view) => view.name === createdViewName)!;
     let activeViewName = "E2E attack";
     createdView.name = activeViewName;
     createdView.filters = {
@@ -1046,12 +1203,271 @@ test("shared view filter and sort drafts persist through save and reload", async
     await dragViewTab(page, activeViewName, defaultViewName!, "before");
     await expect.poll(async () => (await getViewTabNames(page))[0]).toBe(activeViewName);
     await expect(page.locator(".view-order-dirty")).toBeVisible();
-    await saveSharedViewForEveryone(page, (config) => config.collections[collectionKey]?.views[0]?.id === createdView.id);
+    await saveSharedViewForEveryone(page, (config) => listSharedViews(config, collectionKey)[0]?.id === createdView.id);
     await page.reload();
     await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
     await expect.poll(async () => (await getViewTabNames(page))[0]).toBe(activeViewName);
   } finally {
     await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("view groups expose dual create entry points and restore expanded group after reload", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "ignite",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+            {
+              id: "utility",
+              name: "辅助",
+              type: "table",
+              query: "shield",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+        {
+          kind: "view",
+          view: {
+            id: "support",
+            name: "支援",
+            type: "table",
+            query: "heal",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".view-tabs-top-level")).toBeVisible();
+    await expect.poll(() => getTopLevelTabNames(page)).toEqual(["全部", "战斗", "支援"]);
+    await expect(page.locator(".view-tabs-group-row")).toHaveCount(0);
+
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect.poll(() => getGroupRowTabNames(page)).toEqual(["伤害", "辅助"]);
+
+    await openTopLevelCreateMenu(page);
+    await expect(page.locator(".view-tab-create-menu").getByRole("menuitem", { name: "创建视图", exact: true })).toBeVisible();
+    await expect(page.locator(".view-tab-create-menu").getByRole("menuitem", { name: "创建视图组", exact: true })).toBeVisible();
+    await closePopoverByClickingOutside(page);
+    await expect(page.locator(".view-tab-create-menu")).not.toBeVisible();
+
+    await createTopLevelViewGroup(page);
+    await expect(topLevelGroupTab(page, "新分组")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect(groupRowViewTab(page, "新视图")).toBeVisible();
+    await expect(page.locator(".view-tab-create-in-group")).toBeVisible();
+
+    await createViewInExpandedGroup(page);
+    await expect(groupRowViewTab(page, "新视图 2")).toBeVisible();
+
+    await topLevelGroupTab(page, "战斗").click();
+    await groupRowViewTab(page, "辅助").click();
+    await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelGroupTab(page, "战斗")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect(groupRowViewTab(page, "辅助")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("view groups support dragging views into groups and back out with explicit shared save", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "ignite",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+            {
+              id: "utility",
+              name: "辅助",
+              type: "table",
+              query: "shield",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+        {
+          kind: "view",
+          view: {
+            id: "support",
+            name: "支援",
+            type: "table",
+            query: "heal",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await dragViewTabToGroup(page, "全部", "战斗");
+    await expect(page.locator(".view-order-dirty")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect(groupRowViewTab(page, "全部")).toBeVisible();
+    await expect(topLevelViewTab(page, "全部")).toHaveCount(0);
+
+    await saveSharedViewForEveryone(page, (config) => {
+      const collection = config.collections[collectionKey];
+      if (!collection?.items?.length) return false;
+      const labels = listTopLevelSharedItemLabels(config, collectionKey);
+      const combatGroup = collection.items.find((item) => item.kind === "group" && item.id === "combat");
+      return !labels.includes("全部")
+        && combatGroup?.kind === "group"
+        && combatGroup.views.map((view) => view.name).includes("全部");
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(groupRowViewTab(page, "全部")).toBeVisible();
+    await expect(topLevelViewTab(page, "全部")).toHaveCount(0);
+
+    await dragGroupedViewToTopLevel(page, "全部", "支援", "before");
+    await expect(page.locator(".view-order-dirty")).toBeVisible();
+    await expect(topLevelViewTab(page, "全部")).toBeVisible();
+    await expect(groupRowViewTab(page, "全部")).toHaveCount(0);
+
+    await saveSharedViewForEveryone(page, (config) => {
+      const collection = config.collections[collectionKey];
+      if (!collection?.items?.length) return false;
+      const labels = listTopLevelSharedItemLabels(config, collectionKey);
+      const combatGroup = collection.items.find((item) => item.kind === "group" && item.id === "combat");
+      return labels.includes("全部")
+        && combatGroup?.kind === "group"
+        && !combatGroup.views.map((view) => view.name).includes("全部");
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelViewTab(page, "全部")).toBeVisible();
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(groupRowViewTab(page, "全部")).toHaveCount(0);
+  } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
     if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
   }
@@ -1096,7 +1512,7 @@ test("duplicating a shared view copies the current filter snapshot and current u
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "fire" })).toBeVisible();
 
     const sharedViews = await loadSharedViewsConfig(page);
-    const duplicatedView = sharedViews.collections[collectionKey].views.find((view) => view.name === "全部 副本");
+    const duplicatedView = listSharedViews(sharedViews, collectionKey).find((view) => view.name === "全部 副本");
     expect(duplicatedView).toBeTruthy();
     expect(filterValues(duplicatedView, "rune_id")).toContain("fire");
     await expect.poll(async () => page.evaluate((viewId) => localStorage.getItem(`data-editor:data/runes.json:$:${viewId}:description:hidden`), duplicatedView!.id)).toBe("1");
@@ -1175,12 +1591,16 @@ test("multi-select filter popover supports operator text, selected chips, search
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("spell");
   await expect(tableRows(page)).toHaveCount(1);
 
-  await filterPopover.locator('.filter-selected-chip-list .selected-chip-remove[aria-label="绉婚櫎 spell"]').click();
+  const selectedChipRemove = filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" }).locator(".selected-chip-remove").first();
+  await expect(selectedChipRemove).toHaveText("");
+  await expect(selectedChipRemove).toHaveCSS("border-top-width", "0px");
+
+  await selectedChipRemove.click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toHaveCount(0);
   await expect(tableRows(page)).toHaveCount(2);
 });
 
-test("add filter menu hides fields that already have a rule in the current view", async ({ page }) => {
+test("add filter menu keeps fields available even when the current view already has same-field rules", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -1194,8 +1614,450 @@ test("add filter menu hides fields that already have a rule in the current view"
 
   await page.getByRole("button", { name: "+ 筛选" }).click();
   await expect(page.locator(".add-filter-popover-content")).toBeVisible();
-  await expect(page.locator(".add-filter-field-option").filter({ hasText: "features" })).toHaveCount(0);
+  await expect(page.locator(".add-filter-field-option").filter({ hasText: "features" })).toHaveCount(1);
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toHaveCount(2);
+});
+
+test("advanced filter keeps top-level chips active and hides merged rule from top row", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "attack" }).click();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toHaveCount(1);
+
+  await page.locator(".filter-action-trigger").click();
+  await expect(page.locator(".filter-action-menu")).toBeVisible();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toHaveCount(0);
+  await expect(page.locator(".advanced-filter-chip")).toBeVisible();
+  await expect(page.locator(".advanced-filter-chip")).toContainText("1 条规则");
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+  await expect(tableRows(page)).toHaveCount(1);
+});
+
+test("advanced filter panel switches root logic and changes row results", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await expect(tableRows(page)).toHaveCount(1);
+
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+
+  await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-add-button').filter({ hasText: "添加筛选规则" }).click();
+  await expect(page.locator(".advanced-filter-rule")).toHaveCount(2);
+
+  const secondRule = page.locator(".advanced-filter-rule").nth(1);
+  await secondRule.locator(".advanced-filter-field-trigger").click();
+  await page.locator(".advanced-filter-field-content .menu-item").filter({ hasText: "category" }).click();
+  await secondRule.locator(".advanced-filter-value-trigger").click();
+  await page.locator(".advanced-filter-value-popover .advanced-filter-option-list .filter-option-row").filter({ hasText: "attack" }).click();
+  await expect(tableRows(page)).toHaveCount(0);
+
+  await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-logic').click();
+  await page.locator(".advanced-filter-logic-content .menu-item").filter({ hasText: "或" }).click();
+  await expect(tableRows(page)).toHaveCount(2);
+});
+
+test("advanced filter panel supports nested groups and blocks creating level-4 groups", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "attack" }).click();
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+
+  await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-add-button').filter({ hasText: "添加筛选分组" }).click();
+  await expect(page.locator('.advanced-filter-group[data-advanced-depth="2"]')).toHaveCount(1);
+
+  await page.locator('.advanced-filter-group[data-advanced-depth="2"] .advanced-filter-add-button').filter({ hasText: "添加筛选分组" }).click();
+  await expect(page.locator('.advanced-filter-group[data-advanced-depth="3"]')).toHaveCount(1);
+  await expect(page.locator('.advanced-filter-group[data-advanced-depth="3"] .advanced-filter-add-button').filter({ hasText: "添加筛选分组" })).toBeDisabled();
+});
+
+test("advanced filter discrete rule editor supports search, checkbox rows, and selected chips", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+
+  const advancedRule = page.locator(".advanced-filter-rule").first();
+  await advancedRule.locator(".advanced-filter-value-trigger").click();
+  const selectedChips = page.locator(".advanced-filter-value-popover .advanced-filter-selected-chip-list .selected-chip");
+  const searchInput = page.locator(".advanced-filter-value-popover .advanced-filter-selected-chip-list .advanced-filter-value");
+  const optionList = page.locator(".advanced-filter-value-popover .advanced-filter-option-list");
+
+  await expect(selectedChips.filter({ hasText: "spell" })).toBeVisible();
+  expect(await optionList.locator(".filter-option-row input[type='checkbox']").count()).toBeGreaterThan(0);
+  await searchInput.fill("att");
+  await expect(optionList.locator(".filter-option-row").filter({ hasText: "attack" })).toBeVisible();
+  await expect(optionList.locator(".filter-option-row").filter({ hasText: "spell" })).toHaveCount(0);
+  await optionList.locator(".filter-option-row").filter({ hasText: "attack" }).click();
+  await expect(selectedChips.filter({ hasText: "attack" })).toBeVisible();
+  await expect(tableRows(page)).toHaveCount(2);
+});
+
+test("advanced filter rule actions support duplicate and convert-to-group", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+
+  await page.locator(".advanced-filter-rule").first().locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "创建副本" }).click();
+  await expect(page.locator(".advanced-filter-rule")).toHaveCount(2);
+
+  await page.locator(".advanced-filter-rule").first().locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "转换成分组" }).click();
+  await expect(page.locator('.advanced-filter-group[data-advanced-depth="2"]')).toHaveCount(1);
+  await expect(page.locator('.advanced-filter-group[data-advanced-depth="2"] .advanced-filter-rule')).toHaveCount(1);
+});
+
+test("advanced filter survives save for everyone and reload", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const collectionKey = "data/e2e_select.json:$";
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+
+  await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-add-button').filter({ hasText: "添加筛选规则" }).click();
+  const secondRule = page.locator(".advanced-filter-rule").nth(1);
+  await secondRule.locator(".advanced-filter-field-trigger").click();
+  await page.locator(".advanced-filter-field-content .menu-item").filter({ hasText: "category" }).click();
+  await secondRule.locator(".advanced-filter-value-trigger").click();
+  await page.locator(".advanced-filter-value-popover .advanced-filter-option-list .filter-option-row").filter({ hasText: "attack" }).click();
+  await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-logic').click();
+  await page.locator(".advanced-filter-logic-content .menu-item").filter({ hasText: "或" }).click();
+
+  await page.locator(".view-filter-actions .save-shared").click();
+  await expect(page.locator(".view-filter-actions .save-shared")).toHaveCount(0);
+
+  await expect.poll(async () => {
+    const savedView = getSharedView(await loadSharedViewsConfig(page), collectionKey, "all");
+    return {
+      advancedRuleCount: countAdvancedRules((savedView?.filters?.advancedRoot ?? null) as Record<string, unknown> | null),
+      topLevelRuleCount: Array.isArray(savedView?.filters?.topLevelRules) ? savedView.filters.topLevelRules.length : 0,
+      rootOp: typeof savedView?.filters?.advancedRoot === "object" && savedView?.filters?.advancedRoot
+        ? String((savedView.filters.advancedRoot as Record<string, unknown>).op ?? "")
+        : "",
+    };
+  }).toEqual({
+    advancedRuleCount: 2,
+    topLevelRuleCount: 0,
+    rootOp: "or",
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".advanced-filter-chip")).toContainText("2 条规则");
+  await page.locator(".advanced-filter-chip").click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+  await expect(page.locator(".advanced-filter-rule")).toHaveCount(2);
+});
+
+test("advanced filter draft persists through reload without save for everyone", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+
+  await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-add-button').filter({ hasText: "添加筛选规则" }).click();
+  const secondRule = page.locator(".advanced-filter-rule").nth(1);
+  await secondRule.locator(".advanced-filter-field-trigger").click();
+  await page.locator(".advanced-filter-field-content .menu-item").filter({ hasText: "category" }).click();
+  await secondRule.locator(".advanced-filter-value-trigger").click();
+  await page.locator(".advanced-filter-value-popover .advanced-filter-option-list .filter-option-row").filter({ hasText: "attack" }).click();
+  await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-logic').click();
+  await page.locator(".advanced-filter-logic-content .menu-item").filter({ hasText: "或" }).click();
+  await expect(page.locator(".advanced-filter-chip")).toContainText("2 条规则");
+  await expect(tableRows(page)).toHaveCount(2);
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".advanced-filter-chip")).toContainText("2 条规则");
+  await page.locator(".advanced-filter-chip").click();
+  await expect(page.locator(".advanced-filter-panel")).toBeVisible();
+  await expect(page.locator(".advanced-filter-rule")).toHaveCount(2);
+  await expect(tableRows(page)).toHaveCount(2);
+});
+
+test("ordinary filter draft persists through reload in selected profile mode", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "filter_profile_reload",
+        profile: {
+          sidebarWidth: null,
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "filter_profile_reload");
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(1);
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(1);
+});
+
+test("rapid ordinary filter value updates persist the latest profile snapshot", async ({ page }) => {
+  let storedProfile: Record<string, unknown> = {
+    sidebarWidth: null,
+    detailPanelWidth: null,
+    detailDocumentPanelOpen: null,
+    detailDocumentPanelWidth: null,
+    fileOrder: [],
+    sidebarTree: {
+      childOrderByParent: {},
+      expandedNodeIds: [],
+    },
+    lastActiveViews: {},
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    viewLayouts: {},
+    collections: {},
+  };
+  let saveCount = 0;
+
+  await page.route("**/api/view-profiles?*", async (route) => {
+    await route.fulfill({ json: ["filter_profile_race"] });
+  });
+  await page.route("**/api/view-profile?name=filter_profile_race*", async (route) => {
+    await route.fulfill({ json: storedProfile });
+  });
+  await page.route("**/api/view-profile", async (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}");
+    saveCount += 1;
+    if (saveCount === 1) await page.waitForTimeout(300);
+    storedProfile = JSON.parse(JSON.stringify(body.profile ?? {}));
+    await route.fulfill({
+      json: {
+        ok: true,
+        name: body.name ?? "filter_profile_race",
+        path: "tests/.scratch/.data-editor/view-configs/filter_profile_race.json",
+      },
+    });
+  });
+
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "filter_profile_race",
+        profile: {
+          sidebarWidth: null,
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "filter_profile_race");
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await expect(page.locator(".toolbar-profile-select-trigger")).toContainText("filter_profile_race");
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+
+  await expect.poll(() => (
+    storedProfile.viewDrafts as Record<string, Record<string, { filters?: { topLevelRules?: Array<{ value?: string[] }> } }>>
+  )?.["data/e2e_select.json:$"]?.all?.filters?.topLevelRules?.[0]?.value?.join(",") ?? "").toBe("spell");
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category 包含 spell" })).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(1);
+});
+
+test("clearing inherited filters persists through reload without save for everyone", async ({ page }) => {
+  await page.goto("/");
+  const collectionKey = "data/e2e_select.json:$";
+  const originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    const sharedViews = await loadSharedViewsConfig(page);
+    sharedViews.collections[collectionKey] = {
+      defaultViewId: "all",
+      views: [{
+        id: "all",
+        name: "全部",
+        type: "table",
+        query: "",
+        filters: {
+          topLevelRules: [
+            { kind: "rule", id: "rule:category", field: "category", operator: "contains", value: ["spell"] },
+          ],
+          advancedRoot: null,
+        },
+        sorts: [],
+        hidden: [],
+        wrapped: [],
+        order: [],
+        detailOrder: [],
+        widths: {},
+      }],
+    };
+    await saveSharedViewsConfig(page, sharedViews);
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(1);
+    await expect(tableRows(page)).toHaveCount(1);
+
+    await page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" }).click();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-action-trigger").click();
+    await page.locator(".filter-action-menu .menu-item").filter({ hasText: "删除筛选" }).click();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(0);
+    await expect(tableRows(page)).toHaveCount(3);
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(0);
+    await expect(tableRows(page)).toHaveCount(3);
+  } finally {
+    await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("duplicate field rules survive save for everyone and reload", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(1);
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await expect(page.locator(".filter-popover-content")).toBeVisible();
+  await page.locator(".filter-select-trigger").click();
+  await page.locator('.filter-select-content [data-filter-operator="does_not_contain"]').click();
+  await page.locator(".filter-option-row").filter({ hasText: "attack" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(2);
+
+  await page.locator(".view-filter-actions .save-shared").click();
+  await expect(page.locator(".view-filter-actions .save-shared")).toHaveCount(0);
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(2);
 });
 
 test("select filter restores cached values after empty operators hide the value area", async ({ page }) => {
@@ -1417,23 +2279,26 @@ test("relation filter keeps missing selected keys visible with fallback labels",
   if (!sharedViews.collections[collectionKey]) {
     sharedViews.collections[collectionKey] = {
       defaultViewId: "all",
-      views: [{
-        id: "all",
-        name: "全部",
-        type: "table",
-        query: "",
-        filters: { op: "and", rules: [] },
-        sorts: [],
-        hidden: [],
-        wrapped: [],
-        order: [],
-        detailOrder: [],
-        widths: {},
+      items: [{
+        kind: "view",
+        view: {
+          id: "all",
+          name: "全部",
+          type: "table",
+          query: "",
+          filters: { op: "and", rules: [] },
+          sorts: [],
+          hidden: [],
+          wrapped: [],
+          order: [],
+          detailOrder: [],
+          widths: {},
+        },
       }],
     };
   }
   const defaultViewId = sharedViews.collections[collectionKey]?.defaultViewId;
-  const activeView = sharedViews.collections[collectionKey]?.views.find((view) => view.id === defaultViewId) ?? sharedViews.collections[collectionKey]?.views[0];
+  const activeView = listSharedViews(sharedViews, collectionKey).find((view) => view.id === defaultViewId) ?? listSharedViews(sharedViews, collectionKey)[0];
   expect(activeView).toBeTruthy();
   activeView!.filters = {
     op: "and",
@@ -3007,6 +3872,72 @@ test("table text edit mode keeps the active editor focused while typing", async 
 
   await expect(editor).toBeVisible();
   await expect(editor).toBeFocused();
+});
+
+test("table text edit mode places the caret at the end on activation", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "编辑" }).click();
+
+  const cell = tableCell(page, 0, "description");
+  const expectedText = await cell.locator('[data-cell-role="content"] span').innerText();
+
+  await cell.locator('[data-cell-role="content"]').click();
+  const editor = cell.locator(".table-text-cell-editor input");
+  await expect(editor).toBeVisible();
+  await expect(editor).toBeFocused();
+
+  const selection = await editor.evaluate((element) => {
+    const input = element as HTMLInputElement;
+    return {
+      valueLength: input.value.length,
+      selectionStart: input.selectionStart,
+      selectionEnd: input.selectionEnd,
+    };
+  });
+
+  expect(selection.valueLength).toBe(expectedText.length);
+  expect(selection.selectionStart).toBe(selection.valueLength);
+  expect(selection.selectionEnd).toBe(selection.valueLength);
+});
+
+test("wrapped table text edit mode places the caret at the end on activation", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:wrapped", "1");
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:width", "160");
+  });
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "编辑" }).click();
+
+  const cell = tableCell(page, 0, "description");
+  const expectedText = await cell.locator('[data-cell-role="content"] span').innerText();
+
+  await cell.locator('[data-cell-role="content"]').click();
+  const editor = cell.locator(".table-text-cell-editor textarea");
+  await expect(editor).toBeVisible();
+  await expect(editor).toBeFocused();
+
+  const selection = await editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    return {
+      valueLength: textarea.value.length,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    };
+  });
+
+  expect(selection.valueLength).toBe(expectedText.length);
+  expect(selection.selectionStart).toBe(selection.valueLength);
+  expect(selection.selectionEnd).toBe(selection.valueLength);
 });
 
 test("wrapped table text editor expands beyond the base cell height while editing", async ({ page }) => {

@@ -51,6 +51,7 @@ export function emptyViewProfile() {
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
+    structureDrafts: {},
     viewLayouts: {},
     collections: {},
   };
@@ -80,6 +81,7 @@ function normalizeViewProfile(value) {
     lastActiveViews: sharedDrafts.lastActiveViews,
     viewDrafts: sharedDrafts.viewDrafts,
     viewOrderDrafts: sharedDrafts.viewOrderDrafts,
+    structureDrafts: sharedDrafts.structureDrafts,
     ...(appearance ? { appearance } : {}),
     viewLayouts,
     collections,
@@ -252,6 +254,7 @@ function serializeViewProfile(profile) {
     lastActiveViews: normalized.lastActiveViews,
     viewDrafts: normalized.viewDrafts,
     viewOrderDrafts: normalized.viewOrderDrafts,
+    structureDrafts: normalized.structureDrafts,
     ...(normalized.appearance ? { appearance: normalized.appearance } : {}),
     viewLayouts: normalized.viewLayouts,
   };
