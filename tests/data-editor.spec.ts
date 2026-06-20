@@ -1522,6 +1522,109 @@ test("duplicating a shared view copies the current filter snapshot and current u
   }
 });
 
+test("duplicating a view group copies child view snapshots and the current user's local layouts", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/runes.json:$:support:description:hidden", "1");
+      localStorage.setItem("data-editor:data/runes.json:$:support:__order", "rune_name,description,description_zh");
+    });
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "support",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              id: "support",
+              name: "辅助",
+              type: "table",
+              query: "shield",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "ignite",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect(groupRowViewTab(page, "辅助")).toBeVisible();
+
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+    await page.locator(".view-tab-menu-item").filter({ hasText: "复制组" }).click();
+
+    await expect(topLevelGroupTab(page, "战斗 副本")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+
+    const sharedViews = await loadSharedViewsConfig(page);
+    const duplicatedGroup = sharedViews.collections[collectionKey]?.items?.find((item) => item.kind === "group" && item.name === "战斗 副本");
+    expect(duplicatedGroup && duplicatedGroup.kind === "group").toBeTruthy();
+    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => view.name) : []).toEqual(["辅助", "伤害"]);
+    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => view.query) : []).toEqual(["shield", "ignite"]);
+
+    const duplicatedSupportId = duplicatedGroup?.kind === "group"
+      ? duplicatedGroup.views.find((view) => view.name === "辅助")?.id
+      : null;
+    expect(duplicatedSupportId).toBeTruthy();
+    await expect.poll(async () => page.evaluate((viewId) => localStorage.getItem(`data-editor:data/runes.json:$:${viewId}:description:hidden`), duplicatedSupportId)).toBe("1");
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
 test("multi-select filter popover uses shared shell and scroll section", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -6999,6 +7102,34 @@ test("single transient network failure does not trigger recovery", async ({ page
   expect(healthCalls).toBeGreaterThanOrEqual(2);
   expect(bridgeHealthCalls).toBe(0);
   expect(reopenCalls).toBe(0);
+});
+
+test("autosave clears stale error state after a later successful save", async ({ page }) => {
+  let saveCalls = 0;
+
+  await page.route("**/api/save", async (route) => {
+    saveCalls += 1;
+    if (saveCalls === 1) {
+      await route.abort("failed");
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+
+  const nameInput = page.locator(".detail-panel.primary .detail-input").first();
+  await nameInput.fill("Dirty name");
+  await expect(page.locator(".dirty-pill")).toContainText("保存失败");
+  await expect(page.locator(".status-text")).toContainText("Failed to fetch");
+
+  await nameInput.fill("Dirty name recovered");
+  await waitForAutosaveIdle(page);
+  await expect(page.locator(".dirty-pill")).toHaveCount(0);
+  await expect(page.locator(".status-text")).toHaveCount(0);
+  expect(saveCalls).toBeGreaterThanOrEqual(2);
 });
 
 test("consecutive health failures trigger recovery and reload when there are no unsaved changes", async ({ page }) => {

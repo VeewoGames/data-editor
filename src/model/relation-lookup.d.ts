@@ -6,6 +6,8 @@ export declare function buildRelationLookupState(input: {
   relations: Record<string, RelationConfig>;
   activeFilePath?: string | null | undefined;
   activeModel?: DocumentModel | null | undefined;
+  sourceFilePath?: string | null | undefined;
+  sourceCollectionPath?: string | null | undefined;
   loadDocument: (path: string) => Promise<DocumentModel>;
 }): Promise<{
   relationIndexes: Record<string, Set<string> | null>;

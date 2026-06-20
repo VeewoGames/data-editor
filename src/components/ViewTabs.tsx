@@ -11,6 +11,7 @@ export type ViewTabsProps = {
   onCreateViewGroup: () => void;
   onCreateViewInGroup: (groupId: string) => void;
   onRenameGroup: (groupId: string, name: string) => void;
+  onDuplicateGroup: (groupId: string) => void;
   onDeleteGroup: (groupId: string) => void;
   onRenameView: (viewId: string, name: string) => void;
   onDeleteView: (viewId: string) => void;
@@ -61,6 +62,7 @@ export function ViewTabs({
   onCreateViewGroup,
   onCreateViewInGroup,
   onRenameGroup,
+  onDuplicateGroup,
   onDeleteGroup,
   onRenameView,
   onDeleteView,
@@ -551,6 +553,18 @@ export function ViewTabs({
                           >
                             <icons.addField size={20} />
                             <span>在组内创建视图</span>
+                          </button>
+                          <button
+                            className="view-tab-menu-item"
+                            type="button"
+                            onClick={() => {
+                              setOpenMenuGroupId(null);
+                              onDuplicateGroup(item.id);
+                            }}
+                            role="menuitem"
+                          >
+                            <icons.addField size={20} />
+                            <span>复制组</span>
                           </button>
                           <div className="view-tab-menu-separator" />
                           <button className="view-tab-menu-item danger" type="button" onClick={() => handleDeleteGroup(item.id, item.name)} role="menuitem">

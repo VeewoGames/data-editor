@@ -716,6 +716,7 @@ test("ViewTabs and App block shared view draft mutations while command saving", 
     "handleSelectSharedView",
     "handleCreateSharedView",
     "handleDuplicateSharedView",
+    "handleDuplicateSharedViewGroup",
     "handleRenameSharedView",
     "handleDeleteSharedView",
     "handleReorderSharedViews",
@@ -862,6 +863,26 @@ test("duplicating a shared view copies the current user's personal layout and on
   assert.doesNotMatch(duplicateSection, /\[result\.view\.id\]:/);
 });
 
+test("duplicating a shared view group clones the merged snapshot, drafts, and layouts before focusing the new group", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const duplicateSection = appSource.slice(
+    appSource.indexOf("async function handleDuplicateSharedViewGroup"),
+    appSource.indexOf("async function handleRenameSharedView"),
+  );
+
+  assert.match(duplicateSection, /resolvedCollectionViews\.topLevelItems/);
+  assert.match(duplicateSection, /mergeSharedViewWithDraft/);
+  assert.match(duplicateSection, /duplicateViewGroupConfig/);
+  assert.match(duplicateSection, /sourceToTargetViewIdMap/);
+  assert.match(duplicateSection, /duplicatedViewDraftsById/);
+  assert.match(duplicateSection, /structuredClone\(sourceDraft\)/);
+  assert.match(duplicateSection, /copyViewLayoutState/);
+  assert.match(duplicateSection, /let nextProfile = draftProfile;/);
+  assert.match(duplicateSection, /profile: nextProfile/);
+  assert.match(duplicateSection, /expandedGroupId: result\.group\.id/);
+  assert.match(duplicateSection, /setStatus\(layoutCopyFailed \? "视图组已复制，但部分布局复制失败" : "已复制视图组"\)/);
+});
+
 test("ViewTabs and ViewFilterBar expose shared view controls in the expected rows", async () => {
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
   const toolbarSource = await readFile(new URL("../src/components/Toolbar.tsx", import.meta.url), "utf8");
@@ -906,10 +927,12 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /onCreateViewGroup/);
   assert.match(viewTabsSource, /onCreateViewInGroup/);
   assert.match(viewTabsSource, /onRenameGroup/);
+  assert.match(viewTabsSource, /onDuplicateGroup/);
   assert.match(viewTabsSource, /onDeleteGroup/);
   assert.match(viewTabsSource, /重命名组/);
   assert.match(viewTabsSource, /删除组/);
   assert.match(viewTabsSource, /在组内创建视图/);
+  assert.match(viewTabsSource, /复制组/);
 
   assert.match(toolbarSource, /<ExpandableSearch className="search-box"/);
   assert.match(toolbarSource, /toolbar-profile-picker/);
@@ -938,6 +961,7 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(appSource, /onCreateViewGroup=\{handleCreateSharedViewGroup\}/);
   assert.match(appSource, /onCreateViewInGroup=\{handleCreateSharedViewInGroup\}/);
   assert.match(appSource, /onRenameGroup=\{handleRenameSharedViewGroup\}/);
+  assert.match(appSource, /onDuplicateGroup=\{handleDuplicateSharedViewGroup\}/);
   assert.match(appSource, /onDeleteGroup=\{handleDeleteSharedViewGroup\}/);
 
   assert.match(viewTabsSource, /topLevelItems:/);

@@ -7,6 +7,8 @@ import { buildRelationIndex } from "../validation.mjs";
  *   relations: Record<string, import("./viewConfig").RelationConfig>;
  *   activeFilePath?: string | null;
  *   activeModel?: import("./documentModel").DocumentModel | null;
+ *   sourceFilePath?: string | null;
+ *   sourceCollectionPath?: string | null;
  *   loadDocument: (path: string) => Promise<import("./documentModel").DocumentModel>;
  * }} input
  * @returns {Promise<{
@@ -18,11 +20,13 @@ export async function buildRelationLookupState({
   relations,
   activeFilePath = null,
   activeModel = null,
+  sourceFilePath = null,
+  sourceCollectionPath = null,
   loadDocument,
 }) {
   const relationIndexes = {};
   const relationOptions = {};
-  for (const [relationKey, target] of Object.entries(relations ?? {})) {
+  for (const [relationKey, target] of Object.entries(filterRelationsForSource(relations, sourceFilePath, sourceCollectionPath))) {
     try {
       const reference = activeFilePath && activeModel && target.targetFile === activeFilePath
         ? activeModel
@@ -41,4 +45,12 @@ export async function buildRelationLookupState({
     relationIndexes,
     relationOptions,
   };
+}
+
+function filterRelationsForSource(relations, sourceFilePath, sourceCollectionPath) {
+  if (!sourceFilePath || !sourceCollectionPath) return relations ?? {};
+  const prefix = `${sourceFilePath}:${sourceCollectionPath}:`;
+  return Object.fromEntries(
+    Object.entries(relations ?? {}).filter(([relationKey]) => relationKey.startsWith(prefix)),
+  );
 }

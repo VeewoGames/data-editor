@@ -1,5 +1,6 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
+import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
 
 export const recoverableRequestEventName = "data-editor:recoverable-request";
 const defaultRecoveryBridgePort = 8791;
@@ -262,7 +263,6 @@ export async function loadViewProfile(name: string, projectId?: string | null): 
 export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null) {
   return fetchJson("/api/view-profile", {
     method: "POST",
-    keepalive: true,
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ projectId, name, profile }),
   });
@@ -325,12 +325,29 @@ type FetchJsonOptions = {
   reportRecoverableRequest?: boolean;
 };
 
+function isAutosaveDebugRequest(url: string, options?: RequestInit) {
+  const method = (options?.method ?? "GET").toUpperCase();
+  if (method !== "POST") return false;
+  return url === "/api/save" || url === "/api/view-config" || url === "/api/view-profile";
+}
+
 async function fetchJson(url: string, options?: RequestInit, fetchOptions: FetchJsonOptions = {}) {
   const { reportRecoverableRequest = true } = fetchOptions;
+  const autosaveDebugRequest = isAutosaveDebugRequest(url, options);
+  const requestMethod = (options?.method ?? "GET").toUpperCase();
   let res: Response;
   try {
     res = await fetch(url, options);
   } catch (error) {
+    if (autosaveDebugRequest) {
+      recordWindowAutosaveDebugEvent({
+        kind: "request",
+        method: requestMethod,
+        status: "failure",
+        url,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
     if (reportRecoverableRequest && typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent<RecoverableRequestEventDetail>(recoverableRequestEventName, {
@@ -353,6 +370,15 @@ async function fetchJson(url: string, options?: RequestInit, fetchOptions: Fetch
         },
       }),
     );
+  }
+  if (autosaveDebugRequest) {
+    recordWindowAutosaveDebugEvent({
+      kind: "request",
+      method: requestMethod,
+      status: res.ok ? "success" : "failure",
+      url,
+      message: res.ok ? undefined : `HTTP ${res.status}`,
+    });
   }
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);

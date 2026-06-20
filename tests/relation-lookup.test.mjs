@@ -54,3 +54,39 @@ test("buildRelationLookupState returns null/empty when target documents are miss
   assert.equal(result.relationIndexes["memory://items.json:$:target_id"], null);
   assert.deepEqual(result.relationOptions["memory://items.json:$:target_id"], []);
 });
+
+test("buildRelationLookupState ignores relations from other source collections", async () => {
+  const loadedPaths = [];
+
+  const result = await buildRelationLookupState({
+    relations: {
+      "memory://traits.json:$:keyword_id": {
+        targetFile: "memory://keywords.json",
+        targetCollection: "$",
+        targetKey: "id",
+        mode: "single",
+        allowMissing: false,
+        titleFields: ["name"],
+      },
+      "memory://prototypes.json:$:candidate_id": {
+        targetFile: "memory://removed.json",
+        targetCollection: "$",
+        targetKey: "id",
+        mode: "single",
+        allowMissing: false,
+        titleFields: ["name"],
+      },
+    },
+    sourceFilePath: "memory://traits.json",
+    sourceCollectionPath: "$",
+    loadDocument: async (path) => {
+      loadedPaths.push(path);
+      return buildDocumentModel([{ id: "kw-1", name: "Keyword" }], "json", path);
+    },
+  });
+
+  assert.deepEqual(loadedPaths, ["memory://keywords.json"]);
+  assert.ok(result.relationIndexes["memory://traits.json:$:keyword_id"] instanceof Set);
+  assert.equal(Object.hasOwn(result.relationIndexes, "memory://prototypes.json:$:candidate_id"), false);
+  assert.equal(Object.hasOwn(result.relationOptions, "memory://prototypes.json:$:candidate_id"), false);
+});

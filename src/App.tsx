@@ -81,6 +81,7 @@ import type { BacklinkGridColumn } from "./model/backlinkGrid";
 import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RealFieldType, RelationConfig } from "./model/viewConfig";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
 import { normalizeFileOrder } from "./file-order.mjs";
+import { recordWindowAutosaveDebugEvent } from "./autosave-debug.mjs";
 import {
   buildSelectedDocumentFields,
   findPreferredActiveDocumentField,
@@ -163,6 +164,7 @@ import {
   createViewGroupConfig,
   createViewInGroupConfig,
   draftSharedViewStructure,
+  duplicateViewGroupConfig,
   deleteViewGroupConfig,
   renameViewGroupConfig,
   resolveSharedViewStructure,
@@ -619,8 +621,14 @@ export function App() {
         dirtyDomains: collectAutosaveDirtyDomains(),
       }),
       flush: async (reason, snapshot) => flushAutosaveTargets(reason, snapshot.dirtyDomains),
-      onStatusChange: (nextState) => {
+      onStatusChange: (nextState, details) => {
         setAutosaveState(nextState);
+        recordWindowAutosaveDebugEvent({
+          kind: "state",
+          state: nextState,
+          dirtyDomains: details.dirtyDomains,
+          errorMessage: details.errorMessage ?? undefined,
+        });
       },
     }),
     [],
@@ -1416,6 +1424,8 @@ export function App() {
       relations: config.relations,
       activeFilePath: selectedPath,
       activeModel: model,
+      sourceFilePath: selectedPath,
+      sourceCollectionPath: collectionPath,
       loadDocument: (path: string) => loadDocument(path, activeProjectId),
     });
     if (requestId !== relationIndexRequestRef.current) return;
@@ -3375,6 +3385,109 @@ export function App() {
     }
   }
 
+  async function handleDuplicateSharedViewGroup(groupId: string) {
+    if (commandSaving || !activeCollectionKey || !selectedPath) return;
+    const sourceGroup = resolvedCollectionViews.topLevelItems.find((item) => item.kind === "group" && item.id === groupId);
+    if (!sourceGroup || sourceGroup.kind !== "group" || sourceGroup.views.length === 0) return;
+    const current = currentSharedViewDraftState();
+    const currentCollectionDrafts = current.viewDrafts?.[activeCollectionKey] ?? {};
+    const resolvedGroupSnapshot = {
+      kind: "group" as const,
+      id: sourceGroup.id,
+      name: sourceGroup.name,
+      views: sourceGroup.views.map((view) => mergeSharedViewWithDraft(view, currentCollectionDrafts[view.id]) as CollectionView),
+    };
+    setCommandSaving(true);
+    setStatus("");
+    try {
+      const result = duplicateViewGroupConfig({
+        sharedViewsConfig,
+        collectionKey: activeCollectionKey,
+        groupId,
+        resolvedTopLevelItems: resolvedCollectionViews.topLevelItems,
+        resolvedGroupSnapshot,
+      });
+      if (!result.group || !result.firstViewId) {
+        setStatus("无法复制当前视图组");
+        return;
+      }
+      const nextConfig = result.config as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+
+      const duplicatedViewDraftsById: Record<string, Partial<CollectionView>> = {};
+      for (const [sourceViewId, targetViewId] of Object.entries(result.sourceToTargetViewIdMap)) {
+        const sourceDraft = currentCollectionDrafts[sourceViewId];
+        if (!sourceDraft) continue;
+        duplicatedViewDraftsById[targetViewId] = structuredClone(sourceDraft) as Partial<CollectionView>;
+      }
+      updateSharedViewDraftState({
+        lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.firstViewId },
+        viewDrafts: {
+          ...current.viewDrafts,
+          [activeCollectionKey]: {
+            ...(current.viewDrafts?.[activeCollectionKey] ?? {}),
+            ...duplicatedViewDraftsById,
+          },
+        },
+        viewOrderDrafts: { ...current.viewOrderDrafts },
+        structureDrafts: { ...current.structureDrafts },
+      });
+
+      let layoutCopyFailed = false;
+      try {
+        if (selectedViewProfileName) {
+          mutateSelectedViewProfile((draftProfile) => {
+            let nextProfile = draftProfile;
+            for (const [sourceViewId, targetViewId] of Object.entries(result.sourceToTargetViewIdMap)) {
+              const copyResult = copyViewLayoutState({
+                mode: "profile",
+                path: selectedPath,
+                collectionPath,
+                sourceViewId,
+                targetViewId,
+                profile: nextProfile,
+                localStorage: null,
+              });
+              nextProfile = copyResult.profile;
+            }
+            draftProfile.viewLayouts = nextProfile.viewLayouts;
+            draftProfile.collections = nextProfile.collections;
+          });
+        } else {
+          for (const [sourceViewId, targetViewId] of Object.entries(result.sourceToTargetViewIdMap)) {
+            copyViewLayoutState({
+              mode: "local",
+              path: selectedPath,
+              collectionPath,
+              sourceViewId,
+              targetViewId,
+              profile: null,
+              localStorage: window.localStorage,
+            });
+          }
+        }
+      } catch {
+        layoutCopyFailed = true;
+      }
+
+      updatePageContextViewGrouping(window.localStorage, activeProjectId, {
+        expandedGroupId: result.group.id,
+        lastActiveViewIdByGroupId: {
+          ...projectPageContext.lastActiveViewIdByGroupId,
+          [result.group.id]: result.firstViewId,
+        },
+      });
+      setSelectedSourceRow(0);
+      setDetailOpen(false);
+      setStatus(layoutCopyFailed ? "视图组已复制，但部分布局复制失败" : "已复制视图组");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCommandSaving(false);
+    }
+  }
+
   async function handleRenameSharedView(viewId: string, name: string) {
     if (commandSaving || !activeCollectionKey) return;
     setCommandSaving(true);
@@ -4116,6 +4229,7 @@ export function App() {
                   onCreateViewGroup={handleCreateSharedViewGroup}
                   onCreateViewInGroup={handleCreateSharedViewInGroup}
                   onRenameGroup={handleRenameSharedViewGroup}
+                  onDuplicateGroup={handleDuplicateSharedViewGroup}
                   onDeleteGroup={handleDeleteSharedViewGroup}
                   onRenameView={handleRenameSharedView}
                   onDeleteView={handleDeleteSharedView}
@@ -4217,6 +4331,7 @@ export function App() {
               onCreateViewGroup={handleCreateSharedViewGroup}
               onCreateViewInGroup={handleCreateSharedViewInGroup}
               onRenameGroup={handleRenameSharedViewGroup}
+              onDuplicateGroup={handleDuplicateSharedViewGroup}
               onDeleteGroup={handleDeleteSharedViewGroup}
               onRenameView={handleRenameSharedView}
               onDeleteView={handleDeleteSharedView}

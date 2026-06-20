@@ -51,6 +51,61 @@ export function createViewInGroupConfig({
   return { config, view: nextView };
 }
 
+export function duplicateViewGroupConfig({
+  sharedViewsConfig,
+  collectionKey,
+  groupId,
+  resolvedTopLevelItems,
+  resolvedGroupSnapshot,
+}) {
+  const normalizedConfig = normalizeSharedViewsConfig(sharedViewsConfig);
+  const config = cloneSharedViewsConfig(normalizedConfig);
+  const collection = ensureCollection(config, collectionKey);
+  const topLevelItems = cloneResolvedTopLevelItems(resolvedTopLevelItems ?? []);
+  const targetGroup = resolvedGroupSnapshot?.kind === "group"
+    ? {
+      kind: "group",
+      id: resolvedGroupSnapshot.id,
+      name: resolvedGroupSnapshot.name,
+      views: resolvedGroupSnapshot.views.map((view) => ({ ...normalizeCollectionView(view) })),
+    }
+    : topLevelItems.find((item) => item.kind === "group" && item.id === groupId);
+  if (!targetGroup || targetGroup.kind !== "group" || !targetGroup.views.length) {
+    return {
+      config,
+      group: null,
+      firstViewId: null,
+      sourceToTargetViewIdMap: {},
+    };
+  }
+  const existingViews = flattenItems(collection.items);
+  const sourceToTargetViewIdMap = {};
+  const duplicatedViews = targetGroup.views.map((view) => {
+    const duplicatedView = {
+      ...normalizeCollectionView(view),
+      id: uniqueViewId([...existingViews, ...Object.values(sourceToTargetViewIdMap).map((id) => ({ id, name: "" }))], view.id || "view"),
+      name: view.name,
+    };
+    sourceToTargetViewIdMap[view.id] = duplicatedView.id;
+    existingViews.push(duplicatedView);
+    return duplicatedView;
+  });
+  const duplicatedGroup = {
+    kind: "group",
+    id: uniqueGroupId(collection.items, targetGroup.id || "group"),
+    name: uniqueCopyGroupName(collection.items, targetGroup.name || "新分组"),
+    views: duplicatedViews,
+  };
+  collection.items = insertGroupAfterGroup(topLevelItems.length ? topLevelItems : collection.items, groupId, duplicatedGroup);
+  collection.defaultViewId = collection.defaultViewId ?? resolveDefaultViewIdFromItems(collection.items);
+  return {
+    config,
+    group: duplicatedGroup,
+    firstViewId: duplicatedViews[0]?.id ?? null,
+    sourceToTargetViewIdMap,
+  };
+}
+
 export function applyStructureDraftToConfig(sharedViewsConfig, collectionKey, structureDraft) {
   const normalizedConfig = normalizeSharedViewsConfig(sharedViewsConfig);
   const config = cloneSharedViewsConfig(normalizedConfig);
@@ -489,6 +544,34 @@ function insertGroupAfter(items, activeViewId, group) {
   return nextItems;
 }
 
+function insertGroupAfterGroup(items, groupId, nextGroup) {
+  const nextItems = [];
+  let inserted = false;
+  for (const item of items) {
+    nextItems.push(item.kind === "group"
+      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => ({ ...view })) }
+      : { kind: "view", view: { ...item.view } });
+    if (item.kind === "group" && item.id === groupId) {
+      nextItems.push({
+        kind: "group",
+        id: nextGroup.id,
+        name: nextGroup.name,
+        views: nextGroup.views.map((view) => ({ ...view })),
+      });
+      inserted = true;
+    }
+  }
+  if (!inserted) {
+    nextItems.push({
+      kind: "group",
+      id: nextGroup.id,
+      name: nextGroup.name,
+      views: nextGroup.views.map((view) => ({ ...view })),
+    });
+  }
+  return nextItems;
+}
+
 function appendViewToGroup(items, groupId, nextView) {
   return items.map((item) => {
     if (item.kind !== "group" || item.id !== groupId) {
@@ -554,6 +637,20 @@ function uniqueGroupName(items, baseName) {
   while (existing.has(candidate)) {
     candidate = `${trimmedBaseName} ${index}`;
     index += 1;
+  }
+  return candidate;
+}
+
+function uniqueCopyGroupName(items, sourceName) {
+  const trimmedSourceName = String(sourceName).trim() || "新分组";
+  const existing = new Set(items.filter((item) => item.kind === "group").map((item) => item.name));
+  const baseName = `${trimmedSourceName} 副本`;
+  if (!existing.has(baseName)) return baseName;
+  let index = 2;
+  let candidate = `${baseName} ${index}`;
+  while (existing.has(candidate)) {
+    index += 1;
+    candidate = `${baseName} ${index}`;
   }
   return candidate;
 }
