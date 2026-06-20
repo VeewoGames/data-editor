@@ -225,6 +225,7 @@ export function resolveSharedViewStructure({
   const expandedGroupId = activeGroupId && topLevelItems.some((item) => item.kind === "group" && item.id === activeGroupId)
     ? activeGroupId
     : null;
+  const lastActiveViewIdByGroupId = sanitizeLastActiveByGroup(topLevelItems, pageContext?.lastActiveViewIdByGroupId);
   return {
     topLevelItems,
     flattenedViews,
@@ -234,7 +235,7 @@ export function resolveSharedViewStructure({
     expandedGroupId,
     viewsById,
     parentGroupIdByViewId,
-    lastActiveViewIdByGroupId: normalizeLastActiveByGroup(pageContext?.lastActiveViewIdByGroupId),
+    lastActiveViewIdByGroupId,
   };
 }
 
@@ -618,7 +619,15 @@ function uniqueViewName(views, baseName, options = {}) {
 
 function uniqueGroupId(items, baseId) {
   const normalizedBase = String(baseId).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "group";
-  const existing = new Set(items.filter((item) => item.kind === "group").map((item) => item.id));
+  const existing = new Set();
+  for (const item of items) {
+    if (item.kind === "group") {
+      existing.add(item.id);
+      for (const view of item.views) existing.add(view.id);
+      continue;
+    }
+    existing.add(item.view.id);
+  }
   let candidate = normalizedBase;
   let index = 2;
   while (existing.has(candidate)) {
@@ -670,6 +679,23 @@ function normalizeLastActiveByGroup(value) {
     const normalizedViewId = typeof viewId === "string" ? viewId.trim() : "";
     if (!normalizedGroupId || !normalizedViewId) continue;
     result[normalizedGroupId] = normalizedViewId;
+  }
+  return result;
+}
+
+function sanitizeLastActiveByGroup(topLevelItems, value) {
+  const normalized = normalizeLastActiveByGroup(value);
+  if (!Object.keys(normalized).length) return {};
+  const allowedViewIdsByGroupId = new Map();
+  for (const item of topLevelItems) {
+    if (item.kind !== "group") continue;
+    allowedViewIdsByGroupId.set(item.id, new Set(item.views.map((view) => view.id)));
+  }
+  const result = {};
+  for (const [groupId, viewId] of Object.entries(normalized)) {
+    const allowedViewIds = allowedViewIdsByGroupId.get(groupId);
+    if (!allowedViewIds?.has(viewId)) continue;
+    result[groupId] = viewId;
   }
   return result;
 }

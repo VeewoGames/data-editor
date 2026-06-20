@@ -1,11 +1,12 @@
 import { resolveFieldRole } from "../model/field-role.mjs";
 import { defaultTypeFor } from "../model/fieldTypes.mjs";
-import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
+import { buildMultiSelectFieldConfigFromRows } from "../multiselect-config.mjs";
 
 /**
  * @param {{
  *   visibleFields: string[];
  *   rows: Record<string, unknown>[];
+ *   optionRows?: Record<string, unknown>[];
  *   sourcePath: string | null;
  *   collectionPath: string;
  *   primaryKeyField?: string | null;
@@ -19,6 +20,7 @@ import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
 export function buildTableRuntimeDeps({
   visibleFields,
   rows,
+  optionRows = rows,
   sourcePath,
   collectionPath,
   primaryKeyField = null,
@@ -42,16 +44,7 @@ export function buildTableRuntimeDeps({
   for (const fieldName of visibleFields) {
     const currentDisplayType = displayTypes[fieldName] ?? defaultTypeFor(rows.find((row) => row[fieldName] != null)?.[fieldName]);
     if (currentDisplayType === "Multi-select") {
-      const unique = new Map();
-      for (const row of rows) {
-        const value = row[fieldName];
-        if (!Array.isArray(value)) continue;
-        for (const item of value) {
-          if (item == null || (typeof item !== "string" && typeof item !== "number")) continue;
-          unique.set(String(item), item);
-        }
-      }
-      fieldOptions[fieldName] = buildMultiSelectFieldConfig([...unique.values()], fieldViewConfigs[fieldName]);
+      fieldOptions[fieldName] = buildMultiSelectFieldConfigFromRows(optionRows, fieldName, fieldViewConfigs[fieldName]);
     }
 
     if (currentDisplayType === "Select") {
@@ -60,7 +53,7 @@ export function buildTableRuntimeDeps({
       for (const [value, option] of Object.entries(storedOptions)) {
         merged.set(value, { value, label: option.label, color: option.color ?? null });
       }
-      for (const row of rows) {
+      for (const row of optionRows) {
         const value = row[fieldName];
         if (value == null) continue;
         const normalized = String(value).trim();

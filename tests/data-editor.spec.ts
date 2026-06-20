@@ -2131,6 +2131,250 @@ test("clearing inherited filters persists through reload without save for everyo
   }
 });
 
+test("new row inherits deterministic shared-view filters so it stays visible", async ({ page }) => {
+  const collectionKey = "data/e2e_multiselect.json:$";
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalData = await readFile(dataPath, "utf8");
+  await page.goto("/");
+  const originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    const sharedViews = await loadSharedViewsConfig(page);
+    sharedViews.collections[collectionKey] = {
+      defaultViewId: "all",
+      views: [{
+        id: "all",
+        name: "全部",
+        type: "table",
+        query: "",
+        filters: {
+          topLevelRules: [
+            { kind: "rule", id: "rule:features", field: "features", operator: "contains", value: ["spell"] },
+          ],
+          advancedRoot: null,
+        },
+        sorts: [],
+        hidden: [],
+        wrapped: [],
+        order: [],
+        detailOrder: [],
+        widths: {},
+      }],
+    };
+    await saveSharedViewsConfig(page, sharedViews);
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await expect(page.getByText("Visible 1 / Total 2", { exact: true })).toBeVisible();
+    await expect(tableRows(page)).toHaveCount(1);
+
+    await page.locator(".new-row-button").click();
+
+    await expect(page.getByText("Visible 2 / Total 3", { exact: true })).toBeVisible();
+    await expect(tableRows(page)).toHaveCount(2);
+    await expect(tableRow(page, 1).locator('.multi-select-trigger[data-column-field="features"], td[data-column-field="features"] .multi-select-trigger')).toContainText("spell");
+  } finally {
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+    await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("new row uses compatible empty values for inferred multi-select and relation fields", async ({ page }) => {
+  const viewConfigPath = path.resolve("tests/.scratch/.data-editor/view-config.json");
+  const relationDataPath = path.resolve("tests/.scratch/data/e2e_relation.json");
+  const multiselectDataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalViewConfig = await readFile(viewConfigPath, "utf8").catch(() => null);
+  const originalRelationData = await readFile(relationDataPath, "utf8");
+  const originalMultiselectData = await readFile(multiselectDataPath, "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await page.locator(".new-row-button").click();
+    await expect(tableRows(page)).toHaveCount(3);
+    await expect(tableRow(page, 2).locator('td[data-column-field="features"] .cell-incompatible')).toHaveCount(0);
+
+    await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await ensurePrimaryKeySelection(page, "id");
+    await configureRelation(page, "keywords", {
+      targetFile: "data/keywords.json",
+      targetCollection: "$",
+      targetKey: "keyword_id",
+      mode: "multi",
+    });
+    await page.locator(".new-row-button").click();
+    await expect(tableRows(page)).toHaveCount(3);
+    await expect(tableRow(page, 2).locator('td[data-column-field="keywords"] .cell-incompatible')).toHaveCount(0);
+    await expect(tableRow(page, 2).locator('td[data-column-field="keywords"] .relation-trigger')).toContainText("未设置关联");
+  } finally {
+    await bestEffortRestore("e2e_relation.json", () => writeFile(relationDataPath, originalRelationData, "utf8"));
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(multiselectDataPath, originalMultiselectData, "utf8"));
+    await bestEffortRestore("view config", () => originalViewConfig == null
+      ? rm(viewConfigPath, { force: true })
+      : writeFile(viewConfigPath, originalViewConfig, "utf8"));
+  }
+});
+
+test("blank string values in inferred number fields stay compatible and editable", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_numeric_ids.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  try {
+    await writeFile(dataPath, JSON.stringify([
+      { id: 476, name: "Alpha" },
+      { id: "", name: "Blank" },
+    ], null, 2), "utf8");
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_numeric_ids.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await expect(tableRows(page)).toHaveCount(2);
+    await expect(tableRow(page, 1).locator('td[data-column-field="id"] .cell-incompatible')).toHaveCount(0);
+
+    await tableRow(page, 1).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    const idBlock = page.locator(".detail-panel.primary .property-block").filter({
+      has: page.locator(".property-heading span", { hasText: "id" }),
+    });
+    const idInput = idBlock.locator(".detail-input").first();
+    await expect(idInput).toBeVisible();
+    await idInput.fill("999");
+    await expect(idInput).toHaveValue("999");
+  } finally {
+    await bestEffortRestore("e2e_numeric_ids.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
+test("duplicate trait_id edits auto-suffix and keep a warning until the next edit", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_trait_ids.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_trait_ids.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await columnHeaderTrigger(page, "trait_id").click();
+    await page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]').click();
+    await expect.poll(async () => {
+      const text = await readScratchViewConfigText();
+      return text.includes('"data/e2e_trait_ids.json:$"') && text.includes('"trait_id"');
+    }).toBe(true);
+
+    await tableRow(page, 1).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    const traitIdBlock = page.locator(".detail-panel.primary .property-block").filter({
+      has: page.locator(".property-heading span", { hasText: "trait_id" }),
+    });
+    const traitIdInput = traitIdBlock.locator(".detail-input").first();
+
+    await traitIdInput.evaluate((element) => {
+      const input = element as HTMLInputElement;
+      input.focus();
+      input.value = "trait_alpha";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.blur();
+    });
+    await page.locator('.detail-panel.primary button[title="Close detail"]').click();
+    await expect(tableRow(page, 1).locator('td[data-column-field="trait_id"]')).toContainText("trait_alpha_1");
+    await expect(tableRow(page, 1).locator(".issue.warning")).toHaveCount(1);
+
+    await tableRow(page, 1).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    await traitIdInput.evaluate((element) => {
+      const input = element as HTMLInputElement;
+      input.focus();
+      input.value = "trait_alpha_1";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.blur();
+    });
+    await page.locator('.detail-panel.primary button[title="Close detail"]').click();
+    await expect(tableRow(page, 1).locator('td[data-column-field="trait_id"]')).toContainText("trait_alpha_1");
+    await expect(tableRow(page, 1).locator(".issue.warning")).toHaveCount(0);
+  } finally {
+    await bestEffortRestore("e2e_trait_ids.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
+test("numeric primary keys increment to the next available number and stay compatible", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_numeric_ids.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_numeric_ids.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await columnHeaderTrigger(page, "id").click();
+    await page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]').click();
+    await expect.poll(async () => {
+      const text = await readScratchViewConfigText();
+      return text.includes('"data/e2e_numeric_ids.json:$"') && text.includes('"id"');
+    }).toBe(true);
+
+    await tableRow(page, 1).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    const idBlock = page.locator(".detail-panel.primary .property-block").filter({
+      has: page.locator(".property-heading span", { hasText: "id" }),
+    });
+    const idInput = idBlock.locator(".detail-input").first();
+
+    await idInput.evaluate((element) => {
+      const input = element as HTMLInputElement;
+      input.focus();
+      input.value = "476";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.blur();
+    });
+    await page.locator('.detail-panel.primary button[title="Close detail"]').click();
+    await expect(tableRow(page, 1).locator('td[data-column-field="id"]')).toContainText("478");
+    await expect(tableRow(page, 1).locator('td[data-column-field="id"] .cell-incompatible')).toHaveCount(0);
+    await expect(tableRow(page, 1).locator(".issue.warning")).toHaveCount(1);
+  } finally {
+    await bestEffortRestore("e2e_numeric_ids.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
+test("detail panel number fields reject non-numeric text input", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_numeric_ids.json");
+  const originalData = await readFile(dataPath, "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_numeric_ids.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    const idBlock = page.locator(".detail-panel.primary .property-block").filter({
+      has: page.locator(".property-heading span", { hasText: "id" }),
+    });
+    const idInput = idBlock.locator(".detail-input").first();
+
+    await idInput.fill("12ab3");
+    await expect(idInput).toHaveValue("123");
+  } finally {
+    await bestEffortRestore("e2e_numeric_ids.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
 test("duplicate field rules survive save for everyone and reload", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -5590,6 +5834,37 @@ test("option field editor popover uses shared shell and scroll section from tabl
   });
   expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
   await expect(tableRow(page, 0).locator('td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
+});
+
+test("option field popover focuses the search input on open for shared select and multi-select editors", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  const devTagsColumnIndex = await page.evaluate(() => {
+    return [...document.querySelectorAll("th[data-column-field]")].findIndex((header) => header.getAttribute("data-column-field") === "dev_tags");
+  });
+  expect(devTagsColumnIndex).toBeGreaterThanOrEqual(0);
+  await tableRow(page, 0).locator("td").nth(devTagsColumnIndex + 1).locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+  await expect(page.locator(".multi-select-input")).toBeFocused();
+  await page.locator(".multi-select-popover").press("Escape");
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "category" }),
+  });
+  await categoryBlock.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
+  await expect(page.locator(".multi-select-input")).toBeFocused();
 });
 
 test("non-wrapped option field chips use a clipped single-line strip like notion", async ({ page }) => {

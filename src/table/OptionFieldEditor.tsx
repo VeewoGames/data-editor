@@ -95,6 +95,13 @@ export function OptionFieldEditor({
   const sessionCommitRef = useRef(onCommitDraft);
   const settledCloseRef = useRef(false);
 
+  function focusSearchInputOnOpen() {
+    queueMicrotask(() => {
+      if (editing) return;
+      focusWithoutScroll(inputRef.current);
+    });
+  }
+
   function restoreInputFocus() {
     queueMicrotask(() => focusWithoutScroll(inputRef.current));
   }
@@ -373,7 +380,10 @@ export function OptionFieldEditor({
             const target = event.target;
             if (target instanceof HTMLElement && target.closest(".multi-select-option-editor")) event.preventDefault();
           }}
-          onOpenAutoFocus={(event) => event.preventDefault()}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            focusSearchInputOnOpen();
+          }}
           ref={popoverContentRef}
           sideOffset={6}
         >

@@ -69,5 +69,5 @@ function countRules(node: FilterNode): number {
 }
 
 function advancedFilterTitle(group: FilterGroupNode, ruleCount: number) {
-  return `高级筛选：${ruleCount} 条规则，根组合为${group.op === "and" ? "与" : "或"}`;
+  return `高级筛选：${ruleCount} 条规则`;
 }

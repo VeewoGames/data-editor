@@ -2,7 +2,7 @@ import type { FilterGroup, FilterGroupNode } from "../../api/client";
 import type { FieldDisplayType } from "../../model/fieldTypes";
 import type { FieldViewConfig, MultiSelectOptionView } from "../../model/viewConfig";
 import { createDefaultFilterRule } from "../../view/filter-rules.mjs";
-import { addGroupToGroup, addRuleToGroup, canCreateChildGroup, collectAllFilterNodeIds, duplicateNodeInAdvancedRoot, removeNodeFromFilters, updateGroupOp } from "../../view/filter-tree.mjs";
+import { addGroupToGroup, addRuleToGroup, canCreateChildGroup, collectAllFilterNodeIds, duplicateNodeInAdvancedRoot, removeNodeFromFilters, updateChildJoin } from "../../view/filter-tree.mjs";
 import { icons } from "../icons";
 import { AdvancedFilterSelect } from "./AdvancedFilterSelect";
 import { resolveFieldType } from "./filter-rule-ui";
@@ -80,8 +80,8 @@ export function AdvancedFilterGroupEditor({
                     { value: "and", label: "与" },
                     { value: "or", label: "或" },
                   ]}
-                  value={group.op}
-                  onValueChange={(value) => onChangeFilters(updateGroupOp(filters, group.id, value))}
+                  value={child.join ?? group.op}
+                  onValueChange={(value) => onChangeFilters(updateChildJoin(filters, group.id, child.id, value))}
                 />
               )}
             </div>

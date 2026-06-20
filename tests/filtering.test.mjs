@@ -180,6 +180,30 @@ test("applyViewFilters matches topLevelRules and advancedRoot together", () => {
   assert.deepEqual(filtered.map((row) => row.dev_status), ["完成"]);
 });
 
+test("applyViewFilters supports mixed child joins inside one advanced group", () => {
+  const rows = [
+    { owner: "player", skill_category: "general", type: "spell" },
+    { owner: "enemy", skill_category: "general", type: "spell" },
+    { owner: "enemy", skill_category: "general", type: "attack" },
+  ];
+
+  const filtered = applyViewFilters(rows, "", {
+    topLevelRules: [],
+    advancedRoot: {
+      kind: "group",
+      id: "advanced-root",
+      op: "and",
+      children: [
+        { kind: "rule", id: "owner", field: "owner", operator: "is", value: "player" },
+        { kind: "rule", id: "category", field: "skill_category", operator: "is", value: "general", join: "or" },
+        { kind: "rule", id: "type", field: "type", operator: "is", value: "spell", join: "and" },
+      ],
+    },
+  }, discreteFieldTypes);
+
+  assert.deepEqual(filtered.map((row) => row.type), ["spell", "spell"]);
+});
+
 test("applyViewFilters allows duplicate-field rules", () => {
   const rows = [{ skill_category: "general" }, { skill_category: "summon" }];
 

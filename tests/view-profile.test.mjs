@@ -127,10 +127,10 @@ test("saveViewProfile writes normalized profile file", async () => {
           "view-1": {
             query: "fire",
             filters: {
-              op: "and",
-              rules: [
-                { id: "rule-1", field: "element", operator: "contains", value: "fire" },
+              topLevelRules: [
+                { kind: "rule", id: "rule-1", field: "element", operator: "contains", value: "fire" },
               ],
+              advancedRoot: null,
             },
             hidden: ["description"],
             order: ["rune_name", "description"],
@@ -140,6 +140,7 @@ test("saveViewProfile writes normalized profile file", async () => {
       viewOrderDrafts: {
         "data/runes.json::$": ["view-2", "view-1"],
       },
+      structureDrafts: {},
       appearance: {
         activeThemeId: "dark",
         baseFontSize: 16,

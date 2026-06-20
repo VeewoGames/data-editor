@@ -53,6 +53,19 @@ export function buildMultiSelectFieldConfig(discoveredOptions, storedFieldConfig
   };
 }
 
+export function buildMultiSelectFieldConfigFromRows(rows, fieldName, storedFieldConfig) {
+  const unique = new Map();
+  for (const row of rows) {
+    const value = row?.[fieldName];
+    if (!Array.isArray(value)) continue;
+    for (const item of value) {
+      if (item == null || (typeof item !== "string" && typeof item !== "number")) continue;
+      unique.set(String(item), item);
+    }
+  }
+  return buildMultiSelectFieldConfig([...unique.values()], storedFieldConfig);
+}
+
 export function sortValuesByOptionOrder(values, orderedOptionValues) {
   const orderIndex = new Map(orderedOptionValues.map((value, index) => [String(value), index]));
   return [...values].sort((left, right) => {

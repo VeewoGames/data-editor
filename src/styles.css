@@ -391,7 +391,7 @@ select {
 }
 
 .view-tab-shell.active {
-  background: var(--color-bg-selected);
+  background: #efe9e2;
 }
 
 .view-tab-group-shell {
@@ -401,7 +401,7 @@ select {
 
 .view-tab-group-shell.expanded,
 .view-tab-group-shell.active {
-  background: color-mix(in srgb, var(--color-bg-selected) 82%, #eef4ff 18%);
+  background: #efe9e2;
 }
 
 .view-tab-shell.dragging {
@@ -463,7 +463,7 @@ select {
 }
 
 .view-tab-group {
-  color: color-mix(in srgb, #2f5ea8 78%, var(--color-text-strong) 22%);
+  color: var(--color-text-strong);
   font-weight: 600;
 }
 

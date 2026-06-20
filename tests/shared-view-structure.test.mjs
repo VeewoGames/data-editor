@@ -128,6 +128,47 @@ test("resolveSharedViewStructure applies structure drafts before flattening grou
   assert.equal(resolved.expandedGroupId, "combat");
 });
 
+test("resolveSharedViewStructure drops stale last-active group entries that do not point to a child view", () => {
+  const resolved = resolveSharedViewStructure({
+    sharedViewsConfig: {
+      version: 1,
+      collections: {
+        "data/runes.json:$": {
+          defaultViewId: "all",
+          items: [
+            { kind: "view", view: makeView("all", "全部") },
+            {
+              kind: "group",
+              id: "combat",
+              name: "战斗",
+              views: [makeView("damage", "伤害"), makeView("support", "辅助")],
+            },
+            { kind: "view", view: makeView("utility", "功能") },
+          ],
+        },
+      },
+    },
+    collectionKey: "data/runes.json:$",
+    draftState: {
+      lastActiveViews: { "data/runes.json:$": "all" },
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      structureDrafts: {},
+    },
+    pageContext: {
+      selectedPath: "data/runes.json",
+      collectionPath: "$",
+      scrollByView: {},
+      expandedGroupId: null,
+      lastActiveViewIdByGroupId: {
+        combat: "combat",
+      },
+    },
+  });
+
+  assert.deepEqual(resolved.lastActiveViewIdByGroupId, {});
+});
+
 test("resolveSharedViewStructure collapses stale expanded groups when the active view is top-level", () => {
   const resolved = resolveSharedViewStructure({
     sharedViewsConfig: {
@@ -232,6 +273,28 @@ test("createViewGroupConfig inserts a new non-empty group after the active top-l
     "view:utility",
   ]);
   assert.deepEqual(result.config.collections["data/runes.json:$"].items[1].views.map((view) => view.id), [result.view.id]);
+});
+
+test("createViewGroupConfig keeps new group ids out of the view id namespace", () => {
+  const result = createViewGroupConfig({
+    sharedViewsConfig: {
+      version: 1,
+      collections: {
+        "data/runes.json:$": {
+          defaultViewId: "all",
+          items: [
+            { kind: "view", view: makeView("all", "全部") },
+            { kind: "view", view: makeView("group", "冲突视图") },
+          ],
+        },
+      },
+    },
+    collectionKey: "data/runes.json:$",
+    activeViewId: "all",
+    activeViewSnapshot: makeView("all", "全部"),
+  });
+
+  assert.equal(result.group.id, "group-2");
 });
 
 test("createViewInGroupConfig appends a new child view to the target group", () => {
@@ -364,6 +427,39 @@ test("duplicateViewGroupConfig makes duplicated group name unique when the copy 
   });
 
   assert.equal(result.group.name, "战斗 副本 2");
+});
+
+test("duplicateViewGroupConfig keeps duplicated group ids out of the view id namespace", () => {
+  const result = duplicateViewGroupConfig({
+    sharedViewsConfig: {
+      version: 1,
+      collections: {
+        "data/runes.json:$": {
+          defaultViewId: "all",
+          items: [
+            { kind: "view", view: makeView("all", "全部") },
+            { kind: "view", view: makeView("combat-2", "冲突顶层视图") },
+            { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害")] },
+          ],
+        },
+      },
+    },
+    collectionKey: "data/runes.json:$",
+    groupId: "combat",
+    resolvedTopLevelItems: [
+      { kind: "view", view: makeView("all", "全部") },
+      { kind: "view", view: makeView("combat-2", "冲突顶层视图") },
+      { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害")] },
+    ],
+    resolvedGroupSnapshot: {
+      kind: "group",
+      id: "combat",
+      name: "战斗",
+      views: [makeView("damage", "伤害")],
+    },
+  });
+
+  assert.equal(result.group.id, "combat-3");
 });
 
 test("renameViewGroupConfig updates only the target group name", () => {

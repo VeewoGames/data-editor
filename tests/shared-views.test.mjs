@@ -326,3 +326,33 @@ test("saveSharedViews writes grouped items to disk", async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("Nocturnel trait tradeoff group keeps tag OR semantics and adds tradeoff filter to every tab", async () => {
+  const configPath = "C:/Code/Nocturnel/.data-editor/shared-views.json";
+  const config = normalizeSharedViewsConfig(JSON.parse(await readFile(configPath, "utf8")));
+  const tradeoffGroup = config.collections["data/traits.json:traits"]?.items?.find((item) => item.kind === "group" && item.name === "代价");
+
+  assert.ok(tradeoffGroup);
+  assert.equal(tradeoffGroup.kind, "group");
+
+  for (const view of tradeoffGroup.views) {
+    const advancedRoot = view.filters.advancedRoot;
+    assert.ok(advancedRoot, `${view.name} 缺少 advancedRoot`);
+    assert.equal(advancedRoot.op, "and", `${view.name} 应使用顶层 AND`);
+    assert.equal(advancedRoot.children.length, 2, `${view.name} 应只有 tags 组和 tradeoff 规则`);
+
+    const [tagsGroup, tradeoffRule] = advancedRoot.children;
+    assert.equal(tagsGroup.kind, "group", `${view.name} 的第一个 child 应为 tags 分组`);
+    assert.equal(tagsGroup.op, "or", `${view.name} 的 tags 分组应保持 OR`);
+    assert.deepEqual(
+      tagsGroup.children.map((child) => child.field),
+      ["input_tags", "output_tags"],
+      `${view.name} 的 tags 分组应匹配 input_tags/output_tags`,
+    );
+
+    assert.equal(tradeoffRule.kind, "rule", `${view.name} 的第二个 child 应为 tradeoff 规则`);
+    assert.equal(tradeoffRule.field, "type", `${view.name} 的 tradeoff 规则字段应为 type`);
+    assert.equal(tradeoffRule.operator, "contains", `${view.name} 的 tradeoff 规则操作应为 contains`);
+    assert.deepEqual(tradeoffRule.value, ["tradeoff"], `${view.name} 缺少 tradeoff 条件`);
+  }
+});

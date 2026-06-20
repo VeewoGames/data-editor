@@ -164,4 +164,26 @@ await writeFile(path.join(scratchData, "e2e_primary_key_candidates.json"), JSON.
   ]
 }, null, 2));
 
+await writeFile(path.join(scratchData, "e2e_trait_ids.json"), JSON.stringify([
+  {
+    trait_id: "trait_alpha",
+    trait_name: "Alpha"
+  },
+  {
+    trait_id: "trait_alpha_1",
+    trait_name: "Alpha Variant"
+  }
+], null, 2));
+
+await writeFile(path.join(scratchData, "e2e_numeric_ids.json"), JSON.stringify([
+  {
+    id: 476,
+    name: "Alpha"
+  },
+  {
+    id: 477,
+    name: "Beta"
+  }
+], null, 2));
+
 console.log(`Scratch root ready: ${scratchRoot}`);

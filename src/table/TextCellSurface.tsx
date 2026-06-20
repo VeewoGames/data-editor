@@ -7,6 +7,8 @@ type TextCellSurfaceProps = {
   wrapped?: boolean;
   editable: boolean;
   active: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  normalizeInput?: (value: string) => string;
   onActivate: (cellId: string) => void;
   onDeactivate: (cellId: string) => void;
   onChangeValue: (value: string) => void;
@@ -23,6 +25,8 @@ function TextCellSurfaceComponent({
   wrapped = false,
   editable,
   active,
+  inputMode,
+  normalizeInput,
   onActivate,
   onDeactivate,
   onChangeValue,
@@ -68,6 +72,8 @@ function TextCellSurfaceComponent({
             cellId={cellId}
             value={value}
             wrapped={wrapped}
+            inputMode={inputMode}
+            normalizeInput={normalizeInput}
             onChangeValue={onChangeValue}
             onDeactivate={() => onDeactivate(cellId)}
             onRegisterActiveEditor={onRegisterActiveEditor}
@@ -84,6 +90,8 @@ export const TextCellSurface = memo(TextCellSurfaceComponent, (previous, next) =
   previous.wrapped === next.wrapped &&
   previous.editable === next.editable &&
   previous.active === next.active &&
+  previous.inputMode === next.inputMode &&
+  previous.normalizeInput === next.normalizeInput &&
   previous.onActivate === next.onActivate &&
   previous.onDeactivate === next.onDeactivate &&
   previous.onChangeValue === next.onChangeValue &&

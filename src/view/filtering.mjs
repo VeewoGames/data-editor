@@ -39,8 +39,19 @@ function matchNode(row, node, fieldTypes = {}) {
 
 function matchGroupNode(row, group, fieldTypes = {}) {
   const children = Array.isArray(group?.children) ? group.children : [];
-  if (group?.op === "or") return children.some((child) => matchNode(row, child, fieldTypes));
-  return children.every((child) => matchNode(row, child, fieldTypes));
+  if (children.length === 0) return true;
+  let result = matchNode(row, children[0], fieldTypes);
+  for (let index = 1; index < children.length; index += 1) {
+    const child = children[index];
+    const nextValue = matchNode(row, child, fieldTypes);
+    const join = child?.join === "or" || child?.join === "and"
+      ? child.join
+      : group?.op === "or"
+        ? "or"
+        : "and";
+    result = join === "or" ? (result || nextValue) : (result && nextValue);
+  }
+  return result;
 }
 
 export function matchesFilterRule(row, rule, fieldTypes = {}) {

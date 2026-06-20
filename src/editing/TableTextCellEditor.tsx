@@ -7,6 +7,8 @@ export type TableTextCellEditorProps = {
   value: unknown;
   wrapped?: boolean;
   autoFocus?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  normalizeInput?: (value: string) => string;
   onChangeValue: (value: string) => void;
   onDeactivate?: () => void;
   onRegisterActiveEditor?: ActiveTextEditorRegistrar;
@@ -21,6 +23,8 @@ export function TableTextCellEditor({
   value,
   wrapped = false,
   autoFocus = false,
+  inputMode,
+  normalizeInput,
   onChangeValue,
   onDeactivate,
   onRegisterActiveEditor,
@@ -84,7 +88,9 @@ export function TableTextCellEditor({
           ref={inputRef}
           identityKey={cellId}
           value={value}
+          inputMode={inputMode}
           commitMode="manual"
+          normalizeInput={normalizeInput}
           onChangeValue={onChangeValue}
           onFocus={registerActiveEditor}
           onBlur={() => {
@@ -100,7 +106,9 @@ export function TableTextCellEditor({
           ref={inputRef}
           identityKey={cellId}
           value={value}
+          inputMode={inputMode}
           commitMode="manual"
+          normalizeInput={normalizeInput}
           onChangeValue={onChangeValue}
           onFocus={registerActiveEditor}
           onBlur={() => {

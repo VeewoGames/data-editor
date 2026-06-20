@@ -7,6 +7,7 @@ export type StableDraftInputOptions = {
   value: unknown;
   commitMode?: StableDraftInputCommitMode;
   commitDelayMs?: number;
+  normalizeInput?: (value: string) => string;
   onChangeValue: (value: string) => void;
 };
 
@@ -35,6 +36,7 @@ export function useStableDraftInput({
   value,
   commitMode = "realtime",
   commitDelayMs = 150,
+  normalizeInput,
   onChangeValue,
 }: StableDraftInputOptions): StableDraftInputApi {
   const initialValue = stringifyValue(value);
@@ -50,6 +52,8 @@ export function useStableDraftInput({
   useEffect(() => {
     onChangeValueRef.current = onChangeValue;
   }, [onChangeValue]);
+
+  const normalizeDraft = useCallback((next: string) => normalizeInput ? normalizeInput(next) : next, [normalizeInput]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current != null) window.clearTimeout(timerRef.current);
@@ -92,6 +96,7 @@ export function useStableDraftInput({
   useEffect(() => () => clearTimer(), [clearTimer]);
 
   const setDraftFromInput = useCallback((next: string, nativeEvent?: Event) => {
+    next = normalizeDraft(next);
     draftRef.current = next;
     setDraft(next);
     if (composingRef.current || isCompositionInput(nativeEvent)) return;
@@ -101,17 +106,18 @@ export function useStableDraftInput({
       return;
     }
     commitDraft(next);
-  }, [commitDraft, commitMode, scheduleCommit]);
+  }, [commitDraft, commitMode, normalizeDraft, scheduleCommit]);
 
   const flushDraft = useCallback(() => {
     commitDraft(draftRef.current);
   }, [commitDraft]);
 
   const replaceDraft = useCallback((next: string) => {
+    next = normalizeDraft(next);
     clearTimer();
     draftRef.current = next;
     setDraft(next);
-  }, [clearTimer]);
+  }, [clearTimer, normalizeDraft]);
 
   const handleFocus = useCallback(() => {
     focusedRef.current = true;
@@ -128,6 +134,7 @@ export function useStableDraftInput({
   }, []);
 
   const handleCompositionEnd = useCallback((next: string) => {
+    next = normalizeDraft(next);
     composingRef.current = false;
     setComposing(false);
     draftRef.current = next;
@@ -138,7 +145,7 @@ export function useStableDraftInput({
       return;
     }
     commitDraft(next);
-  }, [commitDraft, commitMode, scheduleCommit]);
+  }, [commitDraft, commitMode, normalizeDraft, scheduleCommit]);
 
   return {
     draft,

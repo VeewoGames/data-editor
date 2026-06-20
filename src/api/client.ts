@@ -124,8 +124,9 @@ export type UserViewProfile = {
   collections?: Record<string, UserViewLayoutState>;
 };
 export type FilterOperator = "is" | "is_not" | "contains" | "does_not_contain" | "is_empty" | "is_not_empty";
-export type FilterRule = { kind: "rule"; id: string; field: string; operator: FilterOperator; value?: unknown };
-export type FilterGroupNode = { kind: "group"; id: string; op: "and" | "or"; children: FilterNode[] };
+export type FilterJoin = "and" | "or";
+export type FilterRule = { kind: "rule"; id: string; field: string; operator: FilterOperator; value?: unknown; join?: FilterJoin };
+export type FilterGroupNode = { kind: "group"; id: string; op: FilterJoin; join?: FilterJoin; children: FilterNode[] };
 export type FilterNode = FilterRule | FilterGroupNode;
 export type FilterGroup = { topLevelRules: FilterRule[]; advancedRoot: FilterGroupNode | null };
 export type SortRule = { id: string; field: string; direction: "asc" | "desc" };

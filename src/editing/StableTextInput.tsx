@@ -12,8 +12,10 @@ export type StableTextInputProps = {
   title?: string;
   placeholder?: string;
   autoFocus?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   commitMode?: StableDraftInputCommitMode;
   commitDelayMs?: number;
+  normalizeInput?: (value: string) => string;
   onChangeValue: (value: string) => void;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -32,8 +34,10 @@ export const StableTextInput = forwardRef<StableTextInputHandle, StableTextInput
     title,
     placeholder,
     autoFocus,
+    inputMode,
     commitMode,
     commitDelayMs,
+    normalizeInput,
     onChangeValue,
     onFocus,
     onBlur,
@@ -41,7 +45,7 @@ export const StableTextInput = forwardRef<StableTextInputHandle, StableTextInput
   },
   ref,
 ) {
-  const api = useStableDraftInput({ identityKey, value, commitMode, commitDelayMs, onChangeValue });
+  const api = useStableDraftInput({ identityKey, value, commitMode, commitDelayMs, normalizeInput, onChangeValue });
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   function moveCaretToEnd() {
@@ -62,6 +66,7 @@ export const StableTextInput = forwardRef<StableTextInputHandle, StableTextInput
       title={title}
       placeholder={placeholder}
       autoFocus={autoFocus}
+      inputMode={inputMode}
       value={api.draft}
       onFocus={() => {
         api.handleFocus();
@@ -88,8 +93,10 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
     title,
     placeholder,
     autoFocus,
+    inputMode,
     commitMode,
     commitDelayMs,
+    normalizeInput,
     onChangeValue,
     onFocus,
     onBlur,
@@ -97,7 +104,7 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
   },
   ref,
 ) {
-  const api = useStableDraftInput({ identityKey, value, commitMode, commitDelayMs, onChangeValue });
+  const api = useStableDraftInput({ identityKey, value, commitMode, commitDelayMs, normalizeInput, onChangeValue });
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   function syncHeight(node: HTMLTextAreaElement | null = textareaRef.current) {
@@ -129,6 +136,7 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
       title={title}
       placeholder={placeholder}
       autoFocus={autoFocus}
+      inputMode={inputMode}
       value={api.draft}
       onFocus={() => {
         api.handleFocus();

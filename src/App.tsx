@@ -75,8 +75,10 @@ import type { PrimaryKeySyncSaveSnapshot } from "./model/primary-key-sync-save";
 import { buildRelationKey } from "./model/relationPath";
 import { parseRelationKey, type PrimaryKeyImpact, type PrimaryKeySyncPlan, type RelationBacklink } from "./model/relationMaintenance";
 import { deriveBacklinkConfigs, syncBacklinksWithRelations } from "./model/fieldRole";
+import { resolveAutoSuffixedPrimaryKeyValue } from "./model/primary-key-auto-suffix.mjs";
 import { analyzePrimaryKeyCandidates, buildCollectionKey, type FilteredPrimaryKeyCandidate, type PrimaryKeyCandidate, type PrimaryKeyCandidateAnalysis } from "./model/primaryKeyCandidate";
 import { findTitleField, getRecordTitle } from "./model/titleField";
+import type { ValidationIssue } from "./model/validation";
 import type { BacklinkGridColumn } from "./model/backlinkGrid";
 import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RealFieldType, RelationConfig } from "./model/viewConfig";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
@@ -141,10 +143,11 @@ import {
   type UiTheme,
 } from "./ui-preferences";
 import { createDefaultFilterRule, withRules } from "./view/filter-rules.mjs";
+import { deriveNewRowSeedValues } from "./view/new-row-seeding.mjs";
 import { updateHeaderSorts } from "./view/sorting.mjs";
 import { runView } from "./view/view-engine.mjs";
 import type { ViewEngineRow, ViewInput, ViewResult } from "./view/contracts";
-import { buildValidationSnapshot, patchValidationSnapshotForField, patchValidationSnapshotForRowField } from "./validation/issue-map.mjs";
+import { applyValidationIssueOverrides, buildIssueKey, buildValidationSnapshot, patchValidationSnapshotForField, patchValidationSnapshotForRowField } from "./validation/issue-map.mjs";
 import type { ValidationFieldConfig as ValidationFieldConfigType, ValidationRuleConfig as ValidationRuleConfigType, ValidationSnapshot as ValidationSnapshotType } from "./validation/issue-map";
 import { createSaveCoordinator, type AutosaveDomain, type AutosaveState } from "./save-coordinator";
 import { buildDocumentStore, type CollectionStore, type DocumentStore, type TableRowView } from "./model/document-store";
@@ -583,6 +586,7 @@ export function App() {
   const [detailPanelWidth, setDetailPanelWidth] = useState(() => readDetailPanelWidth());
   const [detailDocumentPanelOpen, setDetailDocumentPanelOpen] = useState(() => readDetailDocumentPanelOpen());
   const [detailDocumentPanelWidth, setDetailDocumentPanelWidth] = useState(() => readDetailDocumentPanelWidth());
+  const [validationIssueOverrides, setValidationIssueOverrides] = useState<Record<string, ValidationIssue | null>>({});
   const primaryKeySyncSnapshotRef = useRef<PrimaryKeySyncSaveSnapshot | null>(null);
   const primaryKeySyncPlanRef = useRef<PrimaryKeySyncPlan | null>(null);
   const autosaveStateRef = useRef<AutosaveState>("idle");
@@ -657,6 +661,9 @@ export function App() {
 
   useEffect(() => { modelRef.current = model; }, [model]);
   useEffect(() => { filesRef.current = files; }, [files]);
+  useEffect(() => {
+    setValidationIssueOverrides({});
+  }, [selectedPath, collectionPath]);
   useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
   useEffect(() => { selectedPathRef.current = selectedPath; }, [selectedPath]);
   useEffect(() => { collectionPathRef.current = collectionPath; }, [collectionPath]);
@@ -2050,11 +2057,16 @@ export function App() {
     },
     [model, rows, collectionStore, validationFieldConfig, relationIndexes, validationRuleConfig, selectedPath, collectionPath],
   );
+  const effectiveValidationSnapshot = useMemo(
+    () => applyValidationIssueOverrides(validationSnapshot, validationIssueOverrides),
+    [validationSnapshot, validationIssueOverrides],
+  );
   const tableSnapshot = useMemo<TableSnapshot>(() => ({
     schemaModel: model!,
     sourcePath: selectedPath,
     collectionPath,
     rowViews: visibleRowViews,
+    allRows: rows,
     fieldConfig: tableFieldConfig,
     fieldViewConfigs,
     backlinkColumns,
@@ -2065,7 +2077,7 @@ export function App() {
     documentConfiguredFields: configuredDocumentFields,
     revision: tableRevision,
     sort: activeViewSort,
-    validation: validationSnapshot,
+    validation: effectiveValidationSnapshot,
     titleField,
     primaryKeyField: activeValidationPrimaryKeyField,
     scrollRestoreKey,
@@ -2077,6 +2089,7 @@ export function App() {
     selectedPath,
     collectionPath,
     visibleRowViews,
+    rows,
     tableFieldConfig,
     fieldViewConfigs,
     backlinkColumns,
@@ -2087,7 +2100,7 @@ export function App() {
     configuredDocumentFields,
     tableRevision,
     activeViewSort,
-    validationSnapshot,
+    effectiveValidationSnapshot,
     titleField,
     activeValidationPrimaryKeyField,
     scrollRestoreKey,
@@ -2122,6 +2135,7 @@ export function App() {
       errorMessage: documentContentError ?? documentIndexError,
     },
     row: selectedRow,
+    allRows: rows,
     rowId: selectedRowId,
     sourceRowIndex: selectedSourceRowIndex,
     rowCount: visibleRowViews.length,
@@ -2131,10 +2145,11 @@ export function App() {
     sourcePath: selectedPath,
     collectionPath,
     titleField,
+    primaryKeyField: activeValidationPrimaryKeyField,
     detailOrder: fieldConfig.detailOrder,
     displayTypes: fieldConfig.displayTypes,
     fieldViewConfigs,
-    validation: validationSnapshot,
+    validation: effectiveValidationSnapshot,
     relationOptions,
     relationConfigs: viewConfig.relations,
     relationBacklinks,
@@ -2156,6 +2171,7 @@ export function App() {
     documentIndex.docRoot,
     documentIndexError,
     selectedRow,
+    rows,
     selectedRowId,
     selectedSourceRowIndex,
     visibleRowViews.length,
@@ -2165,10 +2181,11 @@ export function App() {
     selectedPath,
     collectionPath,
     titleField,
+    activeValidationPrimaryKeyField,
     fieldConfig.detailOrder,
     fieldConfig.displayTypes,
     fieldViewConfigs,
-    validationSnapshot,
+    effectiveValidationSnapshot,
     relationOptions,
     viewConfig.relations,
     relationBacklinks,
@@ -2600,16 +2617,64 @@ export function App() {
     return fallbackSourceIndex;
   }
 
+  function updateValidationIssueOverride(
+    rowIndex: number | null,
+    rowId: string | null,
+    fieldName: string,
+    issue: ValidationIssue | null,
+  ) {
+    const resolvedRowIndex = rowIndex ?? resolveSourceIndexFromRowId(rowId, null);
+    if (resolvedRowIndex == null) return;
+    const issueKey = buildIssueKey(collectionStore, resolvedRowIndex, fieldName);
+    setValidationIssueOverrides((current) => {
+      const next = { ...current };
+      if (issue) {
+        next[issueKey] = issue;
+      } else {
+        delete next[issueKey];
+      }
+      return next;
+    });
+  }
+
+  function resolveCellEditWrite(
+    rowIndex: number | null,
+    rowId: string | null,
+    fieldName: string,
+    value: unknown,
+  ) {
+    const resolvedRowIndex = rowIndex ?? resolveSourceIndexFromRowId(rowId, null);
+    if (fieldName === activeValidationPrimaryKeyField && activeValidationPrimaryKeyField) {
+      const result = resolveAutoSuffixedPrimaryKeyValue({
+        rows,
+        fieldName,
+        value,
+        excludeRowIndex: resolvedRowIndex ?? undefined,
+      });
+      return {
+        value: result.value,
+        issue: result.adjusted
+          ? { severity: "warning" as const, message: `输入值重复，已自动改为 ${result.value}` }
+          : null,
+      };
+    }
+    return { value, issue: null };
+  }
+
   function handleEditCell(rowIndex: number, fieldName: string, value: unknown) {
     if (!model) return;
+    const nextEdit = resolveCellEditWrite(rowIndex, null, fieldName, value);
+    updateValidationIssueOverride(rowIndex, null, fieldName, nextEdit.issue);
     validationInvalidationRef.current = resolveValidationInvalidation(fieldName, null, rowIndex);
-    mutate(() => setCellValue(model, collectionPath, rowIndex, fieldName, value));
+    mutate(() => setCellValue(model, collectionPath, rowIndex, fieldName, nextEdit.value));
   }
 
   function handleEditCellByRowId(rowId: string, fieldName: string, value: unknown) {
     if (!model || !documentStore) return;
+    const nextEdit = resolveCellEditWrite(null, rowId, fieldName, value);
+    updateValidationIssueOverride(null, rowId, fieldName, nextEdit.issue);
     validationInvalidationRef.current = resolveValidationInvalidation(fieldName, rowId, null);
-    mutate(() => setCellValueByRowId({ model, store: documentStore, collectionPath, rowId, fieldName, value }));
+    mutate(() => setCellValueByRowId({ model, store: documentStore, collectionPath, rowId, fieldName, value: nextEdit.value }));
   }
 
   function handleTableEditCell(rowIndex: number, rowId: string | null, fieldName: string, value: unknown) {
@@ -3132,7 +3197,13 @@ export function App() {
     if (!model) return;
     const columns = getMainColumns(model, collectionPath);
     const nextRow: DataRecord = {};
-    for (const fieldName of columns) nextRow[fieldName] = defaultEmptyValue(fieldConfig.displayTypes[fieldName]);
+    for (const fieldName of columns) {
+      nextRow[fieldName] = defaultEmptyValue(viewFilterFieldTypes[fieldName] ?? fieldConfig.displayTypes[fieldName]);
+    }
+    const seededValues = deriveNewRowSeedValues(activeViewRenderState.filters, viewFilterFieldTypes);
+    for (const [fieldName, value] of Object.entries(seededValues)) {
+      if (columns.includes(fieldName)) nextRow[fieldName] = value;
+    }
     mutate(() => {
       addRow(model, collectionPath, nextRow);
       setSelectedSourceRow(rows.length, null);
@@ -4991,7 +5062,7 @@ function sameViewFilters(previous: FilterGroup, next: FilterGroup) {
     && sameGroupNode(previous.advancedRoot ?? null, next.advancedRoot ?? null);
 }
 
-function sameRuleNodes(previous: Array<{ id: string; field: string; operator: string; value?: unknown }>, next: Array<{ id: string; field: string; operator: string; value?: unknown }>) {
+function sameRuleNodes(previous: Array<{ id: string; field: string; operator: string; value?: unknown; join?: "and" | "or" }>, next: Array<{ id: string; field: string; operator: string; value?: unknown; join?: "and" | "or" }>) {
   return previous.length === next.length
     && previous.every((rule, index) => {
       const candidate = next[index];
@@ -4999,6 +5070,7 @@ function sameRuleNodes(previous: Array<{ id: string; field: string; operator: st
       return rule.id === candidate.id
         && rule.field === candidate.field
         && rule.operator === candidate.operator
+        && rule.join === candidate.join
         && sameUnknownValue(rule.value, candidate.value);
     });
 }
@@ -5010,6 +5082,7 @@ function sameGroupNode(previous: FilterGroupNode | null, next: FilterGroupNode |
   const nextChildren = Array.isArray(next.children) ? next.children : [];
   return previous.id === next.id
     && previous.op === next.op
+    && previous.join === next.join
     && previousChildren.length === nextChildren.length
     && previousChildren.every((node, index) => sameFilterNode(node, nextChildren[index] ?? null));
 }
@@ -5022,6 +5095,7 @@ function sameFilterNode(previous: FilterNode, next: FilterNode | null): boolean 
     return previous.id === next.id
       && previous.field === next.field
       && previous.operator === next.operator
+      && previous.join === next.join
       && sameUnknownValue(previous.value, next.value);
   }
   return false;
@@ -5145,6 +5219,8 @@ function configKey(path: string, collectionPath: string, fieldName: string, suff
 function defaultEmptyValue(displayType?: FieldDisplayType) {
   if (displayType === "Checkbox") return false;
   if (displayType === "Multi-select") return [];
+  if (displayType === "Backlink") return [];
+  if (displayType === "Number") return null;
   if (displayType === "Relation") return null;
   return "";
 }

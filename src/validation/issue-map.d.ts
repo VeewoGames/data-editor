@@ -53,6 +53,11 @@ export declare function buildValidationSnapshot(input: {
   collectionPath: string;
 }): ValidationSnapshot;
 
+export declare function applyValidationIssueOverrides(
+  snapshot: ValidationSnapshot,
+  overrides: Record<string, ValidationIssue | null>,
+): ValidationSnapshot;
+
 export declare function patchValidationSnapshotForRowField(input: {
   previousSnapshot: ValidationSnapshot;
   invalidation: ValidationRowFieldInvalidation;

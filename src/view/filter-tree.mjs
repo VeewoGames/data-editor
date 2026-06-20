@@ -54,6 +54,13 @@ export function updateGroupOp(filters, groupId, op) {
   };
 }
 
+export function updateChildJoin(filters, groupId, childId, join) {
+  return {
+    topLevelRules: topLevelRulesOf(filters),
+    advancedRoot: updateChildJoinInTree(filters?.advancedRoot, groupId, childId, join),
+  };
+}
+
 export function convertRuleToGroup(filters, ruleId) {
   const usedIds = collectAllFilterNodeIds(filters);
   return {
@@ -126,9 +133,15 @@ function updateGroupNode(group, nodeId, usedIds) {
 function appendNodeToGroup(group, groupId, node) {
   if (!group || typeof group !== "object") return group ?? null;
   if (group.id === groupId) {
+    const currentChildren = Array.isArray(group.children) ? group.children : [];
     return {
       ...group,
-      children: [...(Array.isArray(group.children) ? group.children : []), node],
+      children: normalizeLeadingChildJoin([
+        ...currentChildren,
+        currentChildren.length > 0 && node?.join == null
+          ? { ...node, join: group.op ?? "and" }
+          : node,
+      ]),
     };
   }
   let changed = false;
@@ -167,6 +180,38 @@ function updateGroupOpInTree(group, groupId, op) {
   };
 }
 
+function updateChildJoinInTree(group, groupId, childId, join) {
+  if (!group || typeof group !== "object") return group ?? null;
+  if (group.id === groupId) {
+    let changed = false;
+    const nextChildren = (group.children ?? []).map((child) => {
+      if (child?.id !== childId) return child;
+      changed = true;
+      return {
+        ...child,
+        join,
+      };
+    });
+    if (!changed) return group;
+    return {
+      ...group,
+      children: normalizeLeadingChildJoin(nextChildren),
+    };
+  }
+  let changed = false;
+  const nextChildren = (group.children ?? []).map((child) => {
+    if (child?.kind !== "group") return child;
+    const nextChild = updateChildJoinInTree(child, groupId, childId, join);
+    if (nextChild !== child) changed = true;
+    return nextChild;
+  });
+  if (!changed) return group;
+  return {
+    ...group,
+    children: nextChildren,
+  };
+}
+
 function convertRuleNodeToGroup(group, ruleId, usedIds) {
   if (!group || typeof group !== "object") return group ?? null;
   let changed = false;
@@ -176,8 +221,9 @@ function convertRuleNodeToGroup(group, ruleId, usedIds) {
       return {
         kind: "group",
         id: uniqueGroupId(usedIds),
+        join: child.join,
         op: group.op ?? "and",
-        children: [child],
+        children: [{ ...child, join: undefined }],
       };
     }
     if (child?.kind !== "group") return child;
@@ -233,7 +279,7 @@ function removeNodeFromGroup(group, nodeId) {
   if (!changed) return group;
   return {
     ...group,
-    children: nextChildren,
+    children: normalizeLeadingChildJoin(nextChildren),
   };
 }
 
@@ -311,6 +357,17 @@ function pruneEmptyGroups(group, isRoot = true) {
   if (nextChildren.length === 0) return isRoot ? null : null;
   return {
     ...group,
-    children: nextChildren,
+    children: normalizeLeadingChildJoin(nextChildren),
   };
+}
+
+function normalizeLeadingChildJoin(children) {
+  return children.map((child, index) => {
+    if (!child || typeof child !== "object") return child;
+    if (index !== 0 || child.join == null) return child;
+    return {
+      ...child,
+      join: undefined,
+    };
+  });
 }

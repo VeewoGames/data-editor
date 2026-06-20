@@ -563,7 +563,7 @@ export function ViewTabs({
                             }}
                             role="menuitem"
                           >
-                            <icons.addField size={20} />
+                            <icons.copy size={20} />
                             <span>复制组</span>
                           </button>
                           <div className="view-tab-menu-separator" />

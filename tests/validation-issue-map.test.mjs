@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildDocumentModel, getRows, setCellValue } from "../src/document-model.mjs";
 import { buildDocumentStore } from "../src/model/document-store.mjs";
-import { buildIssueKey, buildValidationIssueMap, buildValidationSnapshot, patchValidationSnapshotForField, patchValidationSnapshotForRowField } from "../src/validation/issue-map.mjs";
+import { applyValidationIssueOverrides, buildIssueKey, buildValidationIssueMap, buildValidationSnapshot, patchValidationSnapshotForField, patchValidationSnapshotForRowField } from "../src/validation/issue-map.mjs";
 import { resolveValidationIssue } from "../src/validation/issue-lookup.mjs";
 
 test("buildIssueKey prefers rowId and falls back to rowIndex", () => {
@@ -319,4 +319,62 @@ test("patchValidationSnapshotForField rebuilds all duplicate issues for a primar
   assert.ok(nextSnapshot);
   assert.equal(resolveValidationIssue(nextSnapshot, "row_a", 0, "id"), null);
   assert.equal(resolveValidationIssue(nextSnapshot, "row_b", 1, "id"), null);
+});
+
+test("applyValidationIssueOverrides overlays warning issues by row key", () => {
+  const baseSnapshot = buildValidationSnapshot({
+    rows: [{ trait_id: "trait_alpha" }],
+    collectionStore: {
+      rowViews: [{ rowId: "row_a" }],
+    },
+    fieldConfig: {
+      displayTypes: {},
+      isCompatible: () => true,
+    },
+    relationIndexes: {},
+    validationConfig: {
+      primaryKeys: {},
+      relations: {},
+    },
+    sourcePath: "data/traits.json",
+    collectionPath: "traits",
+  });
+
+  const nextSnapshot = applyValidationIssueOverrides(baseSnapshot, {
+    "row_a:trait_id": { severity: "warning", message: "输入值重复，已自动改为 trait_alpha_1" },
+  });
+
+  assert.deepEqual(resolveValidationIssue(nextSnapshot, "row_a", 0, "trait_id"), {
+    severity: "warning",
+    message: "输入值重复，已自动改为 trait_alpha_1",
+  });
+});
+
+test("applyValidationIssueOverrides removes warning issues when override is null", () => {
+  const baseSnapshot = buildValidationSnapshot({
+    rows: [{ trait_id: "trait_alpha" }],
+    collectionStore: {
+      rowViews: [{ rowId: "row_a" }],
+    },
+    fieldConfig: {
+      displayTypes: {},
+      isCompatible: () => true,
+    },
+    relationIndexes: {},
+    validationConfig: {
+      primaryKeys: {},
+      relations: {},
+    },
+    sourcePath: "data/traits.json",
+    collectionPath: "traits",
+  });
+  const warningSnapshot = applyValidationIssueOverrides(baseSnapshot, {
+    "row_a:trait_id": { severity: "warning", message: "输入值重复，已自动改为 trait_alpha_1" },
+  });
+
+  const nextSnapshot = applyValidationIssueOverrides(warningSnapshot, {
+    "row_a:trait_id": null,
+  });
+
+  assert.equal(resolveValidationIssue(nextSnapshot, "row_a", 0, "trait_id"), null);
 });

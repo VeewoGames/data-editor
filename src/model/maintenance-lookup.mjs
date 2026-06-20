@@ -133,13 +133,31 @@ export async function buildMaintenanceLookupState({
 }
 
 function collectDocumentFieldRewrites({
+  selectedPath,
+  collectionPath,
+  selectedSourceRowIndex,
+  selectedRowLabel,
+  activeDocumentFields,
   oldValue,
   newValue,
 }) {
   const normalizedOldValue = oldValue == null ? "" : String(oldValue);
   const normalizedNewValue = newValue == null ? "" : String(newValue);
   if (!normalizedOldValue || normalizedOldValue === normalizedNewValue) return [];
-  return [];
+  return activeDocumentFields
+    .filter(({ fieldPath }) => fieldPath.length === 1)
+    .map(({ fieldPath }) => ({
+      relationKey: `document:${selectedPath}:${collectionPath}:${fieldPath.join(".")}`,
+      sourceFile: selectedPath,
+      sourceCollection: collectionPath,
+      fieldPath,
+      rowIndex: selectedSourceRowIndex ?? -1,
+      rowId: undefined,
+      rowLabel: selectedRowLabel ? String(selectedRowLabel) : `${collectionPath}:${normalizedOldValue}`,
+      oldValue: normalizedOldValue,
+      newValue: normalizedNewValue,
+    }))
+    .filter(({ rowIndex }) => rowIndex >= 0);
 }
 
 function emptyMaintenanceState() {

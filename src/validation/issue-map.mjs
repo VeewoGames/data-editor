@@ -32,6 +32,33 @@ export function buildValidationSnapshot(input) {
   return createValidationSnapshot(buildValidationIssueMap(input));
 }
 
+export function applyValidationIssueOverrides(snapshot, overrides) {
+  if (!snapshot || !overrides || Object.keys(overrides).length === 0) return snapshot;
+  const nextSnapshot = {
+    byRowId: { ...snapshot.byRowId },
+    byRowIndex: { ...snapshot.byRowIndex },
+    collectionIssues: snapshot.collectionIssues,
+  };
+  for (const [issueKey, issue] of Object.entries(overrides)) {
+    const separatorIndex = issueKey.lastIndexOf(":");
+    if (separatorIndex <= 0) continue;
+    const rowKey = issueKey.slice(0, separatorIndex);
+    const fieldName = issueKey.slice(separatorIndex + 1);
+    const bucketName = /^\d+$/.test(rowKey) ? "byRowIndex" : "byRowId";
+    const currentBucket = { ...(nextSnapshot[bucketName][rowKey] ?? {}) };
+    delete currentBucket[fieldName];
+    if (issue) {
+      currentBucket[fieldName] = issue;
+    }
+    if (Object.keys(currentBucket).length) {
+      nextSnapshot[bucketName][rowKey] = currentBucket;
+    } else {
+      delete nextSnapshot[bucketName][rowKey];
+    }
+  }
+  return nextSnapshot;
+}
+
 export function patchValidationSnapshotForRowField({
   previousSnapshot,
   invalidation,

@@ -9,6 +9,7 @@ import {
   duplicateNodeInAdvancedRoot,
   mergeTopLevelRuleIntoAdvancedRoot,
   removeNodeFromFilters,
+  updateChildJoin,
   updateGroupOp,
 } from "../src/view/filter-tree.mjs";
 
@@ -128,6 +129,26 @@ test("updateGroupOp changes only the target group's operator", () => {
   const next = updateGroupOp(filters, "group:1", "or");
   assert.equal(next.advancedRoot.op, "and");
   assert.equal(next.advancedRoot.children[0].op, "or");
+});
+
+test("updateChildJoin changes only the target child connector", () => {
+  const filters = {
+    topLevelRules: [],
+    advancedRoot: {
+      kind: "group",
+      id: "advanced-root",
+      op: "and",
+      children: [
+        { kind: "rule", id: "rule:a", field: "owner", operator: "is", value: "player" },
+        { kind: "rule", id: "rule:b", field: "skill_category", operator: "is", value: "general", join: "and" },
+        { kind: "rule", id: "rule:c", field: "dev_status", operator: "is_not", value: "草稿", join: "and" },
+      ],
+    },
+  };
+
+  const next = updateChildJoin(filters, "advanced-root", "rule:c", "or");
+  assert.equal(next.advancedRoot.children[1].join, "and");
+  assert.equal(next.advancedRoot.children[2].join, "or");
 });
 
 test("convertRuleToGroup replaces the rule with a new child group that inherits parent op", () => {

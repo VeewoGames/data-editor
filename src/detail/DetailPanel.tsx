@@ -16,7 +16,7 @@ import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
-import { buildMultiSelectFieldConfig } from "../multiselect-config.mjs";
+import { buildMultiSelectFieldConfigFromRows } from "../multiselect-config.mjs";
 import { FieldTypeIcon } from "../components/FieldTypeIcon";
 import { resolveValidationIssue } from "../validation/issue-lookup.mjs";
 import type { ValidationSnapshot } from "../validation/issue-map";
@@ -24,12 +24,14 @@ import { StableTextInput, StableTextarea, type ActiveTextEditorHandle, type Acti
 import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { DocumentPanel, type DocumentPanelSnapshot } from "./DocumentPanel";
 import { mergeDetailFieldOrder } from "../model/document-field-state.mjs";
+import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 
 export type DetailSnapshot = {
   open: boolean;
   panelWidth: number;
   documentPanel: DocumentPanelSnapshot;
   row: DataRecord | null;
+  allRows: DataRecord[];
   rowId: string | null;
   sourceRowIndex: number | null;
   rowCount: number;
@@ -39,6 +41,7 @@ export type DetailSnapshot = {
   sourcePath: string | null;
   collectionPath: string;
   titleField: string | null;
+  primaryKeyField: string | null;
   detailOrder: string[];
   displayTypes: Record<string, FieldDisplayType>;
   fieldViewConfigs: Record<string, FieldViewConfig>;
@@ -105,6 +108,7 @@ export function DetailPanel({
     panelWidth,
     documentPanel,
     row,
+    allRows,
     rowId,
     sourceRowIndex,
     rowCount,
@@ -114,6 +118,7 @@ export function DetailPanel({
     sourcePath,
     collectionPath,
     titleField,
+    primaryKeyField,
     detailOrder,
     displayTypes,
     fieldViewConfigs,
@@ -208,28 +213,25 @@ export function DetailPanel({
       for (const [value, option] of Object.entries(fieldViewConfigs[key]?.selectOptions ?? {})) {
         options.set(value, { value, label: option.label, color: option.color ?? null });
       }
-      const value = row[key];
-      if (value != null) {
+      for (const sourceRow of allRows) {
+        const value = sourceRow?.[key];
+        if (value == null) continue;
         const normalized = String(value).trim();
         if (normalized) options.set(normalized, { value: normalized, label: normalized, color: null });
       }
       result[key] = [...options.values()];
     }
     return result;
-  }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
+  }, [allRows, displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
   const multiSelectOptionsByField = useMemo(() => {
     if (!row) return {};
     const result: Record<string, { options: MultiSelectOptionView[]; optionMap: Record<string, MultiSelectOptionView> }> = {};
     for (const key of naturalFieldOrder) {
       if (displayTypes[key] !== "Multi-select") continue;
-      const value = row[key];
-      const discovered = Array.isArray(value)
-        ? value.filter((item): item is string | number => item != null && (typeof item === "string" || typeof item === "number"))
-        : [];
-      result[key] = buildMultiSelectFieldConfig(discovered, fieldViewConfigs[key]);
+      result[key] = buildMultiSelectFieldConfigFromRows(allRows, key, fieldViewConfigs[key]);
     }
     return result;
-  }, [displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
+  }, [allRows, displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
 
   function beginPanelResize(event: ReactPointerEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -446,6 +448,7 @@ export function DetailPanel({
                         cellId: `detail:${rowId ?? sourceRowIndex ?? "detail"}:${key}`,
                         pathParts: [key],
                         fieldName: key,
+                        primaryKeyField,
                         displayType: displayTypes[key] ?? defaultTypeFor(value),
                         value,
                         multiSelectOptions: multiSelectOptionsByField[key]?.options ?? [],
@@ -671,6 +674,7 @@ function NestedObjectPanel(props: {
               cellId: `nested-object:${props.rootField}:${key}`,
               pathParts: [props.rootField, ...props.basePath, key],
               fieldName: key,
+              primaryKeyField: null,
               displayType: defaultTypeFor(value),
               value,
               multiSelectOptions: [],
@@ -789,6 +793,7 @@ function renderValueEditor(props: {
   cellId: string;
   pathParts: Array<string | number>;
   fieldName: string;
+  primaryKeyField: string | null;
   displayType: FieldDisplayType;
   value: unknown;
   multiSelectOptions: MultiSelectOptionView[];
@@ -927,36 +932,61 @@ function renderValueEditor(props: {
       />
     );
   }
+  if (props.displayType === "Number" && (props.value == null || typeof props.value === "string" || typeof props.value === "number")) {
+    return (
+      <DetailStableTextEditor
+        identityKey={props.cellId}
+        className="detail-input"
+        value={props.value}
+        fieldName={props.fieldName}
+        inputMode="decimal"
+        normalizeInput={sanitizeNumberDraft}
+        commitMode={props.fieldName === props.primaryKeyField ? "manual" : "realtime"}
+        mapValue={(next) => parseNumberDraft(next)}
+        onEditField={props.onEditField}
+        onRegisterActiveEditor={props.onRegisterActiveTextEditor}
+      />
+    );
+  }
   return (
-    <DetailStableTextEditor
-      identityKey={props.cellId}
-      className="detail-input"
-      value={props.value}
-      fieldName={props.fieldName}
-      onEditField={props.onEditField}
-      onRegisterActiveEditor={props.onRegisterActiveTextEditor}
-    />
+      <DetailStableTextEditor
+        identityKey={props.cellId}
+        className="detail-input"
+        value={props.value}
+        fieldName={props.fieldName}
+        commitMode={props.fieldName === props.primaryKeyField ? "manual" : "realtime"}
+        onEditField={props.onEditField}
+        onRegisterActiveEditor={props.onRegisterActiveTextEditor}
+      />
   );
 }
 
 function DetailStableTextEditor(
   {
-    multiline = false,
-    identityKey,
-    className,
-    value,
-    fieldName,
-    onEditField,
-    onRegisterActiveEditor,
-  }: {
-    multiline?: boolean;
-    identityKey: string;
-    className: string;
-    value: unknown;
-    fieldName: string;
-    onEditField: (fieldName: string, value: unknown) => void;
-    onRegisterActiveEditor?: ActiveTextEditorRegistrar;
-  },
+      multiline = false,
+      identityKey,
+      className,
+      value,
+      fieldName,
+      inputMode,
+      normalizeInput,
+      commitMode = "realtime",
+      mapValue = (next: string) => next,
+      onEditField,
+      onRegisterActiveEditor,
+    }: {
+      multiline?: boolean;
+      identityKey: string;
+      className: string;
+      value: unknown;
+      fieldName: string;
+      inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+      normalizeInput?: (value: string) => string;
+      commitMode?: "realtime" | "manual";
+      mapValue?: (value: string) => unknown;
+      onEditField: (fieldName: string, value: unknown) => void;
+      onRegisterActiveEditor?: ActiveTextEditorRegistrar;
+    },
 ) {
   const inputRef = useRef<StableTextInputHandle | null>(null);
   const activeHandleRef = useRef<ActiveTextEditorHandle | null>(null);
@@ -984,8 +1014,10 @@ function DetailStableTextEditor(
     identityKey,
     className,
     value,
-    commitMode: "realtime" as const,
-    onChangeValue: (next: string) => onEditField(fieldName, next),
+    inputMode,
+    commitMode,
+    normalizeInput,
+    onChangeValue: (next: string) => onEditField(fieldName, mapValue(next)),
     onFocus: registerActiveEditor,
     onBlur: clearActiveEditor,
   };

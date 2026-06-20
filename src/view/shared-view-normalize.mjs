@@ -160,7 +160,9 @@ function normalizeLegacyFilterRules(value) {
     const field = normalizeString(item.field);
     const operator = normalizeString(item.operator);
     if (!id || !field || !filterOperators.has(operator)) continue;
+    const join = normalizeString(item.join);
     const rule = { kind: "rule", id, field, operator };
+    if (join === "and" || join === "or") rule.join = join;
     if ("value" in item) rule.value = item.value;
     result.push(rule);
   }
@@ -175,11 +177,13 @@ function normalizeGroupNode(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const id = normalizeString(value.id);
   const op = normalizeString(value.op);
+  const join = normalizeString(value.join);
   if (!id || (op !== "and" && op !== "or")) return null;
   return {
     kind: "group",
     id,
     op,
+    ...(join === "and" || join === "or" ? { join } : {}),
     children: normalizeFilterNodes(value.children),
   };
 }

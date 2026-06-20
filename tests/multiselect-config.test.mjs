@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildMultiSelectFieldConfig,
+  buildMultiSelectFieldConfigFromRows,
   buildOptionConfigFromOptions,
   buildOptionConfigByOrder,
   removeMultiSelectOptionFromRows,
@@ -94,6 +95,25 @@ test("buildMultiSelectFieldConfig preserves stored option order and appends disc
     },
   );
   assert.deepEqual(config.options.map((option) => option.value), ["area", "attack", "spell", "buff"]);
+});
+
+test("buildMultiSelectFieldConfigFromRows collects options from every row in the collection", () => {
+  const config = buildMultiSelectFieldConfigFromRows(
+    [
+      { id: "1", tags: ["empower"] },
+      { id: "2", tags: ["fire", "support"] },
+      { id: "3", tags: [] },
+      { id: "4", tags: "ignored" },
+    ],
+    "tags",
+    {
+      multiSelectOptions: {
+        empower: { label: "Empower", color: "orange" },
+      },
+    },
+  );
+  assert.deepEqual(config.options.map((option) => option.value), ["empower", "fire", "support"]);
+  assert.equal(config.optionMap.empower.label, "Empower");
 });
 
 test("sortValuesByOptionOrder follows configured option order and keeps unknown values at the end", () => {

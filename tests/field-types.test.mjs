@@ -10,6 +10,7 @@ test("Multi-select treats missing values as empty", () => {
 test("Number treats missing values as empty", () => {
   assert.equal(isCompatible("Number", undefined), true);
   assert.equal(isCompatible("Number", null), true);
+  assert.equal(isCompatible("Number", ""), true);
 });
 
 test("Checkbox treats missing values as empty", () => {

@@ -12,6 +12,7 @@ import { TextCellSurface } from "./TextCellSurface";
 import type { MultiSelectFieldOptionConfig, SelectFieldOptionConfig } from "./DataTable";
 import type { RelationMode } from "../model/viewConfig";
 import type { ActiveTextEditorRegistrar } from "../editing";
+import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 
 type CellRendererProps = {
   cellId?: string;
@@ -173,6 +174,31 @@ function CellRendererComponent({
             onActivate={onActivateTextCell ?? (() => {})}
             onDeactivate={onDeactivateTextCell ?? (() => {})}
             onChangeValue={(next) => onEdit(next)}
+            onRegisterActiveEditor={onRegisterActiveEditor}
+          />
+        </div>
+        {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
+      </>
+    );
+  }
+  if (
+    displayType === "Number" &&
+    (value == null || typeof value === "string" || typeof value === "number")
+  ) {
+    return (
+      <>
+        <div className="table-cell-content-main">
+          <TextCellSurface
+            cellId={cellId}
+            editable={textEditable}
+            active={textEditingActive}
+            value={value}
+            wrapped={wrapped}
+            inputMode="decimal"
+            normalizeInput={sanitizeNumberDraft}
+            onActivate={onActivateTextCell ?? (() => {})}
+            onDeactivate={onDeactivateTextCell ?? (() => {})}
+            onChangeValue={(next) => onEdit(parseNumberDraft(next))}
             onRegisterActiveEditor={onRegisterActiveEditor}
           />
         </div>

@@ -64,6 +64,7 @@ export type TableSnapshot = {
   sourcePath: string | null;
   collectionPath: string;
   rowViews: TableRowView[];
+  allRows?: DataRecord[];
   fieldConfig: TableFieldConfig;
   fieldViewConfigs: Record<string, FieldViewConfig>;
   backlinkColumns: BacklinkGridColumn[];
@@ -167,6 +168,7 @@ function DataTableComponent(props: DataTableProps) {
   const rowViews = snapshot.rowViews;
   const rowIds = useMemo(() => rowViews.map((view) => view.rowId), [rowViews]);
   const rows = useMemo(() => rowViews.map((view) => view.row), [rowViews]);
+  const optionRows = snapshot.allRows ?? rows;
   const schemaModel = snapshot.schemaModel;
   const nestedFieldSet = useMemo(
     () => new Set(getNestedFields(schemaModel, snapshot.collectionPath)),
@@ -242,6 +244,7 @@ function DataTableComponent(props: DataTableProps) {
   } = useMemo(() => buildTableRuntimeDeps({
     visibleFields,
     rows,
+    optionRows,
     sourcePath: snapshot.sourcePath,
     collectionPath: snapshot.collectionPath,
     primaryKeyField: snapshot.primaryKeyField,
@@ -253,6 +256,7 @@ function DataTableComponent(props: DataTableProps) {
   }), [
     visibleFields,
     rows,
+    optionRows,
     snapshot.sourcePath,
     snapshot.collectionPath,
     snapshot.primaryKeyField,
