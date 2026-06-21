@@ -54,8 +54,11 @@ type DraftSessionSnapshot = {
   selectedValues: Array<string | number>;
 };
 
-const colorChoices: Array<{ value: MultiSelectOptionColor; label: string }> = [
-  { value: "default", label: "默认" },
+type ColorChoice = { value: MultiSelectOptionColor; label: string };
+
+const defaultColorChoice: ColorChoice = { value: "default", label: "默认" };
+
+const lightColorChoices: ColorChoice[] = [
   { value: "gray", label: "灰色" },
   { value: "brown", label: "棕色" },
   { value: "orange", label: "橙色" },
@@ -66,13 +69,35 @@ const colorChoices: Array<{ value: MultiSelectOptionColor; label: string }> = [
   { value: "cyan", label: "青色" },
   { value: "lime", label: "黄绿" },
   { value: "indigo", label: "靛蓝" },
-  { value: "slate", label: "石板灰" },
   { value: "rose", label: "玫瑰" },
   { value: "amber", label: "琥珀" },
   { value: "purple", label: "紫色" },
   { value: "pink", label: "粉色" },
   { value: "red", label: "红色" },
 ];
+
+const darkColorChoices: ColorChoice[] = [
+  { value: "dark_gray", label: "深灰" },
+  { value: "dark_brown", label: "深棕" },
+  { value: "dark_orange", label: "深橙" },
+  { value: "dark_yellow", label: "深黄" },
+  { value: "dark_green", label: "深绿" },
+  { value: "dark_blue", label: "深蓝" },
+  { value: "dark_teal", label: "深青绿" },
+  { value: "dark_cyan", label: "深青色" },
+  { value: "dark_lime", label: "深黄绿" },
+  { value: "dark_indigo", label: "深靛蓝" },
+  { value: "dark_rose", label: "深玫瑰" },
+  { value: "dark_amber", label: "深琥珀" },
+  { value: "dark_purple", label: "深紫" },
+  { value: "dark_pink", label: "深粉" },
+  { value: "dark_red", label: "深红" },
+];
+
+const colorChoiceGroups = [
+  { key: "light", label: "浅色", choices: lightColorChoices },
+  { key: "dark", label: "深色", choices: darkColorChoices },
+] as const;
 
 export function OptionFieldEditor({
   cellId,
@@ -504,26 +529,55 @@ export function OptionFieldEditor({
                         <div className="multi-select-option-divider" />
                         <div className="multi-select-option-section-title">颜色</div>
                         <div className="multi-select-color-list">
-                          {colorChoices.map((choice) => {
-                            const active = (option.color ?? "default") === choice.value;
-                            const palette = namedChipPalette[choice.value];
+                          {(() => {
+                            const active = (option.color ?? "default") === defaultColorChoice.value;
+                            const palette = namedChipPalette[defaultColorChoice.value];
                             return (
                               <button
                                 className={`multi-select-color-item ${active ? "active" : ""}`}
-                                data-color-choice={choice.value}
-                                key={choice.value}
+                                data-color-choice={defaultColorChoice.value}
+                                key={defaultColorChoice.value}
                                 onPointerDown={(event) => {
                                   event.preventDefault();
-                                  applyColor(option.value, choice.value);
+                                  applyColor(option.value, defaultColorChoice.value);
                                 }}
                                 type="button"
                               >
                                 <span className="multi-select-color-swatch" style={{ background: palette.background }} />
-                                <span>{choice.label}</span>
+                                <span>{defaultColorChoice.label}</span>
                                 {active ? <icons.check size={16} /> : <span className="multi-select-color-check-placeholder" />}
                               </button>
                             );
-                          })}
+                          })()}
+                        </div>
+                        <div className="multi-select-color-columns">
+                          {colorChoiceGroups.map((group) => (
+                            <div className="multi-select-color-group" data-color-group={group.key} key={group.key}>
+                              <div className="multi-select-color-group-title">{group.label}</div>
+                              <div className="multi-select-color-list">
+                                {group.choices.map((choice) => {
+                                  const active = (option.color ?? "default") === choice.value;
+                                  const palette = namedChipPalette[choice.value];
+                                  return (
+                                    <button
+                                      className={`multi-select-color-item ${active ? "active" : ""}`}
+                                      data-color-choice={choice.value}
+                                      key={choice.value}
+                                      onPointerDown={(event) => {
+                                        event.preventDefault();
+                                        applyColor(option.value, choice.value);
+                                      }}
+                                      type="button"
+                                    >
+                                      <span className="multi-select-color-swatch" style={{ background: palette.background }} />
+                                      <span>{choice.label}</span>
+                                      {active ? <icons.check size={16} /> : <span className="multi-select-color-check-placeholder" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </Popover.Content>
                     </Popover.Portal>

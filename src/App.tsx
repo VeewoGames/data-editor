@@ -4375,6 +4375,7 @@ export function App() {
                 <ViewTabs
                   snapshot={viewTabsSnapshot}
                   onSelectView={handleSelectSharedView}
+                  onAddRow={handleAddRow}
                   onCreateTopLevelView={handleCreateTopLevelSharedView}
                   onCreateViewGroup={handleCreateSharedViewGroup}
                   onCreateViewInGroup={handleCreateSharedViewInGroup}
@@ -4477,6 +4478,7 @@ export function App() {
             <ViewTabs
               snapshot={viewTabsSnapshot}
               onSelectView={handleSelectSharedView}
+              onAddRow={handleAddRow}
               onCreateTopLevelView={handleCreateTopLevelSharedView}
               onCreateViewGroup={handleCreateSharedViewGroup}
               onCreateViewInGroup={handleCreateSharedViewInGroup}

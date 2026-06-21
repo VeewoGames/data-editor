@@ -37,7 +37,7 @@ export function AutoSizeTextarea({
         syncHeight(node);
       }}
       rows={1}
-      style={{ ...style, overflowY: "hidden" }}
+      style={{ ...style, overflow: "hidden" }}
     />
   );
 }

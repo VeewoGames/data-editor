@@ -56,11 +56,11 @@ export type ViewConfig = {
     type?: "Text" | "Select" | "Document";
     selectOptions: Record<string, {
       label: string;
-      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "slate" | "rose" | "amber" | "purple" | "pink" | "red" | null;
+      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "rose" | "amber" | "purple" | "pink" | "red" | "dark_gray" | "dark_brown" | "dark_orange" | "dark_yellow" | "dark_green" | "dark_blue" | "dark_teal" | "dark_cyan" | "dark_lime" | "dark_indigo" | "dark_purple" | "dark_pink" | "dark_red" | "dark_rose" | "dark_amber" | null;
     }>;
     multiSelectOptions: Record<string, {
       label: string;
-      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "slate" | "rose" | "amber" | "purple" | "pink" | "red" | null;
+      color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "rose" | "amber" | "purple" | "pink" | "red" | "dark_gray" | "dark_brown" | "dark_orange" | "dark_yellow" | "dark_green" | "dark_blue" | "dark_teal" | "dark_cyan" | "dark_lime" | "dark_indigo" | "dark_purple" | "dark_pink" | "dark_red" | "dark_rose" | "dark_amber" | null;
     }>;
   }>;
   titleFields: Record<string, string>;

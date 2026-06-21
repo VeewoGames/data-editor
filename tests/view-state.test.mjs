@@ -891,6 +891,7 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /onToggleFilterBar/);
   assert.match(viewTabsSource, /onToggleTableTextEditMode/);
   assert.match(viewTabsSource, /onToggleRowDeleteControls/);
+  assert.match(viewTabsSource, /onAddRow/);
   assert.match(viewTabsSource, /onSaveDocumentRoot/);
   assert.match(viewTabsSource, /onRefreshDocumentIndex/);
   assert.match(viewTabsSource, /hasActiveFilters/);
@@ -907,8 +908,11 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /table-settings-popover-shell/);
   assert.match(viewTabsSource, /<TableSettingsPopover/);
   assert.match(viewTabsSource, /<icons\.borderAll size=\{17\} \/>/);
+  assert.match(viewTabsSource, /<icons\.addField size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.edit size=\{18\} \/>/);
+  assert.match(viewTabsSource, /className="view-tab-action view-tabs-add-row primary"/);
+  assert.match(viewTabsSource, /<span>新建<\/span>/);
   assert.match(viewTabsSource, /<span>编辑<\/span>/);
   assert.match(viewTabsSource, /<span>调整<\/span>/);
   assert.doesNotMatch(viewTabsSource, /<span>配置<\/span>/);
@@ -919,8 +923,12 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /拷贝视图链接/);
   assert.match(viewTabsSource, /view-tabs-top-level/);
   assert.match(viewTabsSource, /view-tabs-group-row/);
+  assert.match(viewTabsSource, /group-tab-search/);
+  assert.match(viewTabsSource, /view-tabs-group-tabs/);
+  assert.match(viewTabsSource, /筛选当前组标签/);
+  assert.match(viewTabsSource, /document\.querySelector<HTMLInputElement>\("\.search-box input"\)/);
   assert.match(viewTabsSource, /topLevelItems\.map/);
-  assert.match(viewTabsSource, /expandedGroup\.views\.map/);
+  assert.match(viewTabsSource, /filteredGroupViews\.map/);
   assert.match(viewTabsSource, /view-tab-create-top-level/);
   assert.match(viewTabsSource, /view-tab-create-in-group/);
   assert.match(viewTabsSource, /创建视图组/);
@@ -934,8 +942,14 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /删除组/);
   assert.match(viewTabsSource, /在组内创建视图/);
   assert.match(viewTabsSource, /复制组/);
+  assert.doesNotMatch(viewTabsSource, /className="search-box"/);
 
   assert.match(toolbarSource, /<ExpandableSearch className="search-box"/);
+  assert.match(toolbarSource, /placeholder="搜索当前表格"/);
+  const expandableSearchSource = await readFile(new URL("../src/components/ExpandableSearch.tsx", import.meta.url), "utf8");
+  assert.match(expandableSearchSource, /className="expandable-search-clear"/);
+  assert.match(expandableSearchSource, /aria-label="清空搜索"/);
+  assert.match(expandableSearchSource, /<icons\.close size=\{16\} \/>/);
   assert.match(toolbarSource, /toolbar-profile-picker/);
   assert.match(toolbarSource, /toolbar-hidden-fields/);
   assert.match(toolbarSource, /const showHourglassIcon = snapshot\.autosaveState === "pending" \|\| snapshot\.autosaveState === "saving";/);
@@ -951,6 +965,17 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(filterBarSource, /重置/);
 });
 
+test("DataTable no longer renders the bottom New row button", async () => {
+  const tableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+
+  assert.match(tableSource, /onAddRow: \(\) => void;/);
+  assert.doesNotMatch(tableSource, /New row/);
+  assert.doesNotMatch(tableSource, /className="new-row-button"/);
+  assert.match(stylesSource, /\.table-shell\s*\{[\s\S]*grid-template-rows:\s*minmax\(0, 1fr\);/);
+  assert.doesNotMatch(stylesSource, /\.table-shell\s*\{[\s\S]*grid-template-rows:\s*minmax\(0, 1fr\)\s+40px;/);
+});
+
 test("App routes resolved shared view structure into ViewTabs snapshot and page context grouping", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
@@ -958,6 +983,7 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(appSource, /resolveSharedViewStructure/);
   assert.match(appSource, /const resolvedCollectionViews = useMemo/);
   assert.match(appSource, /topLevelItems: resolvedCollectionViews\.topLevelItems,/);
+  assert.match(appSource, /onAddRow=\{handleAddRow\}/);
   assert.match(appSource, /expandedGroupId: resolvedCollectionViews\.expandedGroupId,/);
   assert.match(appSource, /activeGroupId: resolvedCollectionViews\.activeGroupId,/);
   assert.match(appSource, /updatePageContextViewGrouping/);

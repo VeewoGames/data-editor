@@ -10,12 +10,26 @@ export type MultiSelectOptionColor =
   | "cyan"
   | "lime"
   | "indigo"
-  | "slate"
   | "rose"
   | "amber"
   | "purple"
   | "pink"
-  | "red";
+  | "red"
+  | "dark_gray"
+  | "dark_brown"
+  | "dark_orange"
+  | "dark_yellow"
+  | "dark_green"
+  | "dark_blue"
+  | "dark_teal"
+  | "dark_cyan"
+  | "dark_lime"
+  | "dark_indigo"
+  | "dark_purple"
+  | "dark_pink"
+  | "dark_red"
+  | "dark_rose"
+  | "dark_amber";
 
 export type MultiSelectOptionView = {
   value: string;

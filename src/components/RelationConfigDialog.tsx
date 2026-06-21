@@ -139,7 +139,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
             >
               <Select.Trigger className="select-trigger"><Select.Value placeholder="选择目标文件" /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
-                <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                <Select.Content className="menu-content select-content relation-config-select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
                     {props.files.map((file) => (
                       <Select.Item className="menu-item" key={file.path} value={file.path}><Select.ItemText>{file.path}</Select.ItemText></Select.Item>
@@ -154,7 +154,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
             <Select.Root value={targetCollection} onValueChange={setTargetCollection} disabled={!collections.length}>
               <Select.Trigger className="select-trigger"><Select.Value placeholder="选择目标集合" /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
-                <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                <Select.Content className="menu-content select-content relation-config-select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
                     {collections.map((collection) => (
                       <Select.Item className="menu-item" key={collection.path} value={collection.path}><Select.ItemText>{collection.path}</Select.ItemText></Select.Item>
@@ -169,7 +169,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
             <Select.Root value={targetKey} onValueChange={setTargetKey} disabled={!targetFields.length}>
               <Select.Trigger className="select-trigger"><Select.Value placeholder="选择主键字段" /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
-                <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                <Select.Content className="menu-content select-content relation-config-select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
                     {targetFields.map((field) => (
                       <Select.Item className="menu-item" key={field} value={field}><Select.ItemText>{field}</Select.ItemText></Select.Item>
@@ -184,7 +184,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
             <Select.Root value={mode} onValueChange={(value) => setMode(value as RelationMode)}>
               <Select.Trigger className="select-trigger"><Select.Value /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
               <Select.Portal>
-                <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                <Select.Content className="menu-content select-content relation-config-select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
                     <Select.Item className="menu-item" value="single"><Select.ItemText>单值</Select.ItemText></Select.Item>
                     <Select.Item className="menu-item" value="multi"><Select.ItemText>多值</Select.ItemText></Select.Item>

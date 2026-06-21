@@ -799,10 +799,6 @@ function DataTableComponent(props: DataTableProps) {
           </table>
         </div>
       </TableColumnsRuntimeProvider>
-      <button className="new-row-button" onClick={props.onAddRow}>
-        <icons.addRow size={16} />
-        New row
-      </button>
       {columnDragSession ? (
         <MemoColumnDragGhost
           draggingField={columnDragSession.draggingField}

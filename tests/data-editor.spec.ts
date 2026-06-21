@@ -616,6 +616,22 @@ function groupRowViewTab(page: Page, name: string) {
   return page.locator(".view-tabs-group-row .view-tab").filter({ hasText: name }).first();
 }
 
+function groupRowSearch(page: Page) {
+  return page.locator(".group-tab-search");
+}
+
+function groupRowSearchInput(page: Page) {
+  return page.locator(".group-tab-search input");
+}
+
+function toolbarSearch(page: Page) {
+  return page.locator(".search-box");
+}
+
+function toolbarSearchInput(page: Page) {
+  return page.locator(".search-box input");
+}
+
 async function getTopLevelTabNames(page: Page) {
   return page.locator(".view-tabs-top-level .view-tab").evaluateAll((tabs) => (
     tabs.map((tab) => tab.textContent?.trim() ?? "").filter(Boolean)
@@ -1126,6 +1142,58 @@ test("column header tooltip hides during drag and resize and can recover after p
   await page.mouse.up();
 });
 
+test("global scrollbars use larger hit areas with subdued visuals", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const scrollbarStyle = await page.locator(".table-scroll").evaluate((element) => {
+    const hostStyle = getComputedStyle(element);
+    const scrollbarStyle = getComputedStyle(element, "::-webkit-scrollbar");
+    const thumbStyle = getComputedStyle(element, "::-webkit-scrollbar-thumb");
+    const rootStyle = getComputedStyle(document.documentElement);
+    return {
+      firefoxWidth: hostStyle.getPropertyValue("scrollbar-width").trim(),
+      webkitHeight: scrollbarStyle.height,
+      webkitWidth: scrollbarStyle.width,
+      thumbBorderTop: thumbStyle.borderTopWidth,
+      thumbBackgroundClip: thumbStyle.backgroundClip,
+      thumbColor: rootStyle.getPropertyValue("--color-scrollbar-thumb").trim(),
+      thumbHoverColor: rootStyle.getPropertyValue("--color-scrollbar-thumb-hover").trim(),
+      thumbActiveColor: rootStyle.getPropertyValue("--color-scrollbar-thumb-active").trim(),
+    };
+  });
+
+  expect(scrollbarStyle.firefoxWidth).toBe("auto");
+  expect(scrollbarStyle.webkitHeight).toBe("20px");
+  expect(scrollbarStyle.webkitWidth).toBe("20px");
+  expect(scrollbarStyle.thumbBorderTop).toBe("0px");
+  expect(scrollbarStyle.thumbBackgroundClip).toBe("border-box");
+  expect(scrollbarStyle.thumbColor).toBe("rgba(120, 119, 116, 0.18)");
+  expect(scrollbarStyle.thumbHoverColor).toBe("rgba(120, 119, 116, 0.35)");
+  expect(scrollbarStyle.thumbActiveColor).toBe("rgba(120, 119, 116, 0.55)");
+});
+
+test("detail textareas hide internal scrollbars so content is not obscured", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/skills.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator(".data-table tbody tr").first().locator('[data-cell-role="title-action"]').click();
+  const textarea = page.locator(".detail-panel.primary .detail-textarea").first();
+  await expect(textarea).toBeVisible();
+
+  const scrollbarStyle = await textarea.evaluate((element) => {
+    const hostStyle = getComputedStyle(element);
+    return {
+      overflowX: hostStyle.overflowX,
+      overflowY: hostStyle.overflowY,
+    };
+  });
+
+  expect(scrollbarStyle.overflowX).toBe("hidden");
+  expect(scrollbarStyle.overflowY).toBe("hidden");
+});
+
 test("shared view filter and sort drafts persist through save and reload", async ({ page }) => {
   const collectionKey = "data/e2e_multiselect.json:$";
   const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
@@ -1397,6 +1465,221 @@ test("view groups expose dual create entry points and restore expanded group aft
     await expect(page.locator(".view-tabs-group-row")).toBeVisible();
     await expect(groupRowViewTab(page, "辅助")).toBeVisible();
     await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("group row search filters visible child tabs while preserving the active tab and toolbar search focus", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "ignite",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+            {
+              id: "utility",
+              name: "辅助",
+              type: "table",
+              query: "shield",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+        {
+          kind: "group",
+          id: "plan",
+          name: "计划",
+          views: [
+            {
+              id: "prepare",
+              name: "准备",
+              type: "table",
+              query: "plan",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect(groupRowSearch(page).locator(".expandable-search-icon")).toBeVisible();
+    await expect.poll(() => getGroupRowTabNames(page)).toEqual(["伤害", "辅助"]);
+
+    await groupRowViewTab(page, "辅助").click();
+    await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+
+    await groupRowSearch(page).locator(".expandable-search-icon").click();
+    await expect(groupRowSearchInput(page)).toBeFocused();
+    await groupRowSearchInput(page).fill("伤");
+    await expect.poll(() => getGroupRowTabNames(page)).toEqual(["伤害", "辅助"]);
+
+    await groupRowViewTab(page, "伤害").click();
+    await expect(groupRowSearchInput(page)).toHaveValue("伤");
+    await expect.poll(() => getGroupRowTabNames(page)).toEqual(["伤害"]);
+
+    await page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab").click();
+    await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+    await page.locator(".view-tab-menu-item").filter({ hasText: "编辑视图" }).click();
+    await expect(page.locator(".search-box input")).toBeFocused();
+    await expect(groupRowSearchInput(page)).not.toBeFocused();
+
+    await topLevelGroupTab(page, "计划").click();
+    await expect(groupRowSearchInput(page)).toHaveCount(0);
+    await expect(groupRowSearch(page).locator(".expandable-search-icon")).toBeVisible();
+    await expect.poll(() => getGroupRowTabNames(page)).toEqual(["准备"]);
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("expandable search shows a clear button for toolbar and group searches", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "ignite",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+            {
+              id: "utility",
+              name: "辅助",
+              type: "table",
+              query: "shield",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(toolbarSearch(page).locator(".expandable-search-clear")).toHaveCount(0);
+    await toolbarSearchInput(page).fill("暴击");
+    await expect(toolbarSearch(page).locator(".expandable-search-clear")).toBeVisible();
+    await toolbarSearch(page).locator(".expandable-search-clear").click();
+    await expect(toolbarSearchInput(page)).toHaveValue("");
+    await expect(toolbarSearchInput(page)).toBeFocused();
+    await expect(toolbarSearch(page)).toHaveClass(/open/);
+
+    await topLevelGroupTab(page, "战斗").click();
+    await groupRowSearch(page).locator(".expandable-search-icon").click();
+    await groupRowSearchInput(page).fill("伤");
+    await expect(groupRowSearch(page).locator(".expandable-search-clear")).toBeVisible();
+    await groupRowSearch(page).locator(".expandable-search-clear").click();
+    await expect(groupRowSearchInput(page)).toHaveValue("");
+    await expect(groupRowSearchInput(page)).toBeFocused();
+    await expect(groupRowSearch(page)).toHaveClass(/open/);
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
     if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
@@ -2436,6 +2719,81 @@ test("detail panel number fields reject non-numeric text input", async ({ page }
     await expect(idInput).toHaveValue("123");
   } finally {
     await bestEffortRestore("e2e_numeric_ids.json", () => writeFile(dataPath, originalData, "utf8"));
+  }
+});
+
+test("detail and document panels keep a shared 200px bottom buffer", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_document_field.json");
+  const docsRoot = path.resolve("tests/.scratch/docs/e2e_document_field");
+  const viewConfigPath = path.resolve("tests/.scratch/tools/data-editor/view-config.json");
+  const originalViewConfig = await readFile(viewConfigPath, "utf8");
+  const fieldKey = "data/e2e_document_field.json:$:doc_id";
+
+  await mkdir(docsRoot, { recursive: true });
+  await writeFile(dataPath, JSON.stringify([
+    {
+      id: "fireball",
+      name: "Fireball",
+      doc_id: "fireball",
+    },
+    {
+      id: "frostbolt",
+      name: "Frostbolt",
+      extra_doc: "fireball",
+    },
+    {
+      id: "arcane_blast",
+      name: "Arcane Blast",
+    },
+  ], null, 2), "utf8");
+  await writeFile(path.join(docsRoot, "fireball.md"), "# Fireball Guide\n\nBottom buffer check.", "utf8");
+
+  const nextViewConfig = JSON.parse(originalViewConfig);
+  nextViewConfig.fields = {
+    ...(nextViewConfig.fields ?? {}),
+    [fieldKey]: {
+      ...(nextViewConfig.fields?.[fieldKey] ?? {}),
+      type: "Document",
+      selectOptions: nextViewConfig.fields?.[fieldKey]?.selectOptions ?? {},
+      multiSelectOptions: nextViewConfig.fields?.[fieldKey]?.multiSelectOptions ?? {},
+    },
+    "data/e2e_document_field.json:$:extra_doc": {
+      ...(nextViewConfig.fields?.["data/e2e_document_field.json:$:extra_doc"] ?? {}),
+      type: "Document",
+      selectOptions: nextViewConfig.fields?.["data/e2e_document_field.json:$:extra_doc"]?.selectOptions ?? {},
+      multiSelectOptions: nextViewConfig.fields?.["data/e2e_document_field.json:$:extra_doc"]?.multiSelectOptions ?? {},
+    },
+  };
+  nextViewConfig.documentFiles = {
+    ...(nextViewConfig.documentFiles ?? {}),
+    "data/e2e_document_field.json": { docRoot: "docs/e2e_document_field" },
+  };
+  nextViewConfig.documentFields = {
+    ...(nextViewConfig.documentFields ?? {}),
+    [fieldKey]: { enabled: true },
+    "data/e2e_document_field.json:$:extra_doc": { enabled: true },
+  };
+  await writeFile(viewConfigPath, JSON.stringify(nextViewConfig, null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_document_field.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+    const primaryPaddingBottom = await page.locator(".detail-panel.primary").evaluate((element) => getComputedStyle(element).paddingBottom);
+    expect(primaryPaddingBottom).toBe("214px");
+
+    const documentPaddingBottom = await page.locator(".detail-panel.document").evaluate((element) => getComputedStyle(element).paddingBottom);
+    expect(documentPaddingBottom).toBe("214px");
+  } finally {
+    await bestEffortRestore("view-config.json", () => writeFile(viewConfigPath, originalViewConfig, "utf8"));
+    await bestEffortRestore("e2e_document_field.json", () => rm(dataPath, { force: true }));
+    await bestEffortRestore("e2e_document_field docs", () => rm(docsRoot, { recursive: true, force: true }));
   }
 });
 
@@ -5964,7 +6322,7 @@ test("option field editor popover uses shared shell and scroll section from tabl
   await expect(tableRow(page, 0).locator('td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
 });
 
-test("option field color menu exposes additional distinct pastel swatches", async ({ page }) => {
+test("option field color menu renders side-by-side light and dark color groups", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -5974,31 +6332,30 @@ test("option field color menu exposes additional distinct pastel swatches", asyn
   await tableRow(page, 0).locator(".multi-select-trigger").last().click();
   await page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".option-menu-trigger").click();
 
+  const colorColumns = page.locator(".multi-select-color-columns");
+  const lightGroup = page.locator('.multi-select-color-group[data-color-group="light"]');
+  const darkGroup = page.locator('.multi-select-color-group[data-color-group="dark"]');
   const tealItem = page.locator('.multi-select-color-item[data-color-choice="teal"]');
-  const cyanItem = page.locator('.multi-select-color-item[data-color-choice="cyan"]');
-  const limeItem = page.locator('.multi-select-color-item[data-color-choice="lime"]');
-  const indigoItem = page.locator('.multi-select-color-item[data-color-choice="indigo"]');
-  const slateItem = page.locator('.multi-select-color-item[data-color-choice="slate"]');
-  const roseItem = page.locator('.multi-select-color-item[data-color-choice="rose"]');
   const amberItem = page.locator('.multi-select-color-item[data-color-choice="amber"]');
+  const darkGrayItem = page.locator('.multi-select-color-item[data-color-choice="dark_gray"]');
+  const darkBlueItem = page.locator('.multi-select-color-item[data-color-choice="dark_blue"]');
+  const roseItem = page.locator('.multi-select-color-item[data-color-choice="rose"]');
+  const darkRoseItem = page.locator('.multi-select-color-item[data-color-choice="dark_rose"]');
 
+  await expect(colorColumns).toBeVisible();
+  await expect(lightGroup).toContainText("浅色");
+  await expect(darkGroup).toContainText("深色");
   await expect(tealItem).toContainText("青绿");
-  await expect(cyanItem).toContainText("青色");
-  await expect(limeItem).toContainText("黄绿");
-  await expect(indigoItem).toContainText("靛蓝");
-  await expect(slateItem).toContainText("石板灰");
-  await expect(roseItem).toContainText("玫瑰");
   await expect(amberItem).toContainText("琥珀");
+  await expect(roseItem).toContainText("玫瑰");
+  await expect(darkGrayItem).toContainText("深灰");
+  await expect(darkBlueItem).toContainText("深蓝");
+  await expect(darkRoseItem).toContainText("深玫瑰");
   await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(211, 238, 234)");
-  await expect(cyanItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(215, 239, 248)");
-  await expect(limeItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(232, 242, 203)");
-  await expect(indigoItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(227, 231, 246)");
-  await expect(slateItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(86, 96, 112)");
-  await slateItem.click();
+  await expect(darkGrayItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(86, 96, 112)");
+  await darkGrayItem.click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("background-color", "rgb(86, 96, 112)");
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("color", "rgb(255, 255, 255)");
-  await expect(roseItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(248, 219, 231)");
-  await expect(amberItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(242, 226, 196)");
 });
 
 test("option field popover focuses the search input on open for shared select and multi-select editors", async ({ page }) => {

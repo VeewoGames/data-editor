@@ -158,7 +158,7 @@ export const StableTextarea = forwardRef<StableTextInputHandle, StableTextareaPr
         syncHeight(node);
       }}
       rows={1}
-      style={{ overflowY: "hidden" }}
+      style={{ overflow: "hidden" }}
     />
   );
 });

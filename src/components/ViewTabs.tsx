@@ -1,12 +1,14 @@
 import * as Popover from "@radix-ui/react-popover";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { CollectionView } from "../api/client";
+import { ExpandableSearch } from "./ExpandableSearch";
 import { icons } from "./icons";
 import { TableSettingsPopover } from "./TableSettingsPopover";
 
 export type ViewTabsProps = {
   snapshot: ViewTabsSnapshot;
   onSelectView: (viewId: string) => void;
+  onAddRow: () => void;
   onCreateTopLevelView: () => void;
   onCreateViewGroup: () => void;
   onCreateViewInGroup: (groupId: string) => void;
@@ -58,6 +60,7 @@ export type ViewTabReorderOperation =
 export function ViewTabs({
   snapshot,
   onSelectView,
+  onAddRow,
   onCreateTopLevelView,
   onCreateViewGroup,
   onCreateViewInGroup,
@@ -105,6 +108,7 @@ export function ViewTabs({
   const [renamingViewId, setRenamingViewId] = useState<string | null>(null);
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [groupTabFilter, setGroupTabFilter] = useState("");
   const [groupRowHasOverflow, setGroupRowHasOverflow] = useState(false);
   const [dragGhost, setDragGhost] = useState<null | {
     left: number;
@@ -136,6 +140,20 @@ export function ViewTabs({
     () => topLevelItems.find((item): item is Extract<ViewTabsSnapshot["topLevelItems"][number], { kind: "group" }> => item.kind === "group" && item.id === expandedGroupId) ?? null,
     [topLevelItems, expandedGroupId],
   );
+  const filteredGroupViews = useMemo(() => {
+    if (!expandedGroup) return [];
+    const normalizedFilter = normalizeGroupTabFilter(groupTabFilter);
+    if (!normalizedFilter) return expandedGroup.views;
+    return expandedGroup.views.filter((view) => view.id === activeViewId || normalizeGroupTabFilter(view.name).includes(normalizedFilter));
+  }, [activeViewId, expandedGroup, groupTabFilter]);
+  const visibleExpandedGroup = useMemo(
+    () => (expandedGroup ? { ...expandedGroup, views: filteredGroupViews } : null),
+    [expandedGroup, filteredGroupViews],
+  );
+
+  useEffect(() => {
+    setGroupTabFilter("");
+  }, [expandedGroupId]);
 
   useEffect(() => {
     if (!draggingViewId) return;
@@ -164,7 +182,7 @@ export function ViewTabs({
     observer.observe(node);
     for (const child of Array.from(node.children)) observer.observe(child);
     return () => observer.disconnect();
-  }, [expandedGroup]);
+  }, [expandedGroup, filteredGroupViews, groupTabFilter]);
 
   function beginRename(view: CollectionView) {
     if (viewTabsDisabled) return;
@@ -282,7 +300,7 @@ export function ViewTabs({
     }
     setDropTarget(resolveDropTarget({
       topLevelItems,
-      expandedGroup,
+      expandedGroup: visibleExpandedGroup,
       sourceViewId: state.sourceViewId,
       pointerX: event.clientX,
       pointerY: event.clientY,
@@ -299,7 +317,7 @@ export function ViewTabs({
     if (state.dragging) {
       const target = resolveDropTarget({
         topLevelItems,
-        expandedGroup,
+        expandedGroup: visibleExpandedGroup,
         sourceViewId: state.sourceViewId,
         pointerX: event.clientX,
         pointerY: event.clientY,
@@ -324,6 +342,7 @@ export function ViewTabs({
     if (viewTabsDisabled || groupViews.length === 0) return;
     const nextViewId = lastActiveViewIdByGroupId[groupId] ?? groupViews[0]?.id ?? null;
     if (!nextViewId) return;
+    setGroupTabFilter("");
     setOpenMenuGroupId(null);
     setOpenMenuViewId(null);
     onSelectView(nextViewId);
@@ -625,6 +644,16 @@ export function ViewTabs({
           <div className="view-tabs-actions">
             <button
               type="button"
+              className="view-tab-action view-tabs-add-row primary"
+              onClick={onAddRow}
+              disabled={viewTabsDisabled}
+              title="新建条目"
+            >
+              <icons.addField size={18} />
+              <span>新建</span>
+            </button>
+            <button
+              type="button"
               className={[
                 "view-tab-action filter-toggle view-tabs-filter-toggle",
                 filterBarVisible ? "visible" : "",
@@ -690,24 +719,42 @@ export function ViewTabs({
         </div>
         {expandedGroup ? (
           <div
-            ref={groupRowRef}
             className={[
               "view-tabs-group-row",
               groupRowHasOverflow ? "has-horizontal-scroll" : "",
-              dropTarget?.type === "group" && dropTarget.groupId === expandedGroup.id && dropTarget.placement === "append" ? "drop-append" : "",
             ].filter(Boolean).join(" ")}
-            role="tablist"
           >
-            {expandedGroup.views.map((view) => renderViewTab(view, { kind: "group", groupId: expandedGroup.id }))}
-            <button
-              type="button"
-              className="view-tab-create view-tab-create-in-group"
-              disabled={viewTabsDisabled}
-              onClick={() => onCreateViewInGroup(expandedGroup.id)}
-              aria-label="在当前组内创建视图"
+            <ExpandableSearch
+              key={expandedGroup.id}
+              className="group-tab-search"
+              iconAriaLabel="筛选当前组标签"
+              inputClassName="group-tab-search-input"
+              placeholder="筛选当前组标签"
+              value={groupTabFilter}
+              onChange={setGroupTabFilter}
+              onEscape={() => setGroupTabFilter("")}
+            />
+            <div
+              ref={groupRowRef}
+              className={[
+                "view-tabs-group-tabs",
+                dropTarget?.type === "group" && dropTarget.groupId === expandedGroup.id && dropTarget.placement === "append" ? "drop-append" : "",
+              ].filter(Boolean).join(" ")}
+              role="tablist"
             >
-              +
-            </button>
+              {filteredGroupViews.map((view) => renderViewTab(view, { kind: "group", groupId: expandedGroup.id }))}
+            </div>
+            <div className="view-tabs-group-create">
+              <button
+                type="button"
+                className="view-tab-create view-tab-create-in-group"
+                disabled={viewTabsDisabled}
+                onClick={() => onCreateViewInGroup(expandedGroup.id)}
+                aria-label="在当前组内创建视图"
+              >
+                +
+              </button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -785,6 +832,10 @@ function resolveGroupDropTarget(
     }
   }
   return { type: "group", sourceViewId, groupId: expandedGroup.id, placement: "append" as const };
+}
+
+function normalizeGroupTabFilter(value: string) {
+  return value.trim().toLowerCase();
 }
 
 function resolveTopLevelDropTarget(
