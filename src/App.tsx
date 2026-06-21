@@ -122,8 +122,8 @@ import {
 import {
   copyViewLayoutState,
   emptyLocalViewState,
-  emptyViewLayoutState,
   deleteLocalViewState,
+  mutateProfileViewLayoutState,
   readLocalFileOrder,
   readViewLayoutState,
   readLocalSharedViewDrafts,
@@ -364,6 +364,10 @@ function collectLocalOnlyViewLayoutContext(context: PathRewriteContext, migratio
       const key = localStorage.key(index);
       if (!key?.startsWith(prefix)) continue;
       const parts = key.slice(prefix.length).split(":");
+      if (parts.at(-1) === "__detail-order" && parts.length >= 2) {
+        const collectionPath = parts.slice(0, -1).join(":");
+        if (collectionPath) addUniqueRecordValue(context.collectionPathsByFile, migration.oldPath, collectionPath);
+      }
       for (let viewIdIndex = 1; viewIdIndex < parts.length; viewIdIndex += 1) {
         const payloadParts = parts.slice(viewIdIndex + 1);
         if (!isLocalViewStoragePayload(payloadParts)) continue;
@@ -2459,8 +2463,15 @@ export function App() {
   function updateActiveViewLayout(mutator: (draft: UserViewLayoutState) => void, options: { affectsTable?: boolean } = {}) {
     if (!selectedPath || !activeViewLayoutId) return;
     if (mutateSelectedViewProfile((draft) => {
-      const viewLayout = ensureViewLayout(draft, selectedPath, collectionPath, activeViewLayoutId);
-      mutator(viewLayout);
+      const nextProfile = mutateProfileViewLayoutState({
+        profile: draft,
+        path: selectedPath,
+        collectionPath,
+        viewId: activeViewLayoutId,
+        mutator,
+      });
+      draft.viewLayouts = nextProfile.viewLayouts;
+      draft.collections = nextProfile.collections;
     })) return;
     const next = readLocalViewState({
       path: selectedPath,
@@ -5522,14 +5533,6 @@ function parseConfigKey(value: string) {
   return { file, collection, field };
 }
 
-function ensureViewLayout(profile: UserViewProfile, path: string, collectionPath: string, viewId: string) {
-  const key = collectionConfigKey(path, collectionPath);
-  profile.viewLayouts ??= {};
-  profile.viewLayouts[key] ??= {};
-  profile.viewLayouts[key][viewId] ??= emptyViewLayoutState();
-  return profile.viewLayouts[key][viewId];
-}
-
 function cloneSidebarTreePreferences(value?: unknown): SidebarTreePreferences {
   const normalized = buildSidebarTreePreferences(value as Record<string, unknown> | undefined) as SidebarTreePreferences;
   return {
@@ -5699,6 +5702,14 @@ function buildProfileFromCurrentView(
     };
   }
   const collectionKey = collectionConfigKey(path, collectionPath);
+  const globalDetailOrder = [...fieldConfig.detailOrder];
+  const activeViewLayout = {
+    hidden: [...fieldConfig.hidden],
+    wrapped: [...fieldConfig.wrapped],
+    order: [...fieldConfig.order],
+    detailOrder: viewId === "all" ? globalDetailOrder : [],
+    widths: { ...fieldConfig.widths },
+  };
   return {
     sidebarWidth,
     detailPanelWidth,
@@ -5712,13 +5723,16 @@ function buildProfileFromCurrentView(
     appearance: cloneUiPreferences(appearance),
     viewLayouts: viewId ? {
       [collectionKey]: {
-        [viewId]: {
-          hidden: [...fieldConfig.hidden],
-          wrapped: [...fieldConfig.wrapped],
-          order: [...fieldConfig.order],
-          detailOrder: [...fieldConfig.detailOrder],
-          widths: { ...fieldConfig.widths },
-        },
+        ...(viewId === "all" ? {} : {
+          all: {
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: globalDetailOrder,
+            widths: {},
+          },
+        }),
+        [viewId]: activeViewLayout,
       },
     } : {},
     collections: viewId ? {
@@ -5726,7 +5740,7 @@ function buildProfileFromCurrentView(
         hidden: [...fieldConfig.hidden],
         wrapped: [...fieldConfig.wrapped],
         order: [...fieldConfig.order],
-        detailOrder: [...fieldConfig.detailOrder],
+        detailOrder: globalDetailOrder,
         widths: { ...fieldConfig.widths },
       },
     } : {},

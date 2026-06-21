@@ -66,6 +66,7 @@ const colorChoices: Array<{ value: MultiSelectOptionColor; label: string }> = [
   { value: "cyan", label: "青色" },
   { value: "lime", label: "黄绿" },
   { value: "indigo", label: "靛蓝" },
+  { value: "slate", label: "石板灰" },
   { value: "rose", label: "玫瑰" },
   { value: "amber", label: "琥珀" },
   { value: "purple", label: "紫色" },

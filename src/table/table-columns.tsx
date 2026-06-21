@@ -325,7 +325,7 @@ function resolveCellFrameMeta(
     return { kind: "token", layout };
   }
   if (
-    displayType === "Text" &&
+    (displayType === "Text" || displayType === "Number") &&
     textEditable &&
     (value == null || typeof value === "string" || typeof value === "number")
   ) {

@@ -305,6 +305,15 @@ export function rewriteLocalViewStorageKey(key, migrations, context = {}) {
   for (const migration of normalizedMigrations(migrations)) {
     const collectionKeys = collectionKeysForMigration(migration.oldPath, context);
     for (const oldCollectionKey of collectionKeys) {
+      const globalDetailOrderPrefix = `data-editor:${oldCollectionKey}:__detail-order`;
+      if (source === globalDetailOrderPrefix) {
+        const newCollectionKey = `${migration.newPath}:${oldCollectionKey.slice(`${migration.oldPath}:`.length)}`;
+        const value = `data-editor:${newCollectionKey}:__detail-order`;
+        return withResult(value, true, {
+          ...emptyReport(),
+          migrated: [{ surface: "localViewStorage", oldKey: source, newKey: value }],
+        });
+      }
       const viewIds = context?.viewIdsByCollectionKey?.[oldCollectionKey] ?? [];
       const collectionPath = oldCollectionKey.slice(`${migration.oldPath}:`.length);
       for (const viewId of viewIds) {
@@ -785,6 +794,10 @@ function collectLocalStorageRewriteContext(localStorage, migrations, context) {
     for (const key of keys) {
       if (!key.startsWith(prefix)) continue;
       const parts = key.slice(prefix.length).split(":");
+      if (parts.at(-1) === "__detail-order" && parts.length >= 2) {
+        const collectionPath = parts.slice(0, -1).join(":");
+        if (collectionPath) add(next.collectionPathsByFile, migration.oldPath, collectionPath);
+      }
       for (let viewIdIndex = 1; viewIdIndex < parts.length; viewIdIndex += 1) {
         const payloadParts = parts.slice(viewIdIndex + 1);
         if (!isPayload(payloadParts)) continue;

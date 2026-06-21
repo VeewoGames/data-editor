@@ -6,6 +6,7 @@ import {
   emptyLocalViewState,
   emptyLocalSharedViewDrafts,
   emptyViewLayoutState,
+  mutateProfileViewLayoutState,
   readLocalViewState,
   readLocalSharedViewDrafts,
   readLocalSidebarTreePreferences,
@@ -18,7 +19,7 @@ import {
   writeLocalViewState,
 } from "../src/view-state-storage.mjs";
 
-test("profile mode reads the active view layout instead of collection-level fallback", () => {
+test("profile mode reads detailOrder from the collection-global all layout", () => {
   const localState = {
     widths: { description: 320 },
     hidden: ["description"],
@@ -37,6 +38,13 @@ test("profile mode reads the active view layout instead of collection-level fall
     detailDocumentPanelWidth: 376,
     viewLayouts: {
       "data/runes.json:$": {
+        all: {
+          hidden: [],
+          wrapped: [],
+          order: [],
+          detailOrder: ["global_title", "global_description"],
+          widths: {},
+        },
         "view:damage/main": {
           hidden: [],
           wrapped: [],
@@ -61,7 +69,7 @@ test("profile mode reads the active view layout instead of collection-level fall
     hidden: [],
     wrapped: [],
     order: ["rune_name", "description"],
-    detailOrder: ["rune_name", "description"],
+    detailOrder: ["global_title", "global_description"],
     widths: { description: 180 },
     sidebarWidth: 260,
     detailPanelWidth: 420,
@@ -276,13 +284,190 @@ test("profile mode merges sparse group view layout with all layout", () => {
   assert.deepEqual(state.widths, { use: 44, trait_name: 260, description: 360 });
 });
 
-test("readLocalViewState reads only localStorage keys for the current encoded view id", () => {
+test("mutateProfileViewLayoutState preserves inherited wrapped fields when editing a specific view", () => {
+  const profile = {
+    sidebarWidth: null,
+    detailPanelWidth: 405,
+    detailDocumentPanelOpen: false,
+    detailDocumentPanelWidth: 388,
+    fileOrder: ["data/traits.json"],
+    sidebarTree: { childOrderByParent: {}, expandedNodeIds: [] },
+    lastActiveViews: { "data/traits.json:traits": "tag-evasion" },
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    viewLayouts: {
+      "data/traits.json:traits": {
+        all: {
+          hidden: ["id"],
+          wrapped: ["description"],
+          order: ["use", "dev_status", "budget_left"],
+          detailOrder: ["trait_name", "description"],
+          widths: { use: 44, trait_name: 220, description: 360 },
+        },
+        "tag-evasion": {
+          hidden: [],
+          wrapped: [],
+          order: [],
+          detailOrder: [],
+          widths: { trait_name: 260 },
+        },
+      },
+    },
+    collections: {
+      "data/traits.json:traits": {
+        hidden: ["id"],
+        wrapped: ["description"],
+        order: ["use", "dev_status", "budget_left"],
+        detailOrder: ["trait_name", "description"],
+        widths: { use: 44, trait_name: 260, description: 360 },
+      },
+    },
+  };
+
+  const nextProfile = mutateProfileViewLayoutState({
+    profile,
+    path: "data/traits.json",
+    collectionPath: "traits",
+    viewId: "tag-evasion",
+    mutator: (draft) => {
+      draft.wrapped = [...draft.wrapped, "notes"];
+    },
+  });
+
+  assert.deepEqual(nextProfile.viewLayouts["data/traits.json:traits"]["tag-evasion"].wrapped, ["description", "notes"]);
+  assert.deepEqual(nextProfile.collections["data/traits.json:traits"].wrapped, ["description", "notes"]);
+  assert.deepEqual(readViewLayoutState({
+    mode: "profile",
+    path: "data/traits.json",
+    collectionPath: "traits",
+    viewId: "tag-evasion",
+    localState: emptyLocalViewState(),
+    profile: nextProfile,
+  }).wrapped, ["description", "notes"]);
+});
+
+test("mutateProfileViewLayoutState writes detailOrder into the collection-global all layout", () => {
+  const nextProfile = mutateProfileViewLayoutState({
+    profile: {
+      sidebarWidth: null,
+      detailPanelWidth: 405,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 388,
+      fileOrder: ["data/runes.json"],
+      sidebarTree: { childOrderByParent: {}, expandedNodeIds: [] },
+      lastActiveViews: { "data/runes.json:$": "damage" },
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      viewLayouts: {
+        "data/runes.json:$": {
+          all: {
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: ["title", "description"],
+            widths: {},
+          },
+          damage: {
+            hidden: ["debug"],
+            wrapped: [],
+            order: ["name"],
+            detailOrder: ["old_view_specific_value"],
+            widths: { name: 180 },
+          },
+        },
+      },
+      collections: {
+        "data/runes.json:$": {
+          hidden: ["debug"],
+          wrapped: [],
+          order: ["name"],
+          detailOrder: ["title", "description"],
+          widths: { name: 180 },
+        },
+      },
+    },
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "damage",
+    mutator: (draft) => {
+      draft.detailOrder = ["rarity", "name"];
+    },
+  });
+
+  assert.deepEqual(nextProfile.viewLayouts["data/runes.json:$"].all.detailOrder, ["rarity", "name"]);
+  assert.deepEqual(nextProfile.viewLayouts["data/runes.json:$"].damage.detailOrder, ["old_view_specific_value"]);
+  assert.deepEqual(nextProfile.collections["data/runes.json:$"].detailOrder, ["rarity", "name"]);
+  assert.deepEqual(readViewLayoutState({
+    mode: "profile",
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "damage",
+    localState: emptyLocalViewState(),
+    profile: nextProfile,
+  }).detailOrder, ["rarity", "name"]);
+});
+
+test("mutateProfileViewLayoutState keeps the all view and legacy collection mirror in sync", () => {
+  const nextProfile = mutateProfileViewLayoutState({
+    profile: {
+      sidebarWidth: null,
+      detailPanelWidth: 405,
+      detailDocumentPanelOpen: false,
+      detailDocumentPanelWidth: 388,
+      fileOrder: ["data/runes.json"],
+      sidebarTree: { childOrderByParent: {}, expandedNodeIds: [] },
+      lastActiveViews: { "data/runes.json:$": "all" },
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      viewLayouts: {
+        "data/runes.json:$": {
+          all: {
+            hidden: [],
+            wrapped: ["description"],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+      },
+      collections: {
+        "data/runes.json:$": {
+          hidden: [],
+          wrapped: ["description"],
+          order: [],
+          detailOrder: [],
+          widths: {},
+        },
+      },
+    },
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "all",
+    mutator: (draft) => {
+      draft.wrapped = [];
+    },
+  });
+
+  assert.deepEqual(nextProfile.viewLayouts["data/runes.json:$"].all.wrapped, []);
+  assert.deepEqual(nextProfile.collections["data/runes.json:$"].wrapped, []);
+  assert.deepEqual(readViewLayoutState({
+    mode: "profile",
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "all",
+    localState: emptyLocalViewState(),
+    profile: nextProfile,
+  }).wrapped, []);
+});
+
+test("readLocalViewState reads detailOrder from the collection-global localStorage key", () => {
   const storage = createMemoryStorage({
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden": "1",
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:wrapped": "1",
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:width": "280",
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__order": "description,rune_name",
-    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order": "description,rune_name",
+    "data-editor:data/runes.json:$:__detail-order": "description,rune_name",
+    "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order": "wrong,view,specific",
     "data-editor:sidebar-width": "333",
     "data-editor:detail-panel-width": "444",
     "data-editor:detail-document-panel-open": "1",
@@ -308,13 +493,14 @@ test("readLocalViewState reads only localStorage keys for the current encoded vi
   assert.equal(state.detailDocumentPanelWidth, 352);
 });
 
-test("writeLocalViewState overwrites only localStorage keys for the current encoded view id", () => {
+test("writeLocalViewState stores detailOrder in the collection-global localStorage key", () => {
   const storage = createMemoryStorage({
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:old:hidden": "1",
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:old:wrapped": "1",
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:old:width": "210",
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__order": "old",
     "data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order": "old",
+    "data-editor:data/runes.json:$:__detail-order": "old-global",
     "data-editor:sidebar-width": "300",
     "data-editor:detail-panel-width": "450",
     "data-editor:detail-document-panel-open": "1",
@@ -345,7 +531,8 @@ test("writeLocalViewState overwrites only localStorage keys for the current enco
   assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:wrapped"), "1");
   assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:width"), "180");
   assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:__order"), "rune_name,description");
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order"), "description,rune_name");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:__detail-order"), null);
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:__detail-order"), "description,rune_name");
   assert.equal(storage.getItem("data-editor:sidebar-width"), "260");
   assert.equal(storage.getItem("data-editor:detail-panel-width"), "410");
   assert.equal(storage.getItem("data-editor:detail-document-panel-open"), "0");
@@ -456,7 +643,7 @@ test("copyViewLayoutState duplicates only the targeted local view layout keys", 
     "data-editor:data/runes.json:$:all:description:wrapped": "1",
     "data-editor:data/runes.json:$:all:description:width": "220",
     "data-editor:data/runes.json:$:all:__order": "description,rune_name",
-    "data-editor:data/runes.json:$:all:__detail-order": "description",
+    "data-editor:data/runes.json:$:__detail-order": "description",
     "data-editor:data/runes.json:$:other:name:hidden": "1",
     "data-editor:sidebar-width": "300",
     "data-editor:detail-panel-width": "420",
@@ -479,7 +666,8 @@ test("copyViewLayoutState duplicates only the targeted local view layout keys", 
   assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:description:wrapped"), "1");
   assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:description:width"), "220");
   assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:__order"), "description,rune_name");
-  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:__detail-order"), "description");
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:all-copy:__detail-order"), null);
+  assert.equal(storage.getItem("data-editor:data/runes.json:$:__detail-order"), "description");
   assert.equal(storage.getItem("data-editor:data/runes.json:$:other:name:hidden"), "1");
   assert.equal(storage.getItem("data-editor:sidebar-width"), "300");
   assert.equal(storage.getItem("data-editor:detail-panel-width"), "420");

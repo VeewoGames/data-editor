@@ -58,6 +58,7 @@ const estimatedWrappedRowHeight = 72;
 const rowOverscan = 8;
 const rowActionColumnWidth = 42;
 const addColumnWidth = 44;
+const tableBottomBufferHeight = 300;
 
 export type TableSnapshot = {
   schemaModel: DocumentModel;
@@ -274,6 +275,7 @@ function DataTableComponent(props: DataTableProps) {
   const data = useMemo(() => rowViews.slice(windowStart, windowEnd), [rowViews, windowStart, windowEnd]);
   const topSpacerHeight = hasWrappedField ? (variableRowWindow?.topSpacerHeight ?? 0) : windowStart * compactRowHeight;
   const bottomSpacerHeight = hasWrappedField ? (variableRowWindow?.bottomSpacerHeight ?? 0) : Math.max(0, (rows.length - windowEnd) * compactRowHeight);
+  const totalBottomSpacerHeight = bottomSpacerHeight + (rows.length > 0 ? tableBottomBufferHeight : 0);
   const tableColumnCount = visibleFields.length + 2;
   const tableWidth = useMemo(() => {
     return rowActionColumnWidth + addColumnWidth + visibleFields.reduce((total, fieldName) => total + getColumnWidth(fieldName), 0);
@@ -792,7 +794,7 @@ function DataTableComponent(props: DataTableProps) {
                 </tr>
               );
             })}
-            {bottomSpacerHeight > 0 ? <tr className="virtual-spacer-row"><td colSpan={tableColumnCount} style={{ height: bottomSpacerHeight }} /></tr> : null}
+            {totalBottomSpacerHeight > 0 ? <tr className="virtual-spacer-row"><td colSpan={tableColumnCount} style={{ height: totalBottomSpacerHeight }} /></tr> : null}
           </tbody>
           </table>
         </div>

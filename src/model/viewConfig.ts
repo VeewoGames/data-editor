@@ -10,6 +10,7 @@ export type MultiSelectOptionColor =
   | "cyan"
   | "lime"
   | "indigo"
+  | "slate"
   | "rose"
   | "amber"
   | "purple"

@@ -1205,8 +1205,16 @@ select {
 }
 
 .table-text-cell-editor input {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text-primary);
   flex: 1 1 auto;
+  font: inherit;
+  line-height: var(--line-height-body);
   min-width: 0;
+  outline: 0;
   padding: 0;
   width: 100%;
 }

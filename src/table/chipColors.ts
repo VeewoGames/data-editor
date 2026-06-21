@@ -19,6 +19,7 @@ export const namedChipPalette = {
   cyan: { background: "#d7eff8", color: "#2f6984" },
   lime: { background: "#e8f2cb", color: "#5d6f1f" },
   indigo: { background: "#e3e7f6", color: "#58638f" },
+  slate: { background: "#566070", color: "#ffffff" },
   rose: { background: "#f8dbe7", color: "#92506b" },
   amber: { background: "#f2e2c4", color: "#7f682d" },
   purple: { background: "#e7dbfa", color: "#6d4aa2" },

@@ -4219,6 +4219,61 @@ test("table text edit mode toggles ordinary text cell editing and autosaves", as
   await expect(tableCell(page, 0, "description").locator('[data-cell-role="content"]')).toContainText("table text edit value");
 });
 
+test("table number edit mode uses the same full-cell editor chrome as text fields", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_numeric_ids.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const editButton = page.getByRole("button", { name: "编辑" });
+  await editButton.click();
+  await expect(editButton).toHaveAttribute("aria-pressed", "true");
+
+  await tableCell(page, 0, "id").locator('[data-cell-role="content"]').click();
+  const editor = tableCell(page, 0, "id").locator(".table-text-cell-editor");
+  const input = editor.locator("input");
+  await expect(input).toBeVisible();
+  await input.click();
+
+  const activeStyle = await tableCell(page, 0, "id").evaluate((cell) => {
+    const editor = cell.querySelector(".table-text-cell-editor") as HTMLElement;
+    const input = editor.querySelector("input") as HTMLInputElement;
+    const editorStyle = getComputedStyle(editor);
+    const inputStyle = getComputedStyle(input);
+    const cellRect = cell.getBoundingClientRect();
+    const editorRect = editor.getBoundingClientRect();
+    const inputRect = input.getBoundingClientRect();
+    return {
+      editorTopDelta: editorRect.top - cellRect.top,
+      editorBottomDelta: editorRect.bottom - cellRect.bottom,
+      editorHeight: editorRect.height,
+      cellHeight: cellRect.height,
+      inputBackground: inputStyle.backgroundColor,
+      inputBorderTopWidth: inputStyle.borderTopWidth,
+      inputBorderRadius: inputStyle.borderTopLeftRadius,
+      inputPaddingTop: inputStyle.paddingTop,
+      inputPaddingBottom: inputStyle.paddingBottom,
+      inputFontFamily: inputStyle.fontFamily,
+      editorFontFamily: editorStyle.fontFamily,
+      inputFontSize: inputStyle.fontSize,
+      editorFontSize: editorStyle.fontSize,
+    };
+  });
+
+  expect(Math.abs(activeStyle.editorTopDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeStyle.editorBottomDelta)).toBeLessThanOrEqual(1);
+  expect(Math.abs(activeStyle.editorHeight - activeStyle.cellHeight)).toBeLessThanOrEqual(2);
+  expect(activeStyle.inputBackground).toBe("rgba(0, 0, 0, 0)");
+  expect(activeStyle.inputBorderTopWidth).toBe("0px");
+  expect(activeStyle.inputBorderRadius).toBe("0px");
+  expect(activeStyle.inputPaddingTop).toBe("0px");
+  expect(activeStyle.inputPaddingBottom).toBe("0px");
+  expect(activeStyle.inputFontFamily).toBe(activeStyle.editorFontFamily);
+  expect(activeStyle.inputFontSize).toBe(activeStyle.editorFontSize);
+});
+
 test("table text edit mode preserves wrapped text layout", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
@@ -5923,6 +5978,7 @@ test("option field color menu exposes additional distinct pastel swatches", asyn
   const cyanItem = page.locator('.multi-select-color-item[data-color-choice="cyan"]');
   const limeItem = page.locator('.multi-select-color-item[data-color-choice="lime"]');
   const indigoItem = page.locator('.multi-select-color-item[data-color-choice="indigo"]');
+  const slateItem = page.locator('.multi-select-color-item[data-color-choice="slate"]');
   const roseItem = page.locator('.multi-select-color-item[data-color-choice="rose"]');
   const amberItem = page.locator('.multi-select-color-item[data-color-choice="amber"]');
 
@@ -5930,12 +5986,17 @@ test("option field color menu exposes additional distinct pastel swatches", asyn
   await expect(cyanItem).toContainText("青色");
   await expect(limeItem).toContainText("黄绿");
   await expect(indigoItem).toContainText("靛蓝");
+  await expect(slateItem).toContainText("石板灰");
   await expect(roseItem).toContainText("玫瑰");
   await expect(amberItem).toContainText("琥珀");
   await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(211, 238, 234)");
   await expect(cyanItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(215, 239, 248)");
   await expect(limeItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(232, 242, 203)");
   await expect(indigoItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(227, 231, 246)");
+  await expect(slateItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(86, 96, 112)");
+  await slateItem.click();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("background-color", "rgb(86, 96, 112)");
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("color", "rgb(255, 255, 255)");
   await expect(roseItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(248, 219, 231)");
   await expect(amberItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(242, 226, 196)");
 });
@@ -6068,6 +6129,7 @@ test("empty select and multi-select fields open from whitespace in table and det
     await page.locator('.column-menu-popup [data-field-type="Select"]').click();
     await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
 
+    await expect(tableCell(page, 2, "category").locator(".multi-select-trigger")).not.toContainText("未设置");
     await clickCellWhitespace(page, 2, "category", 0.5, 0.82);
     await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
     await page.locator(".multi-select-option").filter({ hasText: "attack" }).click();
@@ -6079,6 +6141,7 @@ test("empty select and multi-select fields open from whitespace in table and det
     const categoryBlock = page.locator(".detail-panel.primary .property-block").filter({
       has: page.locator(".property-heading span", { hasText: "category" }),
     });
+    await expect(categoryBlock.locator(".multi-select-trigger")).not.toContainText("未设置");
     await clickLocatorWhitespace(categoryBlock.locator(".multi-select-trigger"));
     await expect(page.locator(".multi-select-popover.option-field-popover-shell")).toBeVisible();
   } finally {
@@ -6725,6 +6788,28 @@ test("table settings popover saves docRoot for the current file", async ({ page 
     const config = JSON.parse(text);
     return config.documentFiles?.["data/e2e_select.json"]?.docRoot === "docs/e2e_document_field";
   });
+});
+
+test("table keeps at least 300px bottom buffer below the last data row", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const scroll = document.querySelector(".table-scroll") as HTMLElement | null;
+    const rows = [...document.querySelectorAll('.data-table tbody tr[data-row-id]')] as HTMLTableRowElement[];
+    if (!scroll || rows.length === 0) return null;
+    scroll.scrollTop = scroll.scrollHeight;
+    const lastRow = rows[rows.length - 1];
+    const scrollRect = scroll.getBoundingClientRect();
+    const rowRect = lastRow.getBoundingClientRect();
+    return {
+      bottomGap: Math.round(scrollRect.bottom - rowRect.bottom),
+    };
+  });
+
+  expect(layout).not.toBeNull();
+  expect(layout!.bottomGap).toBeGreaterThanOrEqual(300);
 });
 
 test("document column menu can enable and disable linked document behavior", async ({ page }) => {

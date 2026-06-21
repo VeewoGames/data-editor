@@ -51,8 +51,8 @@ function viewOrderStorageKey(path, collectionPath, viewId) {
   return `${viewStoragePrefix(path, collectionPath, viewId)}__order`;
 }
 
-function viewDetailOrderStorageKey(path, collectionPath, viewId) {
-  return `${viewStoragePrefix(path, collectionPath, viewId)}__detail-order`;
+function collectionDetailOrderStorageKey(path, collectionPath) {
+  return `data-editor:${path}:${collectionPath}:__detail-order`;
 }
 
 const sidebarWidthStorageKey = "data-editor:sidebar-width";
@@ -94,6 +94,7 @@ export function readViewLayoutState({ mode, path, collectionPath, viewId, localS
       baseLayout ?? profile.collections?.[collectionKey] ?? emptyCollectionViewState(),
       activeLayout,
     );
+    if (collectionLayouts?.all?.detailOrder?.length) layout.detailOrder = [...collectionLayouts.all.detailOrder];
     return {
       ...layout,
       sidebarWidth: profile.sidebarWidth ?? null,
@@ -151,12 +152,9 @@ export function readLocalViewLayoutState({ path, collectionPath, viewId, localSt
     }
     if (key === viewOrderStorageKey(path, collectionPath, normalizedViewId)) {
       state.order = normalizeStringArray((localStorage.getItem(key) ?? "").split(","));
-      continue;
-    }
-    if (key === viewDetailOrderStorageKey(path, collectionPath, normalizedViewId)) {
-      state.detailOrder = normalizeStringArray((localStorage.getItem(key) ?? "").split(","));
     }
   }
+  state.detailOrder = normalizeStringArray((localStorage.getItem(collectionDetailOrderStorageKey(path, collectionPath)) ?? "").split(","));
   const sidebarWidth = Number(localStorage.getItem(sidebarWidthStorageKey));
   state.sidebarWidth = Number.isFinite(sidebarWidth) && sidebarWidth > 0 ? sidebarWidth : null;
   const detailPanelWidth = Number(localStorage.getItem(detailPanelWidthStorageKey));
@@ -235,10 +233,12 @@ export function writeLocalViewLayoutState({ path, collectionPath, viewId, state,
     if (normalizedOrder.length) {
       localStorage.setItem(viewOrderStorageKey(path, collectionPath, normalizedViewId), normalizedOrder.join(","));
     }
-    const normalizedDetailOrder = normalizeStringArray(state.detailOrder);
-    if (normalizedDetailOrder.length) {
-      localStorage.setItem(viewDetailOrderStorageKey(path, collectionPath, normalizedViewId), normalizedDetailOrder.join(","));
-    }
+  }
+  const normalizedDetailOrder = normalizeStringArray(state.detailOrder);
+  if (normalizedDetailOrder.length) {
+    localStorage.setItem(collectionDetailOrderStorageKey(path, collectionPath), normalizedDetailOrder.join(","));
+  } else {
+    localStorage.removeItem(collectionDetailOrderStorageKey(path, collectionPath));
   }
   if (state.sidebarWidth != null && Number.isFinite(state.sidebarWidth) && state.sidebarWidth > 0) {
     localStorage.setItem(sidebarWidthStorageKey, String(Math.round(state.sidebarWidth)));
@@ -350,6 +350,62 @@ export function copyViewLayoutState({
   return { profile, copied: true };
 }
 
+export function mutateProfileViewLayoutState({
+  profile,
+  path,
+  collectionPath,
+  viewId,
+  mutator,
+}) {
+  const collectionKey = collectionConfigKey(path, collectionPath);
+  const normalizedViewId = normalizeViewId(viewId);
+  const previousCollectionLayouts = profile?.viewLayouts?.[collectionKey] ?? {};
+  const previousSpecificLayout = cloneCollectionViewState(previousCollectionLayouts[normalizedViewId] ?? emptyCollectionViewState());
+  const previousGlobalDetailOrder = [...(previousCollectionLayouts.all?.detailOrder ?? [])];
+  const nextProfile = {
+    sidebarWidth: profile?.sidebarWidth ?? null,
+    detailPanelWidth: profile?.detailPanelWidth ?? null,
+    detailDocumentPanelOpen: profile?.detailDocumentPanelOpen ?? null,
+    detailDocumentPanelWidth: profile?.detailDocumentPanelWidth ?? null,
+    fileOrder: [...(profile?.fileOrder ?? [])],
+    sidebarTree: buildSidebarTreePreferences(profile?.sidebarTree),
+    lastActiveViews: { ...(profile?.lastActiveViews ?? {}) },
+    viewDrafts: { ...(profile?.viewDrafts ?? {}) },
+    viewOrderDrafts: { ...(profile?.viewOrderDrafts ?? {}) },
+    ...(profile?.appearance ? { appearance: profile.appearance } : {}),
+    viewLayouts: cloneNestedViewLayouts(profile?.viewLayouts),
+    collections: Object.fromEntries(
+      Object.entries(profile?.collections ?? {}).map(([key, value]) => [key, cloneCollectionViewState(value)]),
+    ),
+  };
+  const nextLayout = cloneCollectionViewState(readViewLayoutState({
+    mode: "profile",
+    path,
+    collectionPath,
+    viewId: normalizedViewId,
+    localState: null,
+    profile: nextProfile,
+  }));
+  mutator(nextLayout);
+  const nextDetailOrder = normalizeStringArray(nextLayout.detailOrder);
+  nextProfile.viewLayouts[collectionKey] ??= {};
+  const nextSpecificLayout = cloneCollectionViewState(nextLayout);
+  if (normalizedViewId !== "all") nextSpecificLayout.detailOrder = previousSpecificLayout.detailOrder;
+  nextProfile.viewLayouts[collectionKey][normalizedViewId] = nextSpecificLayout;
+  if (normalizedViewId === "all" || !sameStringArray(previousGlobalDetailOrder, nextDetailOrder)) {
+    const nextAllLayout = cloneCollectionViewState(nextProfile.viewLayouts[collectionKey].all ?? emptyCollectionViewState());
+    nextAllLayout.detailOrder = nextDetailOrder;
+    nextProfile.viewLayouts[collectionKey].all = nextAllLayout;
+  }
+  if (nextProfile.lastActiveViews?.[collectionKey] === normalizedViewId) {
+    nextProfile.collections[collectionKey] = {
+      ...cloneCollectionViewState(nextSpecificLayout),
+      detailOrder: [...(nextProfile.viewLayouts[collectionKey].all?.detailOrder ?? [])],
+    };
+  }
+  return nextProfile;
+}
+
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) return [];
   const seen = new Set();
@@ -411,6 +467,11 @@ function cloneNestedViewLayouts(value) {
       ),
     ]),
   );
+}
+
+function sameStringArray(left, right) {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
 }
 
 function hasLocalViewLayoutState({ path, collectionPath, viewId, localStorage }) {
