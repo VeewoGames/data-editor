@@ -792,8 +792,58 @@ select {
 .view-tab-menu {
   display: grid;
   gap: 2px;
-  min-width: 300px;
+  min-width: 320px;
   padding: 8px;
+}
+
+.view-tab-menu-header,
+.view-group-menu-header {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  padding: 4px 2px 8px;
+}
+
+.view-tab-menu-icon-trigger {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d9d6d1;
+  border-radius: 10px;
+  color: #37352f;
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+}
+
+.view-tab-menu-icon-trigger:hover:not(:disabled) {
+  background: #f7f6f3;
+}
+
+.view-tab-menu-icon-trigger.is-disabled,
+.view-tab-menu-icon-trigger:disabled {
+  color: #9b9a97;
+  cursor: default;
+}
+
+.view-tab-menu-title-input {
+  background: #fff;
+  border: 1px solid #d9d6d1;
+  border-radius: 10px;
+  color: #37352f;
+  font: inherit;
+  height: 40px;
+  min-width: 0;
+  outline: 0;
+  padding: 0 12px;
+}
+
+.view-tab-menu-title-input:focus {
+  border-color: #2f6fed;
+  box-shadow: 0 0 0 1px #2f6fed;
 }
 
 .view-tab-menu-item {
@@ -846,47 +896,115 @@ select {
   margin: 6px 2px;
 }
 
-.view-tab-rename-form {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  padding: 4px 2px 6px;
+.view-tab-icon {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
 }
 
-.view-tab-rename-form input {
+.view-tab-icon-picker-content {
   background: #fff;
-  border: 1px solid #2f6fed;
-  border-radius: 5px;
-  color: #37352f;
-  font-size: 14px;
-  height: 32px;
-  min-width: 0;
-  outline: 0;
-  padding: 0 8px;
+  border: 1px solid #e6e3dd;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  width: 336px;
+  z-index: 50;
 }
 
-.view-tab-rename-form button {
+.view-tab-icon-picker-search-row {
+  display: block;
+}
+
+.view-tab-icon-picker-search {
+  background: #fff;
+  border: 1px solid #d9d6d1;
+  border-radius: 10px;
+  color: #37352f;
+  font: inherit;
+  height: 40px;
+  outline: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.view-tab-icon-picker-search:focus {
+  border-color: #2f6fed;
+  box-shadow: 0 0 0 1px #2f6fed;
+}
+
+.view-tab-icon-picker-default {
+  border-bottom: 1px solid #efeeeb;
+  padding-bottom: 8px;
+}
+
+.view-tab-icon-picker-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.view-tab-icon-picker-tab {
   background: transparent;
   border: 0;
-  border-radius: 5px;
-  color: #37352f;
+  border-radius: 999px;
+  color: #6b6761;
   cursor: pointer;
-  height: 32px;
-  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  min-height: 30px;
+  padding: 0 10px;
 }
 
-.view-tab-rename-form button:hover:not(:disabled) {
+.view-tab-icon-picker-tab.is-active {
   background: #efeeeb;
-}
-
-.view-tab-rename-form button[type="submit"] {
-  color: #2457b7;
+  color: #37352f;
   font-weight: 600;
 }
 
-.view-tab-rename-form button:disabled {
-  color: #b3b1ad;
-  cursor: default;
+.view-tab-icon-picker-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.view-tab-icon-picker-option {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d9d6d1;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0 10px;
+}
+
+.view-tab-icon-picker-grid .view-tab-icon-picker-option {
+  padding: 0;
+}
+
+.view-tab-icon-picker-option:hover:not(:disabled) {
+  background: #efeeeb;
+}
+
+.view-tab-icon-picker-option.is-selected {
+  background: #efe9e2;
+  border-color: #b7b1a7;
+}
+
+.view-tab-icon-picker-empty {
+  color: #9b9a97;
+  font-size: 13px;
+  padding: 12px 4px 6px;
+  text-align: center;
 }
 
 .view-order-dirty {
@@ -1300,12 +1418,15 @@ select {
   border: 0;
   border-radius: 0;
   color: var(--color-text-primary);
+  cursor: text;
   flex: 1 1 auto;
   font: inherit;
   line-height: var(--line-height-body);
   min-width: 0;
   outline: 0;
   padding: 0;
+  user-select: text;
+  -webkit-user-select: text;
   width: 100%;
 }
 
@@ -1313,6 +1434,7 @@ select {
   background: transparent;
   border: 0;
   color: var(--color-text-primary);
+  cursor: text;
   display: block;
   font: inherit;
   line-height: var(--line-height-body);
@@ -1321,6 +1443,8 @@ select {
   overflow-wrap: anywhere;
   padding: 0;
   resize: none;
+  user-select: text;
+  -webkit-user-select: text;
   white-space: pre-wrap;
   width: 100%;
 }

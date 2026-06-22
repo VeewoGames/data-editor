@@ -1,5 +1,177 @@
 const filterOperators = new Set(["is", "is_not", "contains", "does_not_contain", "is_empty", "is_not_empty"]);
 const sortDirections = new Set(["asc", "desc"]);
+export const sharedViewIconIds = new Set([
+  "borderAll",
+  "folder",
+  "folders",
+  "folderOpen",
+  "bookmark",
+  "bookmarkStack",
+  "book",
+  "star",
+  "stars",
+  "search",
+  "settings",
+  "mapPin",
+  "json",
+  "edit",
+  "list",
+  "listCheck",
+  "listDetails",
+  "calendar",
+  "calendarEvent",
+  "clock",
+  "flag",
+  "bell",
+  "briefcase",
+  "tag",
+  "table",
+  "layoutGrid",
+  "database",
+  "file",
+  "files",
+  "fileText",
+  "fileCode",
+  "fileAnalytics",
+  "tags",
+  "filter",
+  "filters",
+  "home",
+  "home2",
+  "building",
+  "school",
+  "hospital",
+  "heart",
+  "mug",
+  "bottle",
+  "apple",
+  "pizza",
+  "salad",
+  "car",
+  "bus",
+  "bike",
+  "motorbike",
+  "plane",
+  "shoppingCart",
+  "gift",
+  "mail",
+  "phone",
+  "camera",
+  "world",
+  "cloud",
+  "bed",
+  "bath",
+  "bulb",
+  "gamepad",
+  "gamepad2",
+  "gamepad3",
+  "puzzle",
+  "cards",
+  "layoutCards",
+  "dice",
+  "chess",
+  "chessKing",
+  "chessQueen",
+  "chessKnight",
+  "chessBishop",
+  "chessRook",
+  "crown",
+  "sparkles",
+  "sparkles2",
+  "shield",
+  "shieldCheck",
+  "shieldCheckered",
+  "shieldHalf",
+  "shieldLock",
+  "bolt",
+  "flame",
+  "bomb",
+  "sword",
+  "swords",
+  "axe",
+  "hammer",
+  "wand",
+  "helmet",
+  "backpack",
+  "archeryArrow",
+  "shieldBolt",
+  "targetArrow",
+  "arrowBigRight",
+  "arrowBigLeft",
+  "arrowBigUp",
+  "arrowBigDown",
+  "spider",
+  "biohazard",
+  "radioactive",
+  "bone",
+  "bug",
+  "alertCircle",
+  "alertHexagon",
+  "alertOctagon",
+  "alertSquare",
+  "alertSquareRounded",
+  "alertTriangle",
+  "bow",
+  "blade",
+  "flask",
+  "flask2",
+  "cross",
+  "medicalCross",
+  "heartBroken",
+  "droplet",
+  "dropletHalf",
+  "dropletHalf2",
+  "droplets",
+  "sunHigh",
+  "sunLow",
+  "sunrise",
+  "sunset",
+  "meteor",
+  "atom2",
+  "mushroom",
+  "clover",
+  "yinYang",
+  "pennant",
+  "compass",
+  "moon",
+  "sun",
+  "alien",
+  "ghost",
+  "ghost2",
+  "ghost3",
+  "ufo",
+  "user",
+  "campfire",
+  "mountain",
+  "library",
+  "libraryPlus",
+  "palette",
+  "paint",
+  "toolsKitchen2",
+  "key",
+  "circleKey",
+  "lock",
+  "archive",
+  "asset",
+  "container",
+  "basket",
+  "giftCard",
+  "ticket",
+  "briefcase2",
+  "badge",
+  "badges",
+  "award",
+  "rosette",
+  "laurel",
+  "trophy",
+  "diamond",
+  "diamonds",
+  "coin",
+  "fileStar",
+  "tagsField",
+  "refresh",
+]);
+export const defaultSharedViewIconId = "borderAll";
 
 export function emptySharedViewsConfig() {
   return {
@@ -118,17 +290,33 @@ function normalizeSharedViewItem(value, usedGroupIds, usedViewIds) {
     const name = normalizeString(value.name);
     const views = Array.isArray(value.views)
       ? value.views
-        .map((view) => normalizeCollectionView(view))
-        .filter((view) => keepNormalizedView(view, usedViewIds))
+        .map((view) => normalizeSharedViewLeaf(view, usedViewIds))
+        .filter(Boolean)
       : [];
     if (!id || usedGroupIds.has(id) || !name || views.length === 0) return null;
     usedGroupIds.add(id);
     return { kind: "group", id, name, views };
   }
-  const rawView = value.kind === "view" ? value.view : value;
+  return normalizeSharedViewLeaf(value, usedViewIds);
+}
+
+export function normalizeSharedViewIcon(value) {
+  const icon = normalizeString(value);
+  return sharedViewIconIds.has(icon) ? icon : defaultSharedViewIconId;
+}
+
+export function normalizeSharedViewLeaf(value, usedViewIds = new Set()) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const rawView = value.kind === "view"
+    ? ((value.view && typeof value.view === "object" && !Array.isArray(value.view)) ? value.view : value)
+    : value;
   const view = normalizeCollectionView(rawView);
   if (!keepNormalizedView(view, usedViewIds)) return null;
-  return { kind: "view", view };
+  return {
+    kind: "view",
+    icon: normalizeSharedViewIcon(value.icon),
+    view,
+  };
 }
 
 function keepNormalizedView(view, usedViewIds) {

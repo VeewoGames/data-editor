@@ -128,3 +128,24 @@ test("buildTableColumnModels reuses previous column objects when per-field shape
   assert.notEqual(resized.find((model) => model.fieldName === "title"), previousByField.title);
   assert.equal(resized.find((model) => model.fieldName === "status"), previousByField.status);
 });
+
+test("buildTableColumnModels ignores incompatible persisted Text override for boolean fields", () => {
+  const models = buildTableColumnModels({
+    visibleFields: ["stackable"],
+    rows: [{ stackable: false }],
+    nestedFieldSet: new Set(),
+    displayTypes: { stackable: "Text" },
+    wrappedFields: new Set(),
+    detectedTitleField: null,
+    primaryKeyField: null,
+    backlinkColumns: [],
+    relationOptionsByField: {},
+    relationConfigByField: {},
+    fieldOptions: {},
+    selectOptions: {},
+    getColumnWidth: () => 180,
+  });
+
+  assert.equal(models[0]?.baseDisplayType, "Checkbox");
+  assert.equal(models[0]?.effectiveDisplayType, "Checkbox");
+});

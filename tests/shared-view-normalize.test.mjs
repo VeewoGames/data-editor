@@ -93,6 +93,7 @@ test("normalizeSharedViewsConfig upgrades legacy flat views into top-level items
 
   assert.deepEqual(config.collections["data/runes.json:$"].items, [{
     kind: "view",
+    icon: "borderAll",
     view: {
       id: "all",
       name: "全部",
@@ -150,8 +151,120 @@ test("normalizeSharedViewsConfig keeps group items and removes empty groups", ()
     id: "combat",
     name: "Combat",
     views: [{
+      kind: "view",
+      icon: "borderAll",
+      view: {
+        id: "damage",
+        name: "Damage",
+        type: "table",
+        query: "",
+        filters: { topLevelRules: [], advancedRoot: null },
+        sorts: [],
+        hidden: [],
+        wrapped: [],
+        order: [],
+        detailOrder: [],
+        widths: {},
+      },
+    }],
+  }]);
+});
+
+test("normalizeSharedViewsConfig keeps valid icon and falls back on invalid icon", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        items: [
+          {
+            kind: "view",
+            icon: "json",
+            view: {
+              id: "all",
+              name: "全部",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          },
+          {
+            kind: "view",
+            icon: "not-real",
+            view: {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  assert.equal(config.collections["data/runes.json:$"].items[0].icon, "json");
+  assert.equal(config.collections["data/runes.json:$"].items[1].icon, "borderAll");
+});
+
+test("normalizeCollectionViewDraft does not keep icon", () => {
+  assert.deepEqual(normalizeCollectionViewDraft({
+    icon: "edit",
+    query: "fire",
+  }), {
+    query: "fire",
+  });
+});
+
+test("normalizeSharedViewsConfig upgrades group child views into leaf items with icon slots", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "damage",
+        items: [{
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        }],
+      },
+    },
+  });
+
+  assert.deepEqual(config.collections["data/runes.json:$"].items[0].views[0], {
+    kind: "view",
+    icon: "borderAll",
+    view: {
       id: "damage",
-      name: "Damage",
+      name: "伤害",
       type: "table",
       query: "",
       filters: { topLevelRules: [], advancedRoot: null },
@@ -161,6 +274,57 @@ test("normalizeSharedViewsConfig keeps group items and removes empty groups", ()
       order: [],
       detailOrder: [],
       widths: {},
-    }],
-  }]);
+    },
+  });
+});
+
+test("normalizeSharedViewsConfig keeps legacy group child leaf items that still store fields at the top level", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "damage",
+        items: [{
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              kind: "view",
+              icon: "shield",
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        }],
+      },
+    },
+  });
+
+  assert.deepEqual(config.collections["data/runes.json:$"].items[0].views[0], {
+    kind: "view",
+    icon: "shield",
+    view: {
+      id: "damage",
+      name: "伤害",
+      type: "table",
+      query: "",
+      filters: { topLevelRules: [], advancedRoot: null },
+      sorts: [],
+      hidden: [],
+      wrapped: [],
+      order: [],
+      detailOrder: [],
+      widths: {},
+    },
+  });
 });

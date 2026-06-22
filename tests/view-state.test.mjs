@@ -409,6 +409,34 @@ test("createSharedViewConfig preserves an explicit duplicate name base and appen
   assert.equal(result.view.name, "构筑 副本 2");
 });
 
+test("updateSharedViewIconConfig updates only the target shared view icon", () => {
+  const config = {
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        items: [
+          { kind: "view", icon: "borderAll", view: { ...allView, id: "all", name: "All" } },
+          {
+            kind: "group",
+            id: "combat",
+            name: "Combat",
+            views: [
+              { kind: "view", icon: "json", view: { ...allView, id: "damage", name: "Damage" } },
+              { kind: "view", icon: "filter", view: { ...allView, id: "utility", name: "Utility" } },
+            ],
+          },
+        ],
+      },
+    },
+  };
+
+  const next = viewState.updateSharedViewIconConfig(config, "data/runes.json:$", "damage", "settings");
+  assert.equal(next.collections["data/runes.json:$"].items[0].icon, "borderAll");
+  assert.equal(next.collections["data/runes.json:$"].items[1].views[0].icon, "settings");
+  assert.equal(next.collections["data/runes.json:$"].items[1].views[1].icon, "filter");
+});
+
 test("deleteSharedViewConfig refuses last view and selects adjacent replacement", () => {
   assert.equal(typeof viewState.deleteSharedViewConfig, "function");
   const config = {
@@ -572,14 +600,14 @@ test("saveSharedViewDraftsToConfig applies active draft and order draft then cle
   const result = viewState.saveSharedViewDraftsToConfig(config, draftState, "data/runes.json:$", "damage");
 
   assert.equal(result.config.collections["data/runes.json:$"].items[0].kind, "group");
-  assert.deepEqual(result.config.collections["data/runes.json:$"].items[0].views.map((view) => [view.id, view.query]), [
-    ["utility", ""],
-    ["damage", "fire"],
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items[0].views.map((view) => [view.view.id, view.view.query, view.icon]), [
+    ["utility", "", "borderAll"],
+    ["damage", "fire", "borderAll"],
   ]);
-  assert.deepEqual(result.config.collections["data/runes.json:$"].items[0].views[1].sorts, [
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items[0].views[1].view.sorts, [
     { id: "sort:power", field: "power", direction: "desc" },
   ]);
-  assert.deepEqual(result.config.collections["data/runes.json:$"].items[1], { kind: "view", view: { ...allView, id: "all", name: "All" } });
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items[1], { kind: "view", icon: "borderAll", view: { ...allView, id: "all", name: "All" } });
   assert.deepEqual(result.draftState, {
     lastActiveViews: { "data/runes.json:$": "damage" },
     structureDrafts: {},
@@ -648,6 +676,17 @@ test("App dirty state treats structure drafts as shared view dirty", async () =>
   assert.match(appSource, /draftSource\.structureDrafts\?\.\[activeCollectionKey\]\?\.items\?\.length/);
   assert.match(appSource, /setStatus\("已创建视图组"\)/);
   assert.match(appSource, /setStatus\("已在组内创建视图"\)/);
+});
+
+test("view tabs icon updates do not go through saveSharedViewDraftsToConfig", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(appSource, /async function handleUpdateSharedViewIcon/);
+  const updateStart = appSource.indexOf("async function handleUpdateSharedViewIcon");
+  const deleteStart = appSource.indexOf("async function handleDeleteSharedView");
+  assert.notEqual(updateStart, -1);
+  assert.notEqual(deleteStart, -1);
+  const updateSource = appSource.slice(updateStart, deleteStart);
+  assert.doesNotMatch(updateSource, /saveSharedViewDraftsToConfig/);
 });
 
 test("persistChanges and primary-key sync keep shared view drafts behind explicit save-for-everyone actions", async () => {
@@ -766,9 +805,10 @@ test("ViewTabs and App block shared view draft mutations while command saving", 
   assert.match(viewTabsSource, /const viewTabsDisabled = commandSaving;/);
   assert.match(viewTabsSource, /Popover\.Root/);
   assert.match(viewTabsSource, /Popover\.Anchor/);
-  assert.match(viewTabsSource, /if \(active\) \{\s*setOpenMenuViewId\(view\.id\);/);
+  assert.match(viewTabsSource, /if \(active\) \{\s*seedViewRenameDraft\(view\.id, view\.name\);\s*setOpenMenuViewId\(view\.id\);/);
   assert.doesNotMatch(viewTabsSource, /window\.prompt|prompt\(/);
-  assert.match(viewTabsSource, /view-tab-rename-form/);
+  assert.match(viewTabsSource, /view-tab-menu-title-input/);
+  assert.match(viewTabsSource, /view-tab-menu-icon-trigger/);
   assert.match(viewTabsSource, /onDuplicateView/);
   assert.match(viewTabsSource, /disabled=\{viewTabsDisabled\}/);
   assert.match(viewTabsSource, /if \(viewTabsDisabled\) return;/);
@@ -938,7 +978,29 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /settingsOpen \? "active" : ""/);
   assert.match(viewTabsSource, /table-settings-popover-shell/);
   assert.match(viewTabsSource, /<TableSettingsPopover/);
-  assert.match(viewTabsSource, /<icons\.borderAll size=\{17\} \/>/);
+  assert.match(viewTabsSource, /sharedViewIconRegistry/);
+  assert.match(viewTabsSource, /sharedViewIconGroups/);
+  assert.match(viewTabsSource, /sharedViewRecentIconStorageKey/);
+  assert.match(viewTabsSource, /view-tab-menu-header/);
+  assert.match(viewTabsSource, /view-tab-menu-icon-trigger/);
+  assert.match(viewTabsSource, /view-tab-menu-title-input/);
+  assert.match(viewTabsSource, /view-group-menu-header/);
+  assert.match(viewTabsSource, /view-tab-icon-picker-content/);
+  assert.match(viewTabsSource, /view-tab-icon-picker-search/);
+  assert.doesNotMatch(viewTabsSource, /view-tab-icon-picker-default/);
+  assert.match(viewTabsSource, /view-tab-icon-picker-tabs/);
+  assert.match(viewTabsSource, /view-tab-icon-picker-empty/);
+  assert.match(viewTabsSource, /iconPickerSearchQuery/);
+  assert.match(viewTabsSource, /recentIconIds/);
+  assert.match(viewTabsSource, /onInteractOutside/);
+  assert.match(viewTabsSource, /data-view-icon=/);
+  assert.match(viewTabsSource, /onUpdateViewIcon/);
+  assert.doesNotMatch(viewTabsSource, /<icons\.borderAll size=\{17\} \/>/);
+  assert.doesNotMatch(viewTabsSource, /sharedViewIconOptions/);
+  assert.doesNotMatch(viewTabsSource, /view-tab-icon-option-list/);
+  assert.doesNotMatch(viewTabsSource, /view-tab-icon-option/);
+  assert.doesNotMatch(viewTabsSource, /团队共享视图/);
+  assert.doesNotMatch(viewTabsSource, /<span>重命名<\/span>/);
   assert.match(viewTabsSource, /<icons\.addField size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.save size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
@@ -976,7 +1038,6 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /onRenameGroup/);
   assert.match(viewTabsSource, /onDuplicateGroup/);
   assert.match(viewTabsSource, /onDeleteGroup/);
-  assert.match(viewTabsSource, /重命名组/);
   assert.match(viewTabsSource, /删除组/);
   assert.match(viewTabsSource, /在组内创建视图/);
   assert.match(viewTabsSource, /复制组/);
@@ -1001,6 +1062,44 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(filterBarSource, /view-filter-actions/);
   assert.match(filterBarSource, /为所有人保存/);
   assert.match(filterBarSource, /重置/);
+});
+
+test("shared view icon metadata exposes default icon, filled whitelist groups, and picker storage constants", async () => {
+  const iconsSource = await readFile(new URL("../src/components/icons.ts", import.meta.url), "utf8");
+  const clientSource = await readFile(new URL("../src/api/client.ts", import.meta.url), "utf8");
+
+  assert.match(iconsSource, /sharedViewIconRegistry/);
+  assert.match(iconsSource, /sharedViewIconGroups/);
+  assert.match(iconsSource, /sharedViewIconSearchAliases/);
+  assert.match(iconsSource, /sharedViewRecentIconStorageKey/);
+  assert.match(iconsSource, /sharedViewDefaultIconId/);
+  assert.match(iconsSource, /label:\s*"常用"/);
+  assert.match(iconsSource, /label:\s*"生活"/);
+  assert.match(iconsSource, /label:\s*"战斗"/);
+  assert.match(iconsSource, /label:\s*"装备"/);
+  assert.match(iconsSource, /label:\s*"其他"/);
+  assert.match(iconsSource, /id:\s*"common"[\s\S]*iconIds:\s*\[[\s\S]*"borderAll"/);
+  assert.match(iconsSource, /Object\.keys\(sharedViewIconRegistry\)/);
+
+  assert.match(clientSource, /export type SharedViewIconId =/);
+  assert.match(clientSource, /"borderAll"/);
+  assert.match(clientSource, /"home"/);
+  assert.match(clientSource, /"gamepad"/);
+  assert.match(clientSource, /"shield"/);
+  assert.match(clientSource, /"trophy"/);
+});
+
+test("ViewTabs header editing no longer depends on renaming mode toggles", async () => {
+  const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+
+  assert.match(viewTabsSource, /openMenuViewId/);
+  assert.match(viewTabsSource, /iconPickerOpenForViewId/);
+  assert.match(viewTabsSource, /setRenameDraftByViewId/);
+  assert.match(viewTabsSource, /setGroupRenameDraftByGroupId/);
+  assert.match(viewTabsSource, /if \(event.key === "Escape"\)/);
+  assert.match(viewTabsSource, /onBlur=/);
+  assert.doesNotMatch(viewTabsSource, /renamingViewId/);
+  assert.doesNotMatch(viewTabsSource, /renamingGroupId/);
 });
 
 test("DataTable no longer renders the bottom New row button", async () => {
@@ -1034,6 +1133,7 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(appSource, /onRenameGroup=\{handleRenameSharedViewGroup\}/);
   assert.match(appSource, /onDuplicateGroup=\{handleDuplicateSharedViewGroup\}/);
   assert.match(appSource, /onDeleteGroup=\{handleDeleteSharedViewGroup\}/);
+  assert.match(appSource, /onUpdateViewIcon=\{handleUpdateSharedViewIcon\}/);
 
   assert.match(viewTabsSource, /topLevelItems:/);
   assert.match(viewTabsSource, /expandedGroupId:/);

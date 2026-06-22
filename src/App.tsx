@@ -35,6 +35,9 @@ import {
   type FilterGroup,
   type FilterGroupNode,
   type FilterNode,
+  type SharedViewIconId,
+  type SharedViewGroupItem,
+  type SharedViewLeafItem,
   type SharedViewsConfig,
   type SortRule,
   type SidebarTreePreferences,
@@ -61,7 +64,7 @@ import { buildStableViewEngineRows } from "./view/stable-view-engine-rows.mjs";
 import type { DataRecord, DocumentModel } from "./model/documentModel";
 import { addField, addRow, buildDocumentModel, deleteField, deleteRow, getMainColumns, getNestedFields, getRows, setCellValue } from "./model/documentModel";
 import type { FieldDisplayType } from "./model/fieldTypes";
-import { defaultTypeFor, isCompatible } from "./model/fieldTypes";
+import { defaultTypeFor, isCompatible, resolveCompatibleDisplayType } from "./model/fieldTypes";
 import type { RelationOption } from "./model/relations";
 import { buildRelationLookupState } from "./model/relation-lookup.mjs";
 import { buildBacklinkLookupState } from "./model/backlink-lookup.mjs";
@@ -163,6 +166,7 @@ import {
   renameSharedViewConfig,
   resetActiveSharedViewDraft,
   saveSharedViewDraftsToConfig,
+  updateSharedViewIconConfig,
 } from "./view/view-state.mjs";
 import {
   createViewGroupConfig,
@@ -178,8 +182,8 @@ type ServiceLifecycleState = "running" | "closed" | "recovering" | "disconnected
 type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts" | "structureDrafts">;
 type ResolvedCollectionViewsState = {
   topLevelItems: Array<
-    | { kind: "view"; view: CollectionView }
-    | { kind: "group"; id: string; name: string; views: CollectionView[] }
+    | SharedViewLeafItem
+    | SharedViewGroupItem
   >;
   flattenedViews: CollectionView[];
   activeView: CollectionView | null;
@@ -319,7 +323,7 @@ function collectViewIdsFromSharedViews(sharedViewsConfig: SharedViewsConfig, col
   const viewIds: string[] = [];
   for (const item of collection?.items ?? []) {
     if (item.kind === "group") {
-      for (const view of item.views) viewIds.push(view.id);
+      for (const view of item.views) viewIds.push(view.view.id);
       continue;
     }
     viewIds.push(item.view.id);
@@ -3574,7 +3578,10 @@ export function App() {
       kind: "group" as const,
       id: sourceGroup.id,
       name: sourceGroup.name,
-      views: sourceGroup.views.map((view) => mergeSharedViewWithDraft(view, currentCollectionDrafts[view.id]) as CollectionView),
+      views: sourceGroup.views.map((item) => ({
+        ...item,
+        view: mergeSharedViewWithDraft(item.view, currentCollectionDrafts[item.view.id]) as CollectionView,
+      })),
     };
     setCommandSaving(true);
     setStatus("");
@@ -3676,6 +3683,22 @@ export function App() {
       await saveSharedViews(nextConfig, activeProjectId);
       setSharedViewsConfig(nextConfig);
       setStatus("已重命名团队共享视图");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCommandSaving(false);
+    }
+  }
+
+  async function handleUpdateSharedViewIcon(viewId: string, icon: SharedViewIconId) {
+    if (commandSaving || !activeCollectionKey) return;
+    setCommandSaving(true);
+    setStatus("");
+    try {
+      const nextConfig = updateSharedViewIconConfig(sharedViewsConfig, activeCollectionKey, viewId, icon) as SharedViewsConfig;
+      await saveSharedViews(nextConfig, activeProjectId);
+      setSharedViewsConfig(nextConfig);
+      setStatus("已更新团队共享视图图标");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
@@ -4415,6 +4438,7 @@ export function App() {
                   onRenameView={handleRenameSharedView}
                   onDeleteView={handleDeleteSharedView}
                   onDuplicateView={handleDuplicateSharedView}
+                  onUpdateViewIcon={handleUpdateSharedViewIcon}
                   onReorderViews={handleReorderSharedViews}
                   onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
                   onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
@@ -4520,6 +4544,7 @@ export function App() {
               onRenameView={handleRenameSharedView}
               onDeleteView={handleDeleteSharedView}
               onDuplicateView={handleDuplicateSharedView}
+              onUpdateViewIcon={handleUpdateSharedViewIcon}
               onReorderViews={handleReorderSharedViews}
               onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
               onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
@@ -5129,10 +5154,13 @@ function buildFieldConfig(
   const order = [...activeState.order];
   const detailOrder = [...activeState.detailOrder];
   if (!path || !model) return { displayTypes, hidden, wrapped, widths, order, detailOrder };
+  const rowsInCollection = getRows(model, collectionPath) as DataRecord[];
   const fields = [...new Set([...getMainColumns(model, collectionPath), ...getNestedFields(model, collectionPath), ...extraFields])];
   for (const field of fields) {
+    const sample = rowsInCollection.find((row) => row[field] !== undefined && row[field] !== null)?.[field]
+      ?? rowsInCollection.find((row) => row[field] !== undefined)?.[field];
     const displayType = viewConfig.fields[fieldViewConfigKey(path, collectionPath, field) ?? ""]?.type;
-    if (displayType) displayTypes[field] = displayType;
+    if (displayType) displayTypes[field] = resolveCompatibleDisplayType(displayType, sample);
     if (!Number.isFinite(widths[field]) || widths[field] <= 0) delete widths[field];
   }
   return { displayTypes, hidden, wrapped, widths, order, detailOrder };
@@ -5345,10 +5373,9 @@ function resolveDocumentCollection(model: DocumentModel, targetCollection?: stri
 }
 
 function inferViewFilterFieldType(fieldName: string, rows: DataRecord[], displayTypes: Record<string, FieldDisplayType>): FieldDisplayType {
-  if (displayTypes[fieldName]) return displayTypes[fieldName];
   const sample = rows.find((row) => row[fieldName] !== undefined && row[fieldName] !== null)?.[fieldName]
     ?? rows.find((row) => row[fieldName] !== undefined)?.[fieldName];
-  return defaultTypeFor(sample);
+  return resolveCompatibleDisplayType(displayTypes[fieldName], sample);
 }
 
 function buildValueFilterOptions(

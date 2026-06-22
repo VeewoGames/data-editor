@@ -1,8 +1,17 @@
 import * as Popover from "@radix-ui/react-popover";
-import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
-import type { CollectionView } from "../api/client";
+import { useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import type { CollectionView, SharedViewGroupItem, SharedViewIconId, SharedViewLeafItem } from "../api/client";
 import { ExpandableSearch } from "./ExpandableSearch";
-import { icons } from "./icons";
+import {
+  icons,
+  readRecentSharedViewIconIds,
+  sharedViewDefaultIconId,
+  sharedViewIconGroups,
+  sharedViewIconIds,
+  sharedViewIconRegistry,
+  sharedViewIconSearchAliases,
+  sharedViewRecentIconStorageKey,
+} from "./icons";
 import { TableSettingsPopover } from "./TableSettingsPopover";
 
 export type ViewTabsProps = {
@@ -19,6 +28,7 @@ export type ViewTabsProps = {
   onRenameView: (viewId: string, name: string) => void;
   onDeleteView: (viewId: string) => void;
   onDuplicateView: (viewId: string) => void;
+  onUpdateViewIcon: (viewId: string, icon: SharedViewIconId) => void;
   onReorderViews: (operation: ViewTabReorderOperation) => void;
   onToggleFilterBar: () => void;
   onToggleTableTextEditMode: () => void;
@@ -31,8 +41,8 @@ export type ViewTabsProps = {
 export type ViewTabsSnapshot = {
   views: CollectionView[];
   topLevelItems: Array<
-    | { kind: "view"; view: CollectionView }
-    | { kind: "group"; id: string; name: string; views: CollectionView[] }
+    | SharedViewLeafItem
+    | SharedViewGroupItem
   >;
   activeViewId: string | null;
   activeGroupId: string | null;
@@ -73,6 +83,7 @@ export function ViewTabs({
   onRenameView,
   onDeleteView,
   onDuplicateView,
+  onUpdateViewIcon,
   onReorderViews,
   onToggleFilterBar,
   onToggleTableTextEditMode,
@@ -109,9 +120,13 @@ export function ViewTabs({
   const [openMenuGroupId, setOpenMenuGroupId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
-  const [renamingViewId, setRenamingViewId] = useState<string | null>(null);
-  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
-  const [renameDraft, setRenameDraft] = useState("");
+  const [renameDraftByViewId, setRenameDraftByViewId] = useState<Record<string, string>>({});
+  const [groupRenameDraftByGroupId, setGroupRenameDraftByGroupId] = useState<Record<string, string>>({});
+  const [iconPickerOpenForViewId, setIconPickerOpenForViewId] = useState<string | null>(null);
+  const [iconPickerSearchQuery, setIconPickerSearchQuery] = useState("");
+  const [activeIconGroupId, setActiveIconGroupId] = useState<(typeof sharedViewIconGroups)[number]["id"]>("recent");
+  const [recentIconIds, setRecentIconIds] = useState<SharedViewIconId[]>([]);
+  const [optimisticIconByViewId, setOptimisticIconByViewId] = useState<Record<string, SharedViewIconId>>({});
   const [groupTabFilter, setGroupTabFilter] = useState("");
   const [groupRowHasOverflow, setGroupRowHasOverflow] = useState(false);
   const [dragGhost, setDragGhost] = useState<null | {
@@ -120,6 +135,7 @@ export function ViewTabs({
     width: number;
     height: number;
     label: string;
+    icon: SharedViewIconId;
   }>(null);
   const dragShellRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const topLevelItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -136,6 +152,7 @@ export function ViewTabs({
     shellWidth: number;
     shellHeight: number;
     label: string;
+    icon: SharedViewIconId;
     dragging: boolean;
   }>(null);
   const suppressClickRef = useRef(false);
@@ -148,7 +165,7 @@ export function ViewTabs({
     if (!expandedGroup) return [];
     const normalizedFilter = normalizeGroupTabFilter(groupTabFilter);
     if (!normalizedFilter) return expandedGroup.views;
-    return expandedGroup.views.filter((view) => view.id === activeViewId || normalizeGroupTabFilter(view.name).includes(normalizedFilter));
+    return expandedGroup.views.filter((item) => item.view.id === activeViewId || normalizeGroupTabFilter(item.view.name).includes(normalizedFilter));
   }, [activeViewId, expandedGroup, groupTabFilter]);
   const visibleExpandedGroup = useMemo(
     () => (expandedGroup ? { ...expandedGroup, views: filteredGroupViews } : null),
@@ -158,6 +175,18 @@ export function ViewTabs({
   useEffect(() => {
     setGroupTabFilter("");
   }, [expandedGroupId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setRecentIconIds(readRecentSharedViewIconIds(window.localStorage) as SharedViewIconId[]);
+  }, []);
+
+  useEffect(() => {
+    if (!iconPickerOpenForViewId) {
+      setIconPickerSearchQuery("");
+      setActiveIconGroupId("recent");
+    }
+  }, [iconPickerOpenForViewId]);
 
   useEffect(() => {
     if (!draggingViewId) return;
@@ -188,36 +217,154 @@ export function ViewTabs({
     return () => observer.disconnect();
   }, [expandedGroup, filteredGroupViews, groupTabFilter]);
 
-  function beginRename(view: CollectionView) {
-    if (viewTabsDisabled) return;
-    setOpenMenuViewId(view.id);
-    setRenamingViewId(view.id);
-    setRenamingGroupId(null);
-    setRenameDraft(view.name);
+  function persistRecentIconIds(nextIconIds: SharedViewIconId[]) {
+    setRecentIconIds(nextIconIds);
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(sharedViewRecentIconStorageKey, JSON.stringify(nextIconIds));
   }
 
-  function beginRenameGroup(groupId: string, name: string) {
-    if (viewTabsDisabled) return;
-    setOpenMenuGroupId(groupId);
-    setRenamingGroupId(groupId);
-    setRenamingViewId(null);
-    setRenameDraft(name);
+  function rememberRecentIcon(iconId: SharedViewIconId) {
+    const nextIconIds = [iconId, ...recentIconIds.filter((value) => value !== iconId)].slice(0, 12);
+    persistRecentIconIds(nextIconIds);
   }
 
-  function submitRename(event: FormEvent<HTMLFormElement>, view: CollectionView) {
-    event.preventDefault();
+  function seedViewRenameDraft(viewId: string, name: string) {
+    setRenameDraftByViewId((current) => current[viewId] === undefined ? { ...current, [viewId]: name } : current);
+  }
+
+  function seedGroupRenameDraft(groupId: string, name: string) {
+    setGroupRenameDraftByGroupId((current) => current[groupId] === undefined ? { ...current, [groupId]: name } : current);
+  }
+
+  function resetViewRenameDraft(viewId: string, name: string) {
+    setRenameDraftByViewId((current) => ({ ...current, [viewId]: name }));
+  }
+
+  function resetGroupRenameDraft(groupId: string, name: string) {
+    setGroupRenameDraftByGroupId((current) => ({ ...current, [groupId]: name }));
+  }
+
+  function clearViewRenameDraft(viewId: string) {
+    setRenameDraftByViewId((current) => {
+      const next = { ...current };
+      delete next[viewId];
+      return next;
+    });
+  }
+
+  function clearGroupRenameDraft(groupId: string) {
+    setGroupRenameDraftByGroupId((current) => {
+      const next = { ...current };
+      delete next[groupId];
+      return next;
+    });
+  }
+
+  function commitViewRename(view: CollectionView) {
     if (viewTabsDisabled) return;
-    const trimmed = renameDraft.trim();
-    if (trimmed && trimmed !== view.name) onRenameView(view.id, trimmed);
-    setRenamingViewId(null);
-    setRenameDraft("");
+    const draft = (renameDraftByViewId[view.id] ?? view.name).trim();
+    if (draft && draft !== view.name) onRenameView(view.id, draft);
+  }
+
+  function commitGroupRename(groupId: string, name: string) {
+    if (viewTabsDisabled) return;
+    const draft = (groupRenameDraftByGroupId[groupId] ?? name).trim();
+    if (draft && draft !== name) onRenameGroup(groupId, draft);
+  }
+
+  function handleViewTitleEscape(view: CollectionView) {
+    if (iconPickerOpenForViewId === view.id) {
+      setIconPickerOpenForViewId(null);
+      return;
+    }
+    resetViewRenameDraft(view.id, view.name);
     setOpenMenuViewId(null);
   }
 
-  function cancelRename() {
-    setRenamingViewId(null);
-    setRenamingGroupId(null);
-    setRenameDraft("");
+  function handleGroupTitleEscape(groupId: string, name: string) {
+    resetGroupRenameDraft(groupId, name);
+    setOpenMenuGroupId(null);
+  }
+
+  function shouldSuppressBlurCommit(relatedTarget: EventTarget | null) {
+    return relatedTarget instanceof HTMLElement
+      && !!relatedTarget.closest(".view-tab-menu-icon-trigger, .view-tab-icon-picker-content");
+  }
+
+  function resolveViewTitleBlur(event: ReactFocusEvent<HTMLInputElement>, view: CollectionView) {
+    if (shouldSuppressBlurCommit(event.relatedTarget)) return;
+    commitViewRename(view);
+  }
+
+  function resolveGroupTitleBlur(event: ReactFocusEvent<HTMLInputElement>, groupId: string, name: string) {
+    if (shouldSuppressBlurCommit(event.relatedTarget)) return;
+    commitGroupRename(groupId, name);
+  }
+
+  function handleViewTitleKeyDown(event: ReactKeyboardEvent<HTMLInputElement>, view: CollectionView) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitViewRename(view);
+      event.currentTarget.blur();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleViewTitleEscape(view);
+    }
+  }
+
+  function handleGroupTitleKeyDown(event: ReactKeyboardEvent<HTMLInputElement>, groupId: string, name: string) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitGroupRename(groupId, name);
+      event.currentTarget.blur();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleGroupTitleEscape(groupId, name);
+    }
+  }
+
+  function resolveSearchIconIds(query: string) {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return [];
+    return sharedViewIconIds.filter((iconId) => {
+      if (iconId === sharedViewDefaultIconId) return false;
+      if (iconId.toLowerCase().includes(normalizedQuery)) return true;
+      const matchingGroup = sharedViewIconGroups.find((group) => (group.iconIds as readonly string[]).includes(iconId));
+      if (matchingGroup?.label.toLowerCase().includes(normalizedQuery)) return true;
+      const aliases = matchingGroup ? sharedViewIconSearchAliases[matchingGroup.id as keyof typeof sharedViewIconSearchAliases] : undefined;
+      return !!aliases?.some((alias) => alias.toLowerCase().includes(normalizedQuery));
+    });
+  }
+
+  function resolvePickerIconIds() {
+    if (iconPickerSearchQuery.trim()) return resolveSearchIconIds(iconPickerSearchQuery);
+    if (activeIconGroupId === "recent") return recentIconIds.filter((iconId) => iconId !== sharedViewDefaultIconId);
+    return [...sharedViewIconGroups.find((group) => group.id === activeIconGroupId)?.iconIds ?? []] as SharedViewIconId[];
+  }
+
+  function updateViewIcon(view: CollectionView, iconId: SharedViewIconId) {
+    if (viewTabsDisabled) return;
+    setOptimisticIconByViewId((current) => ({ ...current, [view.id]: iconId }));
+    onUpdateViewIcon(view.id, iconId);
+    rememberRecentIcon(iconId);
+    setIconPickerOpenForViewId(null);
+  }
+
+  function closeViewMenu(view: CollectionView) {
+    commitViewRename(view);
+    clearViewRenameDraft(view.id);
+    setOpenMenuViewId(null);
+    if (iconPickerOpenForViewId === view.id) setIconPickerOpenForViewId(null);
+  }
+
+  function closeGroupMenu(groupId: string, name: string) {
+    commitGroupRename(groupId, name);
+    clearGroupRenameDraft(groupId);
+    setOpenMenuGroupId(null);
   }
 
   function handleDelete(view: CollectionView) {
@@ -258,22 +405,23 @@ export function ViewTabs({
     setOpenMenuGroupId(null);
   }
 
-  function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>, view: CollectionView) {
+  function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>, item: SharedViewLeafItem) {
     if (viewTabsDisabled) return;
     if (event.button !== 0) return;
-    const shell = dragShellRefs.current[view.id];
+    const shell = dragShellRefs.current[item.view.id];
     if (!shell) return;
     const bounds = shell.getBoundingClientRect();
     pointerDragRef.current = {
       pointerId: event.pointerId,
-      sourceViewId: view.id,
+      sourceViewId: item.view.id,
       startX: event.clientX,
       startY: event.clientY,
       pointerOffsetX: event.clientX - bounds.left,
       shellTop: bounds.top,
       shellWidth: bounds.width,
       shellHeight: bounds.height,
-      label: view.name,
+      label: item.view.name,
+      icon: item.icon ?? "borderAll",
       dragging: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -294,6 +442,7 @@ export function ViewTabs({
         width: state.shellWidth,
         height: state.shellHeight,
         label: state.label,
+        icon: state.icon,
       });
       suppressClickRef.current = true;
     } else {
@@ -342,9 +491,9 @@ export function ViewTabs({
     setDragGhost(null);
   }
 
-  function handleSelectGroup(groupId: string, groupViews: CollectionView[]) {
+  function handleSelectGroup(groupId: string, groupViews: SharedViewLeafItem[]) {
     if (viewTabsDisabled || groupViews.length === 0) return;
-    const nextViewId = lastActiveViewIdByGroupId[groupId] ?? groupViews[0]?.id ?? null;
+    const nextViewId = lastActiveViewIdByGroupId[groupId] ?? groupViews[0]?.view.id ?? null;
     if (!nextViewId) return;
     setGroupTabFilter("");
     setOpenMenuGroupId(null);
@@ -352,7 +501,11 @@ export function ViewTabs({
     onSelectView(nextViewId);
   }
 
-  function renderViewTab(view: CollectionView, location: { kind: "top-level" } | { kind: "group"; groupId: string }) {
+  function renderViewTab(item: SharedViewLeafItem, location: { kind: "top-level" } | { kind: "group"; groupId: string }) {
+    const view = item.view;
+    const iconId = optimisticIconByViewId[view.id] ?? item.icon ?? sharedViewDefaultIconId;
+    const ViewIcon = sharedViewIconRegistry[iconId];
+    const pickerIconIds = resolvePickerIconIds();
     const active = view.id === activeViewId;
     const dropBefore = location.kind === "top-level"
       ? dropTarget?.type === "top-level" && dropTarget.targetItemId === view.id && dropTarget.placement === "before"
@@ -365,7 +518,7 @@ export function ViewTabs({
         key={view.id}
         open={openMenuViewId === view.id}
         onOpenChange={(open) => {
-          if (!open) setOpenMenuViewId(null);
+          if (!open) closeViewMenu(view);
         }}
       >
         <Popover.Anchor asChild>
@@ -402,46 +555,115 @@ export function ViewTabs({
                 }
                 if (viewTabsDisabled) return;
                 if (active) {
+                  seedViewRenameDraft(view.id, view.name);
                   setOpenMenuViewId(view.id);
                   return;
                 }
+                clearViewRenameDraft(view.id);
                 setOpenMenuViewId(null);
                 onSelectView(view.id);
               }}
-              onDoubleClick={() => beginRename(view)}
-              onPointerDown={(event) => handlePointerDown(event, view)}
+              onPointerDown={(event) => handlePointerDown(event, item)}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
             >
-              <icons.borderAll size={17} />
+              <span className="view-tab-icon" data-view-icon={iconId}>
+                <ViewIcon size={17} />
+              </span>
               <span className="view-tab-name">{view.name}</span>
               {dirtyViewIds.has(view.id) ? <span className="view-tab-dirty-dot" aria-label="未保存的视图更改" /> : null}
             </button>
           </div>
         </Popover.Anchor>
         <Popover.Portal>
-          <Popover.Content className="menu-content view-tab-menu-content" sideOffset={6} align="start">
+          <Popover.Content
+            className="menu-content view-tab-menu-content"
+            sideOffset={6}
+            align="start"
+            onInteractOutside={(event) => {
+              const target = event.target as HTMLElement | null;
+              if (target?.closest(".view-tab-menu-icon-trigger") || target?.closest(".view-tab-icon-picker-content")) {
+                event.preventDefault();
+              }
+            }}
+          >
             <div className="view-tab-menu" role="menu" aria-label={`${view.name} 视图操作`}>
-              {renamingViewId === view.id ? (
-                <form className="view-tab-rename-form" onSubmit={(event) => submitRename(event, view)}>
-                  <input
-                    aria-label="视图名称"
-                    autoFocus
-                    value={renameDraft}
-                    onChange={(event) => setRenameDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Escape") cancelRename();
-                    }}
-                  />
-                  <button type="submit" disabled={!renameDraft.trim() || renameDraft.trim() === view.name}>保存</button>
-                  <button type="button" onClick={cancelRename}>取消</button>
-                </form>
-              ) : (
-                <button className="view-tab-menu-item" type="button" onClick={() => beginRename(view)} role="menuitem">
-                  <icons.textField size={20} />
-                  <span>重命名</span>
-                </button>
-              )}
+              <div className="view-tab-menu-header">
+                <Popover.Root
+                  open={iconPickerOpenForViewId === view.id}
+                  onOpenChange={(open) => setIconPickerOpenForViewId(open ? view.id : null)}
+                >
+                  <Popover.Trigger asChild>
+                    <button
+                      type="button"
+                      className="view-tab-menu-icon-trigger"
+                      data-view-icon-trigger="view"
+                      aria-label="打开图标选择器"
+                    >
+                      <span className="view-tab-icon" data-view-icon={iconId}>
+                        <ViewIcon size={18} />
+                      </span>
+                    </button>
+                  </Popover.Trigger>
+                  <Popover.Portal>
+                    <Popover.Content className="view-tab-icon-picker-content" sideOffset={8} align="start">
+                      <div className="view-tab-icon-picker-search-row">
+                        <input
+                          className="view-tab-icon-picker-search"
+                          autoFocus
+                          placeholder="筛选..."
+                          value={iconPickerSearchQuery}
+                          onChange={(event) => setIconPickerSearchQuery(event.target.value)}
+                        />
+                      </div>
+                      <div className="view-tab-icon-picker-tabs" role="tablist" aria-label="图标分组">
+                        {sharedViewIconGroups.map((group) => (
+                          <button
+                            key={group.id}
+                            type="button"
+                            className={["view-tab-icon-picker-tab", activeIconGroupId === group.id ? "is-active" : ""].filter(Boolean).join(" ")}
+                            aria-pressed={activeIconGroupId === group.id}
+                            onClick={() => setActiveIconGroupId(group.id)}
+                          >
+                            {group.label}
+                          </button>
+                        ))}
+                      </div>
+                      {pickerIconIds.length ? (
+                        <div className="view-tab-icon-picker-grid">
+                          {pickerIconIds.map((candidate) => {
+                            const CandidateIcon = sharedViewIconRegistry[candidate];
+                            return (
+                              <button
+                                key={candidate}
+                                type="button"
+                                className={["view-tab-icon-picker-option", candidate === iconId ? "is-selected" : ""].filter(Boolean).join(" ")}
+                                data-view-icon={candidate}
+                                onClick={() => updateViewIcon(view, candidate)}
+                              >
+                                <span className="view-tab-icon">
+                                  <CandidateIcon size={18} />
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="view-tab-icon-picker-empty">未找到匹配图标</div>
+                      )}
+                    </Popover.Content>
+                  </Popover.Portal>
+                </Popover.Root>
+                <input
+                  className="view-tab-menu-title-input"
+                  aria-label="视图名称"
+                  autoFocus
+                  value={renameDraftByViewId[view.id] ?? view.name}
+                  onChange={(event) => setRenameDraftByViewId((current) => ({ ...current, [view.id]: event.target.value }))}
+                  onKeyDown={(event) => handleViewTitleKeyDown(event, view)}
+                  onBlur={(event) => resolveViewTitleBlur(event, view)}
+                />
+              </div>
               <button className="view-tab-menu-item" type="button" disabled role="menuitem">
                 <icons.borderAll size={20} />
                 <span>显示为</span>
@@ -450,12 +672,6 @@ export function ViewTabs({
               <button className="view-tab-menu-item" type="button" onClick={handleEditView} role="menuitem">
                 <icons.filter size={20} />
                 <span>编辑视图</span>
-              </button>
-              <button className="view-tab-menu-item" type="button" disabled role="menuitem">
-                <icons.json size={20} />
-                <span>来源</span>
-                <span className="view-tab-menu-muted">团队共享视图</span>
-                <icons.next size={16} className="view-tab-menu-chevron" />
               </button>
               <div className="view-tab-menu-separator" />
               <button className="view-tab-menu-item" type="button" onClick={() => void handleCopyLink(view)} role="menuitem">
@@ -495,7 +711,7 @@ export function ViewTabs({
                     key={item.id}
                     open={openMenuGroupId === item.id}
                     onOpenChange={(open) => {
-                      if (!open) setOpenMenuGroupId(null);
+                      if (!open) closeGroupMenu(item.id, item.name);
                     }}
                   >
                     <Popover.Anchor asChild>
@@ -520,9 +736,11 @@ export function ViewTabs({
                           onClick={() => {
                             if (viewTabsDisabled) return;
                             if (active) {
+                              seedGroupRenameDraft(item.id, item.name);
                               setOpenMenuGroupId(item.id);
                               return;
                             }
+                            clearGroupRenameDraft(item.id);
                             handleSelectGroup(item.id, item.views);
                           }}
                         >
@@ -534,37 +752,27 @@ export function ViewTabs({
                     <Popover.Portal>
                       <Popover.Content className="menu-content view-tab-menu-content" sideOffset={6} align="start">
                         <div className="view-tab-menu" role="menu" aria-label={`${item.name} 视图组操作`}>
-                          {renamingGroupId === item.id ? (
-                            <form
-                              className="view-tab-rename-form"
-                              onSubmit={(event) => {
-                                event.preventDefault();
-                                if (viewTabsDisabled) return;
-                                const trimmed = renameDraft.trim();
-                                if (trimmed && trimmed !== item.name) onRenameGroup(item.id, trimmed);
-                                setRenamingGroupId(null);
-                                setRenameDraft("");
-                                setOpenMenuGroupId(null);
-                              }}
+                          <div className="view-group-menu-header">
+                            <button
+                              type="button"
+                              className="view-tab-menu-icon-trigger is-disabled"
+                              aria-label="视图组图标暂不可编辑"
+                              disabled
                             >
-                              <input
-                                aria-label="视图组名称"
-                                autoFocus
-                                value={renameDraft}
-                                onChange={(event) => setRenameDraft(event.target.value)}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Escape") cancelRename();
-                                }}
-                              />
-                              <button type="submit" disabled={!renameDraft.trim() || renameDraft.trim() === item.name}>保存</button>
-                              <button type="button" onClick={cancelRename}>取消</button>
-                            </form>
-                          ) : (
-                            <button className="view-tab-menu-item" type="button" onClick={() => beginRenameGroup(item.id, item.name)} role="menuitem">
-                              <icons.textField size={20} />
-                              <span>重命名组</span>
+                              <span className="view-tab-icon">
+                                <icons.folder size={18} />
+                              </span>
                             </button>
-                          )}
+                            <input
+                              className="view-tab-menu-title-input"
+                              aria-label="视图组名称"
+                              autoFocus
+                              value={groupRenameDraftByGroupId[item.id] ?? item.name}
+                              onChange={(event) => setGroupRenameDraftByGroupId((current) => ({ ...current, [item.id]: event.target.value }))}
+                              onKeyDown={(event) => handleGroupTitleKeyDown(event, item.id, item.name)}
+                              onBlur={(event) => resolveGroupTitleBlur(event, item.id, item.name)}
+                            />
+                          </div>
                           <button
                             className="view-tab-menu-item"
                             type="button"
@@ -600,7 +808,7 @@ export function ViewTabs({
                   </Popover.Root>
                 );
               }
-              return renderViewTab(item.view, { kind: "top-level" });
+              return renderViewTab(item, { kind: "top-level" });
             })}
             <Popover.Root open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
               <Popover.Trigger asChild>
@@ -759,7 +967,7 @@ export function ViewTabs({
               ].filter(Boolean).join(" ")}
               role="tablist"
             >
-              {filteredGroupViews.map((view) => renderViewTab(view, { kind: "group", groupId: expandedGroup.id }))}
+              {filteredGroupViews.map((item) => renderViewTab(item, { kind: "group", groupId: expandedGroup.id }))}
             </div>
             <div className="view-tabs-group-create">
               <button
@@ -792,7 +1000,12 @@ export function ViewTabs({
             height: dragGhost.height,
           }}
         >
-          <icons.borderAll size={17} />
+          <span className="view-tab-icon" data-view-icon={dragGhost.icon}>
+            {(() => {
+              const DragGhostIcon = sharedViewIconRegistry[dragGhost.icon];
+              return <DragGhostIcon size={17} />;
+            })()}
+          </span>
           <span>{dragGhost.label}</span>
         </div>
       ) : null}
@@ -837,15 +1050,15 @@ function resolveGroupDropTarget(
   if (!expandedGroup || !groupRow) return null;
   const rowBounds = groupRow.getBoundingClientRect();
   if (pointerY < rowBounds.top || pointerY > rowBounds.bottom) return null;
-  const siblingViews = expandedGroup.views.filter((view) => view.id !== sourceViewId);
-  for (const view of siblingViews) {
-    const bounds = groupRefs[view.id]?.getBoundingClientRect();
+  const siblingViews = expandedGroup.views.filter((item) => item.view.id !== sourceViewId);
+  for (const item of siblingViews) {
+    const bounds = groupRefs[item.view.id]?.getBoundingClientRect();
     if (!bounds) continue;
     if (pointerX < bounds.left + bounds.width / 2) {
-      return { type: "group", sourceViewId, groupId: expandedGroup.id, targetViewId: view.id, placement: "before" as const };
+      return { type: "group", sourceViewId, groupId: expandedGroup.id, targetViewId: item.view.id, placement: "before" as const };
     }
     if (pointerX <= bounds.right) {
-      return { type: "group", sourceViewId, groupId: expandedGroup.id, targetViewId: view.id, placement: "after" as const };
+      return { type: "group", sourceViewId, groupId: expandedGroup.id, targetViewId: item.view.id, placement: "after" as const };
     }
   }
   return { type: "group", sourceViewId, groupId: expandedGroup.id, placement: "append" as const };

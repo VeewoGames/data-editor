@@ -1,6 +1,7 @@
 import {
   normalizeCollectionView,
   normalizeCollectionViewDraft,
+  normalizeSharedViewLeaf,
   normalizeSharedViewDraftState,
   normalizeSharedViewsConfig,
 } from "./shared-view-normalize.mjs";
@@ -94,6 +95,13 @@ export function renameSharedViewConfig(sharedViewsConfig, collectionKey, viewId,
   const config = cloneSharedViewsConfig(sharedViewsConfig);
   const collection = ensureSharedCollection(config, collectionKey);
   collection.items = renameViewInItems(collection.items, viewId, trimmed);
+  return config;
+}
+
+export function updateSharedViewIconConfig(sharedViewsConfig, collectionKey, viewId, icon) {
+  const config = cloneSharedViewsConfig(sharedViewsConfig);
+  const collection = ensureSharedCollection(config, collectionKey);
+  collection.items = updateViewIconInItems(collection.items, viewId, icon);
   return config;
 }
 
@@ -228,9 +236,9 @@ function cloneSharedViewsConfig(sharedViewsConfig) {
 }
 
 function ensureSharedCollection(config, collectionKey) {
-  config.collections[collectionKey] ??= { items: [{ kind: "view", view: defaultAllView() }], defaultViewId: "all" };
+  config.collections[collectionKey] ??= { items: [{ kind: "view", icon: "borderAll", view: defaultAllView() }], defaultViewId: "all" };
   if (!Array.isArray(config.collections[collectionKey].items) || !config.collections[collectionKey].items.length) {
-    config.collections[collectionKey].items = [{ kind: "view", view: defaultAllView() }];
+    config.collections[collectionKey].items = [{ kind: "view", icon: "borderAll", view: defaultAllView() }];
   }
   config.collections[collectionKey].defaultViewId = resolveDefaultFromCollection(config.collections[collectionKey]);
   return config.collections[collectionKey];
@@ -290,7 +298,7 @@ function listCollectionViews(collection) {
     for (const item of collection.items) {
       if (item?.kind === "group") {
         for (const view of item.views ?? []) {
-          views.push(normalizeCollectionView(view));
+          views.push(normalizeCollectionView(view.view));
         }
         continue;
       }
@@ -313,11 +321,12 @@ function cloneCollectionItems(items) {
         kind: "group",
         id: item.id,
         name: item.name,
-        views: Array.isArray(item.views) ? item.views.map((view) => ({ ...view })) : [],
+        views: Array.isArray(item.views) ? item.views.map((view) => normalizeSharedViewLeaf(view)) : [],
       };
     }
     return {
       kind: "view",
+      ...(item?.kind === "view" && typeof item.icon === "string" ? { icon: item.icon } : { icon: "borderAll" }),
       view: { ...(item?.kind === "view" ? item.view : item) },
     };
   });
@@ -330,9 +339,9 @@ function insertViewAfter(items, activeViewId, nextView) {
     if (item?.kind === "group") {
       const views = [];
       for (const view of item.views ?? []) {
-        views.push({ ...view });
-        if (view.id === activeViewId) {
-          views.push(nextView);
+        views.push(normalizeSharedViewLeaf(view));
+        if (view.view.id === activeViewId) {
+          views.push({ kind: "view", icon: view.icon ?? "borderAll", view: nextView });
           inserted = true;
         }
       }
@@ -340,13 +349,13 @@ function insertViewAfter(items, activeViewId, nextView) {
       continue;
     }
     const rawView = item?.kind === "view" ? item.view : item;
-    nextItems.push({ kind: "view", view: { ...rawView } });
+    nextItems.push({ kind: "view", icon: item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll", view: { ...rawView } });
     if (rawView?.id === activeViewId) {
-      nextItems.push({ kind: "view", view: nextView });
+      nextItems.push({ kind: "view", icon: item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll", view: nextView });
       inserted = true;
     }
   }
-  if (!inserted) nextItems.push({ kind: "view", view: nextView });
+  if (!inserted) nextItems.push({ kind: "view", icon: "borderAll", view: nextView });
   return nextItems;
 }
 
@@ -355,7 +364,7 @@ function renameViewInItems(items, viewId, name) {
     if (item?.kind === "group") {
       return {
         ...item,
-        views: (item.views ?? []).map((view) => view.id === viewId ? { ...view, name } : { ...view }),
+        views: (item.views ?? []).map((view) => view.view.id === viewId ? { ...view, view: { ...view.view, name } } : normalizeSharedViewLeaf(view)),
       };
     }
     const rawView = item?.kind === "view" ? item.view : item;
@@ -366,11 +375,28 @@ function renameViewInItems(items, viewId, name) {
   });
 }
 
+function updateViewIconInItems(items, viewId, icon) {
+  return (Array.isArray(items) ? items : []).map((item) => {
+    if (item?.kind === "group") {
+      return {
+        ...item,
+        views: (item.views ?? []).map((view) => view.view.id === viewId ? { ...view, icon } : normalizeSharedViewLeaf(view)),
+      };
+    }
+    const rawView = item?.kind === "view" ? item.view : item;
+    return {
+      kind: "view",
+      icon: rawView?.id === viewId ? icon : item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll",
+      view: { ...rawView },
+    };
+  });
+}
+
 function deleteViewFromItems(items, viewId) {
   const nextItems = [];
   for (const item of Array.isArray(items) ? items : []) {
     if (item?.kind === "group") {
-      const views = (item.views ?? []).filter((view) => view.id !== viewId).map((view) => ({ ...view }));
+      const views = (item.views ?? []).filter((view) => view.view.id !== viewId).map((view) => normalizeSharedViewLeaf(view));
       if (views.length) nextItems.push({ ...item, views });
       continue;
     }
@@ -387,21 +413,25 @@ function applyDraftsToItems(items, activeViewId, activeDraft, orderDraft) {
       return {
         ...item,
         views: (item.views ?? []).map((view) => {
-          if (view.id !== activeViewId) return { ...view };
-          return mergeSharedViewWithDraft(view, activeDraft);
+          if (view.view.id !== activeViewId) return normalizeSharedViewLeaf(view);
+          return {
+            ...view,
+            view: mergeSharedViewWithDraft(view.view, activeDraft),
+          };
         }),
       };
     }
     const rawView = item?.kind === "view" ? item.view : item;
     return {
       kind: "view",
+      icon: item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll",
       view: rawView?.id === activeViewId ? mergeSharedViewWithDraft(rawView, activeDraft) : { ...rawView },
     };
   });
   if (!Array.isArray(orderDraft) || !orderDraft.length) return nextItems;
   if (nextItems.some((item) => item?.kind === "group")) return nextItems;
   const orderedViews = applyViewOrderDraft(nextItems.map((item) => item.view), orderDraft);
-  return orderedViews.map((view) => ({ kind: "view", view }));
+  return orderedViews.map((view) => ({ kind: "view", icon: "borderAll", view }));
 }
 
 function defaultAllView() {

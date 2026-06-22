@@ -1,5 +1,6 @@
 import {
   normalizeCollectionView,
+  normalizeSharedViewLeaf,
   normalizeSharedViewDraftState,
   normalizeSharedViewsConfig,
 } from "./shared-view-normalize.mjs";
@@ -24,7 +25,7 @@ export function createViewGroupConfig({
     kind: "group",
     id: uniqueGroupId(collection.items, "group"),
     name: uniqueGroupName(collection.items, "新分组"),
-    views: [nextView],
+    views: [{ kind: "view", icon: "borderAll", view: nextView }],
   };
   collection.items = insertGroupAfter(collection.items, activeViewId, nextGroup);
   collection.defaultViewId = collection.defaultViewId ?? resolveDefaultViewIdFromItems(collection.items);
@@ -47,7 +48,7 @@ export function createViewInGroupConfig({
     id: uniqueViewId(views, snapshot.id || "view"),
     name: uniqueViewName(views, "新视图", { preserveBase: true }),
   };
-  collection.items = appendViewToGroup(collection.items, groupId, nextView);
+  collection.items = appendViewToGroup(collection.items, groupId, { kind: "view", icon: "borderAll", view: nextView });
   return { config, view: nextView };
 }
 
@@ -67,7 +68,7 @@ export function duplicateViewGroupConfig({
       kind: "group",
       id: resolvedGroupSnapshot.id,
       name: resolvedGroupSnapshot.name,
-      views: resolvedGroupSnapshot.views.map((view) => ({ ...normalizeCollectionView(view) })),
+      views: resolvedGroupSnapshot.views.map((leaf) => cloneLeaf(leaf)),
     }
     : topLevelItems.find((item) => item.kind === "group" && item.id === groupId);
   if (!targetGroup || targetGroup.kind !== "group" || !targetGroup.views.length) {
@@ -80,15 +81,19 @@ export function duplicateViewGroupConfig({
   }
   const existingViews = flattenItems(collection.items);
   const sourceToTargetViewIdMap = {};
-  const duplicatedViews = targetGroup.views.map((view) => {
+  const duplicatedViews = targetGroup.views.map((leaf) => {
     const duplicatedView = {
-      ...normalizeCollectionView(view),
-      id: uniqueViewId([...existingViews, ...Object.values(sourceToTargetViewIdMap).map((id) => ({ id, name: "" }))], view.id || "view"),
-      name: view.name,
+      ...normalizeCollectionView(leaf.view),
+      id: uniqueViewId([...existingViews, ...Object.values(sourceToTargetViewIdMap).map((id) => ({ id, name: "" }))], leaf.view.id || "view"),
+      name: leaf.view.name,
     };
-    sourceToTargetViewIdMap[view.id] = duplicatedView.id;
+    sourceToTargetViewIdMap[leaf.view.id] = duplicatedView.id;
     existingViews.push(duplicatedView);
-    return duplicatedView;
+    return {
+      kind: "view",
+      icon: leaf.icon ?? "borderAll",
+      view: duplicatedView,
+    };
   });
   const duplicatedGroup = {
     kind: "group",
@@ -101,7 +106,7 @@ export function duplicateViewGroupConfig({
   return {
     config,
     group: duplicatedGroup,
-    firstViewId: duplicatedViews[0]?.id ?? null,
+    firstViewId: duplicatedViews[0]?.view.id ?? null,
     sourceToTargetViewIdMap,
   };
 }
@@ -128,10 +133,10 @@ export function renameViewGroupConfig({
   const trimmed = typeof name === "string" ? name.trim() : "";
   if (!trimmed) return config;
   collection.items = collection.items.map((item) => item.kind === "group" && item.id === groupId
-    ? { ...item, name: trimmed, views: item.views.map((view) => ({ ...view })) }
-    : item.kind === "group"
-      ? { ...item, views: item.views.map((view) => ({ ...view })) }
-      : { kind: "view", view: { ...item.view } });
+      ? { ...item, name: trimmed, views: item.views.map((view) => cloneLeaf(view)) }
+      : item.kind === "group"
+        ? { ...item, views: item.views.map((view) => cloneLeaf(view)) }
+        : cloneLeaf(item));
   return config;
 }
 
@@ -145,17 +150,17 @@ export function deleteViewGroupConfig({
   const collection = ensureCollection(config, collectionKey);
   const nextItems = [];
   for (const item of collection.items) {
-    if (item.kind !== "group" || item.id !== groupId) {
-      nextItems.push(item.kind === "group"
-        ? { ...item, views: item.views.map((view) => ({ ...view })) }
-        : { kind: "view", view: { ...item.view } });
+      if (item.kind !== "group" || item.id !== groupId) {
+        nextItems.push(item.kind === "group"
+        ? { ...item, views: item.views.map((view) => cloneLeaf(view)) }
+        : cloneLeaf(item));
       continue;
     }
     for (const view of item.views) {
-      nextItems.push({ kind: "view", view: { ...view } });
+      nextItems.push(cloneLeaf(view));
     }
   }
-  collection.items = nextItems.length ? nextItems : [{ kind: "view", view: defaultAllView() }];
+  collection.items = nextItems.length ? nextItems : [{ kind: "view", icon: "borderAll", view: defaultAllView() }];
   collection.defaultViewId = resolveDefaultViewIdFromItems(collection.items);
   return config;
 }
@@ -192,7 +197,7 @@ export function resolveSharedViewStructure({
   const normalizedConfig = normalizeSharedViewsConfig(sharedViewsConfig);
   const normalizedDraftState = normalizeSharedViewDraftState(draftState);
   const collection = normalizedConfig.collections?.[collectionKey] ?? emptyCollection();
-  const baseItems = collection.items.length ? cloneItems(collection.items) : [{ kind: "view", view: defaultAllView() }];
+  const baseItems = collection.items.length ? cloneItems(collection.items) : [{ kind: "view", icon: "borderAll", view: defaultAllView() }];
   const topLevelItems = resolveTopLevelItems(baseItems, normalizedDraftState, collectionKey);
   const flattenedViews = [];
   const viewsById = {};
@@ -200,9 +205,9 @@ export function resolveSharedViewStructure({
   for (const item of topLevelItems) {
     if (item.kind === "group") {
       for (const view of item.views) {
-        flattenedViews.push(view);
-        viewsById[view.id] = view;
-        parentGroupIdByViewId[view.id] = item.id;
+        flattenedViews.push(view.view);
+        viewsById[view.view.id] = view.view;
+        parentGroupIdByViewId[view.view.id] = item.id;
       }
       continue;
     }
@@ -247,7 +252,7 @@ function resolveTopLevelItems(baseItems, draftState, collectionKey) {
   const orderDraft = draftState.viewOrderDrafts?.[collectionKey];
   if (Array.isArray(orderDraft) && orderDraft.length && baseItems.every((item) => item.kind === "view")) {
     const orderedViews = applyFlatViewOrderDraft(baseItems.map((item) => item.view), orderDraft);
-    return orderedViews.map((view) => ({ kind: "view", view }));
+      return orderedViews.map((view) => ({ kind: "view", icon: "borderAll", view }));
   }
   return baseItems;
 }
@@ -281,11 +286,11 @@ function applyStructureDraft(baseItems, draftItems) {
   const groupById = new Map();
   for (const item of baseItems) {
     if (item.kind === "group") {
-      groupById.set(item.id, { id: item.id, name: item.name, views: item.views.map((view) => ({ ...view })) });
-      for (const view of item.views) viewById.set(view.id, { ...view });
+      groupById.set(item.id, { id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) });
+      for (const view of item.views) viewById.set(view.view.id, cloneLeaf(view));
       continue;
     }
-    viewById.set(item.view.id, { ...item.view });
+    viewById.set(item.view.id, cloneLeaf(item));
   }
   const usedViewIds = new Set();
   const usedGroupIds = new Set();
@@ -293,18 +298,18 @@ function applyStructureDraft(baseItems, draftItems) {
   for (const item of draftItems) {
     if (item.kind === "view") {
       const view = viewById.get(item.viewId);
-      if (!view || usedViewIds.has(view.id)) continue;
-      usedViewIds.add(view.id);
-      nextItems.push({ kind: "view", view });
+      if (!view || usedViewIds.has(view.view.id)) continue;
+      usedViewIds.add(view.view.id);
+      nextItems.push(cloneLeaf(view));
       continue;
     }
     const existingGroup = groupById.get(item.groupId);
     const views = [];
     for (const viewId of item.viewIds ?? []) {
       const view = viewById.get(viewId);
-      if (!view || usedViewIds.has(view.id)) continue;
-      usedViewIds.add(view.id);
-      views.push({ ...view });
+      if (!view || usedViewIds.has(view.view.id)) continue;
+      usedViewIds.add(view.view.id);
+      views.push(cloneLeaf(view));
     }
     if (!views.length || usedGroupIds.has(item.groupId)) continue;
     usedGroupIds.add(item.groupId);
@@ -317,18 +322,18 @@ function applyStructureDraft(baseItems, draftItems) {
   }
   for (const item of baseItems) {
     if (item.kind === "group") {
-      const remainingViews = item.views.filter((view) => !usedViewIds.has(view.id)).map((view) => ({ ...view }));
+      const remainingViews = item.views.filter((view) => !usedViewIds.has(view.view.id)).map((view) => cloneLeaf(view));
       if (!remainingViews.length || usedGroupIds.has(item.id)) continue;
       usedGroupIds.add(item.id);
-      for (const view of remainingViews) usedViewIds.add(view.id);
+      for (const view of remainingViews) usedViewIds.add(view.view.id);
       nextItems.push({ kind: "group", id: item.id, name: item.name, views: remainingViews });
       continue;
     }
     if (usedViewIds.has(item.view.id)) continue;
     usedViewIds.add(item.view.id);
-    nextItems.push({ kind: "view", view: { ...item.view } });
+    nextItems.push(cloneLeaf(item));
   }
-  return nextItems.length ? nextItems : [{ kind: "view", view: defaultAllView() }];
+  return nextItems.length ? nextItems : [{ kind: "view", icon: "borderAll", view: defaultAllView() }];
 }
 
 function applyFlatViewOrderDraft(views, orderDraft) {
@@ -348,6 +353,10 @@ function applyFlatViewOrderDraft(views, orderDraft) {
   return ordered;
 }
 
+function cloneLeaf(item) {
+  return normalizeSharedViewLeaf(item);
+}
+
 function cloneItems(items) {
   return items.map((item) => {
     if (item.kind === "group") {
@@ -355,13 +364,10 @@ function cloneItems(items) {
         kind: "group",
         id: item.id,
         name: item.name,
-        views: item.views.map((view) => normalizeCollectionView(view)),
+        views: item.views.map((view) => cloneLeaf(view)),
       };
     }
-    return {
-      kind: "view",
-      view: normalizeCollectionView(item.view),
-    };
+    return cloneLeaf(item);
   });
 }
 
@@ -373,13 +379,10 @@ function cloneResolvedTopLevelItems(items) {
         kind: "group",
         id: item.id,
         name: item.name,
-        views: Array.isArray(item.views) ? item.views.map((view) => normalizeCollectionView(view)) : [],
+        views: Array.isArray(item.views) ? item.views.map((view) => cloneLeaf(view)) : [],
       };
     }
-    return {
-      kind: "view",
-      view: normalizeCollectionView(item?.view),
-    };
+    return cloneLeaf(item);
   });
 }
 
@@ -390,11 +393,11 @@ function extractViewFromResolvedItems(items, sourceViewId) {
     if (item.kind === "group") {
       const remainingViews = [];
       for (const view of item.views) {
-        if (view.id === sourceViewId && !sourceView) {
-          sourceView = { ...view };
+        if (view.view.id === sourceViewId && !sourceView) {
+          sourceView = cloneLeaf(view);
           continue;
         }
-        remainingViews.push({ ...view });
+        remainingViews.push(cloneLeaf(view));
       }
       if (remainingViews.length) {
         nextItems.push({ kind: "group", id: item.id, name: item.name, views: remainingViews });
@@ -402,10 +405,10 @@ function extractViewFromResolvedItems(items, sourceViewId) {
       continue;
     }
     if (item.view.id === sourceViewId && !sourceView) {
-      sourceView = { ...item.view };
+      sourceView = cloneLeaf(item);
       continue;
     }
-    nextItems.push({ kind: "view", view: { ...item.view } });
+    nextItems.push(cloneLeaf(item));
   }
   return sourceView ? { items: nextItems, view: sourceView } : null;
 }
@@ -416,14 +419,14 @@ function insertResolvedViewAtTopLevel(items, view, targetItemId, placement) {
   for (const item of items) {
     const itemId = item.kind === "group" ? item.id : item.view.id;
     if (itemId === targetItemId && placement === "before" && !inserted) {
-      nextItems.push({ kind: "view", view: { ...view } });
+      nextItems.push(cloneLeaf(view));
       inserted = true;
     }
     nextItems.push(item.kind === "group"
-      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((candidate) => ({ ...candidate })) }
-      : { kind: "view", view: { ...item.view } });
+      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((candidate) => cloneLeaf(candidate)) }
+      : cloneLeaf(item));
     if (itemId === targetItemId && placement === "after" && !inserted) {
-      nextItems.push({ kind: "view", view: { ...view } });
+      nextItems.push(cloneLeaf(view));
       inserted = true;
     }
   }
@@ -437,23 +440,23 @@ function insertResolvedViewIntoGroup(items, view, groupId, placement, targetView
   for (const item of items) {
     if (item.kind !== "group" || item.id !== groupId) {
       nextItems.push(item.kind === "group"
-        ? { kind: "group", id: item.id, name: item.name, views: item.views.map((candidate) => ({ ...candidate })) }
-        : { kind: "view", view: { ...item.view } });
+        ? { kind: "group", id: item.id, name: item.name, views: item.views.map((candidate) => cloneLeaf(candidate)) }
+        : cloneLeaf(item));
       continue;
     }
     const nextViews = [];
     if (placement === "append") {
-      nextViews.push(...item.views.map((candidate) => ({ ...candidate })), { ...view });
+      nextViews.push(...item.views.map((candidate) => cloneLeaf(candidate)), cloneLeaf(view));
       inserted = true;
     } else {
       for (const candidate of item.views) {
-        if (candidate.id === targetViewId && placement === "before" && !inserted) {
-          nextViews.push({ ...view });
+        if (candidate.view.id === targetViewId && placement === "before" && !inserted) {
+          nextViews.push(cloneLeaf(view));
           inserted = true;
         }
-        nextViews.push({ ...candidate });
-        if (candidate.id === targetViewId && placement === "after" && !inserted) {
-          nextViews.push({ ...view });
+        nextViews.push(cloneLeaf(candidate));
+        if (candidate.view.id === targetViewId && placement === "after" && !inserted) {
+          nextViews.push(cloneLeaf(view));
           inserted = true;
         }
       }
@@ -471,7 +474,7 @@ function serializeStructureDraftItems(items) {
         kind: "group",
         groupId: item.id,
         name: item.name,
-        viewIds: item.views.map((view) => view.id),
+        viewIds: item.views.map((view) => view.view.id),
       };
     }
     return {
@@ -506,7 +509,7 @@ function flattenItems(items) {
   const views = [];
   for (const item of items) {
     if (item.kind === "group") {
-      for (const view of item.views) views.push(view);
+      for (const view of item.views) views.push(view.view);
       continue;
     }
     views.push(item.view);
@@ -519,28 +522,28 @@ function insertGroupAfter(items, activeViewId, group) {
   let inserted = false;
   for (const item of items) {
     nextItems.push(item.kind === "group"
-      ? { ...item, views: item.views.map((view) => ({ ...view })) }
-      : { kind: "view", view: { ...item.view } });
+      ? { ...item, views: item.views.map((view) => cloneLeaf(view)) }
+      : cloneLeaf(item));
     const containsActive = item.kind === "group"
-      ? item.views.some((view) => view.id === activeViewId)
+      ? item.views.some((view) => view.view.id === activeViewId)
       : item.view.id === activeViewId;
     if (containsActive) {
       nextItems.push({
         kind: "group",
         id: group.id,
         name: group.name,
-        views: group.views.map((view) => ({ ...view })),
+        views: group.views.map((view) => cloneLeaf(view)),
       });
       inserted = true;
     }
   }
   if (!inserted) {
     nextItems.push({
-      kind: "group",
-      id: group.id,
-      name: group.name,
-      views: group.views.map((view) => ({ ...view })),
-    });
+        kind: "group",
+        id: group.id,
+        name: group.name,
+        views: group.views.map((view) => cloneLeaf(view)),
+      });
   }
   return nextItems;
 }
@@ -550,25 +553,25 @@ function insertGroupAfterGroup(items, groupId, nextGroup) {
   let inserted = false;
   for (const item of items) {
     nextItems.push(item.kind === "group"
-      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => ({ ...view })) }
-      : { kind: "view", view: { ...item.view } });
+      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) }
+      : cloneLeaf(item));
     if (item.kind === "group" && item.id === groupId) {
       nextItems.push({
         kind: "group",
         id: nextGroup.id,
         name: nextGroup.name,
-        views: nextGroup.views.map((view) => ({ ...view })),
+        views: nextGroup.views.map((view) => cloneLeaf(view)),
       });
       inserted = true;
     }
   }
   if (!inserted) {
     nextItems.push({
-      kind: "group",
-      id: nextGroup.id,
-      name: nextGroup.name,
-      views: nextGroup.views.map((view) => ({ ...view })),
-    });
+        kind: "group",
+        id: nextGroup.id,
+        name: nextGroup.name,
+        views: nextGroup.views.map((view) => cloneLeaf(view)),
+      });
   }
   return nextItems;
 }
@@ -577,12 +580,12 @@ function appendViewToGroup(items, groupId, nextView) {
   return items.map((item) => {
     if (item.kind !== "group" || item.id !== groupId) {
       return item.kind === "group"
-        ? { ...item, views: item.views.map((view) => ({ ...view })) }
-        : { kind: "view", view: { ...item.view } };
+        ? { ...item, views: item.views.map((view) => cloneLeaf(view)) }
+        : cloneLeaf(item);
     }
     return {
       ...item,
-      views: [...item.views.map((view) => ({ ...view })), nextView],
+      views: [...item.views.map((view) => cloneLeaf(view)), cloneLeaf(nextView)],
     };
   });
 }
@@ -621,11 +624,11 @@ function uniqueGroupId(items, baseId) {
   const normalizedBase = String(baseId).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "group";
   const existing = new Set();
   for (const item of items) {
-    if (item.kind === "group") {
-      existing.add(item.id);
-      for (const view of item.views) existing.add(view.id);
-      continue;
-    }
+      if (item.kind === "group") {
+        existing.add(item.id);
+        for (const view of item.views) existing.add(view.view.id);
+        continue;
+      }
     existing.add(item.view.id);
   }
   let candidate = normalizedBase;
@@ -667,7 +670,7 @@ function uniqueCopyGroupName(items, sourceName) {
 function emptyCollection() {
   return {
     defaultViewId: "all",
-    items: [{ kind: "view", view: defaultAllView() }],
+    items: [{ kind: "view", icon: "borderAll", view: defaultAllView() }],
   };
 }
 
@@ -689,7 +692,7 @@ function sanitizeLastActiveByGroup(topLevelItems, value) {
   const allowedViewIdsByGroupId = new Map();
   for (const item of topLevelItems) {
     if (item.kind !== "group") continue;
-    allowedViewIdsByGroupId.set(item.id, new Set(item.views.map((view) => view.id)));
+    allowedViewIdsByGroupId.set(item.id, new Set(item.views.map((view) => view.view.id)));
   }
   const result = {};
   for (const [groupId, viewId] of Object.entries(normalized)) {

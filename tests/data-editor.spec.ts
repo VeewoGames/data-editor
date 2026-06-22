@@ -11,6 +11,7 @@ test.setTimeout(60_000);
 type SharedViewConfig = {
   id: string;
   name: string;
+  icon?: "borderAll" | "json" | "edit" | "tagsField" | "refresh" | "settings" | "filter";
   type?: string;
   query?: string;
   filters?: {
@@ -22,9 +23,15 @@ type SharedViewConfig = {
   sorts?: Array<{ id?: string; field?: string; direction?: string }>;
 };
 
+type SharedViewLeafConfig = {
+  kind: "view";
+  icon?: SharedViewConfig["icon"];
+  view: SharedViewConfig;
+};
+
 type SharedViewItemConfig =
-  | { kind: "view"; view: SharedViewConfig }
-  | { kind: "group"; id: string; name: string; views: SharedViewConfig[] };
+  | SharedViewLeafConfig
+  | { kind: "group"; id: string; name: string; views: Array<SharedViewLeafConfig | SharedViewConfig> };
 
 type SharedViewsConfig = {
   collections: Record<string, { items?: SharedViewItemConfig[]; views?: SharedViewConfig[]; defaultViewId: string | null }>;
@@ -717,6 +724,24 @@ function groupRowViewTab(page: Page, name: string) {
   return page.locator(".view-tabs-group-row .view-tab").filter({ hasText: name }).first();
 }
 
+async function openActiveViewMenu(page: Page, name?: string) {
+  const activeTab = name ? topLevelViewTab(page, name) : page.locator(".view-tab-shell.active .view-tab").first();
+  if (name) {
+    await activeTab.click();
+    await expect(activeTab).toHaveAttribute("aria-selected", "true");
+  }
+  await activeTab.click();
+  await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+}
+
+async function openActiveGroupMenu(page: Page, name: string) {
+  const activeGroup = topLevelGroupTab(page, name);
+  await activeGroup.click();
+  await expect(activeGroup).toHaveAttribute("aria-selected", "true");
+  await activeGroup.click();
+  await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+}
+
 function groupRowSearch(page: Page) {
   return page.locator(".group-tab-search");
 }
@@ -970,11 +995,27 @@ function getSharedView(config: SharedViewsConfig, collectionKey: string, viewId:
   return listSharedViews(config, collectionKey).find((view) => view.id === viewId);
 }
 
+function unwrapGroupView(view: SharedViewLeafConfig | SharedViewConfig) {
+  return "kind" in view ? view.view : view;
+}
+
+function findSharedViewLeaf(config: SharedViewsConfig, collectionKey: string, viewId: string) {
+  const collection = config.collections[collectionKey];
+  if (!collection?.items) return null;
+  for (const item of collection.items) {
+    if (item.kind === "view" && item.view.id === viewId) return item;
+    if (item.kind !== "group") continue;
+    const groupChild = item.views.find((view) => unwrapGroupView(view).id === viewId);
+    if (groupChild) return "kind" in groupChild ? groupChild : { kind: "view" as const, view: groupChild };
+  }
+  return null;
+}
+
 function listSharedViews(config: SharedViewsConfig, collectionKey: string) {
   const collection = config.collections[collectionKey];
   if (!collection) return [];
   if (Array.isArray(collection.items)) {
-    return collection.items.flatMap((item) => item.kind === "group" ? item.views : [item.view]);
+    return collection.items.flatMap((item) => item.kind === "group" ? item.views.map((viewItem) => unwrapGroupView(viewItem)) : [item.view]);
   }
   return Array.isArray(collection.views) ? collection.views : [];
 }
@@ -1886,7 +1927,7 @@ test("view groups support dragging views into groups and back out with explicit 
       const combatGroup = collection.items.find((item) => item.kind === "group" && item.id === "combat");
       return !labels.includes("全部")
         && combatGroup?.kind === "group"
-        && combatGroup.views.map((view) => view.name).includes("全部");
+        && combatGroup.views.map((view) => unwrapGroupView(view).name).includes("全部");
     });
 
     await page.reload();
@@ -1907,7 +1948,7 @@ test("view groups support dragging views into groups and back out with explicit 
       const combatGroup = collection.items.find((item) => item.kind === "group" && item.id === "combat");
       return labels.includes("全部")
         && combatGroup?.kind === "group"
-        && !combatGroup.views.map((view) => view.name).includes("全部");
+        && !combatGroup.views.map((view) => unwrapGroupView(view).name).includes("全部");
     });
 
     await page.reload();
@@ -2011,30 +2052,38 @@ test("duplicating a view group copies child view snapshots and the current user'
           name: "战斗",
           views: [
             {
-              id: "support",
-              name: "辅助",
-              type: "table",
-              query: "shield",
-              filters: { op: "and", rules: [] },
-              sorts: [],
-              hidden: [],
-              wrapped: [],
-              order: [],
-              detailOrder: [],
-              widths: {},
+              kind: "view",
+              icon: "settings",
+              view: {
+                id: "support",
+                name: "辅助",
+                type: "table",
+                query: "shield",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: [],
+                widths: {},
+              },
             },
             {
-              id: "damage",
-              name: "伤害",
-              type: "table",
-              query: "ignite",
-              filters: { op: "and", rules: [] },
-              sorts: [],
-              hidden: [],
-              wrapped: [],
-              order: [],
-              detailOrder: [],
-              widths: {},
+              kind: "view",
+              icon: "filter",
+              view: {
+                id: "damage",
+                name: "伤害",
+                type: "table",
+                query: "ignite",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: [],
+                widths: {},
+              },
             },
           ],
         },
@@ -2059,17 +2108,229 @@ test("duplicating a view group copies child view snapshots and the current user'
     const sharedViews = await loadSharedViewsConfig(page);
     const duplicatedGroup = sharedViews.collections[collectionKey]?.items?.find((item) => item.kind === "group" && item.name === "战斗 副本");
     expect(duplicatedGroup && duplicatedGroup.kind === "group").toBeTruthy();
-    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => view.name) : []).toEqual(["辅助", "伤害"]);
-    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => view.query) : []).toEqual(["shield", "ignite"]);
+    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => unwrapGroupView(view).name) : []).toEqual(["辅助", "伤害"]);
+    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => unwrapGroupView(view).query) : []).toEqual(["shield", "ignite"]);
+    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => ("kind" in view ? (view.icon ?? "borderAll") : "borderAll")) : []).toEqual(["settings", "filter"]);
 
     const duplicatedSupportId = duplicatedGroup?.kind === "group"
-      ? duplicatedGroup.views.find((view) => view.name === "辅助")?.id
+      ? unwrapGroupView(duplicatedGroup.views.find((view) => unwrapGroupView(view).name === "辅助") ?? { id: "", name: "" }).id
       : null;
     expect(duplicatedSupportId).toBeTruthy();
     await expect.poll(async () => page.evaluate((viewId) => localStorage.getItem(`data-editor:data/runes.json:$:${viewId}:description:hidden`), duplicatedSupportId)).toBe("1");
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
     if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("notion-style shared view menu supports title edit and icon picker search", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+          },
+        },
+        {
+          kind: "view",
+          icon: "json",
+          view: {
+            id: "utility",
+            name: "功能",
+            type: "table",
+            query: "support",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              kind: "view",
+              icon: "settings",
+              view: {
+                id: "support",
+                name: "辅助",
+                type: "table",
+                query: "shield",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+              },
+            },
+            {
+              kind: "view",
+              icon: "filter",
+              view: {
+                id: "damage",
+                name: "伤害",
+                type: "table",
+                query: "ignite",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelViewTab(page, "功能").locator("[data-view-icon='json']")).toBeVisible();
+    await openActiveViewMenu(page, "功能");
+    await expect(page.locator(".view-tab-menu-header")).toBeVisible();
+    await expect(page.locator(".view-tab-menu-title-input")).toBeFocused();
+    await page.locator(".view-tab-menu-title-input").fill("战斗总览");
+    await page.locator(".view-tab-menu-title-input").press("Enter");
+    await expect(topLevelViewTab(page, "战斗总览")).toBeVisible();
+    await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+    await expect(page.locator(".view-tab-icon-picker-content")).toBeVisible();
+    await page.locator(".view-tab-icon-picker-search").fill("战斗");
+    await page.locator(".view-tab-icon-picker-grid [data-view-icon='shield']").click();
+    await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+    await expect(topLevelViewTab(page, "战斗总览").locator("[data-view-icon='shield']")).toBeVisible();
+    await expect.poll(async () => {
+      const leaf = findSharedViewLeaf(await loadSharedViewsConfig(page), collectionKey, "utility");
+      return leaf?.view.name ?? null;
+    }).toBe("战斗总览");
+    await expect.poll(async () => {
+      const leaf = findSharedViewLeaf(await loadSharedViewsConfig(page), collectionKey, "utility");
+      return leaf?.icon ?? "borderAll";
+    }).toBe("shield");
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelViewTab(page, "战斗总览").locator("[data-view-icon='shield']")).toBeVisible();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("group menu also uses header shell and keeps icon button disabled", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "support",
+      items: [
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              kind: "view",
+              icon: "settings",
+              view: {
+                id: "support",
+                name: "辅助",
+                type: "table",
+                query: "shield",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await openActiveGroupMenu(page, "战斗");
+    await expect(page.locator(".view-group-menu-header")).toBeVisible();
+    await expect(page.locator(".view-group-menu-header .view-tab-menu-icon-trigger")).toBeDisabled();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("icon picker shows six groups, common starts with borderAll, battle exceeds baseline, and equipment includes game gear icons", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "utility",
+      items: [
+        {
+          kind: "view",
+          icon: "json",
+          view: {
+            id: "utility",
+            name: "功能",
+            type: "table",
+            query: "support",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+          },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.evaluate(() => localStorage.removeItem("data-editor:shared-view-recent-icons"));
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await openActiveViewMenu(page, "功能");
+    await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+    await expect(page.locator(".view-tab-icon-picker-default")).toHaveCount(0);
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("最近");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("常用");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("生活");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("战斗");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("装备");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("其他");
+
+    await page.getByRole("button", { name: "常用" }).click();
+    const commonIcons = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option");
+    await expect(commonIcons.first()).toHaveAttribute("data-view-icon", "borderAll");
+    await expect(commonIcons).toHaveCount(30);
+
+    await page.getByRole("button", { name: "战斗" }).click();
+    const battleIcons = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option");
+    expect(await battleIcons.count()).toBeGreaterThanOrEqual(60);
+
+    await page.getByRole("button", { name: "装备" }).click();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='sword']")).toBeVisible();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='hammer']")).toBeVisible();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='wand']")).toBeVisible();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='helmet']")).toBeVisible();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='flask']")).toBeVisible();
+
+    await page.locator(".view-tab-icon-picker-search").fill("not-found-keyword");
+    await expect(page.locator(".view-tab-icon-picker-empty")).toBeVisible();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
   }
 });
 
@@ -4997,6 +5258,72 @@ test("wrapped table text edit mode places the caret at the end on activation", a
   expect(selection.valueLength).toBe(expectedText.length);
   expect(selection.selectionStart).toBe(selection.valueLength);
   expect(selection.selectionEnd).toBe(selection.valueLength);
+});
+
+test("wrapped table text edit mode allows mouse caret placement and drag selection inside the editor", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:wrapped", "1");
+    localStorage.setItem("data-editor:data/e2e_wrap_rows.json:$:all:description:width", "240");
+  });
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "编辑" }).click();
+
+  const cell = tableCell(page, 0, "description");
+  await cell.locator('[data-cell-role="content"]').click();
+
+  const editor = cell.locator(".table-text-cell-editor textarea");
+  await expect(editor).toBeVisible();
+  await expect(editor).toBeFocused();
+
+  const editableStyle = await editor.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      cursor: style.cursor,
+      userSelect: style.userSelect,
+    };
+  });
+  expect(editableStyle.cursor).toBe("text");
+  expect(editableStyle.userSelect).toBe("text");
+
+  const box = await editor.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) throw new Error("expected textarea bounding box");
+
+  await page.mouse.click(box.x + 24, box.y + 18);
+
+  const caretAfterClick = await editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    return {
+      valueLength: textarea.value.length,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    };
+  });
+  expect(caretAfterClick.selectionStart).not.toBeNull();
+  expect(caretAfterClick.selectionEnd).not.toBeNull();
+  expect(caretAfterClick.selectionStart).toBe(caretAfterClick.selectionEnd);
+  expect(caretAfterClick.selectionStart).toBeLessThan(caretAfterClick.valueLength);
+
+  await page.mouse.move(box.x + 24, box.y + 18);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 180, box.y + 18, { steps: 8 });
+  await page.mouse.up();
+
+  const dragSelection = await editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement;
+    return {
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+    };
+  });
+  expect(dragSelection.selectionStart).not.toBeNull();
+  expect(dragSelection.selectionEnd).not.toBeNull();
+  expect((dragSelection.selectionEnd ?? 0) - (dragSelection.selectionStart ?? 0)).toBeGreaterThan(0);
 });
 
 test("wrapped table text editor expands beyond the base cell height while editing", async ({ page }) => {

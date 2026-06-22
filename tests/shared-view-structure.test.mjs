@@ -32,6 +32,14 @@ function makeView(id, name = id) {
   };
 }
 
+function makeLeaf(id, name = id, icon = "borderAll") {
+  return {
+    kind: "view",
+    icon,
+    view: makeView(id, name),
+  };
+}
+
 test("resolveSharedViewStructure expands the parent group of the active child view", () => {
   const resolved = resolveSharedViewStructure({
     sharedViewsConfig: {
@@ -45,7 +53,7 @@ test("resolveSharedViewStructure expands the parent group of the active child vi
               kind: "group",
               id: "combat",
               name: "战斗",
-              views: [makeView("damage", "伤害"), makeView("support", "辅助")],
+              views: [makeLeaf("damage", "伤害"), makeLeaf("support", "辅助")],
             },
             { kind: "view", view: makeView("utility", "功能") },
           ],
@@ -89,7 +97,7 @@ test("resolveSharedViewStructure applies structure drafts before flattening grou
               kind: "group",
               id: "combat",
               name: "战斗",
-              views: [makeView("damage", "伤害")],
+              views: [makeLeaf("damage", "伤害")],
             },
             { kind: "view", view: makeView("utility", "功能") },
           ],
@@ -123,7 +131,7 @@ test("resolveSharedViewStructure applies structure drafts before flattening grou
     "group:combat",
     "view:all",
   ]);
-  assert.deepEqual(resolved.topLevelItems[0].views.map((view) => view.id), ["utility", "damage"]);
+  assert.deepEqual(resolved.topLevelItems[0].views.map((view) => view.view.id), ["utility", "damage"]);
   assert.equal(resolved.activeViewId, "utility");
   assert.equal(resolved.expandedGroupId, "combat");
 });
@@ -141,7 +149,7 @@ test("resolveSharedViewStructure drops stale last-active group entries that do n
               kind: "group",
               id: "combat",
               name: "战斗",
-              views: [makeView("damage", "伤害"), makeView("support", "辅助")],
+              views: [makeLeaf("damage", "伤害"), makeLeaf("support", "辅助")],
             },
             { kind: "view", view: makeView("utility", "功能") },
           ],
@@ -182,7 +190,7 @@ test("resolveSharedViewStructure collapses stale expanded groups when the active
               kind: "group",
               id: "combat",
               name: "战斗",
-              views: [makeView("damage", "伤害")],
+              views: [makeLeaf("damage", "伤害")],
             },
           ],
         },
@@ -272,7 +280,8 @@ test("createViewGroupConfig inserts a new non-empty group after the active top-l
     `group:${result.group.id}`,
     "view:utility",
   ]);
-  assert.deepEqual(result.config.collections["data/runes.json:$"].items[1].views.map((view) => view.id), [result.view.id]);
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items[1].views.map((leaf) => leaf.view.id), [result.view.id]);
+  assert.equal(result.config.collections["data/runes.json:$"].items[1].views[0].icon, "borderAll");
 });
 
 test("createViewGroupConfig keeps new group ids out of the view id namespace", () => {
@@ -310,7 +319,7 @@ test("createViewInGroupConfig appends a new child view to the target group", () 
               kind: "group",
               id: "combat",
               name: "战斗",
-              views: [makeView("damage", "伤害")],
+              views: [makeLeaf("damage", "伤害", "json")],
             },
           ],
         },
@@ -324,7 +333,9 @@ test("createViewInGroupConfig appends a new child view to the target group", () 
   const group = result.config.collections["data/runes.json:$"].items[1];
   assert.equal(group.kind, "group");
   assert.equal(result.view.name, "新视图");
-  assert.deepEqual(group.views.map((view) => view.id), ["damage", result.view.id]);
+  assert.deepEqual(group.views.map((leaf) => leaf.view.id), ["damage", result.view.id]);
+  assert.equal(group.views[0].icon, "json");
+  assert.equal(group.views[1].icon, "borderAll");
 });
 
 test("duplicateViewGroupConfig duplicates a resolved group snapshot after the source group", () => {
@@ -341,8 +352,8 @@ test("duplicateViewGroupConfig duplicates a resolved group snapshot after the so
               id: "combat",
               name: "战斗",
               views: [
-                { ...makeView("damage", "伤害"), query: "burn", sorts: [{ id: "sort-1", field: "level", direction: "asc" }] },
-                { ...makeView("support", "辅助"), query: "shield", sorts: [{ id: "sort-2", field: "rating", direction: "desc" }] },
+                { ...makeLeaf("damage", "伤害", "json"), view: { ...makeView("damage", "伤害"), query: "burn", sorts: [{ id: "sort-1", field: "level", direction: "asc" }] } },
+                { ...makeLeaf("support", "辅助", "filter"), view: { ...makeView("support", "辅助"), query: "shield", sorts: [{ id: "sort-2", field: "rating", direction: "desc" }] } },
               ],
             },
             { kind: "view", view: makeView("utility", "功能") },
@@ -359,8 +370,8 @@ test("duplicateViewGroupConfig duplicates a resolved group snapshot after the so
         id: "combat",
         name: "战斗",
         views: [
-          { ...makeView("support", "辅助"), query: "merged-support", sorts: [{ id: "sort-3", field: "budget", direction: "asc" }] },
-          { ...makeView("damage", "伤害"), query: "merged-damage", sorts: [{ id: "sort-4", field: "rating", direction: "desc" }] },
+          { ...makeLeaf("support", "辅助", "filter"), view: { ...makeView("support", "辅助"), query: "merged-support", sorts: [{ id: "sort-3", field: "budget", direction: "asc" }] } },
+          { ...makeLeaf("damage", "伤害", "json"), view: { ...makeView("damage", "伤害"), query: "merged-damage", sorts: [{ id: "sort-4", field: "rating", direction: "desc" }] } },
         ],
       },
       { kind: "view", view: makeView("utility", "功能") },
@@ -370,8 +381,8 @@ test("duplicateViewGroupConfig duplicates a resolved group snapshot after the so
       id: "combat",
       name: "战斗",
       views: [
-        { ...makeView("support", "辅助"), query: "merged-support", sorts: [{ id: "sort-3", field: "budget", direction: "asc" }] },
-        { ...makeView("damage", "伤害"), query: "merged-damage", sorts: [{ id: "sort-4", field: "rating", direction: "desc" }] },
+        { ...makeLeaf("support", "辅助", "filter"), view: { ...makeView("support", "辅助"), query: "merged-support", sorts: [{ id: "sort-3", field: "budget", direction: "asc" }] } },
+        { ...makeLeaf("damage", "伤害", "json"), view: { ...makeView("damage", "伤害"), query: "merged-damage", sorts: [{ id: "sort-4", field: "rating", direction: "desc" }] } },
       ],
     },
   });
@@ -384,10 +395,11 @@ test("duplicateViewGroupConfig duplicates a resolved group snapshot after the so
     "view:utility",
   ]);
   assert.equal(result.group.name, "战斗 副本");
-  assert.equal(result.firstViewId, result.group.views[0].id);
-  assert.deepEqual(result.group.views.map((view) => view.name), ["辅助", "伤害"]);
-  assert.deepEqual(result.group.views.map((view) => view.query), ["merged-support", "merged-damage"]);
-  assert.deepEqual(result.group.views.map((view) => view.sorts), [
+  assert.equal(result.firstViewId, result.group.views[0].view.id);
+  assert.deepEqual(result.group.views.map((leaf) => leaf.icon), ["filter", "json"]);
+  assert.deepEqual(result.group.views.map((leaf) => leaf.view.name), ["辅助", "伤害"]);
+  assert.deepEqual(result.group.views.map((leaf) => leaf.view.query), ["merged-support", "merged-damage"]);
+  assert.deepEqual(result.group.views.map((leaf) => leaf.view.sorts), [
     [{ id: "sort-3", field: "budget", direction: "asc" }],
     [{ id: "sort-4", field: "rating", direction: "desc" }],
   ]);
@@ -405,8 +417,8 @@ test("duplicateViewGroupConfig makes duplicated group name unique when the copy 
           defaultViewId: "all",
           items: [
             { kind: "view", view: makeView("all", "全部") },
-            { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害")] },
-            { kind: "group", id: "combat-copy", name: "战斗 副本", views: [makeView("support", "辅助")] },
+            { kind: "group", id: "combat", name: "战斗", views: [makeLeaf("damage", "伤害", "json")] },
+            { kind: "group", id: "combat-copy", name: "战斗 副本", views: [makeLeaf("support", "辅助", "filter")] },
           ],
         },
       },
@@ -415,14 +427,14 @@ test("duplicateViewGroupConfig makes duplicated group name unique when the copy 
     groupId: "combat",
     resolvedTopLevelItems: [
       { kind: "view", view: makeView("all", "全部") },
-      { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害")] },
-      { kind: "group", id: "combat-copy", name: "战斗 副本", views: [makeView("support", "辅助")] },
+      { kind: "group", id: "combat", name: "战斗", views: [makeLeaf("damage", "伤害", "json")] },
+      { kind: "group", id: "combat-copy", name: "战斗 副本", views: [makeLeaf("support", "辅助", "filter")] },
     ],
     resolvedGroupSnapshot: {
       kind: "group",
       id: "combat",
       name: "战斗",
-      views: [makeView("damage", "伤害")],
+      views: [makeLeaf("damage", "伤害", "json")],
     },
   });
 
@@ -439,7 +451,7 @@ test("duplicateViewGroupConfig keeps duplicated group ids out of the view id nam
           items: [
             { kind: "view", view: makeView("all", "全部") },
             { kind: "view", view: makeView("combat-2", "冲突顶层视图") },
-            { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害")] },
+            { kind: "group", id: "combat", name: "战斗", views: [makeLeaf("damage", "伤害", "json")] },
           ],
         },
       },
@@ -449,13 +461,13 @@ test("duplicateViewGroupConfig keeps duplicated group ids out of the view id nam
     resolvedTopLevelItems: [
       { kind: "view", view: makeView("all", "全部") },
       { kind: "view", view: makeView("combat-2", "冲突顶层视图") },
-      { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害")] },
+      { kind: "group", id: "combat", name: "战斗", views: [makeLeaf("damage", "伤害", "json")] },
     ],
     resolvedGroupSnapshot: {
       kind: "group",
       id: "combat",
       name: "战斗",
-      views: [makeView("damage", "伤害")],
+      views: [makeLeaf("damage", "伤害", "json")],
     },
   });
 
@@ -471,7 +483,7 @@ test("renameViewGroupConfig updates only the target group name", () => {
           defaultViewId: "all",
           items: [
             { kind: "view", view: makeView("all", "全部") },
-            { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害")] },
+            { kind: "group", id: "combat", name: "战斗", views: [makeLeaf("damage", "伤害", "json")] },
           ],
         },
       },
@@ -493,7 +505,7 @@ test("deleteViewGroupConfig lifts child views into the top level near the origin
           defaultViewId: "damage",
           items: [
             { kind: "view", view: makeView("all", "全部") },
-            { kind: "group", id: "combat", name: "战斗", views: [makeView("damage", "伤害"), makeView("support", "辅助")] },
+            { kind: "group", id: "combat", name: "战斗", views: [makeLeaf("damage", "伤害", "json"), makeLeaf("support", "辅助", "filter")] },
             { kind: "view", view: makeView("utility", "功能") },
           ],
         },
@@ -509,6 +521,12 @@ test("deleteViewGroupConfig lifts child views into the top level near the origin
     "support",
     "utility",
   ]);
+  assert.deepEqual(
+    result.collections["data/runes.json:$"].items
+      .filter((item) => item.kind === "view")
+      .map((item) => item.icon),
+    ["borderAll", "json", "filter", "borderAll"],
+  );
 });
 
 test("draftSharedViewStructure moves a top-level view into a group and clears legacy order draft", () => {

@@ -832,6 +832,10 @@ function DataTableComponent(props: DataTableProps) {
 
   const handleSelectionCellPointerDown = useCallback((event: ReactMouseEvent<HTMLTableCellElement> | ReactPointerEvent<HTMLTableCellElement>, coord: TableCellCoord) => {
     if ("button" in event && event.button !== 0) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && target.closest('input, textarea, [contenteditable="true"], [data-cell-role="editor"], [data-cell-role="text-editor-overlay"]')) {
+      return;
+    }
     event.preventDefault();
     beginCellSelection(coord);
   }, [beginCellSelection]);

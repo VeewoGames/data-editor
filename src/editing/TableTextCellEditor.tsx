@@ -81,6 +81,8 @@ export function TableTextCellEditor({
       data-cell-role="editor"
       data-wrap-mode={wrapped ? "wrap" : "truncate"}
       onClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
     >
       {wrapped ? (
         <StableTextarea

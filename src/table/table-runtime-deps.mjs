@@ -1,5 +1,5 @@
 import { resolveFieldRole } from "../model/field-role.mjs";
-import { defaultTypeFor } from "../model/fieldTypes.mjs";
+import { resolveCompatibleDisplayType } from "../model/fieldTypes.mjs";
 import { buildMultiSelectFieldConfigFromRows } from "../multiselect-config.mjs";
 
 /**
@@ -42,7 +42,9 @@ export function buildTableRuntimeDeps({
   const documentLabelsByField = {};
 
   for (const fieldName of visibleFields) {
-    const currentDisplayType = displayTypes[fieldName] ?? defaultTypeFor(rows.find((row) => row[fieldName] != null)?.[fieldName]);
+    const sample = rows.find((row) => row[fieldName] !== undefined && row[fieldName] !== null)?.[fieldName]
+      ?? rows.find((row) => row[fieldName] !== undefined)?.[fieldName];
+    const currentDisplayType = resolveCompatibleDisplayType(displayTypes[fieldName], sample);
     if (currentDisplayType === "Multi-select") {
       fieldOptions[fieldName] = buildMultiSelectFieldConfigFromRows(optionRows, fieldName, fieldViewConfigs[fieldName]);
     }

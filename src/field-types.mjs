@@ -28,3 +28,10 @@ export function defaultTypeFor(value) {
   if (value && typeof value === "object") return "Nested";
   return "Text";
 }
+
+export function resolveCompatibleDisplayType(type, value) {
+  const inferredType = defaultTypeFor(value);
+  if (!type) return inferredType;
+  if (type === "Text") return inferredType === "Text" ? type : inferredType;
+  return isCompatible(type, value) ? type : inferredType;
+}

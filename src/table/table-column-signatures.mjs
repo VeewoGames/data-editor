@@ -1,4 +1,4 @@
-import { defaultTypeFor } from "../model/fieldTypes.mjs";
+import { resolveCompatibleDisplayType } from "../model/fieldTypes.mjs";
 import { computeFieldMenuCapabilities } from "./field-capabilities.mjs";
 
 /**
@@ -86,10 +86,9 @@ export function buildTableColumnModelsSignature({
 
 function inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes) {
   if (nestedFieldSet.has(fieldName)) return "Nested";
-  if (displayTypes[fieldName]) return displayTypes[fieldName];
   const sample = rows.find((row) => row[fieldName] !== undefined && row[fieldName] !== null)?.[fieldName]
     ?? rows.find((row) => row[fieldName] !== undefined)?.[fieldName];
-  return defaultTypeFor(sample);
+  return resolveCompatibleDisplayType(displayTypes[fieldName], sample);
 }
 
 function signatureBacklinkColumn(backlinkColumn) {
