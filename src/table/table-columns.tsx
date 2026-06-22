@@ -25,6 +25,7 @@ type TableColumnsRuntime = {
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
   onActivateTextCell: (cellId: string) => void;
   onDeactivateTextCell: (cellId: string) => void;
+  onOptionFieldOpenStateChange: (cellId: string, open: boolean, close: () => void) => void;
   onSort: (fieldName: string, direction: "asc" | "desc" | null) => void;
   onAddFilter: (fieldName: string, displayType: FieldDisplayType) => void;
   onSetTitleField: (fieldName: string) => void;
@@ -274,6 +275,7 @@ function TableColumnCellView(
         onRegisterActiveEditor={runtime.onRegisterActiveTextEditor}
         onActivateTextCell={runtime.onActivateTextCell}
         onDeactivateTextCell={runtime.onDeactivateTextCell}
+        onOptionFieldOpenStateChange={runtime.onOptionFieldOpenStateChange}
         onEdit={(next) => runtime.onEditCell(originalRowIndex, rowId, columnModel.fieldName, next)}
         onCommitMultiSelectDraft={(patch) => runtime.onCommitMultiSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
         onCommitSelectDraft={(patch) => runtime.onCommitSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}

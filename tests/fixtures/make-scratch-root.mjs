@@ -84,6 +84,25 @@ await writeFile(path.join(scratchData, "e2e_multiselect.json"), JSON.stringify([
   }
 ], null, 2));
 
+await writeFile(path.join(scratchData, "e2e_selection_delete.json"), JSON.stringify([
+  {
+    id: "selection_1",
+    name: "Selection One",
+    power: 42,
+    enabled: true,
+    category: "spell",
+    tags: ["burst", "starter"]
+  },
+  {
+    id: "selection_2",
+    name: "Selection Two",
+    power: 7,
+    enabled: false,
+    category: "attack",
+    tags: ["combo"]
+  }
+], null, 2));
+
 await writeFile(path.join(scratchData, "e2e_relation.json"), JSON.stringify([
   {
     id: "relation_1",

@@ -39,6 +39,7 @@ type OptionFieldEditorProps = {
   wrapped?: boolean;
   placeholder?: string;
   onCommitDraft: (patch: OptionFieldDraftCommit) => void;
+  onOpenStateChange?: (cellId: string, open: boolean, close: () => void) => void;
 };
 
 type EditingState = {
@@ -128,6 +129,7 @@ export function OptionFieldEditor({
   wrapped = false,
   placeholder = "",
   onCommitDraft,
+  onOpenStateChange,
 }: OptionFieldEditorProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -197,6 +199,17 @@ export function OptionFieldEditor({
   useEffect(() => {
     if (editing) focusWithoutScroll(renameInputRef.current);
   }, [editing]);
+
+  useEffect(() => {
+    if (surface !== "table") return;
+    if (!onOpenStateChange) return;
+    onOpenStateChange(cellId, open, () => {
+      closeIntentRef.current = "commit";
+      openRef.current = false;
+      settledCloseRef.current = true;
+      setOpen(false);
+    });
+  }, [cellId, onOpenStateChange, open, surface]);
 
   const optionMap = useMemo(() => {
     const merged: Record<string, DraftOptionView> = {};

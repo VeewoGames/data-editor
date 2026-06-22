@@ -276,6 +276,18 @@ function tableCell(page: Page, rowIndex: number, fieldName: string) {
   return tableRow(page, rowIndex).locator(`td[data-column-field="${fieldName}"]`).first();
 }
 
+async function dragBetweenCells(page: Page, source: Locator, target: Locator) {
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!sourceBox || !targetBox) {
+    throw new Error("dragBetweenCells requires visible source and target cells");
+  }
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 8 });
+  await page.mouse.up();
+}
+
 async function clickCellWhitespace(page: Page, rowIndex: number, fieldName: string, xRatio = 0.92, yRatio = 0.82) {
   const box = await tableCell(page, rowIndex, fieldName).boundingBox();
   expect(box).not.toBeNull();
@@ -399,6 +411,83 @@ async function waitForProjectConfigWrite(page: Page, predicate: (text: string) =
     return predicate(text);
   });
 }
+
+test("selection delete fixture is visible and drag helper can span two cells", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  const start = tableRow(page, 0).locator('td[data-column-field="name"]').first();
+  const end = tableRow(page, 0).locator('td[data-column-field="tags"]').first();
+  await dragBetweenCells(page, start, end);
+  await expect(tableRow(page, 0)).toContainText("Selection One");
+});
+
+test("dragging across visible data cells creates a retained rectangular selection", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  const start = tableRow(page, 0).locator('td[data-column-field="name"]').first();
+  const end = tableRow(page, 1).locator('td[data-column-field="power"]').first();
+  await dragBetweenCells(page, start, end);
+  await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(6);
+});
+
+test("hover after drag does not keep expanding selection and blank click clears the rectangle", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  const start = tableRow(page, 0).locator('td[data-column-field="name"]').first();
+  const end = tableRow(page, 0).locator('td[data-column-field="power"]').first();
+  await dragBetweenCells(page, start, end);
+  await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(3);
+  const hoverTarget = tableRow(page, 1).locator('td[data-column-field="tags"]').first();
+  const hoverBox = await hoverTarget.boundingBox();
+  if (!hoverBox) throw new Error("hover target must be visible");
+  await page.mouse.move(hoverBox.x + hoverBox.width / 2, hoverBox.y + hoverBox.height / 2);
+  await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(3);
+  const scrollBox = await page.locator(".table-scroll").boundingBox();
+  if (!scrollBox) throw new Error("table scroll area must be visible");
+  await page.mouse.click(scrollBox.x + 24, scrollBox.y + scrollBox.height - 24);
+  await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(0);
+});
+
+test("single click selection does not keep expanding on later hover", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  const clickedCell = tableRow(page, 0).locator('td[data-column-field="name"]').first();
+  await clickedCell.click();
+  await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(1);
+  const hoverTarget = tableRow(page, 1).locator('td[data-column-field="power"]').first();
+  const hoverBox = await hoverTarget.boundingBox();
+  if (!hoverBox) throw new Error("hover target must be visible");
+  await page.mouse.move(hoverBox.x + hoverBox.width / 2, hoverBox.y + hoverBox.height / 2);
+  await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(1);
+});
+
+test("delete clears rectangle values for text number checkbox select and multiselect", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+  await tableRow(page, 0).locator('td[data-column-field="tags"]').first().scrollIntoViewIfNeeded();
+  await dragBetweenCells(
+    page,
+    tableRow(page, 0).locator('td[data-column-field="power"]').first(),
+    tableRow(page, 0).locator('td[data-column-field="tags"]').first(),
+  );
+  await page.keyboard.press("Delete");
+  await expect(tableRow(page, 0).locator('td[data-column-field="power"] [data-cell-role="content"]')).toContainText("");
+  await expect(tableRow(page, 0).locator('td[data-column-field="enabled"] input')).not.toBeChecked();
+  await expect(tableRow(page, 0).locator('td[data-column-field="category"] .chip')).toHaveCount(0);
+  await expect(tableRow(page, 0).locator('td[data-column-field="tags"] .chip')).toHaveCount(0);
+});
+
+test("title click keeps single-cell selection visible and still opens detail", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  const titleCell = tableRow(page, 0).locator('td[data-column-field="name"]').first();
+  await titleCell.click();
+  await expect(titleCell).toHaveAttribute("data-cell-selected", "true");
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+});
 
 async function getSidebarFileOrder(page: Page) {
   return page.locator(".sidebar-section").first().locator(".sidebar-file-item").evaluateAll((items) => (

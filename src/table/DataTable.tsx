@@ -1,5 +1,5 @@
 import { flexRender, getCoreRowModel, useReactTable, type HeaderGroup } from "@tanstack/react-table";
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   buildColumnPreviewOrderState,
   buildPreviewOrderFromSlots,
@@ -13,6 +13,7 @@ import { forwardOptionFieldSurfaceClick, type OptionFieldDraftCommit } from "./O
 import { buildTableColumns, TableColumnsRuntimeProvider } from "./table-columns";
 import { buildTableColumnModels, getColumnModelDisplayType } from "./table-column-models.mjs";
 import { buildTableColumnModelsSignature } from "./table-column-signatures.mjs";
+import { buildOptionFieldClearPatch, buildSelectionRect, isCellInsideRect, resolveClearValueByDisplayType } from "./table-selection.mjs";
 import { buildVisibleTableRenderContract } from "./table-render-contract.mjs";
 import type { DataRecord, DocumentModel } from "../model/documentModel";
 import type { TableRowView } from "../model/document-store";
@@ -59,6 +60,21 @@ const rowOverscan = 8;
 const rowActionColumnWidth = 42;
 const addColumnWidth = 44;
 const tableBottomBufferHeight = 300;
+
+type TableCellCoord = {
+  rowId: string;
+  visibleRowIndex: number;
+  fieldName: string;
+  visibleColumnIndex: number;
+};
+
+function sameTableCellCoord(left: TableCellCoord | null, right: TableCellCoord | null) {
+  if (!left || !right) return false;
+  return left.rowId === right.rowId &&
+    left.fieldName === right.fieldName &&
+    left.visibleRowIndex === right.visibleRowIndex &&
+    left.visibleColumnIndex === right.visibleColumnIndex;
+}
 
 export type TableSnapshot = {
   schemaModel: DocumentModel;
@@ -122,6 +138,10 @@ function DataTableComponent(props: DataTableProps) {
   const [viewportHeight, setViewportHeight] = useState(720);
   const [pressedField, setPressedField] = useState<string | null>(null);
   const [activeTextCellId, setActiveTextCellId] = useState<string | null>(null);
+  const [selectionAnchor, setSelectionAnchor] = useState<TableCellCoord | null>(null);
+  const [selectionFocus, setSelectionFocus] = useState<TableCellCoord | null>(null);
+  const [selectionPointerActive, setSelectionPointerActive] = useState(false);
+  const [activeOptionFieldCellId, setActiveOptionFieldCellId] = useState<string | null>(null);
   const [columnDragSession, setColumnDragSession] = useState<{
     draggingField: string;
     ghostTop: number;
@@ -136,10 +156,14 @@ function DataTableComponent(props: DataTableProps) {
   const columnDragPointerXRef = useRef<number | null>(null);
   const columnDragAutoScrollDirectionRef = useRef<-1 | 0 | 1>(0);
   const columnDragAutoScrollFrameRef = useRef<number | null>(null);
+  const optionFieldClosersRef = useRef<Record<string, () => void>>({});
   const localWidthsRef = useRef<Record<string, number>>({ ...snapshot.fieldConfig.widths });
   const rowElementRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
   const previousTableRenderContractRef = useRef<ReturnType<typeof buildVisibleTableRenderContract> | null>(null);
   const previousColumnModelsByFieldRef = useRef<Record<string, ReturnType<typeof buildTableColumnModels>[number]>>({});
+  const selectionPointerActiveRef = useRef(false);
+  const selectionExpandedRef = useRef(false);
+  const suppressNextSelectionClickRef = useRef(false);
   const runtimeActionRef = useRef({
     onSort: props.onSort,
     onAddFilter: props.onAddFilter,
@@ -397,6 +421,10 @@ function DataTableComponent(props: DataTableProps) {
     previousColumnModelsByFieldRef.current = Object.fromEntries(columnModels.map((model) => [model.fieldName, model]));
   }, [columnModels]);
   const columns = useMemo(() => buildTableColumns(columnModels), [columnModels]);
+  const columnModelsByField = useMemo(
+    () => Object.fromEntries(columnModels.map((columnModel) => [columnModel.fieldName, columnModel])),
+    [columnModels],
+  );
   const handleSort = useCallback((fieldName: string, direction: "asc" | "desc" | null) => {
     runtimeActionRef.current.onSort(fieldName, direction);
   }, []);
@@ -458,6 +486,23 @@ function DataTableComponent(props: DataTableProps) {
   const handleDeactivateTextCell = useCallback((cellId: string) => {
     setActiveTextCellId((current) => current === cellId ? null : current);
   }, []);
+
+  const handleOptionFieldOpenState = useCallback((cellId: string, open: boolean, close: () => void) => {
+    if (open) {
+      optionFieldClosersRef.current[cellId] = close;
+      setActiveOptionFieldCellId(cellId);
+      return;
+    }
+    delete optionFieldClosersRef.current[cellId];
+    setActiveOptionFieldCellId((current) => current === cellId ? null : current);
+  }, []);
+
+  const closeActiveOptionField = useCallback(() => {
+    if (!activeOptionFieldCellId) return;
+    optionFieldClosersRef.current[activeOptionFieldCellId]?.();
+  }, [activeOptionFieldCellId]);
+
+  useEffect(() => () => closeActiveOptionField(), [closeActiveOptionField]);
 
   const selectRowByRuntime = useCallback((rowIndex: number, rowId: string | null) => {
     runtimeActionRef.current.onSelectRow(rowIndex, rowId);
@@ -555,6 +600,7 @@ function DataTableComponent(props: DataTableProps) {
     onRegisterActiveTextEditor: snapshot.onRegisterActiveTextEditor,
     onActivateTextCell: handleActivateTextCell,
     onDeactivateTextCell: handleDeactivateTextCell,
+    onOptionFieldOpenStateChange: handleOptionFieldOpenState,
     onSort: handleSort,
     onAddFilter: handleAddFilter,
     onSetTitleField: handleSetTitleField,
@@ -592,6 +638,7 @@ function DataTableComponent(props: DataTableProps) {
     snapshot.onRegisterActiveTextEditor,
     handleActivateTextCell,
     handleDeactivateTextCell,
+    handleOptionFieldOpenState,
     handleSort,
     handleAddFilter,
     handleSetTitleField,
@@ -633,6 +680,168 @@ function DataTableComponent(props: DataTableProps) {
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => String(row.__rowId ?? row.__rowIndex),
   });
+
+  const selectionRect = useMemo(
+    () => selectionAnchor && selectionFocus ? buildSelectionRect(selectionAnchor, selectionFocus) : null,
+    [selectionAnchor, selectionFocus],
+  );
+  const selectedCells = useMemo(() => {
+    if (!selectionRect) return [];
+    return rowViews.flatMap((rowView, viewRowIndex) => visibleFields.flatMap((fieldName, visibleColumnIndex) => {
+      const coord = {
+        rowId: rowView.rowId,
+        visibleRowIndex: viewRowIndex,
+        fieldName,
+        visibleColumnIndex,
+      };
+      if (!isCellInsideRect(selectionRect, coord)) return [];
+      const columnModel = columnModelsByField[fieldName];
+      if (!columnModel) return [];
+      return [{
+        rowId: rowView.rowId,
+        rowIndex: rowView.sourceIndex,
+        fieldName,
+        displayType: columnModel.effectiveDisplayType,
+        value: rowView.row[fieldName],
+        selectOptions: columnModel.selectConfig?.options ?? [],
+        multiSelectOptions: columnModel.multiSelectConfig?.options ?? [],
+      }];
+    }));
+  }, [selectionRect, rowViews, visibleFields, columnModelsByField]);
+
+  const clearSelectedCells = useCallback(() => {
+    if (!selectedCells.length) return;
+    closeActiveOptionField();
+    for (const cell of selectedCells) {
+      if (cell.displayType === "Select") {
+        runtimeActionRef.current.onCommitSelectDraft(
+          cell.rowIndex,
+          cell.rowId,
+          cell.fieldName,
+          buildOptionFieldClearPatch({
+            mode: "single",
+            options: cell.selectOptions,
+            selectedValues: cell.value == null || cell.value === "" ? [] : [cell.value],
+          }),
+        );
+        continue;
+      }
+      if (cell.displayType === "Multi-select") {
+        runtimeActionRef.current.onCommitMultiSelectDraft(
+          cell.rowIndex,
+          cell.rowId,
+          cell.fieldName,
+          buildOptionFieldClearPatch({
+            mode: "multi",
+            options: cell.multiSelectOptions,
+            selectedValues: Array.isArray(cell.value) ? cell.value : [],
+          }),
+        );
+        continue;
+      }
+      const nextValue = resolveClearValueByDisplayType(cell.displayType);
+      if (nextValue !== undefined) {
+        runtimeActionRef.current.onEditCell(cell.rowIndex, cell.rowId, cell.fieldName, nextValue);
+      }
+    }
+  }, [closeActiveOptionField, selectedCells]);
+
+  useEffect(() => {
+    function onWindowKeyDown(event: KeyboardEvent) {
+      const activeElement = document.activeElement;
+      if (event.key !== "Delete") return;
+      if (activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA") return;
+      clearSelectedCells();
+    }
+    window.addEventListener("keydown", onWindowKeyDown);
+    return () => window.removeEventListener("keydown", onWindowKeyDown);
+  }, [clearSelectedCells]);
+
+  const clearCellSelection = useCallback(() => {
+    setSelectionAnchor(null);
+    setSelectionFocus(null);
+    setSelectionPointerActive(false);
+    selectionPointerActiveRef.current = false;
+    selectionExpandedRef.current = false;
+  }, []);
+
+  const finishCellSelectionPointer = useCallback((expanded: boolean) => {
+    selectionPointerActiveRef.current = false;
+    setSelectionPointerActive(false);
+    if (expanded) suppressNextSelectionClickRef.current = true;
+  }, []);
+
+  const beginCellSelection = useCallback((coord: TableCellCoord) => {
+    suppressNextSelectionClickRef.current = false;
+    selectionExpandedRef.current = false;
+    selectionPointerActiveRef.current = true;
+    setSelectionAnchor(coord);
+    setSelectionFocus(coord);
+    setSelectionPointerActive(true);
+  }, []);
+
+  const extendCellSelection = useCallback((coord: TableCellCoord) => {
+    setSelectionFocus((current) => {
+      if (!current) return coord;
+      if (current.visibleRowIndex === coord.visibleRowIndex && current.visibleColumnIndex === coord.visibleColumnIndex) {
+        return current;
+      }
+      selectionExpandedRef.current = true;
+      return coord;
+    });
+  }, []);
+
+  const resolveSelectionCoordFromPoint = useCallback((clientX: number, clientY: number): TableCellCoord | null => {
+    const cell = document.elementFromPoint(clientX, clientY)?.closest<HTMLTableCellElement>('td[data-cell-kind="data"]');
+    if (!cell) return null;
+    const rowId = cell.closest<HTMLTableRowElement>("tr[data-row-id]")?.dataset.rowId;
+    const fieldName = cell.dataset.columnField;
+    const visibleRowIndex = Number(cell.dataset.viewRowIndex);
+    const visibleColumnIndex = Number(cell.dataset.visibleColumnIndex);
+    if (!rowId || !fieldName || Number.isNaN(visibleRowIndex) || Number.isNaN(visibleColumnIndex)) return null;
+    return {
+      rowId,
+      visibleRowIndex,
+      fieldName,
+      visibleColumnIndex,
+    };
+  }, []);
+
+  useEffect(() => {
+    function updateSelectionFromPoint(clientX: number, clientY: number) {
+      const coord = resolveSelectionCoordFromPoint(clientX, clientY);
+      if (!coord) return;
+      extendCellSelection(coord);
+    }
+    function onWindowMouseMove(event: MouseEvent) {
+      if (!selectionPointerActiveRef.current) return;
+      updateSelectionFromPoint(event.clientX, event.clientY);
+    }
+    function onWindowMouseUp(event: MouseEvent) {
+      if (!selectionPointerActiveRef.current) return;
+      updateSelectionFromPoint(event.clientX, event.clientY);
+      finishCellSelectionPointer(selectionExpandedRef.current);
+    }
+    window.addEventListener("mousemove", onWindowMouseMove);
+    window.addEventListener("mouseup", onWindowMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onWindowMouseMove);
+      window.removeEventListener("mouseup", onWindowMouseUp);
+    };
+  }, [extendCellSelection, finishCellSelectionPointer, resolveSelectionCoordFromPoint]);
+
+  const handleSelectionCellPointerDown = useCallback((event: ReactMouseEvent<HTMLTableCellElement> | ReactPointerEvent<HTMLTableCellElement>, coord: TableCellCoord) => {
+    if ("button" in event && event.button !== 0) return;
+    event.preventDefault();
+    beginCellSelection(coord);
+  }, [beginCellSelection]);
+
+  const handleSelectionCellClickCapture = useCallback((event: ReactMouseEvent<HTMLTableCellElement>) => {
+    if (!suppressNextSelectionClickRef.current) return;
+    suppressNextSelectionClickRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
 
   useEffect(() => {
     setMeasuredRowHeights({});
@@ -708,6 +917,12 @@ function DataTableComponent(props: DataTableProps) {
         <div
           className="table-scroll"
           ref={scrollContainerRef}
+          onMouseDown={(event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) return;
+            if (target.closest('td[data-cell-kind="data"]')) return;
+            clearCellSelection();
+          }}
           onScroll={(event) => {
             const element = event.currentTarget;
             const nextScrollTop = element.scrollTop;
@@ -784,8 +999,65 @@ function DataTableComponent(props: DataTableProps) {
                       className="data-cell"
                       data-cell-kind="data"
                       data-column-field={cell.column.id}
+                      data-view-row-index={windowStart + row.index}
+                      data-visible-column-index={visibleFields.indexOf(cell.column.id)}
+                      data-cell-selected={selectionRect && isCellInsideRect(selectionRect, {
+                        rowId,
+                        visibleRowIndex: windowStart + row.index,
+                        fieldName: cell.column.id,
+                        visibleColumnIndex: visibleFields.indexOf(cell.column.id),
+                      }) ? "true" : "false"}
+                      data-cell-selection-role={sameTableCellCoord(selectionAnchor, {
+                        rowId,
+                        visibleRowIndex: windowStart + row.index,
+                        fieldName: cell.column.id,
+                        visibleColumnIndex: visibleFields.indexOf(cell.column.id),
+                      }) ? "anchor" : "range"}
                       data-wrap-mode={snapshot.fieldConfig.wrapped.has(cell.column.id) ? "wrap" : "truncate"}
-                      onClick={forwardOptionFieldSurfaceClick}
+                      onClickCapture={handleSelectionCellClickCapture}
+                      onMouseDown={(event) => handleSelectionCellPointerDown(event, {
+                        rowId,
+                        visibleRowIndex: windowStart + row.index,
+                        fieldName: cell.column.id,
+                        visibleColumnIndex: visibleFields.indexOf(cell.column.id),
+                      })}
+                      onPointerDown={(event) => handleSelectionCellPointerDown(event, {
+                        rowId,
+                        visibleRowIndex: windowStart + row.index,
+                        fieldName: cell.column.id,
+                        visibleColumnIndex: visibleFields.indexOf(cell.column.id),
+                      })}
+                      onMouseOver={() => {
+                        if (!selectionPointerActiveRef.current) return;
+                        extendCellSelection({
+                          rowId,
+                          visibleRowIndex: windowStart + row.index,
+                          fieldName: cell.column.id,
+                          visibleColumnIndex: visibleFields.indexOf(cell.column.id),
+                        });
+                      }}
+                      onMouseMove={() => {
+                        if (!selectionPointerActiveRef.current) return;
+                        extendCellSelection({
+                          rowId,
+                          visibleRowIndex: windowStart + row.index,
+                          fieldName: cell.column.id,
+                          visibleColumnIndex: visibleFields.indexOf(cell.column.id),
+                        });
+                      }}
+                      onMouseUp={() => {
+                        if (!selectionPointerActiveRef.current) return;
+                        finishCellSelectionPointer(selectionExpandedRef.current);
+                      }}
+                      onPointerUp={() => {
+                        if (!selectionPointerActiveRef.current) return;
+                        finishCellSelectionPointer(selectionExpandedRef.current);
+                      }}
+                      onClick={(event) => {
+                        finishCellSelectionPointer(false);
+                        if (selectionExpandedRef.current) return;
+                        forwardOptionFieldSurfaceClick(event);
+                      }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>

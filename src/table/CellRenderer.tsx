@@ -31,6 +31,7 @@ type CellRendererProps = {
   onRegisterActiveEditor?: ActiveTextEditorRegistrar;
   onActivateTextCell?: (cellId: string) => void;
   onDeactivateTextCell?: (cellId: string) => void;
+  onOptionFieldOpenStateChange?: (cellId: string, open: boolean, close: () => void) => void;
   onEdit: (value: unknown) => void;
   onOpenRelationTarget?: (value: string | number) => void;
   onCommitMultiSelectDraft?: (patch: OptionFieldDraftCommit) => void;
@@ -54,6 +55,7 @@ function CellRendererComponent({
   onRegisterActiveEditor,
   onActivateTextCell,
   onDeactivateTextCell,
+  onOptionFieldOpenStateChange,
   onEdit,
   onOpenRelationTarget,
   onCommitMultiSelectDraft,
@@ -92,6 +94,7 @@ function CellRendererComponent({
           <MultiSelectCellEditor
             cellId={cellId}
             onCommitDraft={onCommitMultiSelectDraft ?? (() => {})}
+            onOpenStateChange={onOptionFieldOpenStateChange}
             surface="table"
             value={value as Array<string | number>}
             options={multiSelectConfig?.options ?? []}
@@ -110,6 +113,7 @@ function CellRendererComponent({
           <SelectCellEditor
             cellId={cellId}
             onCommitDraft={onCommitSelectDraft ?? (() => {})}
+            onOpenStateChange={onOptionFieldOpenStateChange}
             surface="table"
             options={selectConfig?.options ?? []}
             value={value as string | number | null}
@@ -239,6 +243,7 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.onRegisterActiveEditor === next.onRegisterActiveEditor &&
   previous.onActivateTextCell === next.onActivateTextCell &&
   previous.onDeactivateTextCell === next.onDeactivateTextCell &&
+  previous.onOptionFieldOpenStateChange === next.onOptionFieldOpenStateChange &&
   previous.onEdit === next.onEdit &&
   previous.onOpenRelationTarget === next.onOpenRelationTarget &&
   previous.onCommitMultiSelectDraft === next.onCommitMultiSelectDraft &&

@@ -77,6 +77,33 @@ test("App wires shared view filter bar draft changes through active view drafts"
   }
 });
 
+test("data table exposes stable rectangle selection data attributes", async () => {
+  const dataTableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
+  const tableColumnsSource = await readFile(new URL("../src/table/table-columns.tsx", import.meta.url), "utf8");
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+
+  assert.match(dataTableSource, /data-view-row-index=/);
+  assert.match(dataTableSource, /data-visible-column-index=/);
+  assert.match(dataTableSource, /data-cell-selected=/);
+  assert.match(dataTableSource, /data-cell-selection-role=/);
+  assert.match(tableColumnsSource, /data-cell-role="title-action"/);
+  assert.match(stylesSource, /data-cell-selected="true"/);
+  assert.match(stylesSource, /data-cell-selection-role="anchor"/);
+  assert.match(stylesSource, /\.text-cell-display-layer\s*\{/);
+  assert.match(stylesSource, /cursor:\s*default/);
+  assert.match(stylesSource, /user-select:\s*none/);
+});
+
+test("option field editor exposes table-scoped open state hooks for bulk clear coordination", async () => {
+  const optionFieldEditorSource = await readFile(new URL("../src/table/OptionFieldEditor.tsx", import.meta.url), "utf8");
+  const dataTableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
+
+  assert.match(optionFieldEditorSource, /onOpenStateChange/);
+  assert.match(optionFieldEditorSource, /surface !== "table"/);
+  assert.match(dataTableSource, /activeOptionFieldCellId/);
+  assert.match(dataTableSource, /closeActiveOptionField/);
+});
+
 test("App compares view filters with sameViewFilters instead of sameFilterGroup", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 

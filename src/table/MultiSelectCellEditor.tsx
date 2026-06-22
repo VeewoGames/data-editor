@@ -8,6 +8,7 @@ type MultiSelectCellEditorProps = {
   surface?: "table" | "detail";
   wrapped?: boolean;
   onCommitDraft: (patch: OptionFieldDraftCommit) => void;
+  onOpenStateChange?: (cellId: string, open: boolean, close: () => void) => void;
 };
 
 export function MultiSelectCellEditor({
@@ -17,12 +18,14 @@ export function MultiSelectCellEditor({
   surface = "table",
   wrapped = false,
   onCommitDraft,
+  onOpenStateChange,
 }: MultiSelectCellEditorProps) {
   return (
     <OptionFieldEditor
       cellId={cellId}
       mode="multi"
       onCommitDraft={onCommitDraft}
+      onOpenStateChange={onOpenStateChange}
       options={options}
       surface={surface}
       value={value}
