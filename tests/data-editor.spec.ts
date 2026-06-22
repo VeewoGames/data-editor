@@ -6352,6 +6352,8 @@ test("option field color menu renders side-by-side light and dark color groups",
   await expect(darkBlueItem).toContainText("深蓝");
   await expect(darkRoseItem).toContainText("深玫瑰");
   await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(211, 238, 234)");
+  await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-width", "1px");
+  await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-color", "rgb(111, 187, 175)");
   await expect(darkGrayItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(86, 96, 112)");
   await darkGrayItem.click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("background-color", "rgb(86, 96, 112)");

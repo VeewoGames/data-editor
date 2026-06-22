@@ -892,8 +892,10 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /onToggleTableTextEditMode/);
   assert.match(viewTabsSource, /onToggleRowDeleteControls/);
   assert.match(viewTabsSource, /onAddRow/);
+  assert.match(viewTabsSource, /onManualSave/);
   assert.match(viewTabsSource, /onSaveDocumentRoot/);
   assert.match(viewTabsSource, /onRefreshDocumentIndex/);
+  assert.match(viewTabsSource, /manualSaveDirty: boolean;/);
   assert.match(viewTabsSource, /hasActiveFilters/);
   assert.match(viewTabsSource, /rowDeleteControlsVisible/);
   assert.match(viewTabsSource, /aria-pressed=\{filterBarVisible\}/);
@@ -902,6 +904,7 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /view-tabs-filter-toggle/);
   assert.match(viewTabsSource, /view-tabs-table-edit-toggle/);
   assert.match(viewTabsSource, /hasActiveFilters \? "has-filters" : ""/);
+  assert.match(viewTabsSource, /manualSaveDirty \? "has-unsaved" : ""/);
   assert.match(viewTabsSource, /filterBarVisible \? "visible" : ""/);
   assert.match(viewTabsSource, /view-tabs-row-delete-toggle/);
   assert.match(viewTabsSource, /settingsOpen \? "active" : ""/);
@@ -909,10 +912,13 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /<TableSettingsPopover/);
   assert.match(viewTabsSource, /<icons\.borderAll size=\{17\} \/>/);
   assert.match(viewTabsSource, /<icons\.addField size=\{18\} \/>/);
+  assert.match(viewTabsSource, /<icons\.save size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.edit size=\{18\} \/>/);
   assert.match(viewTabsSource, /className="view-tab-action view-tabs-add-row primary"/);
+  assert.match(viewTabsSource, /"view-tab-action view-tabs-manual-save",/);
   assert.match(viewTabsSource, /<span>新建<\/span>/);
+  assert.match(viewTabsSource, /<span>保存<\/span>/);
   assert.match(viewTabsSource, /<span>编辑<\/span>/);
   assert.match(viewTabsSource, /<span>调整<\/span>/);
   assert.doesNotMatch(viewTabsSource, /<span>配置<\/span>/);
@@ -984,6 +990,8 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(appSource, /const resolvedCollectionViews = useMemo/);
   assert.match(appSource, /topLevelItems: resolvedCollectionViews\.topLevelItems,/);
   assert.match(appSource, /onAddRow=\{handleAddRow\}/);
+  assert.match(appSource, /onManualSave=\{\(\) => void persistChanges\(\)\}/);
+  assert.match(appSource, /manualSaveDirty: toolbarDirty,/);
   assert.match(appSource, /expandedGroupId: resolvedCollectionViews\.expandedGroupId,/);
   assert.match(appSource, /activeGroupId: resolvedCollectionViews\.activeGroupId,/);
   assert.match(appSource, /updatePageContextViewGrouping/);

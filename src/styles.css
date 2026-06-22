@@ -583,6 +583,15 @@ select {
   background: #37983d;
 }
 
+.view-tab-action.view-tabs-manual-save {
+  color: #9b9994;
+}
+
+.view-tab-action.view-tabs-manual-save.has-unsaved {
+  color: #f08a24;
+  font-weight: 600;
+}
+
 .view-tab-action.save-shared {
   background: #d9730d;
   color: #fff;
@@ -3326,8 +3335,9 @@ th:hover .column-resize-handle,
 }
 
 .multi-select-color-swatch {
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 5px;
+  box-sizing: border-box;
   display: block;
   height: 14px;
   width: 14px;

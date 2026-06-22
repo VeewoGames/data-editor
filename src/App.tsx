@@ -2240,6 +2240,7 @@ export function App() {
     lastActiveViewIdByGroupId: resolvedCollectionViews.lastActiveViewIdByGroupId,
     dirtyViewIds,
     commandSaving,
+    manualSaveDirty: toolbarDirty,
     filterBarVisible,
     hasActiveFilters: activeViewHasFilters,
     tableTextEditMode,
@@ -2257,6 +2258,7 @@ export function App() {
     activeSharedView,
     dirtyViewIds,
     commandSaving,
+    toolbarDirty,
     filterBarVisible,
     activeViewHasFilters,
     tableTextEditMode,
@@ -4376,6 +4378,7 @@ export function App() {
                   snapshot={viewTabsSnapshot}
                   onSelectView={handleSelectSharedView}
                   onAddRow={handleAddRow}
+                  onManualSave={() => void persistChanges()}
                   onCreateTopLevelView={handleCreateTopLevelSharedView}
                   onCreateViewGroup={handleCreateSharedViewGroup}
                   onCreateViewInGroup={handleCreateSharedViewInGroup}
@@ -4479,6 +4482,7 @@ export function App() {
               snapshot={viewTabsSnapshot}
               onSelectView={handleSelectSharedView}
               onAddRow={handleAddRow}
+              onManualSave={() => void persistChanges()}
               onCreateTopLevelView={handleCreateTopLevelSharedView}
               onCreateViewGroup={handleCreateSharedViewGroup}
               onCreateViewInGroup={handleCreateSharedViewInGroup}

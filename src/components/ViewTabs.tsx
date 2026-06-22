@@ -9,6 +9,7 @@ export type ViewTabsProps = {
   snapshot: ViewTabsSnapshot;
   onSelectView: (viewId: string) => void;
   onAddRow: () => void;
+  onManualSave: () => void;
   onCreateTopLevelView: () => void;
   onCreateViewGroup: () => void;
   onCreateViewInGroup: (groupId: string) => void;
@@ -39,6 +40,7 @@ export type ViewTabsSnapshot = {
   lastActiveViewIdByGroupId: Record<string, string>;
   dirtyViewIds: Set<string>;
   commandSaving: boolean;
+  manualSaveDirty: boolean;
   filterBarVisible: boolean;
   hasActiveFilters: boolean;
   tableTextEditMode: boolean;
@@ -61,6 +63,7 @@ export function ViewTabs({
   snapshot,
   onSelectView,
   onAddRow,
+  onManualSave,
   onCreateTopLevelView,
   onCreateViewGroup,
   onCreateViewInGroup,
@@ -87,6 +90,7 @@ export function ViewTabs({
     lastActiveViewIdByGroupId,
     dirtyViewIds,
     commandSaving,
+    manualSaveDirty,
     filterBarVisible,
     hasActiveFilters,
     tableTextEditMode,
@@ -651,6 +655,19 @@ export function ViewTabs({
             >
               <icons.addField size={18} />
               <span>新建</span>
+            </button>
+            <button
+              type="button"
+              className={[
+                "view-tab-action view-tabs-manual-save",
+                manualSaveDirty ? "has-unsaved" : "",
+              ].filter(Boolean).join(" ")}
+              onClick={onManualSave}
+              disabled={viewTabsDisabled}
+              title="保存当前更改"
+            >
+              <icons.save size={18} />
+              <span>保存</span>
             </button>
             <button
               type="button"

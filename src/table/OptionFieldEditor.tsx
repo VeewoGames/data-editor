@@ -543,7 +543,7 @@ export function OptionFieldEditor({
                                 }}
                                 type="button"
                               >
-                                <span className="multi-select-color-swatch" style={{ background: palette.background }} />
+                                <span className="multi-select-color-swatch" style={{ background: palette.background, borderColor: palette.swatchBorder ?? "transparent" }} />
                                 <span>{defaultColorChoice.label}</span>
                                 {active ? <icons.check size={16} /> : <span className="multi-select-color-check-placeholder" />}
                               </button>
@@ -569,7 +569,7 @@ export function OptionFieldEditor({
                                       }}
                                       type="button"
                                     >
-                                      <span className="multi-select-color-swatch" style={{ background: palette.background }} />
+                                      <span className="multi-select-color-swatch" style={{ background: palette.background, borderColor: palette.swatchBorder ?? "transparent" }} />
                                       <span>{choice.label}</span>
                                       {active ? <icons.check size={16} /> : <span className="multi-select-color-check-placeholder" />}
                                     </button>
