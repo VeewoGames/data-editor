@@ -4,6 +4,7 @@ import type { FieldDisplayType } from "../../model/fieldTypes";
 import type { FieldViewConfig, MultiSelectOptionView } from "../../model/viewConfig";
 import { AdvancedFilterGroupEditor } from "./AdvancedFilterGroupEditor";
 import { icons } from "../icons";
+import type { CreateFilterOptionInput } from "./MultiSelectFilterPopover";
 
 type AdvancedFilterPanelProps = {
   filters: FilterGroup;
@@ -13,6 +14,7 @@ type AdvancedFilterPanelProps = {
   fieldViewConfigs: Record<string, FieldViewConfig>;
   fieldTypes: Record<string, FieldDisplayType>;
   relationFilterOptions: Record<string, MultiSelectOptionView[]>;
+  onCreateFormalOption?: (input: CreateFilterOptionInput) => Promise<MultiSelectOptionView[]>;
   onChangeFilters: (filters: FilterGroup) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -26,6 +28,7 @@ export function AdvancedFilterPanel({
   fieldViewConfigs,
   fieldTypes,
   relationFilterOptions,
+  onCreateFormalOption,
   onChangeFilters,
   open,
   onOpenChange,
@@ -54,6 +57,7 @@ export function AdvancedFilterPanel({
               fieldViewConfigs={fieldViewConfigs}
               fieldTypes={fieldTypes}
               relationFilterOptions={relationFilterOptions}
+              onCreateFormalOption={onCreateFormalOption}
               onChangeFilters={onChangeFilters}
             />
           </div>

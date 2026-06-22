@@ -8,6 +8,7 @@ import { AdvancedFilterSelect } from "./AdvancedFilterSelect";
 import { resolveFieldType } from "./filter-rule-ui";
 import { AdvancedFilterNodeMenu } from "./AdvancedFilterNodeMenu";
 import { AdvancedFilterRuleEditor } from "./AdvancedFilterRuleEditor";
+import type { CreateFilterOptionInput } from "./MultiSelectFilterPopover";
 
 type AdvancedFilterGroupEditorProps = {
   filters: FilterGroup;
@@ -19,6 +20,7 @@ type AdvancedFilterGroupEditorProps = {
   fieldViewConfigs: Record<string, FieldViewConfig>;
   fieldTypes: Record<string, FieldDisplayType>;
   relationFilterOptions: Record<string, MultiSelectOptionView[]>;
+  onCreateFormalOption?: (input: CreateFilterOptionInput) => Promise<MultiSelectOptionView[]>;
   onChangeFilters: (filters: FilterGroup) => void;
 };
 
@@ -32,6 +34,7 @@ export function AdvancedFilterGroupEditor({
   fieldViewConfigs,
   fieldTypes,
   relationFilterOptions,
+  onCreateFormalOption,
   onChangeFilters,
 }: AdvancedFilterGroupEditorProps) {
   const canAddGroup = canCreateChildGroup(filters, group.id);
@@ -96,6 +99,7 @@ export function AdvancedFilterGroupEditor({
                   fieldViewConfigs={fieldViewConfigs}
                   fieldTypes={fieldTypes}
                   relationFilterOptions={relationFilterOptions}
+                  onCreateFormalOption={onCreateFormalOption}
                   onChangeFilters={onChangeFilters}
                 />
               ) : (
@@ -107,6 +111,7 @@ export function AdvancedFilterGroupEditor({
                   fieldViewConfigs={fieldViewConfigs}
                   fieldTypes={fieldTypes}
                   relationFilterOptions={relationFilterOptions}
+                  onCreateFormalOption={onCreateFormalOption}
                   onChangeFilters={onChangeFilters}
                 />
               )}

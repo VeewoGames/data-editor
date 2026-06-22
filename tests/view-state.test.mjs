@@ -887,6 +887,7 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
   const toolbarSource = await readFile(new URL("../src/components/Toolbar.tsx", import.meta.url), "utf8");
   const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
 
   assert.match(viewTabsSource, /onToggleFilterBar/);
   assert.match(viewTabsSource, /onToggleTableTextEditMode/);
@@ -932,6 +933,10 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /group-tab-search/);
   assert.match(viewTabsSource, /view-tabs-group-tabs/);
   assert.match(viewTabsSource, /筛选当前组标签/);
+  assert.match(stylesSource, /\.view-tabs-group-row\s*\{[\s\S]*padding-top:\s*8px;/);
+  assert.match(stylesSource, /\.view-tabs-group-row\.has-horizontal-scroll\s*\{[\s\S]*align-items:\s*end;[\s\S]*min-height:\s*40px;[\s\S]*padding-bottom:\s*0;[\s\S]*padding-top:\s*6px;/);
+  assert.match(stylesSource, /\.view-tabs-group-tabs::-webkit-scrollbar\s*\{[\s\S]*height:\s*14px;/);
+  assert.match(stylesSource, /\.group-tab-search\s*\{[\s\S]*align-self:\s*center;/);
   assert.match(viewTabsSource, /document\.querySelector<HTMLInputElement>\("\.search-box input"\)/);
   assert.match(viewTabsSource, /topLevelItems\.map/);
   assert.match(viewTabsSource, /filteredGroupViews\.map/);

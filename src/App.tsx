@@ -46,6 +46,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Toolbar, type ToolbarSnapshot } from "./components/Toolbar";
 import { ViewTabs, type ViewTabsSnapshot, type ViewTabReorderOperation } from "./components/ViewTabs";
 import { ViewFilterBar, type ViewFilterBarSnapshot } from "./components/ViewFilterBar";
+import type { CreateFilterOptionInput } from "./components/filters/MultiSelectFilterPopover";
 import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editing";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { DocumentFieldConfigDialog } from "./components/DocumentFieldConfigDialog";
@@ -3012,6 +3013,32 @@ export function App() {
     updateActiveViewDraft({ filters: withRules(activeView.filters, [...currentRules, nextRule]) as FilterGroup });
   }
 
+  async function handleCreateFormalFilterOption(input: CreateFilterOptionInput): Promise<MultiSelectOptionView[]> {
+    if (!selectedPath) return input.options;
+    const normalized = input.value.trim();
+    if (!normalized) return input.options;
+    const nextOptions = input.options.some((option) => option.value === normalized)
+      ? input.options
+      : [...input.options, { value: normalized, label: normalized, color: null }];
+    mutateOptionFieldTransaction({
+      mutateViewConfigDraft: (draft) => {
+        const key = fieldViewConfigKey(selectedPath, collectionPath, input.field);
+        if (!key) return;
+        const current = ensureFieldViewConfig(draft, key);
+        draft.fields[key] = {
+          ...current,
+          selectOptions: input.fieldType === "Select"
+            ? buildOptionConfigFromOptions(nextOptions) as typeof current.selectOptions
+            : current.selectOptions,
+          multiSelectOptions: input.fieldType === "Multi-select"
+            ? buildOptionConfigFromOptions(nextOptions) as typeof current.multiSelectOptions
+            : current.multiSelectOptions,
+        };
+      },
+    });
+    return nextOptions;
+  }
+
   function handleCommitMultiSelectOptionFieldDraft(rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) {
     if (!model) return;
     const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
@@ -4404,6 +4431,7 @@ export function App() {
                     onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
                     onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
                     onAddFilter={handleAddFilter}
+                    onCreateFormalOption={handleCreateFormalFilterOption}
                     onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
                     onResetView={handleResetSharedViewDraft}
                     onSaveForEveryone={() => void handleSaveViewForEveryone()}
@@ -4506,6 +4534,7 @@ export function App() {
                 onChangeFilters={(filters) => updateActiveViewDraft({ filters })}
                 onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
                 onAddFilter={handleAddFilter}
+                onCreateFormalOption={handleCreateFormalFilterOption}
                 onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
                 onResetView={handleResetSharedViewDraft}
                 onSaveForEveryone={() => void handleSaveViewForEveryone()}

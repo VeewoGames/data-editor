@@ -6,6 +6,7 @@ import type { RelationMode } from "../model/viewConfig";
 import { getRelationOptionLabel } from "../model/relations";
 import { focusWithoutScroll } from "../editing/focus-without-scroll.mjs";
 import { chipStyleForValue } from "./chipColors";
+import { confirmNextSelectedValues, resolveDefaultCandidate, resolveEnterAction } from "./discrete-value-picker.mjs";
 
 type RelationCellEditorProps = {
   cellId: string;
@@ -41,6 +42,10 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
       return option.label.toLowerCase().includes(needle) || option.description.toLowerCase().includes(needle) || option.value.toLowerCase().includes(needle);
     });
   }, [draft, options]);
+  const defaultCandidate = useMemo(
+    () => resolveDefaultCandidate({ filteredOptions, selectedValues, mode: multiple ? "multi" : "single" }),
+    [filteredOptions, multiple, selectedValues],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -73,6 +78,17 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
 
   function clearValue(optionValue: string | number) {
     commit(selectedValues.filter((selected) => String(selected) !== String(optionValue)));
+  }
+
+  function confirmRelationOption(optionValue: string) {
+    const nextValues = confirmNextSelectedValues({
+      mode: multiple ? "multi" : "single",
+      selectedValues,
+      value: optionValue,
+    });
+    commit(nextValues);
+    setDraft("");
+    restoreInputFocus();
   }
 
   const triggerLabel = selectedValues.length === 0 ? (configured ? "未设置关联" : "未配置关联") : "";
@@ -140,6 +156,16 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
                 ref={inputRef}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  const action = resolveEnterAction({
+                    search: draft,
+                    defaultCandidate,
+                    allowCreate: false,
+                  });
+                  if (action.type === "select") confirmRelationOption(action.value);
+                }}
                 placeholder="搜索关联记录"
               />
             ) : null}
@@ -150,14 +176,19 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
             <div className="multi-select-options">
               {filteredOptions.map((option) => {
                 const selected = selectedValues.some((item) => String(item) === option.value);
+                const defaultSelected = defaultCandidate?.value === option.value;
                 return (
                   <button
-                    className={`multi-select-option relation-option ${selected ? "selected" : ""}`}
+                    className={`multi-select-option relation-option ${selected ? "selected" : ""}${defaultSelected ? " default-candidate" : ""}`}
                     data-relation-value={String(option.value)}
                     key={option.value}
                     onPointerDown={(event) => {
                       event.preventDefault();
-                      toggleOption(option);
+                      if (selected) {
+                        toggleOption(option);
+                        return;
+                      }
+                      confirmRelationOption(option.value);
                     }}
                     type="button"
                   >

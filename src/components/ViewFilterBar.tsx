@@ -10,7 +10,7 @@ import { icons } from "./icons";
 import { AdvancedFilterPanel } from "./filters/AdvancedFilterPanel";
 import { BooleanFilterPopover } from "./filters/BooleanFilterPopover";
 import { optionsForField, resolveFieldType } from "./filters/filter-rule-ui";
-import { MultiSelectFilterPopover } from "./filters/MultiSelectFilterPopover";
+import { MultiSelectFilterPopover, type CreateFilterOptionInput } from "./filters/MultiSelectFilterPopover";
 import { TextFilterPopover } from "./filters/TextFilterPopover";
 import { SortPopover } from "./sort/SortPopover";
 import { createDefaultFilterRule } from "../view/filter-rules.mjs";
@@ -23,6 +23,7 @@ export type ViewFilterBarProps = {
   onAutoOpenRuleHandled: () => void;
   onResetView: () => void;
   onSaveForEveryone: () => void;
+  onCreateFormalOption?: (input: CreateFilterOptionInput) => Promise<MultiSelectOptionView[]>;
 };
 
 export type ViewFilterBarSnapshot = {
@@ -47,6 +48,7 @@ export function ViewFilterBar({
   onAutoOpenRuleHandled,
   onResetView,
   onSaveForEveryone,
+  onCreateFormalOption,
 }: ViewFilterBarProps) {
   const {
     collectionKey = null,
@@ -244,6 +246,7 @@ export function ViewFilterBar({
                       onChangeFilters(mergeTopLevelRuleIntoAdvancedRoot(activeFilters, rule.id));
                     },
                     onChangeFilters,
+                    onCreateFormalOption,
                   )}
                 </div>,
                 document.body,
@@ -260,6 +263,7 @@ export function ViewFilterBar({
             fieldViewConfigs={fieldViewConfigs}
             fieldTypes={fieldTypes}
             relationFilterOptions={relationFilterOptions}
+            onCreateFormalOption={onCreateFormalOption}
             onChangeFilters={onChangeFilters}
             open={advancedPanelOpen}
             onOpenChange={setAdvancedPanelOpen}
@@ -291,6 +295,7 @@ function renderFilterPopover(
   onCachedValuesChange: (values: string[] | null) => void,
   onMergeIntoAdvanced: (() => void) | null,
   onChangeFilters: (filters: FilterGroup) => void,
+  onCreateFormalOption?: (input: CreateFilterOptionInput) => Promise<MultiSelectOptionView[]>,
 ) {
   const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
   if (fieldType === "Checkbox") {
@@ -301,10 +306,12 @@ function renderFilterPopover(
       <MultiSelectFilterPopover
         filters={filters}
         rule={rule}
+        fieldType={fieldType}
         mode="multi"
         options={optionsForField(rule.field, fieldType, fieldViewConfigs, relationFilterOptions)}
         cachedValues={cachedValues}
         onCachedValuesChange={onCachedValuesChange}
+        onCreateFormalOption={onCreateFormalOption}
         onMergeIntoAdvanced={onMergeIntoAdvanced}
         onChangeFilters={onChangeFilters}
       />

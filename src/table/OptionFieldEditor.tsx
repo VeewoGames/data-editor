@@ -5,6 +5,7 @@ import type { MultiSelectOptionColor, MultiSelectOptionView } from "../model/vie
 import { sortValuesByOptionOrder } from "../multiselect-config.mjs";
 import { focusWithoutScroll } from "../editing/focus-without-scroll.mjs";
 import { namedChipPalette, chipStyleForValue } from "./chipColors";
+import { confirmNextSelectedValues, resolveDefaultCandidate, resolveEnterAction } from "./discrete-value-picker.mjs";
 import { useOptionFieldDragReorder } from "./useOptionFieldDragReorder";
 
 export type OptionFieldDraftCommit = {
@@ -76,6 +77,24 @@ const lightColorChoices: ColorChoice[] = [
   { value: "red", label: "红色" },
 ];
 
+const midColorChoices: ColorChoice[] = [
+  { value: "mid_gray", label: "中灰" },
+  { value: "mid_brown", label: "中棕" },
+  { value: "mid_orange", label: "中橙" },
+  { value: "mid_yellow", label: "中黄" },
+  { value: "mid_green", label: "中绿" },
+  { value: "mid_blue", label: "中蓝" },
+  { value: "mid_teal", label: "中青绿" },
+  { value: "mid_cyan", label: "中青色" },
+  { value: "mid_lime", label: "中黄绿" },
+  { value: "mid_indigo", label: "中靛蓝" },
+  { value: "mid_rose", label: "中玫瑰" },
+  { value: "mid_amber", label: "中琥珀" },
+  { value: "mid_purple", label: "中紫" },
+  { value: "mid_pink", label: "中粉" },
+  { value: "mid_red", label: "中红" },
+];
+
 const darkColorChoices: ColorChoice[] = [
   { value: "dark_gray", label: "深灰" },
   { value: "dark_brown", label: "深棕" },
@@ -96,6 +115,7 @@ const darkColorChoices: ColorChoice[] = [
 
 const colorChoiceGroups = [
   { key: "light", label: "浅色", choices: lightColorChoices },
+  { key: "mid", label: "中间色", choices: midColorChoices },
   { key: "dark", label: "深色", choices: darkColorChoices },
 ] as const;
 
@@ -202,6 +222,10 @@ export function OptionFieldEditor({
     () => filteredOptions.filter((option) => option.value !== dragPreview?.activeId),
     [dragPreview?.activeId, filteredOptions],
   );
+  const defaultCandidate = useMemo(
+    () => resolveDefaultCandidate({ filteredOptions, selectedValues, mode }),
+    [filteredOptions, mode, selectedValues],
+  );
 
   useLayoutEffect(() => {
     const nextRowTops: Record<string, number> = {};
@@ -271,6 +295,18 @@ export function OptionFieldEditor({
       : [...selectedValues, optionValue];
     selectedValuesRef.current = nextSelectedValues;
     setSelectedValues(nextSelectedValues);
+    restoreInputFocus();
+  }
+
+  function confirmOption(optionValue: string | number) {
+    const nextSelectedValues = confirmNextSelectedValues({
+      mode,
+      selectedValues: selectedValuesRef.current,
+      value: String(optionValue),
+    });
+    selectedValuesRef.current = nextSelectedValues;
+    setSelectedValues(nextSelectedValues);
+    setDraft("");
     restoreInputFocus();
   }
 
@@ -444,7 +480,16 @@ export function OptionFieldEditor({
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
-                  if (canCreate) createOption();
+                  const action = resolveEnterAction({
+                    search: draft,
+                    defaultCandidate,
+                    allowCreate: canCreate,
+                  });
+                  if (action.type === "select") {
+                    confirmOption(action.value);
+                    return;
+                  }
+                  if (action.type === "create") createOption();
                 }
               }}
               placeholder="选择或创建一个选项"
@@ -455,9 +500,10 @@ export function OptionFieldEditor({
           <div className="multi-select-options option-field-popover-section option-field-popover-section-scroll">
             {renderedOptions.map((option, index) => {
               const selected = selectedValues.some((item) => String(item) === option.value);
+              const defaultSelected = defaultCandidate?.value === option.value;
               const row = (
                 <div
-                  className={`multi-select-option-row ${selected ? " selected" : ""}`}
+                  className={`multi-select-option-row ${selected ? " selected" : ""}${defaultSelected ? " default-candidate" : ""}`}
                   data-option-value={option.value}
                   key={option.value}
                   ref={(node) => {
@@ -475,10 +521,14 @@ export function OptionFieldEditor({
                     <icons.dragHandle size={14} />
                   </button>
                   <button
-                    className={`multi-select-option ${selected ? "selected" : ""}`}
+                    className={`multi-select-option ${selected ? "selected" : ""}${defaultSelected ? " default-candidate" : ""}`}
                     onPointerDown={(event) => {
                       event.preventDefault();
-                      toggleOption(option.value);
+                      if (selected) {
+                        toggleOption(option.value);
+                        return;
+                      }
+                      confirmOption(option.value);
                     }}
                     type="button"
                   >

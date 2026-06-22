@@ -1,13 +1,16 @@
 import * as Popover from "@radix-ui/react-popover";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FilterGroup, FilterOperator, FilterRule } from "../../api/client";
 import type { FieldDisplayType } from "../../model/fieldTypes";
 import type { FieldViewConfig, MultiSelectOptionView } from "../../model/viewConfig";
+import { focusWithoutScroll } from "../../editing/focus-without-scroll.mjs";
 import { chipStyleForValue } from "../../table/chipColors";
+import { confirmNextSelectedValues, resolveDefaultCandidate, resolveEnterAction } from "../../table/discrete-value-picker.mjs";
 import { duplicateNodeInAdvancedRoot, replaceNodeInFilters, removeNodeFromFilters, convertRuleToGroup } from "../../view/filter-tree.mjs";
 import { icons } from "../icons";
 import { AdvancedFilterNodeMenu } from "./AdvancedFilterNodeMenu";
 import { AdvancedFilterSelect } from "./AdvancedFilterSelect";
+import type { CreateFilterOptionInput } from "./MultiSelectFilterPopover";
 import {
   checkboxOperatorOptions,
   discreteOperatorOptions,
@@ -28,6 +31,7 @@ type AdvancedFilterRuleEditorProps = {
   fieldViewConfigs: Record<string, FieldViewConfig>;
   fieldTypes: Record<string, FieldDisplayType>;
   relationFilterOptions: Record<string, MultiSelectOptionView[]>;
+  onCreateFormalOption?: (input: CreateFilterOptionInput) => Promise<MultiSelectOptionView[]>;
   onChangeFilters: (filters: FilterGroup) => void;
 };
 
@@ -39,9 +43,12 @@ export function AdvancedFilterRuleEditor({
   fieldViewConfigs,
   fieldTypes,
   relationFilterOptions,
+  onCreateFormalOption,
   onChangeFilters,
 }: AdvancedFilterRuleEditorProps) {
   const [search, setSearch] = useState("");
+  const [localOptionsOverride, setLocalOptionsOverride] = useState<MultiSelectOptionView[] | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
   const operatorOptions = operatorsForFieldType(fieldType);
   const fieldOptions = fields.map((field) => ({
@@ -57,11 +64,28 @@ export function AdvancedFilterRuleEditor({
   const supportsBooleanValue = fieldType === "Checkbox";
   const valueless = rule.operator === "is_empty" || rule.operator === "is_not_empty";
   const selectedValues = normalizeSelectedValues(rule.value);
+  const sourceOptions = useMemo(
+    () => optionsForField(rule.field, fieldType, fieldViewConfigs, relationFilterOptions),
+    [fieldType, fieldViewConfigs, relationFilterOptions, rule.field],
+  );
+  const baseOptions = localOptionsOverride ?? sourceOptions;
   const visibleOptions = useMemo(
-    () => mergeSelectedOptions(optionsForField(rule.field, fieldType, fieldViewConfigs, relationFilterOptions), selectedValues),
-    [fieldType, fieldViewConfigs, relationFilterOptions, rule.field, selectedValues],
+    () => mergeSelectedOptions(baseOptions, selectedValues),
+    [baseOptions, selectedValues],
   );
   const filteredOptions = useMemo(() => filterOptions(visibleOptions, search), [visibleOptions, search]);
+  const defaultCandidate = useMemo(
+    () => resolveDefaultCandidate({ filteredOptions, selectedValues, mode: "multi" }),
+    [filteredOptions, selectedValues],
+  );
+
+  useEffect(() => {
+    setLocalOptionsOverride(null);
+  }, [fieldType, rule.field, sourceOptions]);
+
+  function focusSearchInput() {
+    queueMicrotask(() => focusWithoutScroll(inputRef.current));
+  }
 
   function updateRule(nextRule: FilterRule) {
     onChangeFilters(replaceNodeInFilters(filters, nextRule));
@@ -95,6 +119,39 @@ export function AdvancedFilterRuleEditor({
       ? selectedValues.filter((item) => item !== value)
       : [...selectedValues, value];
     updateRule({ ...rule, operator: discreteOperator(rule.operator), value: nextValues });
+  }
+
+  function confirmValue(value: string) {
+    const nextValues = confirmNextSelectedValues({
+      mode: "multi",
+      selectedValues,
+      value,
+    });
+    updateRule({ ...rule, operator: discreteOperator(rule.operator), value: nextValues });
+    setSearch("");
+    focusSearchInput();
+  }
+
+  async function handleEnter() {
+    const action = resolveEnterAction({
+      search,
+      defaultCandidate,
+      allowCreate: fieldType === "Select" || fieldType === "Multi-select",
+    });
+    if (action.type === "select") {
+      confirmValue(action.value);
+      return;
+    }
+    if (action.type === "create" && onCreateFormalOption && (fieldType === "Select" || fieldType === "Multi-select")) {
+      const nextOptions = await onCreateFormalOption({
+        field: rule.field,
+        fieldType,
+        options: baseOptions,
+        value: action.value,
+      });
+      setLocalOptionsOverride(nextOptions);
+      confirmValue(action.value);
+    }
   }
 
   return (
@@ -186,19 +243,32 @@ export function AdvancedFilterRuleEditor({
                       className="multi-select-input filter-option-search-input advanced-filter-value"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") return;
+                        event.preventDefault();
+                        void handleEnter();
+                      }}
                       placeholder="搜索选项"
+                      ref={inputRef}
                     />
                   </div>
                   <div className="filter-option-list advanced-filter-option-list">
                     {filteredOptions.length ? filteredOptions.map((option) => {
                       const selected = selectedValues.includes(option.value);
+                      const defaultSelected = defaultCandidate?.value === option.value;
                       return (
-                        <label className={`filter-option-row${selected ? " selected" : ""}`} data-filter-option-value={option.value} key={option.value}>
+                        <label className={`filter-option-row${selected ? " selected" : ""}${defaultSelected ? " default-candidate" : ""}`} data-filter-option-value={option.value} key={option.value}>
                           <input
                             className="filter-option-checkbox"
                             type="checkbox"
                             checked={selected}
-                            onChange={() => toggleValue(option.value)}
+                            onChange={() => {
+                              if (selected) {
+                                toggleValue(option.value);
+                                return;
+                              }
+                              confirmValue(option.value);
+                            }}
                           />
                           <span className="chip filter-option-label" style={chipStyleForValue(option.value, option.color)}>
                             {option.label}

@@ -53,20 +53,32 @@ async function configureRelation(page: Page, fieldName: string, options: {
 
 async function ensurePrimaryKeySelection(page: Page, fieldName: string) {
   const banner = page.locator(".primary-key-candidate-banner");
-  if (!(await banner.isVisible().catch(() => false))) return;
-  await banner.locator(".primary-button").click();
-  await expect(page.locator(".primary-key-candidate-dialog")).toBeVisible();
-  const candidateField = page.locator(".primary-key-candidate-dialog .dialog-field").filter({ hasText: "候选字段" });
-  if (await candidateField.count()) {
-    const trigger = candidateField.locator(".select-trigger");
-    if (!(await trigger.textContent())?.includes(fieldName)) {
-      await trigger.click();
-      await page.locator('[role="option"]').filter({ hasText: fieldName }).first().click();
+  if (await banner.isVisible().catch(() => false)) {
+    await banner.locator(".primary-button").click();
+    await expect(page.locator(".primary-key-candidate-dialog")).toBeVisible();
+    const candidateField = page.locator(".primary-key-candidate-dialog .dialog-field").filter({ hasText: "候选字段" });
+    if (await candidateField.count()) {
+      const trigger = candidateField.locator(".select-trigger");
+      if (!(await trigger.textContent())?.includes(fieldName)) {
+        await trigger.click();
+        await page.locator('[role="option"]').filter({ hasText: fieldName }).first().click();
+      }
     }
+    await page.locator(".primary-key-candidate-dialog .primary-button").click();
+    await expect(page.locator(".primary-key-candidate-dialog")).toHaveCount(0);
+    await expect(banner).toHaveCount(0);
   }
-  await page.locator(".primary-key-candidate-dialog .primary-button").click();
-  await expect(page.locator(".primary-key-candidate-dialog")).toHaveCount(0);
-  await expect(banner).toHaveCount(0);
+  await columnHeaderTrigger(page, fieldName).click();
+  const primaryKeyAction = page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]').first();
+  const alreadyPrimaryKey = page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"][disabled]').first();
+  if (await alreadyPrimaryKey.isVisible().catch(() => false)) {
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+    return;
+  }
+  await expect(primaryKeyAction).toBeVisible();
+  await primaryKeyAction.click();
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
 }
 
 async function chooseDialogSelect(page: Page, label: string, option: string) {
@@ -2023,12 +2035,12 @@ test("multi-select filter popover supports operator text, selected chips, search
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
   await expect(filterPopover).not.toContainText("鏈€夋嫨");
   await expect(filterPopover.locator(".filter-popover-section-scroll")).toHaveCSS("max-height", "500px");
-  await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("min-height", "36px");
+  await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("min-height", "38px");
   await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("align-items", "center");
   await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("padding-top", "0px");
   await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("padding-bottom", "0px");
   await expect(filterPopover.locator(".filter-option-list")).toHaveCSS("row-gap", "0px");
-  await expect(filterPopover.locator(".filter-option-row").first()).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(filterPopover.locator(".filter-option-row").first()).toHaveClass(/default-candidate/);
   expect(await filterPopover.locator(".filter-option-row input[type='checkbox']").count()).toBeGreaterThan(0);
 
   await filterPopover.locator(".filter-option-search-input").fill("spe");
@@ -3129,17 +3141,142 @@ test("relation filter search matches title first and key fallback", async ({ pag
   await page.getByRole("button", { name: "+ 筛选" }).click();
   await page.locator(".add-filter-field-option").filter({ hasText: "skill_id" }).click();
   const filterPopover = page.locator(".filter-popover-content");
-  const slashRow = filterPopover.locator('.filter-option-row[data-filter-option-value="skill_slash"]');
+  const slashRow = filterPopover.locator(".filter-option-row").filter({ hasText: "斩击" }).first();
   await expect(filterPopover).toBeVisible();
 
   await filterPopover.locator(".filter-option-search-input").fill("斩击");
   await expect(slashRow).toBeVisible();
-  await filterPopover.locator(".filter-option-search-input").fill("skill_slash");
+  await filterPopover.locator(".filter-option-search-input").fill("skill_weapon_sword_slash");
   await expect(slashRow).toBeVisible();
 
   await slashRow.click();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" })).toContainText("斩击");
-  await expect(tableRows(page)).toHaveCount(1);
+  await expect(tableRows(page)).toHaveCount(0);
+});
+
+test("option field enter selects default candidate and clears search", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const trigger = tableRow(page, 1).locator('td[data-column-field="features"] .multi-select-trigger').first();
+  await trigger.click();
+
+  const searchInput = page.locator(".option-field-popover-shell .multi-select-input");
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill("mi");
+  await searchInput.press("Enter");
+
+  await expect(page.locator(".option-field-popover-shell .selected-chip").filter({ hasText: "minion" })).toBeVisible();
+  await expect(searchInput).toHaveValue("");
+  await expect(searchInput).toBeFocused();
+});
+
+test("relation enter selects default candidate but does not create", async ({ page }) => {
+  const originalConfig = await readScratchViewConfigText();
+  try {
+    await writeScratchViewConfig({
+      fields: {
+        "data/e2e_relation.json:$:skill_id": {
+          type: "Text",
+          selectOptions: {},
+          multiSelectOptions: {},
+        },
+      },
+      primaryKeys: {
+        "data/e2e_relation.json:$": "id",
+        "data/skills.json:skills": "skill_id",
+      },
+      relations: {
+        "data/e2e_relation.json:$:skill_id": {
+          targetFile: "data/skills.json",
+          targetCollection: "skills",
+          targetKey: "skill_id",
+          mode: "single",
+          titleFields: ["skill_name", "name", "*_name"],
+          allowMissing: false,
+        },
+      },
+      relationsVersion: 3,
+    });
+
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    const relationCell = tableRow(page, 1).locator('td[data-column-field="skill_id"] .relation-trigger').first();
+    await relationCell.click();
+
+    const searchInput = page.locator(".relation-popover .multi-select-input");
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill("slash");
+    await searchInput.press("Enter");
+
+    await expect(page.locator(".relation-popover .selected-chip").filter({ hasText: "斩击" })).toBeVisible();
+    await expect(searchInput).toHaveValue("");
+    await expect(searchInput).toBeFocused();
+  } finally {
+    if (originalConfig) {
+      await writeFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), originalConfig, "utf8");
+    }
+  }
+});
+
+test("select filter enter creates formal option and persists to field config", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+
+  const popover = page.locator(".filter-popover-content");
+  const searchInput = popover.locator(".filter-option-search-input");
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill("ignite");
+  await searchInput.press("Enter");
+
+  await expect(popover.locator(".selected-chip").filter({ hasText: "ignite" })).toBeVisible();
+  await expect(searchInput).toHaveValue("");
+  await expect(searchInput).toBeFocused();
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"ignite"'));
+});
+
+test("advanced filter enter creates formal multi-select option and persists", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+  await page.locator(".filter-action-trigger").click();
+  await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+
+  const advancedRule = page.locator(".advanced-filter-rule").first();
+  await advancedRule.locator(".advanced-filter-value-trigger").click();
+  const searchInput = page.locator(".advanced-filter-value-popover .advanced-filter-value");
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill("ignite");
+  await searchInput.press("Enter");
+
+  await expect(page.locator(".advanced-filter-value-popover .selected-chip").filter({ hasText: "ignite" })).toBeVisible();
+  await expect(searchInput).toHaveValue("");
+  await expect(searchInput).toBeFocused();
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_multiselect.json:$:features"') && text.includes('"ignite"'));
 });
 
 test("text filter popover keeps shared shell without scroll section", async ({ page }) => {
@@ -6322,7 +6459,7 @@ test("option field editor popover uses shared shell and scroll section from tabl
   await expect(tableRow(page, 0).locator('td[data-column-field="dev_tags"] .multi-select-trigger')).toHaveAttribute("data-wrap-mode", "truncate");
 });
 
-test("option field color menu renders side-by-side light and dark color groups", async ({ page }) => {
+test("option field color menu renders side-by-side light, mid, and dark color groups", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -6334,9 +6471,12 @@ test("option field color menu renders side-by-side light and dark color groups",
 
   const colorColumns = page.locator(".multi-select-color-columns");
   const lightGroup = page.locator('.multi-select-color-group[data-color-group="light"]');
+  const midGroup = page.locator('.multi-select-color-group[data-color-group="mid"]');
   const darkGroup = page.locator('.multi-select-color-group[data-color-group="dark"]');
   const tealItem = page.locator('.multi-select-color-item[data-color-choice="teal"]');
   const amberItem = page.locator('.multi-select-color-item[data-color-choice="amber"]');
+  const midBlueItem = page.locator('.multi-select-color-item[data-color-choice="mid_blue"]');
+  const midRoseItem = page.locator('.multi-select-color-item[data-color-choice="mid_rose"]');
   const darkGrayItem = page.locator('.multi-select-color-item[data-color-choice="dark_gray"]');
   const darkBlueItem = page.locator('.multi-select-color-item[data-color-choice="dark_blue"]');
   const roseItem = page.locator('.multi-select-color-item[data-color-choice="rose"]');
@@ -6344,16 +6484,23 @@ test("option field color menu renders side-by-side light and dark color groups",
 
   await expect(colorColumns).toBeVisible();
   await expect(lightGroup).toContainText("浅色");
+  await expect(midGroup).toContainText("中间色");
   await expect(darkGroup).toContainText("深色");
   await expect(tealItem).toContainText("青绿");
   await expect(amberItem).toContainText("琥珀");
   await expect(roseItem).toContainText("玫瑰");
+  await expect(midBlueItem).toContainText("中蓝");
+  await expect(midRoseItem).toContainText("中玫瑰");
   await expect(darkGrayItem).toContainText("深灰");
   await expect(darkBlueItem).toContainText("深蓝");
   await expect(darkRoseItem).toContainText("深玫瑰");
   await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(211, 238, 234)");
   await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-width", "1px");
   await expect(tealItem.locator(".multi-select-color-swatch")).toHaveCSS("border-top-color", "rgb(111, 187, 175)");
+  await expect(midBlueItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(107, 149, 200)");
+  await midBlueItem.click();
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("background-color", "rgb(107, 149, 200)");
+  await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("color", "rgb(255, 255, 255)");
   await expect(darkGrayItem.locator(".multi-select-color-swatch")).toHaveCSS("background-color", "rgb(86, 96, 112)");
   await darkGrayItem.click();
   await expect(page.locator(".multi-select-option-row").filter({ hasText: "minion" }).locator(".chip")).toHaveCSS("background-color", "rgb(86, 96, 112)");

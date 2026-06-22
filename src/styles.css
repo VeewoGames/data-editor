@@ -377,8 +377,10 @@ select {
 }
 
 .view-tabs-group-row.has-horizontal-scroll {
-  min-height: 48px;
-  padding-bottom: 6px;
+  align-items: end;
+  min-height: 40px;
+  padding-bottom: 0;
+  padding-top: 6px;
 }
 
 .view-tabs-group-tabs {
@@ -388,6 +390,10 @@ select {
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+.view-tabs-group-tabs::-webkit-scrollbar {
+  height: 14px;
 }
 
 .view-tabs-group-create {
@@ -1204,6 +1210,10 @@ select {
 
 .group-tab-search.open {
   width: min(220px, 22vw);
+}
+
+.group-tab-search {
+  align-self: center;
 }
 
 .text-cell-surface {
@@ -2257,9 +2267,19 @@ select {
   border-color: color-mix(in srgb, var(--color-border-default) 76%, white 24%);
 }
 
+.filter-option-row.default-candidate {
+  background: color-mix(in srgb, var(--color-bg-primary) 10%, white 90%);
+  border-color: color-mix(in srgb, var(--color-bg-primary) 22%, var(--color-border-default) 78%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
 .filter-option-row.selected {
   border-color: var(--color-border-default);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
+.filter-option-row.selected.default-candidate {
+  border-color: var(--color-border-default);
 }
 
 .filter-option-checkbox {
@@ -3149,6 +3169,16 @@ th:hover .column-resize-handle,
   border-radius: 8px;
 }
 
+.multi-select-option-row.default-candidate {
+  background: color-mix(in srgb, var(--color-bg-primary) 10%, white 90%);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.multi-select-option-row.selected.default-candidate {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
 .option-field-drag-placeholder {
   background: #efeeeb;
   border: 1px dashed #d3d0ca;
@@ -3186,6 +3216,17 @@ th:hover .column-resize-handle,
 .multi-select-option:hover,
 .multi-select-option.selected {
   background: #f3f2ef;
+}
+
+.multi-select-option.default-candidate,
+.relation-option.default-candidate {
+  background: color-mix(in srgb, var(--color-bg-primary) 10%, white 90%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.multi-select-option.selected.default-candidate,
+.relation-option.selected.default-candidate {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
 }
 
 .option-drag-handle {
@@ -3239,7 +3280,7 @@ th:hover .column-resize-handle,
   display: grid;
   gap: 10px;
   padding: 14px;
-  width: min(468px, calc(100vw - 24px));
+  width: min(588px, calc(100vw - 24px));
   z-index: 45;
 }
 
@@ -3299,13 +3340,15 @@ th:hover .column-resize-handle,
 
 .multi-select-color-columns {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .multi-select-color-group {
+  align-content: start;
   display: grid;
   gap: 6px;
+  justify-items: start;
 }
 
 .multi-select-color-group-title {
@@ -3326,7 +3369,7 @@ th:hover .column-resize-handle,
   min-height: 34px;
   padding: 0 4px;
   text-align: left;
-  width: 100%;
+  width: 164px;
 }
 
 .multi-select-color-item:hover,
