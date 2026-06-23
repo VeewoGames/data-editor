@@ -1,0 +1,52 @@
+[
+  {
+    "slug": "attachment-2",
+    "name": "Attachment 2",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/attachment-2--26582"
+  },
+  {
+    "slug": "attachment-1",
+    "name": "Attachment 1",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/attachment-1--26582"
+  },
+  {
+    "slug": "binocular",
+    "name": "Binocular",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/binocular--26582"
+  },
+  {
+    "slug": "bomb",
+    "name": "Bomb",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/bomb--26582"
+  },
+  {
+    "slug": "brush-1",
+    "name": "Brush 1",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/brush-1--26582"
+  },
+  {
+    "slug": "brush-2",
+    "name": "Brush 2",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/brush-2--26582"
+  },
+  {
+    "slug": "brush-3",
+    "name": "Brush 3",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/brush-3--26582"
+  },
+  {
+    "slug": "color-picker",
+    "name": "Color Picker",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/color-picker--26582"
+  },
+  {
+    "slug": "color-reset",
+    "name": "Color Reset",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/color-reset--26582"
+  },
+  {
+    "slug": "cut-scissor",
+    "name": "Cut Scissor",
+    "iconUrl": "https://www.streamlinehq.com/icons/download/cut-scissor--26582"
+  }
+]
