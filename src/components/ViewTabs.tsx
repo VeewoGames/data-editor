@@ -9,6 +9,7 @@ import {
   sharedViewIconGroups,
   sharedViewIconIds,
   sharedViewIconRegistry,
+  sharedViewGeneratedIconSearchText,
   sharedViewIconSearchAliases,
   sharedViewRecentIconStorageKey,
 } from "./icons";
@@ -66,6 +67,7 @@ export type ViewTabsSnapshot = {
 
 export type ViewTabReorderOperation =
   | { type: "top-level"; sourceViewId: string; targetItemId: string; placement: "before" | "after" }
+  | { type: "top-level-group"; sourceGroupId: string; targetItemId: string; placement: "before" | "after" }
   | { type: "group"; sourceViewId: string; groupId: string; placement: "before" | "after"; targetViewId: string }
   | { type: "group"; sourceViewId: string; groupId: string; placement: "append" };
 
@@ -135,7 +137,8 @@ export function ViewTabs({
     width: number;
     height: number;
     label: string;
-    icon: SharedViewIconId;
+    kind: "view" | "group";
+    icon: SharedViewIconId | null;
   }>(null);
   const dragShellRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const topLevelItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -144,7 +147,9 @@ export function ViewTabs({
   const groupRowRef = useRef<HTMLDivElement | null>(null);
   const pointerDragRef = useRef<null | {
     pointerId: number;
-    sourceViewId: string;
+    sourceKind: "view" | "group";
+    sourceViewId: string | null;
+    sourceGroupId: string | null;
     startX: number;
     startY: number;
     pointerOffsetX: number;
@@ -152,7 +157,8 @@ export function ViewTabs({
     shellWidth: number;
     shellHeight: number;
     label: string;
-    icon: SharedViewIconId;
+    iconKind: "view" | "group";
+    icon: SharedViewIconId | null;
     dragging: boolean;
   }>(null);
   const suppressClickRef = useRef(false);
@@ -333,6 +339,7 @@ export function ViewTabs({
     return sharedViewIconIds.filter((iconId) => {
       if (iconId === sharedViewDefaultIconId) return false;
       if (iconId.toLowerCase().includes(normalizedQuery)) return true;
+      if (sharedViewGeneratedIconSearchText[iconId]?.includes(normalizedQuery)) return true;
       const matchingGroup = sharedViewIconGroups.find((group) => (group.iconIds as readonly string[]).includes(iconId));
       if (matchingGroup?.label.toLowerCase().includes(normalizedQuery)) return true;
       const aliases = matchingGroup ? sharedViewIconSearchAliases[matchingGroup.id as keyof typeof sharedViewIconSearchAliases] : undefined;
@@ -405,23 +412,30 @@ export function ViewTabs({
     setOpenMenuGroupId(null);
   }
 
-  function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>, item: SharedViewLeafItem) {
+  function handlePointerDown(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    source: { kind: "view"; item: SharedViewLeafItem } | { kind: "group"; item: SharedViewGroupItem },
+  ) {
     if (viewTabsDisabled) return;
     if (event.button !== 0) return;
-    const shell = dragShellRefs.current[item.view.id];
+    const sourceId = source.kind === "view" ? source.item.view.id : source.item.id;
+    const shell = dragShellRefs.current[sourceId];
     if (!shell) return;
     const bounds = shell.getBoundingClientRect();
     pointerDragRef.current = {
       pointerId: event.pointerId,
-      sourceViewId: item.view.id,
+      sourceKind: source.kind,
+      sourceViewId: source.kind === "view" ? source.item.view.id : null,
+      sourceGroupId: source.kind === "group" ? source.item.id : null,
       startX: event.clientX,
       startY: event.clientY,
       pointerOffsetX: event.clientX - bounds.left,
       shellTop: bounds.top,
       shellWidth: bounds.width,
       shellHeight: bounds.height,
-      label: item.view.name,
-      icon: item.icon ?? "borderAll",
+      label: source.kind === "view" ? source.item.view.name : source.item.name,
+      iconKind: source.kind,
+      icon: source.kind === "view" ? (source.item.icon ?? "borderAll") : null,
       dragging: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -435,13 +449,14 @@ export function ViewTabs({
     if (!state.dragging) {
       if (Math.abs(deltaX) < 6 && Math.abs(deltaY) < 6) return;
       state.dragging = true;
-      setDraggingViewId(state.sourceViewId);
+      setDraggingViewId(state.sourceKind === "view" ? state.sourceViewId : state.sourceGroupId);
       setDragGhost({
         left: event.clientX - state.pointerOffsetX,
         top: state.shellTop,
         width: state.shellWidth,
         height: state.shellHeight,
         label: state.label,
+        kind: state.iconKind,
         icon: state.icon,
       });
       suppressClickRef.current = true;
@@ -454,7 +469,9 @@ export function ViewTabs({
     setDropTarget(resolveDropTarget({
       topLevelItems,
       expandedGroup: visibleExpandedGroup,
+      sourceKind: state.sourceKind,
       sourceViewId: state.sourceViewId,
+      sourceGroupId: state.sourceGroupId,
       pointerX: event.clientX,
       pointerY: event.clientY,
       topLevelRow: topLevelRowRef.current,
@@ -471,7 +488,9 @@ export function ViewTabs({
       const target = resolveDropTarget({
         topLevelItems,
         expandedGroup: visibleExpandedGroup,
+        sourceKind: state.sourceKind,
         sourceViewId: state.sourceViewId,
+        sourceGroupId: state.sourceGroupId,
         pointerX: event.clientX,
         pointerY: event.clientY,
         topLevelRow: topLevelRowRef.current,
@@ -508,10 +527,10 @@ export function ViewTabs({
     const pickerIconIds = resolvePickerIconIds();
     const active = view.id === activeViewId;
     const dropBefore = location.kind === "top-level"
-      ? dropTarget?.type === "top-level" && dropTarget.targetItemId === view.id && dropTarget.placement === "before"
+      ? (dropTarget?.type === "top-level" || dropTarget?.type === "top-level-group") && dropTarget.targetItemId === view.id && dropTarget.placement === "before"
       : dropTarget?.type === "group" && dropTarget.groupId === location.groupId && dropTarget.placement === "before" && dropTarget.targetViewId === view.id;
     const dropAfter = location.kind === "top-level"
-      ? dropTarget?.type === "top-level" && dropTarget.targetItemId === view.id && dropTarget.placement === "after"
+      ? (dropTarget?.type === "top-level" || dropTarget?.type === "top-level-group") && dropTarget.targetItemId === view.id && dropTarget.placement === "after"
       : dropTarget?.type === "group" && dropTarget.groupId === location.groupId && dropTarget.placement === "after" && dropTarget.targetViewId === view.id;
     return (
       <Popover.Root
@@ -563,7 +582,7 @@ export function ViewTabs({
                 setOpenMenuViewId(null);
                 onSelectView(view.id);
               }}
-              onPointerDown={(event) => handlePointerDown(event, item)}
+              onPointerDown={(event) => handlePointerDown(event, { kind: "view", item })}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
             >
@@ -703,8 +722,12 @@ export function ViewTabs({
               if (item.kind === "group") {
                 const active = activeGroupId === item.id;
                 const expanded = expandedGroupId === item.id;
-                const dropBefore = dropTarget?.type === "top-level" && dropTarget.targetItemId === item.id && dropTarget.placement === "before";
-                const dropAfter = dropTarget?.type === "top-level" && dropTarget.targetItemId === item.id && dropTarget.placement === "after";
+                const dropBefore = (dropTarget?.type === "top-level" || dropTarget?.type === "top-level-group")
+                  && dropTarget.targetItemId === item.id
+                  && dropTarget.placement === "before";
+                const dropAfter = (dropTarget?.type === "top-level" || dropTarget?.type === "top-level-group")
+                  && dropTarget.targetItemId === item.id
+                  && dropTarget.placement === "after";
                 const dropInto = dropTarget?.type === "group" && dropTarget.groupId === item.id;
                 return (
                   <Popover.Root
@@ -716,12 +739,16 @@ export function ViewTabs({
                   >
                     <Popover.Anchor asChild>
                       <div
-                        ref={(node) => { topLevelItemRefs.current[item.id] = node; }}
+                        ref={(node) => {
+                          dragShellRefs.current[item.id] = node;
+                          topLevelItemRefs.current[item.id] = node;
+                        }}
                         className={[
                           "view-tab-shell",
                           "view-tab-group-shell",
                           active ? "active" : "",
                           expanded ? "expanded" : "",
+                          draggingViewId === item.id ? "dragging" : "",
                           dropBefore ? "drop-before" : "",
                           dropAfter ? "drop-after" : "",
                           dropInto ? "drop-into" : "",
@@ -733,7 +760,14 @@ export function ViewTabs({
                           role="tab"
                           aria-selected={active}
                           disabled={viewTabsDisabled}
+                          onPointerDown={(event) => handlePointerDown(event, { kind: "group", item })}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={handlePointerUp}
                           onClick={() => {
+                            if (suppressClickRef.current) {
+                              suppressClickRef.current = false;
+                              return;
+                            }
                             if (viewTabsDisabled) return;
                             if (active) {
                               seedGroupRenameDraft(item.id, item.name);
@@ -1002,7 +1036,8 @@ export function ViewTabs({
         >
           <span className="view-tab-icon" data-view-icon={dragGhost.icon}>
             {(() => {
-              const DragGhostIcon = sharedViewIconRegistry[dragGhost.icon];
+              if (dragGhost.kind === "group") return <icons.folder size={17} />;
+              const DragGhostIcon = sharedViewIconRegistry[dragGhost.icon ?? sharedViewDefaultIconId];
               return <DragGhostIcon size={17} />;
             })()}
           </span>
@@ -1016,7 +1051,9 @@ export function ViewTabs({
 function resolveDropTarget({
   topLevelItems,
   expandedGroup,
+  sourceKind,
   sourceViewId,
+  sourceGroupId,
   pointerX,
   pointerY,
   topLevelRow,
@@ -1026,7 +1063,9 @@ function resolveDropTarget({
 }: {
   topLevelItems: ViewTabsSnapshot["topLevelItems"];
   expandedGroup: Extract<ViewTabsSnapshot["topLevelItems"][number], { kind: "group" }> | null;
-  sourceViewId: string;
+  sourceKind: "view" | "group";
+  sourceViewId: string | null;
+  sourceGroupId: string | null;
   pointerX: number;
   pointerY: number;
   topLevelRow: HTMLDivElement | null;
@@ -1034,9 +1073,11 @@ function resolveDropTarget({
   groupRow: HTMLDivElement | null;
   groupRefs: Record<string, HTMLDivElement | null>;
 }) {
-  const groupTarget = resolveGroupDropTarget(expandedGroup, sourceViewId, pointerX, pointerY, groupRow, groupRefs);
+  const groupTarget = sourceKind === "view" && sourceViewId
+    ? resolveGroupDropTarget(expandedGroup, sourceViewId, pointerX, pointerY, groupRow, groupRefs)
+    : null;
   if (groupTarget) return groupTarget;
-  return resolveTopLevelDropTarget(topLevelItems, sourceViewId, pointerX, pointerY, topLevelRow, topLevelRefs);
+  return resolveTopLevelDropTarget(topLevelItems, sourceKind, sourceViewId, sourceGroupId, pointerX, pointerY, topLevelRow, topLevelRefs);
 }
 
 function resolveGroupDropTarget(
@@ -1070,7 +1111,9 @@ function normalizeGroupTabFilter(value: string) {
 
 function resolveTopLevelDropTarget(
   topLevelItems: ViewTabsSnapshot["topLevelItems"],
-  sourceViewId: string,
+  sourceKind: "view" | "group",
+  sourceViewId: string | null,
+  sourceGroupId: string | null,
   pointerX: number,
   pointerY: number,
   topLevelRow: HTMLDivElement | null,
@@ -1079,12 +1122,16 @@ function resolveTopLevelDropTarget(
   if (!topLevelRow) return null;
   const rowBounds = topLevelRow.getBoundingClientRect();
   if (pointerY < rowBounds.top || pointerY > rowBounds.bottom) return null;
-  const candidateItems = topLevelItems.filter((item) => item.kind === "group" || item.view.id !== sourceViewId);
+  const candidateItems = topLevelItems.filter((item) => (
+    sourceKind === "group"
+      ? !(item.kind === "group" && item.id === sourceGroupId)
+      : item.kind === "group" || item.view.id !== sourceViewId
+  ));
   for (const item of candidateItems) {
     const itemId = item.kind === "group" ? item.id : item.view.id;
     const bounds = topLevelRefs[itemId]?.getBoundingClientRect();
     if (!bounds) continue;
-    if (item.kind === "group") {
+    if (sourceKind === "view" && sourceViewId && item.kind === "group") {
       const leftThreshold = bounds.left + bounds.width * 0.25;
       const rightThreshold = bounds.right - bounds.width * 0.25;
       if (pointerX >= leftThreshold && pointerX <= rightThreshold) {
@@ -1092,18 +1139,37 @@ function resolveTopLevelDropTarget(
       }
     }
     if (pointerX < bounds.left + bounds.width / 2) {
-      return { type: "top-level", sourceViewId, targetItemId: itemId, placement: "before" as const };
+      return sourceKind === "group" && sourceGroupId
+        ? { type: "top-level-group", sourceGroupId, targetItemId: itemId, placement: "before" as const }
+        : sourceViewId
+          ? { type: "top-level", sourceViewId, targetItemId: itemId, placement: "before" as const }
+          : null;
     }
     if (pointerX <= bounds.right) {
-      return { type: "top-level", sourceViewId, targetItemId: itemId, placement: "after" as const };
+      return sourceKind === "group" && sourceGroupId
+        ? { type: "top-level-group", sourceGroupId, targetItemId: itemId, placement: "after" as const }
+        : sourceViewId
+          ? { type: "top-level", sourceViewId, targetItemId: itemId, placement: "after" as const }
+          : null;
     }
   }
   const lastItem = candidateItems.at(-1);
   if (!lastItem) return null;
+  const targetItemId = lastItem.kind === "group" ? lastItem.id : lastItem.view.id;
+  if (sourceKind === "group") {
+    if (!sourceGroupId) return null;
+    return {
+      type: "top-level-group",
+      sourceGroupId,
+      targetItemId,
+      placement: "after" as const,
+    };
+  }
+  if (!sourceViewId) return null;
   return {
     type: "top-level",
     sourceViewId,
-    targetItemId: lastItem.kind === "group" ? lastItem.id : lastItem.view.id,
+    targetItemId,
     placement: "after" as const,
   };
 }

@@ -259,6 +259,15 @@ function resolveTopLevelItems(baseItems, draftState, collectionKey) {
 
 function applyStructureOperation(topLevelItems, operation) {
   if (!operation || typeof operation !== "object") return null;
+  if (operation.type === "top-level-group") {
+    const sourceGroupId = typeof operation.sourceGroupId === "string" ? operation.sourceGroupId.trim() : "";
+    const targetItemId = typeof operation.targetItemId === "string" ? operation.targetItemId.trim() : "";
+    const placement = operation.placement === "before" ? "before" : operation.placement === "after" ? "after" : null;
+    if (!sourceGroupId || !targetItemId || !placement) return null;
+    const extractedGroup = extractGroupFromResolvedItems(topLevelItems, sourceGroupId);
+    if (!extractedGroup) return null;
+    return insertResolvedGroupAtTopLevel(extractedGroup.items, extractedGroup.group, targetItemId, placement);
+  }
   const sourceViewId = typeof operation.sourceViewId === "string" ? operation.sourceViewId.trim() : "";
   if (!sourceViewId) return null;
   const extracted = extractViewFromResolvedItems(topLevelItems, sourceViewId);
@@ -462,6 +471,42 @@ function insertResolvedViewIntoGroup(items, view, groupId, placement, targetView
       }
     }
     nextItems.push({ kind: "group", id: item.id, name: item.name, views: nextViews });
+  }
+  if (!inserted) return null;
+  return nextItems;
+}
+
+function extractGroupFromResolvedItems(items, sourceGroupId) {
+  const nextItems = [];
+  let sourceGroup = null;
+  for (const item of items) {
+    if (item.kind === "group" && item.id === sourceGroupId && !sourceGroup) {
+      sourceGroup = { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) };
+      continue;
+    }
+    nextItems.push(item.kind === "group"
+      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) }
+      : cloneLeaf(item));
+  }
+  return sourceGroup ? { items: nextItems, group: sourceGroup } : null;
+}
+
+function insertResolvedGroupAtTopLevel(items, group, targetItemId, placement) {
+  const nextItems = [];
+  let inserted = false;
+  for (const item of items) {
+    const itemId = item.kind === "group" ? item.id : item.view.id;
+    if (itemId === targetItemId && placement === "before" && !inserted) {
+      nextItems.push({ kind: "group", id: group.id, name: group.name, views: group.views.map((view) => cloneLeaf(view)) });
+      inserted = true;
+    }
+    nextItems.push(item.kind === "group"
+      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) }
+      : cloneLeaf(item));
+    if (itemId === targetItemId && placement === "after" && !inserted) {
+      nextItems.push({ kind: "group", id: group.id, name: group.name, views: group.views.map((view) => cloneLeaf(view)) });
+      inserted = true;
+    }
   }
   if (!inserted) return null;
   return nextItems;

@@ -625,3 +625,42 @@ test("draftSharedViewStructure reorders within the same group", () => {
     ],
   });
 });
+
+test("draftSharedViewStructure reorders a top-level group before another top-level item", () => {
+  const result = draftSharedViewStructure({
+    draftState: {
+      lastActiveViews: {},
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      structureDrafts: {},
+    },
+    collectionKey: "data/runes.json:$",
+    topLevelItems: [
+      { kind: "view", view: { ...allView, id: "all", name: "全部" } },
+      {
+        kind: "group",
+        id: "combat",
+        name: "战斗",
+        views: [
+          { ...allView, id: "damage", name: "伤害" },
+          { ...allView, id: "utility", name: "辅助" },
+        ],
+      },
+      { kind: "view", view: { ...allView, id: "support", name: "支援" } },
+    ],
+    operation: {
+      type: "top-level-group",
+      sourceGroupId: "combat",
+      targetItemId: "support",
+      placement: "before",
+    },
+  });
+
+  assert.deepEqual(result.structureDrafts["data/runes.json:$"], {
+    items: [
+      { kind: "view", viewId: "all" },
+      { kind: "group", groupId: "combat", name: "战斗", viewIds: ["damage", "utility"] },
+      { kind: "view", viewId: "support" },
+    ],
+  });
+});
