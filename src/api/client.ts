@@ -103,6 +103,7 @@ export type UserViewLayoutState = {
   order: string[];
   detailOrder: string[];
   widths: Record<string, number>;
+  overrides?: Partial<Record<"hidden" | "wrapped" | "order" | "detailOrder", boolean>>;
 };
 export type SidebarTreePreferences = {
   childOrderByParent: Record<string, string[]>;

@@ -127,23 +127,38 @@ function deriveLegacyCollections(viewLayouts, lastActiveViews) {
 }
 
 function normalizeLayoutState(value) {
-  return {
+  const layout = {
     hidden: normalizeStringArray(value.hidden),
     wrapped: normalizeStringArray(value.wrapped),
     order: normalizeStringArray(value.order),
     detailOrder: normalizeStringArray(value.detailOrder),
     widths: normalizeNumberRecord(value.widths),
   };
+  const overrides = normalizeLayoutOverrides(value.overrides);
+  if (Object.keys(overrides).length) layout.overrides = overrides;
+  return layout;
 }
 
 function cloneLayoutState(value) {
-  return {
+  const layout = {
     hidden: [...value.hidden],
     wrapped: [...value.wrapped],
     order: [...value.order],
     detailOrder: [...value.detailOrder],
     widths: { ...value.widths },
   };
+  const overrides = normalizeLayoutOverrides(value.overrides);
+  if (Object.keys(overrides).length) layout.overrides = overrides;
+  return layout;
+}
+
+function normalizeLayoutOverrides(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const result = {};
+  for (const key of ["hidden", "wrapped", "order", "detailOrder"]) {
+    if (value[key] === true) result[key] = true;
+  }
+  return result;
 }
 
 function normalizeAppearance(value) {

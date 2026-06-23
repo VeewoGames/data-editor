@@ -346,6 +346,67 @@ test("mutateProfileViewLayoutState preserves inherited wrapped fields when editi
   }).wrapped, ["description", "notes"]);
 });
 
+test("mutateProfileViewLayoutState can clear inherited wrapped fields in a specific view", () => {
+  const profile = {
+    sidebarWidth: null,
+    detailPanelWidth: 405,
+    detailDocumentPanelOpen: false,
+    detailDocumentPanelWidth: 388,
+    fileOrder: ["data/traits.json"],
+    sidebarTree: { childOrderByParent: {}, expandedNodeIds: [] },
+    lastActiveViews: { "data/traits.json:traits": "tag-evasion" },
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    viewLayouts: {
+      "data/traits.json:traits": {
+        all: {
+          hidden: ["id"],
+          wrapped: ["description"],
+          order: ["use", "dev_status", "budget_left"],
+          detailOrder: ["trait_name", "description"],
+          widths: { use: 44, trait_name: 220, description: 360 },
+        },
+        "tag-evasion": {
+          hidden: [],
+          wrapped: [],
+          order: [],
+          detailOrder: [],
+          widths: { trait_name: 260 },
+        },
+      },
+    },
+    collections: {
+      "data/traits.json:traits": {
+        hidden: ["id"],
+        wrapped: ["description"],
+        order: ["use", "dev_status", "budget_left"],
+        detailOrder: ["trait_name", "description"],
+        widths: { use: 44, trait_name: 260, description: 360 },
+      },
+    },
+  };
+
+  const nextProfile = mutateProfileViewLayoutState({
+    profile,
+    path: "data/traits.json",
+    collectionPath: "traits",
+    viewId: "tag-evasion",
+    mutator: (draft) => {
+      draft.wrapped = draft.wrapped.filter((field) => field !== "description");
+    },
+  });
+
+  assert.deepEqual(nextProfile.viewLayouts["data/traits.json:traits"]["tag-evasion"].wrapped, []);
+  assert.deepEqual(readViewLayoutState({
+    mode: "profile",
+    path: "data/traits.json",
+    collectionPath: "traits",
+    viewId: "tag-evasion",
+    localState: emptyLocalViewState(),
+    profile: nextProfile,
+  }).wrapped, []);
+});
+
 test("mutateProfileViewLayoutState writes detailOrder into the collection-global all layout", () => {
   const nextProfile = mutateProfileViewLayoutState({
     profile: {

@@ -2414,6 +2414,7 @@ export function App() {
             order: [...value.order],
             detailOrder: [...value.detailOrder],
             widths: { ...value.widths },
+            ...(value.overrides ? { overrides: cloneLayoutOverrides(value.overrides) } : {}),
           },
         ])),
       ])),
@@ -5509,11 +5510,21 @@ function normalizeUserViewProfile(profile: Partial<UserViewProfile> | null | und
           order: [...(value?.order ?? [])],
           detailOrder: [...(value?.detailOrder ?? [])],
           widths: { ...(value?.widths ?? {}) },
+          ...(value?.overrides ? { overrides: cloneLayoutOverrides(value.overrides) } : {}),
         },
       ])),
     ])),
     collections: { ...(profile.collections ?? {}) },
   };
+}
+
+function cloneLayoutOverrides(value?: UserViewLayoutState["overrides"]) {
+  if (!value) return undefined;
+  const next: UserViewLayoutState["overrides"] = {};
+  for (const key of ["hidden", "wrapped", "order", "detailOrder"] as const) {
+    if (value[key] === true) next[key] = true;
+  }
+  return Object.keys(next).length ? next : undefined;
 }
 
 function resolveUiPreferences(appearance?: UserViewProfile["appearance"]) {

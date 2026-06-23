@@ -64,13 +64,16 @@ const sidebarTreePrefsStorageKey = "data-editor:__sidebar-tree-prefs";
 const sharedViewDraftsStorageKey = "data-editor:shared-view-drafts";
 
 export function cloneCollectionViewState(state) {
-  return {
+  const next = {
     hidden: [...(state?.hidden ?? [])],
     wrapped: [...(state?.wrapped ?? [])],
     order: [...(state?.order ?? [])],
     detailOrder: [...(state?.detailOrder ?? [])],
     widths: { ...(state?.widths ?? {}) },
   };
+  const overrides = normalizeLayoutOverrides(state?.overrides);
+  if (Object.keys(overrides).length) next.overrides = overrides;
+  return next;
 }
 
 export const cloneViewLayoutState = cloneCollectionViewState;
@@ -117,12 +120,16 @@ function mergeCollectionViewState(baseState, overrideState) {
   if (!overrideState) return base;
   const override = cloneCollectionViewState(overrideState);
   return {
-    hidden: override.hidden.length ? override.hidden : base.hidden,
-    wrapped: override.wrapped.length ? override.wrapped : base.wrapped,
-    order: override.order.length ? override.order : base.order,
-    detailOrder: override.detailOrder.length ? override.detailOrder : base.detailOrder,
+    hidden: hasLayoutOverride(override, "hidden") ? override.hidden : base.hidden,
+    wrapped: hasLayoutOverride(override, "wrapped") ? override.wrapped : base.wrapped,
+    order: hasLayoutOverride(override, "order") ? override.order : base.order,
+    detailOrder: hasLayoutOverride(override, "detailOrder") ? override.detailOrder : base.detailOrder,
     widths: { ...base.widths, ...override.widths },
   };
+}
+
+function hasLayoutOverride(layout, key) {
+  return layout?.overrides?.[key] === true || (layout?.[key]?.length ?? 0) > 0;
 }
 
 export function readLocalViewState({ path, collectionPath, viewId, localStorage }) {
@@ -390,6 +397,13 @@ export function mutateProfileViewLayoutState({
   const nextDetailOrder = normalizeStringArray(nextLayout.detailOrder);
   nextProfile.viewLayouts[collectionKey] ??= {};
   const nextSpecificLayout = cloneCollectionViewState(nextLayout);
+  if (normalizedViewId !== "all") {
+    const baseLayout = nextProfile.viewLayouts[collectionKey].all
+      ?? nextProfile.collections?.[collectionKey]
+      ?? emptyCollectionViewState();
+    nextSpecificLayout.overrides = buildLayoutOverrides(baseLayout, nextSpecificLayout, previousSpecificLayout.overrides);
+    if (Object.keys(nextSpecificLayout.overrides).length === 0) delete nextSpecificLayout.overrides;
+  }
   if (normalizedViewId !== "all") nextSpecificLayout.detailOrder = previousSpecificLayout.detailOrder;
   nextProfile.viewLayouts[collectionKey][normalizedViewId] = nextSpecificLayout;
   if (normalizedViewId === "all" || !sameStringArray(previousGlobalDetailOrder, nextDetailOrder)) {
@@ -467,6 +481,25 @@ function cloneNestedViewLayouts(value) {
       ),
     ]),
   );
+}
+
+function buildLayoutOverrides(baseLayout, nextLayout, previousOverrides = {}) {
+  const overrides = normalizeLayoutOverrides(previousOverrides);
+  for (const key of ["hidden", "wrapped", "order", "detailOrder"]) {
+    if (!sameStringArray(baseLayout?.[key] ?? [], nextLayout?.[key] ?? [])) {
+      overrides[key] = true;
+    }
+  }
+  return overrides;
+}
+
+function normalizeLayoutOverrides(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const result = {};
+  for (const key of ["hidden", "wrapped", "order", "detailOrder"]) {
+    if (value[key] === true) result[key] = true;
+  }
+  return result;
 }
 
 function sameStringArray(left, right) {
