@@ -6818,11 +6818,112 @@ test("detail panel multi-select removal keeps the popover ready for continued in
   });
   await page.waitForTimeout(100);
   await outputTagsBlock.locator(".multi-select-trigger").click();
-  await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(1);
-  await page.locator(".multi-select-popover .selected-chip").first().click();
-  await expect(page.locator(".multi-select-popover .selected-chip")).toHaveCount(0);
+  const selectedChips = page.locator(".multi-select-popover .selected-chip");
+  const initialSelectedCount = await selectedChips.count();
+  expect(initialSelectedCount).toBeGreaterThan(0);
+  await selectedChips.first().click();
+  await expect(selectedChips).toHaveCount(initialSelectedCount - 1);
   await expect(page.locator(".multi-select-popover")).toBeVisible();
   await expect(page.locator(".multi-select-input")).toBeFocused();
+});
+
+test("detail panel multi-select popover stays inside the viewport near the lower edge", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const outputTagsBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "output_tags" }),
+  });
+  const trigger = outputTagsBlock.locator(".multi-select-trigger");
+  await expect(trigger).toBeVisible();
+
+  await page.evaluate(() => {
+    const panel = document.querySelector(".detail-panel.primary") as HTMLElement | null;
+    panel?.scrollTo({ top: panel.scrollHeight });
+  });
+  await page.waitForTimeout(100);
+  await trigger.click();
+
+  const popover = page.locator(".multi-select-popover.option-field-popover-shell");
+  await expect(popover).toBeVisible();
+
+  const viewportHeight = await page.evaluate(() => window.innerHeight);
+  const triggerBox = await trigger.boundingBox();
+  const popoverBox = await popover.boundingBox();
+  expect(triggerBox).not.toBeNull();
+  expect(popoverBox).not.toBeNull();
+  expect(popoverBox!.y).toBeGreaterThanOrEqual(12);
+  expect(popoverBox!.y + popoverBox!.height).toBeLessThanOrEqual(viewportHeight - 12);
+  expect(popoverBox!.y).toBeLessThan(triggerBox!.y);
+});
+
+test("detail panel multi-select popover keeps the search input visible in extreme bottom-edge cases", async ({ page }) => {
+  await page.setViewportSize({ width: 760, height: 520 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const outputTagsBlock = page.locator(".detail-panel.primary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "output_tags" }),
+  });
+  const trigger = outputTagsBlock.locator(".multi-select-trigger");
+  await expect(trigger).toBeVisible();
+
+  await page.evaluate(() => {
+    const panel = document.querySelector(".detail-panel.primary") as HTMLElement | null;
+    panel?.scrollTo({ top: panel.scrollHeight });
+  });
+  await page.waitForTimeout(100);
+  await trigger.click();
+
+  const popover = page.locator(".multi-select-popover.option-field-popover-shell");
+  const input = popover.locator(".multi-select-input");
+  await expect(popover).toBeVisible();
+  await expect(input).toBeVisible();
+
+  const viewportHeight = await page.evaluate(() => window.innerHeight);
+  const inputBox = await input.boundingBox();
+  expect(inputBox).not.toBeNull();
+  expect(inputBox!.y).toBeGreaterThanOrEqual(12);
+  expect(inputBox!.y + inputBox!.height).toBeLessThanOrEqual(viewportHeight - 12);
+});
+
+test("table multi-select popover keeps the search input visible in extreme bottom-edge cases", async ({ page }) => {
+  await page.setViewportSize({ width: 760, height: 520 });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/keywords.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  const devTagsCell = tableRow(page, 0).locator('td[data-column-field="dev_tags"] .multi-select-trigger').first();
+  await devTagsCell.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight }));
+  await page.waitForTimeout(100);
+  await devTagsCell.click();
+
+  const popover = page.locator(".multi-select-popover.option-field-popover-shell");
+  const input = popover.locator(".multi-select-input");
+  await expect(popover).toBeVisible();
+  await expect(input).toBeVisible();
+
+  const viewportHeight = await page.evaluate(() => window.innerHeight);
+  const inputBox = await input.boundingBox();
+  expect(inputBox).not.toBeNull();
+  expect(inputBox!.y).toBeGreaterThanOrEqual(12);
+  expect(inputBox!.y + inputBox!.height).toBeLessThanOrEqual(viewportHeight - 12);
 });
 
 test("detail panel textarea height follows actual text content", async ({ page }) => {

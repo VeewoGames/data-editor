@@ -120,6 +120,11 @@ const colorChoiceGroups = [
   { key: "dark", label: "深色", choices: darkColorChoices },
 ] as const;
 
+const popoverCollisionPadding = 12;
+const popoverSideOffset = 6;
+const detailPopoverPreferredHeight = 380;
+const zeroViewportOffset = { x: 0, y: 0 };
+
 export function OptionFieldEditor({
   cellId,
   mode,
@@ -132,12 +137,15 @@ export function OptionFieldEditor({
   onOpenStateChange,
 }: OptionFieldEditorProps) {
   const [open, setOpen] = useState(false);
+  const [popoverSide, setPopoverSide] = useState<"top" | "bottom">("bottom");
+  const [popoverViewportOffset, setPopoverViewportOffset] = useState(zeroViewportOffset);
   const [draft, setDraft] = useState("");
   const [selectedValues, setSelectedValues] = useState<Array<string | number>>(() => buildDraftSession(value, options).selectedValues);
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [localOptions, setLocalOptions] = useState<DraftOptionView[]>(() => buildDraftSession(value, options).options);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedValuesRef = useRef<Array<string | number>>(selectedValues);
   const localOptionsRef = useRef<DraftOptionView[]>(localOptions);
   const optionRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -280,6 +288,67 @@ export function OptionFieldEditor({
     [orderedOptionValues, selectedValues],
   );
 
+  function resolvePopoverSide(contentHeight?: number) {
+    if (surface !== "detail") return "bottom";
+    const trigger = triggerRef.current;
+    if (!trigger) return "bottom";
+    const triggerRect = trigger.getBoundingClientRect();
+    const availableAbove = triggerRect.top - popoverCollisionPadding - popoverSideOffset;
+    const availableBelow = window.innerHeight - triggerRect.bottom - popoverCollisionPadding - popoverSideOffset;
+    const preferredHeight = contentHeight ?? detailPopoverPreferredHeight;
+    const midpoint = triggerRect.top + (triggerRect.height / 2);
+    if (availableAbove >= preferredHeight && availableBelow >= preferredHeight) {
+      return midpoint >= window.innerHeight / 2 ? "top" : "bottom";
+    }
+    if (availableAbove >= preferredHeight * 0.6 && midpoint >= window.innerHeight / 2) return "top";
+    if (availableBelow >= preferredHeight * 0.6 && midpoint < window.innerHeight / 2) return "bottom";
+    if (availableBelow >= preferredHeight) return "bottom";
+    if (availableAbove >= preferredHeight) return "top";
+    return availableAbove > availableBelow ? "top" : "bottom";
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const syncPlacement = () => {
+      const triggerRect = triggerRef.current?.getBoundingClientRect();
+      const nextSide = resolvePopoverSide(popoverContentRef.current?.getBoundingClientRect().height);
+      setPopoverSide((currentSide) => currentSide === nextSide ? currentSide : nextSide);
+      const contentRect = popoverContentRef.current?.getBoundingClientRect();
+      if (!contentRect) return;
+      let nextOffsetX = 0;
+      let desiredTop = contentRect.top;
+      if (contentRect.left < popoverCollisionPadding) {
+        nextOffsetX = popoverCollisionPadding - contentRect.left;
+      } else if (contentRect.right > window.innerWidth - popoverCollisionPadding) {
+        nextOffsetX = (window.innerWidth - popoverCollisionPadding) - contentRect.right;
+      }
+      if (contentRect.height < window.innerHeight - (popoverCollisionPadding * 2)) {
+        const highestAllowedTop = window.innerHeight - popoverCollisionPadding - contentRect.height;
+        desiredTop = Math.min(Math.max(desiredTop, popoverCollisionPadding), highestAllowedTop);
+        if (triggerRect && triggerRect.top > window.innerHeight * 0.45) {
+          const detachedTop = Math.max(
+            popoverCollisionPadding,
+            triggerRect.top - popoverSideOffset - contentRect.height,
+          );
+          desiredTop = Math.min(desiredTop, detachedTop);
+        }
+      } else if (contentRect.top < popoverCollisionPadding) {
+        desiredTop = popoverCollisionPadding;
+      } else if (contentRect.bottom > window.innerHeight - popoverCollisionPadding) {
+        desiredTop = (window.innerHeight - popoverCollisionPadding) - contentRect.height;
+      }
+      const nextOffsetY = desiredTop - contentRect.top;
+      setPopoverViewportOffset((currentOffset) => {
+        if (currentOffset.x === nextOffsetX && currentOffset.y === nextOffsetY) return currentOffset;
+        return { x: nextOffsetX, y: nextOffsetY };
+      });
+    };
+    setPopoverViewportOffset(zeroViewportOffset);
+    syncPlacement();
+    const frame = requestAnimationFrame(syncPlacement);
+    return () => cancelAnimationFrame(frame);
+  }, [draft, editing?.value, localOptions.length, open, orderedSelectedValues.length, surface]);
+
   function resetSession(nextSession: DraftSessionSnapshot) {
     initialSessionRef.current = nextSession;
     selectedValuesRef.current = nextSession.selectedValues;
@@ -406,6 +475,8 @@ export function OptionFieldEditor({
       settledCloseRef.current = false;
       sessionCommitRef.current = onCommitDraft;
       resetSession(buildDraftSession(value, options));
+      setPopoverSide(resolvePopoverSide());
+      setPopoverViewportOffset(zeroViewportOffset);
       setOpen(true);
       return;
     }
@@ -433,6 +504,7 @@ export function OptionFieldEditor({
           data-cell-role={surface === "table" ? "token-trigger" : "detail-trigger"}
           data-wrap-mode={wrapped && surface === "table" ? "wrap" : "truncate"}
           onClick={(event) => event.stopPropagation()}
+          ref={triggerRef}
           type="button"
         >
           <div className="chips-cell">
@@ -453,7 +525,7 @@ export function OptionFieldEditor({
         <Popover.Content
           className="multi-select-popover option-field-popover-shell"
           align="start"
-          collisionPadding={12}
+          collisionPadding={popoverCollisionPadding}
           onEscapeKeyDown={() => {
             closeIntentRef.current = "cancel";
           }}
@@ -466,7 +538,10 @@ export function OptionFieldEditor({
             focusSearchInputOnOpen();
           }}
           ref={popoverContentRef}
-          sideOffset={6}
+          side={popoverSide}
+          sideOffset={popoverSideOffset}
+          style={{ transform: `translate(${popoverViewportOffset.x}px, ${popoverViewportOffset.y}px)` }}
+          sticky="always"
         >
           <div className="multi-select-selected option-field-popover-section option-field-selected-surface">
             {orderedSelectedValues.map((item, index) => {

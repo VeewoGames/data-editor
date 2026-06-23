@@ -3175,6 +3175,8 @@ th:hover .column-resize-handle,
   box-shadow: 0 18px 40px rgba(15, 15, 15, 0.14);
   display: grid;
   gap: 10px;
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
   padding: 14px;
   width: min(420px, calc(100vw - 32px));
   z-index: 40;
@@ -3182,6 +3184,7 @@ th:hover .column-resize-handle,
 
 .option-field-popover-shell {
   gap: 0;
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 320px;
   position: relative;
 }
