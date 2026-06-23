@@ -1,6 +1,7 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
 import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
+import type { StreamlineSharedViewIconId } from "../generated/streamline-shared-view-icons.mjs";
 
 export const recoverableRequestEventName = "data-editor:recoverable-request";
 const defaultRecoveryBridgePort = 8791;
@@ -152,6 +153,7 @@ export type SharedViewStructureDraft = {
 };
 export type SharedViewIconId =
   | "borderAll"
+  | StreamlineSharedViewIconId
   | "folder"
   | "folders"
   | "folderOpen"

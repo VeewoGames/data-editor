@@ -437,6 +437,35 @@ test("updateSharedViewIconConfig updates only the target shared view icon", () =
   assert.equal(next.collections["data/runes.json:$"].items[1].views[1].icon, "filter");
 });
 
+test("saveSharedViewDraftsToConfig keeps top-level icons when applying a flat order draft", () => {
+  const result = viewState.saveSharedViewDraftsToConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        items: [
+          { kind: "view", icon: "streamlineMicroSolidBell", view: { ...allView, id: "all", name: "All" } },
+          { kind: "view", icon: "streamlineMicroLineLeaf26423", view: { ...allView, id: "damage", name: "Damage" } },
+          { kind: "view", icon: "json", view: { ...allView, id: "utility", name: "Utility" } },
+        ],
+      },
+    },
+  }, {
+    lastActiveViews: {},
+    viewDrafts: {},
+    viewOrderDrafts: {
+      "data/runes.json:$": ["utility", "damage", "all"],
+    },
+    structureDrafts: {},
+  }, "data/runes.json:$", "all");
+
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items.map((item) => item.icon), [
+    "json",
+    "streamlineMicroLineLeaf26423",
+    "streamlineMicroSolidBell",
+  ]);
+});
+
 test("deleteSharedViewConfig refuses last view and selects adjacent replacement", () => {
   assert.equal(typeof viewState.deleteSharedViewConfig, "function");
   const config = {
@@ -848,6 +877,7 @@ test("stable text editing structure is wired", async () => {
   assert.match(tableColumnsSource, /const textEditingActive = runtime\.activeTextCellId === cellId;/);
   assert.match(cellRendererSource, /TextCellSurface/);
   assert.match(cellRendererSource, /displayType === "Text"[\s\S]+textEditable/);
+  assert.match(cellRendererSource, /displayType === "Number"[\s\S]+displayType="Number"/);
   const tableTextCellEditorSource = await readFile(new URL("../src/editing/TableTextCellEditor.tsx", import.meta.url), "utf8");
   const handleKeyDownSection = tableTextCellEditorSource.slice(
     tableTextCellEditorSource.indexOf("function handleKeyDown"),
@@ -855,6 +885,8 @@ test("stable text editing structure is wired", async () => {
   );
   assert.match(textCellSurfaceSource, /data-cell-role="text-editor-overlay"/);
   assert.match(textCellSurfaceSource, /editable-active/);
+  assert.match(textCellSurfaceSource, /data-display-type=\{displayType\.toLowerCase\(\)\}/);
+  assert.match(textCellSurfaceSource, /data-zero-value=\{isZeroValue \? "true" : "false"\}/);
   assert.match(textCellSurfaceSource, /onActivate\(cellId\)/);
   assert.doesNotMatch(textCellSurfaceSource, /title=\{textValue\}/);
   assert.doesNotMatch(cellRendererSource, /data-cell-role="content"[\s\S]+title=\{textValue\}/);
@@ -871,6 +903,9 @@ test("stable text editing structure is wired", async () => {
   assert.match(viewTabsSource, /onToggleTableTextEditMode/);
   assert.match(viewTabsSource, /title="编辑文本单元格"/);
   assert.match(viewTabsSource, /aria-pressed=\{tableTextEditMode\}/);
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(stylesSource, /\.text-cell-display-layer\[data-display-type="number"\]\[data-zero-value="true"\]\s+span\s*\{/);
+  assert.match(stylesSource, /opacity:\s*0\.2;/);
 });
 
 test("table cell frame structure is centralized in table-columns", async () => {
@@ -955,6 +990,7 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   const toolbarSource = await readFile(new URL("../src/components/Toolbar.tsx", import.meta.url), "utf8");
   const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
   const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 
   assert.match(viewTabsSource, /onToggleFilterBar/);
   assert.match(viewTabsSource, /onToggleTableTextEditMode/);
@@ -1045,6 +1081,19 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
 
   assert.match(toolbarSource, /<ExpandableSearch className="search-box"/);
   assert.match(toolbarSource, /placeholder="搜索当前表格"/);
+  assert.match(toolbarSource, /onRestartServer: \(\) => void;/);
+  assert.match(toolbarSource, /aria-label="重启服务"/);
+  assert.match(toolbarSource, /title="重启服务"/);
+  assert.match(toolbarSource, /重启中\.\.\./);
+  assert.match(toolbarSource, /<icons\.refresh size=\{16\} \/>/);
+  assert.match(toolbarSource, /className=\{snapshot\.restarting \? "ghost-button toolbar-restart-button" : "ghost-button icon-button toolbar-restart-button"\}/);
+  assert.match(toolbarSource, /<icons\.reset size=\{16\} \/>/);
+  assert.match(appSource, /onQueryChange=\{handleToolbarQueryChange\}/);
+  assert.match(appSource, /updatePageContextQuery\(window\.localStorage, activeProjectId,/);
+  assert.doesNotMatch(appSource, /onQueryChange=\{\(value\) => updateActiveViewDraft\(\{ query: value \}\)\}/);
+  assert.match(appSource, /const \[restarting, setRestarting\] = useState\(false\);/);
+  assert.match(appSource, /async function handleRestartServer\(\)/);
+  assert.match(appSource, /await shutdownServer\(\);[\s\S]*await reopenEditor\(bridgePortRef\.current\);/);
   const expandableSearchSource = await readFile(new URL("../src/components/ExpandableSearch.tsx", import.meta.url), "utf8");
   assert.match(expandableSearchSource, /className="expandable-search-clear"/);
   assert.match(expandableSearchSource, /aria-label="清空搜索"/);
@@ -1077,8 +1126,14 @@ test("shared view icon metadata exposes default icon, filled whitelist groups, a
   assert.match(iconsSource, /label:\s*"生活"/);
   assert.match(iconsSource, /label:\s*"战斗"/);
   assert.match(iconsSource, /label:\s*"装备"/);
+  assert.match(iconsSource, /label:\s*"测试"/);
   assert.match(iconsSource, /label:\s*"其他"/);
   assert.match(iconsSource, /id:\s*"common"[\s\S]*iconIds:\s*\[[\s\S]*"borderAll"/);
+  assert.match(iconsSource, /id:\s*"test"[\s\S]*iconIds:\s*\[[\s\S]*"streamlineMicroSolidAccessibility"/);
+  assert.match(iconsSource, /streamlineSharedViewIcons/);
+  assert.match(iconsSource, /streamlineSharedViewIconGroups/);
+  assert.match(iconsSource, /streamlineMicroSolidSecurityShield/);
+  assert.match(iconsSource, /streamlineMicroSolidKnife2/);
   assert.match(iconsSource, /Object\.keys\(sharedViewIconRegistry\)/);
 
   assert.match(clientSource, /export type SharedViewIconId =/);
@@ -1087,6 +1142,8 @@ test("shared view icon metadata exposes default icon, filled whitelist groups, a
   assert.match(clientSource, /"gamepad"/);
   assert.match(clientSource, /"shield"/);
   assert.match(clientSource, /"trophy"/);
+  assert.match(clientSource, /StreamlineSharedViewIconId/);
+  assert.match(clientSource, /generated\/streamline-shared-view-icons/);
 });
 
 test("ViewTabs header editing no longer depends on renaming mode toggles", async () => {

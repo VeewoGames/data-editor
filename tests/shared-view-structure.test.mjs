@@ -254,6 +254,42 @@ test("resolveSharedViewStructure keeps legacy flat order drafts working for top-
   assert.deepEqual(resolved.flattenedViews.map((view) => view.id), ["utility", "damage", "all"]);
 });
 
+test("resolveSharedViewStructure keeps top-level view icons when applying legacy flat order drafts", () => {
+  const resolved = resolveSharedViewStructure({
+    sharedViewsConfig: {
+      version: 1,
+      collections: {
+        "data/runes.json:$": {
+          defaultViewId: "all",
+          items: [
+            makeLeaf("all", "全部", "streamlineMicroSolidBell"),
+            makeLeaf("damage", "伤害", "streamlineMicroLineLeaf26423"),
+            makeLeaf("utility", "功能", "json"),
+          ],
+        },
+      },
+    },
+    collectionKey: "data/runes.json:$",
+    draftState: {
+      lastActiveViews: { "data/runes.json:$": "utility" },
+      viewDrafts: {},
+      viewOrderDrafts: {
+        "data/runes.json:$": ["utility", "damage", "all"],
+      },
+      structureDrafts: {},
+    },
+    pageContext: {
+      selectedPath: "data/runes.json",
+      collectionPath: "$",
+      scrollByView: {},
+      expandedGroupId: null,
+      lastActiveViewIdByGroupId: {},
+    },
+  });
+
+  assert.deepEqual(resolved.topLevelItems.map((item) => item.icon), ["json", "streamlineMicroLineLeaf26423", "streamlineMicroSolidBell"]);
+});
+
 test("createViewGroupConfig inserts a new non-empty group after the active top-level item", () => {
   const result = createViewGroupConfig({
     sharedViewsConfig: {

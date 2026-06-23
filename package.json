@@ -18,7 +18,11 @@
     "test:e2e": "playwright test",
     "profile:prototypes-expansion": "node tests/perf/prototypes-expansion-profile.mjs",
     "profile:prototypes-expansion:static": "node tests/perf/prototypes-expansion-static.mjs",
-    "profile:prototypes-expansion:wrap-observe": "node tests/perf/prototypes-expansion-wrap-observe.mjs"
+    "profile:prototypes-expansion:wrap-observe": "node tests/perf/prototypes-expansion-wrap-observe.mjs",
+    "streamline:repair-collisions": "node scripts/streamline-export/repair-streamline-manifest-collisions.mjs artifacts/streamline-export/micro-solid-full.manifest.json artifacts/streamline-export/micro-line-full.manifest.json",
+    "streamline:generate-registry": "node scripts/streamline-export/generate-shared-view-streamline-icons.mjs artifacts/streamline-export/micro-solid-full.manifest.json artifacts/streamline-export/micro-line-full.manifest.json",
+    "streamline:audit-collisions": "node scripts/streamline-export/audit-streamline-collisions.mjs --output artifacts/streamline-export/shared-view-collision-report.json artifacts/streamline-export/micro-solid-full.manifest.json artifacts/streamline-export/micro-line-full.manifest.json",
+    "streamline:sync-registry": "npm run streamline:generate-registry && npm run streamline:audit-collisions"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

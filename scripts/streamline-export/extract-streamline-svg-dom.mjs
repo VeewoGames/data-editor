@@ -36,6 +36,7 @@ export async function runManifestExtraction({
   attempts = 20,
   waitMs = 500,
   itemRetries = 2,
+  maxItems,
 } = {}) {
   if (!manifestPath || !tab) {
     throw new Error("runManifestExtraction requires manifestPath and tab");
@@ -43,9 +44,12 @@ export async function runManifestExtraction({
 
   const manifest = await loadManifest(manifestPath);
   const pendingItems = manifest.items.filter((item) => item.status !== "success");
+  const selectedItems = Number.isInteger(maxItems) && maxItems > 0
+    ? pendingItems.slice(0, maxItems)
+    : pendingItems;
   const results = [];
 
-  for (const item of pendingItems) {
+  for (const item of selectedItems) {
     try {
       let extracted = null;
       let lastError = null;
@@ -67,10 +71,12 @@ export async function runManifestExtraction({
       await writeSvgFile(resolve(item.outputPath), extracted.svgOuterHTML);
       await markManifestItemSuccess({
         manifestPath,
+        itemId: item.itemId,
         slug: item.slug,
         extractedAt: new Date().toISOString(),
       });
       results.push({
+        itemId: item.itemId ?? item.slug,
         slug: item.slug,
         ok: true,
         outputPath: item.outputPath,
@@ -80,10 +86,12 @@ export async function runManifestExtraction({
       const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       await markManifestItemFailed({
         manifestPath,
+        itemId: item.itemId,
         slug: item.slug,
         error: message,
       });
       results.push({
+        itemId: item.itemId ?? item.slug,
         slug: item.slug,
         ok: false,
         error: message,
@@ -93,7 +101,7 @@ export async function runManifestExtraction({
 
   return {
     family: manifest.family,
-    total: pendingItems.length,
+    total: selectedItems.length,
     success: results.filter((item) => item.ok).length,
     failed: results.filter((item) => !item.ok).length,
     results,

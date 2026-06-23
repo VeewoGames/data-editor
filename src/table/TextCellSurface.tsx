@@ -3,6 +3,7 @@ import { TableTextCellEditor, type ActiveTextEditorRegistrar } from "../editing"
 
 type TextCellSurfaceProps = {
   cellId: string;
+  displayType?: "Text" | "Number";
   value: unknown;
   wrapped?: boolean;
   editable: boolean;
@@ -19,8 +20,16 @@ function stringifyValue(value: unknown) {
   return value == null ? "" : String(value);
 }
 
+function isZeroNumberValue(value: unknown) {
+  if (value == null) return false;
+  const normalized = String(value).trim();
+  if (normalized === "") return false;
+  return Number(normalized) === 0;
+}
+
 function TextCellSurfaceComponent({
   cellId,
+  displayType = "Text",
   value,
   wrapped = false,
   editable,
@@ -34,6 +43,7 @@ function TextCellSurfaceComponent({
 }: TextCellSurfaceProps) {
   const textValue = stringifyValue(value);
   const mode = !editable ? "readonly" : active ? "editable-active" : "editable-idle";
+  const isZeroValue = displayType === "Number" && isZeroNumberValue(value);
 
   function handleActivate(event: ReactMouseEvent<HTMLDivElement>) {
     event.stopPropagation();
@@ -58,7 +68,9 @@ function TextCellSurfaceComponent({
       <div
         className={`table-text-cell-display text-cell-display-layer editable-cell cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`}
         data-cell-role="content"
+        data-display-type={displayType.toLowerCase()}
         data-wrap-mode={wrapped ? "wrap" : "truncate"}
+        data-zero-value={isZeroValue ? "true" : "false"}
         tabIndex={editable && !active ? 0 : undefined}
         onClick={handleActivate}
         onKeyDown={handleActivateByKeyboard}

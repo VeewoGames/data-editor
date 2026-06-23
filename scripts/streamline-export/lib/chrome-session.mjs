@@ -18,20 +18,32 @@ export async function claimStreamlineTab(browser) {
   return browser.user.claimTab(preferredTab);
 }
 
+export async function openStreamlineTab(browser, {
+  url = "https://www.streamlinehq.com/icons/micro-solid",
+} = {}) {
+  const tab = await browser.tabs.new();
+  if (url) {
+    await tab.goto(url);
+  }
+  return tab;
+}
+
 export async function runStreamlineSvgExtractionWithBrowser({
   browser,
   manifestPath,
   sessionName = "🔎 Streamline SVG runner",
   attempts = 20,
   waitMs = 500,
+  maxItems,
   runManifestExtraction = defaultRunManifestExtraction,
+  acquireTab = claimStreamlineTab,
 } = {}) {
   if (!browser || !manifestPath) {
     throw new Error("runStreamlineSvgExtractionWithBrowser requires browser and manifestPath");
   }
 
   await browser.nameSession(sessionName);
-  const tab = await claimStreamlineTab(browser);
+  const tab = await acquireTab(browser);
 
   try {
     return await runManifestExtraction({
@@ -39,8 +51,10 @@ export async function runStreamlineSvgExtractionWithBrowser({
       tab,
       attempts,
       waitMs,
+      maxItems,
     });
   } finally {
+    await tab.close().catch(() => {});
     await browser.tabs.finalize({ keep: [] });
   }
 }

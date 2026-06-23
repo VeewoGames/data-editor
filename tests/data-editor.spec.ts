@@ -712,6 +712,26 @@ async function dragViewTab(page: Page, sourceName: string, targetName: string, p
   await page.mouse.up();
 }
 
+async function dragTopLevelGroupTab(page: Page, sourceName: string, targetName: string, placement: "before" | "after" = "before") {
+  const sourceLocator = topLevelGroupTab(page, sourceName);
+  const targetShell = page.locator(".view-tabs-top-level .view-tab-shell").filter({ hasText: targetName }).first();
+  const source = await sourceLocator.boundingBox();
+  const target = await targetShell.boundingBox();
+  expect(source).not.toBeNull();
+  expect(target).not.toBeNull();
+  const startX = source!.x + source!.width / 2;
+  const startY = source!.y + source!.height / 2;
+  const targetX = placement === "before" ? target!.x + target!.width * 0.08 : target!.x + target!.width * 0.92;
+  const targetY = target!.y + target!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 12, startY, { steps: 3 });
+  await expect(page.locator(".view-tab-group-shell.dragging .view-tab-group")).toContainText(sourceName);
+  await page.mouse.move(targetX, targetY, { steps: 10 });
+  await expect(targetShell).toHaveClass(new RegExp(`drop-${placement}`));
+  await page.mouse.up();
+}
+
 function topLevelViewTab(page: Page, name: string) {
   return page.locator(".view-tabs-top-level .view-tab").filter({ hasText: name }).first();
 }
@@ -764,6 +784,12 @@ async function getTopLevelTabNames(page: Page) {
   ));
 }
 
+async function getTopLevelItemLabelsFromUi(page: Page) {
+  return page.locator(".view-tabs-top-level .view-tab-name").evaluateAll((items) => (
+    items.map((item) => item.textContent?.trim() ?? "").filter(Boolean)
+  ));
+}
+
 async function getGroupRowTabNames(page: Page) {
   return page.locator(".view-tabs-group-row .view-tab").evaluateAll((tabs) => (
     tabs.map((tab) => tab.textContent?.trim() ?? "").filter(Boolean)
@@ -790,7 +816,7 @@ async function createViewInExpandedGroup(page: Page) {
 }
 
 async function dragViewTabToGroup(page: Page, sourceName: string, groupName: string) {
-  const sourceLocator = page.locator(".view-tab").filter({ hasText: sourceName }).first();
+  const sourceLocator = topLevelViewTab(page, sourceName);
   const targetLocator = topLevelGroupTab(page, groupName);
   const source = await sourceLocator.boundingBox();
   const target = await targetLocator.boundingBox();
@@ -1956,6 +1982,98 @@ test("view groups support dragging views into groups and back out with explicit 
     await expect(topLevelViewTab(page, "全部")).toBeVisible();
     await topLevelGroupTab(page, "战斗").click();
     await expect(groupRowViewTab(page, "全部")).toHaveCount(0);
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("top-level view groups can be reordered by drag and persist after shared save", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "ignite",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+        {
+          kind: "view",
+          view: {
+            id: "support",
+            name: "支援",
+            type: "table",
+            query: "heal",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await dragTopLevelGroupTab(page, "战斗", "支援", "after");
+    await expect(page.locator(".view-order-dirty")).toBeVisible();
+    await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["全部", "支援", "战斗"]);
+
+    await saveSharedViewForEveryone(page, (config) => {
+      const labels = listTopLevelSharedItemLabels(config, collectionKey);
+      return labels.join("|") === "全部|支援|战斗";
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["全部", "支援", "战斗"]);
+    await expect(topLevelGroupTab(page, "战斗")).toBeVisible();
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
     if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
@@ -7900,6 +8018,20 @@ test("toolbar search filters visible table rows, not just the counter", async ({
   await expect(page.getByRole("button", { name: "展开搜索" })).toHaveCount(1);
 });
 
+test("toolbar search stays local and does not surface shared view save actions", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const searchInput = page.locator("header").getByPlaceholder("搜索当前表格", { exact: true });
+  await searchInput.fill("Select Two");
+
+  await expect(page.getByText("Visible 1 / Total 3", { exact: true })).toBeVisible();
+  await expect.poll(() => getVisibleTableIds(page)).toEqual(["select_2"]);
+  await expect(page.getByRole("button", { name: "为所有人保存", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "重置", exact: true })).toHaveCount(0);
+});
+
 test("detail keeps the selected record when search hides it from the current view", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
@@ -8114,24 +8246,30 @@ test("profile reset clears current collection without localStorage resurrection"
   await expect(page.locator('col[data-column-field="description"]')).toHaveCount(1);
 });
 
-test("toolbar renders settings, refresh, and close buttons without a save button", async ({ page }) => {
+test("toolbar renders settings, refresh, restart, and close buttons without a save button", async ({ page }) => {
   await page.goto("/");
   const settingsButton = page.locator(".toolbar .toolbar-settings-button");
   const refreshButton = page.locator(".toolbar .toolbar-rebuild-button");
+  const restartButton = page.locator(".toolbar .toolbar-restart-button");
   const closeButton = page.locator(".toolbar .toolbar-close-button");
 
   await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
   await expect(settingsButton).toBeVisible();
   await expect(refreshButton).toBeVisible();
+  await expect(restartButton).toBeVisible();
   await expect(closeButton).toBeVisible();
   await expect(refreshButton).not.toContainText("刷新构建");
+  await expect(restartButton).not.toContainText("重启服务");
   await expect(closeButton).not.toContainText("关闭");
 
   const orderIsCorrect = await page.locator(".toolbar").evaluate(() => {
     const settings = document.querySelector(".toolbar-settings-button");
     const refresh = document.querySelector(".toolbar-rebuild-button");
+    const restart = document.querySelector(".toolbar-restart-button");
     const close = document.querySelector(".toolbar-close-button");
-    return settings?.nextElementSibling === refresh && refresh?.nextElementSibling === close;
+    return settings?.nextElementSibling === refresh
+      && refresh?.nextElementSibling === restart
+      && restart?.nextElementSibling === close;
   });
   expect(orderIsCorrect).toBe(true);
 });
@@ -8742,19 +8880,23 @@ test("bridge unavailable shows a reopen fallback page", async ({ page }) => {
   await expect(page.locator(".service-state--bridge-unavailable .ghost-button")).toBeVisible();
 });
 
-test("toolbar renders refresh build button to the left of close", async ({ page }) => {
+test("toolbar renders refresh and restart buttons to the left of close", async ({ page }) => {
   await page.goto("/");
   const refreshButton = page.locator(".toolbar .toolbar-rebuild-button");
+  const restartButton = page.locator(".toolbar .toolbar-restart-button");
   const closeButton = page.locator(".toolbar .toolbar-close-button");
 
   await expect(refreshButton).toBeVisible();
   await expect(refreshButton).not.toContainText("刷新构建");
+  await expect(restartButton).toBeVisible();
+  await expect(restartButton).not.toContainText("重启服务");
   await expect(closeButton).toBeVisible();
 
   const isLeftOfClose = await page.locator(".toolbar").evaluate(() => {
     const refresh = document.querySelector(".toolbar-rebuild-button");
+    const restart = document.querySelector(".toolbar-restart-button");
     const close = document.querySelector(".toolbar-close-button");
-    return refresh?.nextElementSibling === close;
+    return refresh?.nextElementSibling === restart && restart?.nextElementSibling === close;
   });
   expect(isLeftOfClose).toBe(true);
 });

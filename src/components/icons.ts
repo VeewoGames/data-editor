@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import {
   IconAlertHexagonFilled,
   IconAlertOctagonFilled,
@@ -200,6 +201,12 @@ import {
   IconYinYangFilled,
   IconContainerFilled,
 } from "@tabler/icons-react";
+import {
+  streamlineSharedViewIconGroups,
+  streamlineSharedViewIconIds,
+  streamlineSharedViewIcons,
+  streamlineSharedViewIconSearchTextById,
+} from "../generated/streamline-shared-view-icons.mjs";
 
 export const icons = {
   search: IconSearch,
@@ -251,8 +258,54 @@ export const icons = {
   relationOff: IconLinkOff,
 } as const;
 
+type InlineIconProps = {
+  size?: number;
+  className?: string;
+};
+
+function normalizeStreamlineSvg(svgText: string) {
+  return svgText
+    .replace(/var\(--sl-c-000000,#000000\)/g, "currentColor")
+    .replace(/<svg\b/, '<svg width="100%" height="100%" aria-hidden="true" focusable="false"');
+}
+
+function createStreamlineIcon(svgText: string) {
+  const normalizedSvg = normalizeStreamlineSvg(svgText);
+  return function StreamlineIcon({ size = 18, className }: InlineIconProps) {
+    return createElement("span", {
+      className,
+      style: {
+        width: size,
+        height: size,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "currentColor",
+        lineHeight: 0,
+        flex: "0 0 auto",
+      },
+      dangerouslySetInnerHTML: { __html: normalizedSvg },
+    });
+  };
+}
+
+const streamlineSvgModules = import.meta.glob("../../vendor/streamline-svg/**/*.svg", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+const streamlineSharedViewIconRegistry = Object.fromEntries(
+  streamlineSharedViewIcons.flatMap((icon) => {
+    const modulePath = `../../${icon.outputPath}`;
+    const svgText = streamlineSvgModules[modulePath];
+    return svgText ? [[icon.id, createStreamlineIcon(svgText)]] : [];
+  }),
+) as Record<string, ReturnType<typeof createStreamlineIcon>>;
+
 export const sharedViewIconRegistry = {
   borderAll: icons.borderAll,
+  ...streamlineSharedViewIconRegistry,
   folder: IconFolderFilled,
   folders: IconFoldersFilled,
   folderOpen: IconFolderOpenFilled,
@@ -624,6 +677,21 @@ export const sharedViewIconGroups = [
     ],
   },
   {
+    id: "test",
+    label: "测试",
+    iconIds: [
+      "streamlineMicroSolidAccessibility",
+      "streamlineMicroSolidBell",
+      "streamlineMicroSolidCamera",
+      "streamlineMicroSolidDiamond",
+      "streamlineMicroSolidCircleFlask",
+      "streamlineMicroSolidKey",
+      "streamlineMicroSolidSecurityShield",
+      "streamlineMicroSolidKnife2",
+    ],
+  },
+  ...streamlineSharedViewIconGroups,
+  {
     id: "other",
     label: "其他",
     iconIds: [
@@ -666,8 +734,13 @@ export const sharedViewIconSearchAliases = {
   life: ["生活", "现实", "家庭", "出行", "购物", "学习", "办公", "日常"],
   battle: ["战斗", "奇幻", "近战", "远程", "法术", "生命", "法力", "毒素", "冰霜", "暗影", "火焰", "闪电", "投射物", "召唤", "图腾", "地形", "点燃", "DOT", "暴击", "格挡", "护甲", "异常", "治疗"],
   equipment: ["装备", "武器", "剑", "双剑", "斧", "锤", "弓箭", "法杖", "头盔", "护盾", "背包", "血瓶", "药水", "宝石", "金币", "钥匙"],
+  test: ["测试", "图标", "预览", "试验", "样例", "调试", "对比"],
+  "streamline-micro-line": ["streamline", "line", "线条", "描边", "outline"],
+  "streamline-micro-solid": ["streamline", "solid", "实心", "填充", "filled"],
   other: ["其他", "角色", "场景", "道具", "工具", "探索", "玩法", "世界"],
 } as const;
+
+export const sharedViewGeneratedIconSearchText = streamlineSharedViewIconSearchTextById;
 
 export function readRecentSharedViewIconIds(storage: Storage | null) {
   if (!storage) return [];

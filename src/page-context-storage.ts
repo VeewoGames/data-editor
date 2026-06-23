@@ -10,6 +10,7 @@ export type ProjectPageContextState = {
   selectedPath: string | null;
   collectionPath: string;
   scrollByView: Record<string, PageScrollPosition>;
+  queryByView: Record<string, string>;
   expandedGroupId: string | null;
   lastActiveViewIdByGroupId: Record<string, string>;
 };
@@ -31,6 +32,14 @@ type PageContextScrollUpdate = {
   scrollLeft: number;
 };
 
+type PageContextQueryUpdate = {
+  path: string | null;
+  collectionPath: string | null;
+  viewId: string | null;
+  query: string;
+  fallbackQuery?: string | null;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -44,6 +53,7 @@ function emptyProjectPageContext(): ProjectPageContextState {
     selectedPath: null,
     collectionPath: defaultCollectionPath,
     scrollByView: {},
+    queryByView: {},
     expandedGroupId: null,
     lastActiveViewIdByGroupId: {},
   };
@@ -105,12 +115,24 @@ function normalizeStringRecord(value: unknown): Record<string, string> {
   return normalized;
 }
 
+function normalizeQueryRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+  const normalized: Record<string, string> = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof key !== "string" || !key.trim()) continue;
+    if (typeof item !== "string") continue;
+    normalized[key] = item;
+  }
+  return normalized;
+}
+
 function normalizeProjectPageContext(projectState: unknown): ProjectPageContextState {
   if (!isRecord(projectState)) return emptyProjectPageContext();
   return {
     selectedPath: normalizeSelectedPath(projectState.selectedPath),
     collectionPath: normalizeCollectionPath(projectState.collectionPath),
     scrollByView: normalizeScrollByView(projectState.scrollByView),
+    queryByView: normalizeQueryRecord(projectState.queryByView),
     expandedGroupId: normalizeNonEmptyString(projectState.expandedGroupId),
     lastActiveViewIdByGroupId: normalizeStringRecord(projectState.lastActiveViewIdByGroupId),
   };
@@ -155,6 +177,10 @@ export function readProjectPageContext(state: PageContextState, projectId: strin
 }
 
 export function buildScrollContextKey(path: string | null, collectionPath: string | null, viewId: string | null): string | null {
+  return buildViewContextKey(path, collectionPath, viewId);
+}
+
+export function buildViewContextKey(path: string | null, collectionPath: string | null, viewId: string | null): string | null {
   if (typeof path !== "string" || !path) return null;
   if (typeof viewId !== "string" || !viewId.trim()) return null;
   return `${path}:${normalizeCollectionPath(collectionPath)}:${viewId.trim()}`;
@@ -177,6 +203,7 @@ export function updatePageContextSelection(
       ? normalizeCollectionPath(patch.collectionPath)
       : current.collectionPath,
     scrollByView: { ...current.scrollByView },
+    queryByView: { ...current.queryByView },
     expandedGroupId: current.expandedGroupId,
     lastActiveViewIdByGroupId: { ...current.lastActiveViewIdByGroupId },
   };
@@ -190,7 +217,7 @@ export function updatePageContextScroll(
 ): void {
   const normalizedProjectId = normalizeProjectId(projectId);
   if (!normalizedProjectId) return;
-  const scrollKey = buildScrollContextKey(input.path, input.collectionPath, input.viewId);
+  const scrollKey = buildViewContextKey(input.path, input.collectionPath, input.viewId);
   const nextScroll = normalizeScrollEntry({
     scrollTop: input.scrollTop,
     scrollLeft: input.scrollLeft,
@@ -205,6 +232,34 @@ export function updatePageContextScroll(
       ...current.scrollByView,
       [scrollKey]: nextScroll,
     },
+    queryByView: { ...current.queryByView },
+    expandedGroupId: current.expandedGroupId,
+    lastActiveViewIdByGroupId: { ...current.lastActiveViewIdByGroupId },
+  };
+  writePageContextState(localStorage, state);
+}
+
+export function updatePageContextQuery(
+  localStorage: Storage,
+  projectId: string | null,
+  input: PageContextQueryUpdate,
+): void {
+  const normalizedProjectId = normalizeProjectId(projectId);
+  if (!normalizedProjectId) return;
+  const queryKey = buildViewContextKey(input.path, input.collectionPath, input.viewId);
+  if (!queryKey) return;
+  const fallbackQuery = typeof input.fallbackQuery === "string" ? input.fallbackQuery : "";
+  const nextQuery = String(input.query ?? "");
+  const state = readPageContextState(localStorage);
+  const current = state.projects[normalizedProjectId] ?? emptyProjectPageContext();
+  const queryByView = { ...current.queryByView };
+  if (nextQuery === fallbackQuery) delete queryByView[queryKey];
+  else queryByView[queryKey] = nextQuery;
+  state.projects[normalizedProjectId] = {
+    selectedPath: current.selectedPath,
+    collectionPath: current.collectionPath,
+    scrollByView: { ...current.scrollByView },
+    queryByView,
     expandedGroupId: current.expandedGroupId,
     lastActiveViewIdByGroupId: { ...current.lastActiveViewIdByGroupId },
   };
@@ -227,6 +282,7 @@ export function updatePageContextViewGrouping(
     selectedPath: current.selectedPath,
     collectionPath: current.collectionPath,
     scrollByView: { ...current.scrollByView },
+    queryByView: { ...current.queryByView },
     expandedGroupId: normalizeNonEmptyString(input.expandedGroupId),
     lastActiveViewIdByGroupId: normalizeStringRecord(input.lastActiveViewIdByGroupId),
   };

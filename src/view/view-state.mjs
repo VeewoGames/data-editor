@@ -430,8 +430,36 @@ function applyDraftsToItems(items, activeViewId, activeDraft, orderDraft) {
   });
   if (!Array.isArray(orderDraft) || !orderDraft.length) return nextItems;
   if (nextItems.some((item) => item?.kind === "group")) return nextItems;
-  const orderedViews = applyViewOrderDraft(nextItems.map((item) => item.view), orderDraft);
-  return orderedViews.map((view) => ({ kind: "view", icon: "borderAll", view }));
+  return applyFlatLeafOrderDraft(nextItems, orderDraft);
+}
+
+function applyFlatLeafOrderDraft(items, orderDraft) {
+  const byId = new Map(items.map((item) => [item.view.id, {
+    kind: "view",
+    icon: item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll",
+    view: { ...item.view },
+  }]));
+  const ordered = [];
+  const used = new Set();
+  for (const id of orderDraft) {
+    const item = byId.get(id);
+    if (!item || used.has(id)) continue;
+    ordered.push({
+      kind: "view",
+      icon: item.icon,
+      view: { ...item.view },
+    });
+    used.add(id);
+  }
+  for (const item of items) {
+    if (used.has(item.view.id)) continue;
+    ordered.push({
+      kind: "view",
+      icon: item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll",
+      view: { ...item.view },
+    });
+  }
+  return ordered;
 }
 
 function defaultAllView() {

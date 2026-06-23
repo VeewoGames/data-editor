@@ -251,8 +251,7 @@ function resolveTopLevelItems(baseItems, draftState, collectionKey) {
   }
   const orderDraft = draftState.viewOrderDrafts?.[collectionKey];
   if (Array.isArray(orderDraft) && orderDraft.length && baseItems.every((item) => item.kind === "view")) {
-    const orderedViews = applyFlatViewOrderDraft(baseItems.map((item) => item.view), orderDraft);
-      return orderedViews.map((view) => ({ kind: "view", icon: "borderAll", view }));
+    return applyFlatLeafOrderDraft(baseItems, orderDraft);
   }
   return baseItems;
 }
@@ -358,6 +357,23 @@ function applyFlatViewOrderDraft(views, orderDraft) {
   for (const view of views) {
     if (used.has(view.id)) continue;
     ordered.push({ ...view });
+  }
+  return ordered;
+}
+
+function applyFlatLeafOrderDraft(items, orderDraft) {
+  const byId = new Map(items.map((item) => [item.view.id, cloneLeaf(item)]));
+  const ordered = [];
+  const used = new Set();
+  for (const id of orderDraft) {
+    const item = byId.get(id);
+    if (!item || used.has(id)) continue;
+    ordered.push(cloneLeaf(item));
+    used.add(id);
+  }
+  for (const item of items) {
+    if (used.has(item.view.id)) continue;
+    ordered.push(cloneLeaf(item));
   }
   return ordered;
 }

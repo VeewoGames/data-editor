@@ -1,0 +1,1014 @@
+{
+  "generatedAt": "2026-06-23T09:40:35.027Z",
+  "manifests": [
+    {
+      "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+      "family": "micro-solid",
+      "counts": {
+        "total": 1904,
+        "pending": 0,
+        "success": 1904,
+        "failed": 0
+      }
+    },
+    {
+      "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-line-full.manifest.json",
+      "family": "micro-line",
+      "counts": {
+        "total": 2035,
+        "pending": 0,
+        "success": 2035,
+        "failed": 0
+      }
+    }
+  ],
+  "summary": {
+    "duplicateSlugGroups": 26,
+    "duplicateSlugItems": 53,
+    "outputPathCollisionGroups": 7,
+    "outputPathCollisionItems": 14,
+    "duplicateSlugExactDuplicateGroups": 6,
+    "duplicateSlugExactDuplicateItems": 12,
+    "duplicateSlugVariantCollisionGroups": 20,
+    "duplicateSlugVariantCollisionItems": 41,
+    "outputPathExactDuplicateGroups": 7,
+    "outputPathExactDuplicateItems": 14,
+    "outputPathVariantCollisionGroups": 0,
+    "outputPathVariantCollisionItems": 0
+  },
+  "duplicateSlugs": [
+    {
+      "key": "battery-empty",
+      "family": "micro-line",
+      "slug": "battery-empty",
+      "items": [
+        {
+          "slug": "battery-empty",
+          "name": "Battery Empty",
+          "outputPath": "vendor/streamline-svg/micro-line/battery-empty.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/battery-empty--26463",
+          "status": "success"
+        },
+        {
+          "slug": "battery-empty",
+          "name": "Battery Empty",
+          "outputPath": "vendor/streamline-svg/micro-line/battery-empty.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/battery-empty--26463",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/battery-empty--26463"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/battery-empty.svg"
+      ]
+    },
+    {
+      "key": "chat-bubble-typing-oval",
+      "family": "micro-line",
+      "slug": "chat-bubble-typing-oval",
+      "items": [
+        {
+          "slug": "chat-bubble-typing-oval",
+          "name": "Chat Bubble Typing Oval",
+          "outputPath": "vendor/streamline-svg/micro-line/chat-bubble-typing-oval.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/chat-bubble-typing-oval--26453",
+          "status": "success"
+        },
+        {
+          "slug": "chat-bubble-typing-oval",
+          "name": "Chat Bubble Typing Oval",
+          "outputPath": "vendor/streamline-svg/micro-line/chat-bubble-typing-oval.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/chat-bubble-typing-oval--26453",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/chat-bubble-typing-oval--26453"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/chat-bubble-typing-oval.svg"
+      ]
+    },
+    {
+      "key": "ice-cream-3",
+      "family": "micro-line",
+      "slug": "ice-cream-3",
+      "items": [
+        {
+          "slug": "ice-cream-3",
+          "name": "Ice Cream 3",
+          "outputPath": "vendor/streamline-svg/micro-line/ice-cream-3.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ice-cream-3--26444",
+          "status": "success"
+        },
+        {
+          "slug": "ice-cream-3",
+          "name": "Ice Cream 3",
+          "outputPath": "vendor/streamline-svg/micro-line/ice-cream-3.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ice-cream-3--26444",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/ice-cream-3--26444"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/ice-cream-3.svg"
+      ]
+    },
+    {
+      "key": "ladder",
+      "family": "micro-line",
+      "slug": "ladder",
+      "items": [
+        {
+          "slug": "ladder",
+          "name": "Ladder",
+          "outputPath": "vendor/streamline-svg/micro-line/ladder.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ladder--26437",
+          "status": "success"
+        },
+        {
+          "slug": "ladder",
+          "name": "Ladder",
+          "outputPath": "vendor/streamline-svg/micro-line/ladder.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ladder--26437",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/ladder--26437"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/ladder.svg"
+      ]
+    },
+    {
+      "key": "landscape-setting",
+      "family": "micro-line",
+      "slug": "landscape-setting",
+      "items": [
+        {
+          "slug": "landscape-setting",
+          "name": "Landscape Setting",
+          "outputPath": "vendor/streamline-svg/micro-line/landscape-setting-26423.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/landscape-setting--26423",
+          "status": "success"
+        },
+        {
+          "slug": "landscape-setting",
+          "name": "Landscape Setting",
+          "outputPath": "vendor/streamline-svg/micro-line/landscape-setting-26482.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/landscape-setting--26482",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/landscape-setting--26423",
+        "https://www.streamlinehq.com/icons/download/landscape-setting--26482"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/landscape-setting-26423.svg",
+        "vendor/streamline-svg/micro-line/landscape-setting-26482.svg"
+      ]
+    },
+    {
+      "key": "leaf",
+      "family": "micro-line",
+      "slug": "leaf",
+      "items": [
+        {
+          "slug": "leaf",
+          "name": "Leaf",
+          "outputPath": "vendor/streamline-svg/micro-line/leaf-26423.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/leaf--26423",
+          "status": "success"
+        },
+        {
+          "slug": "leaf",
+          "name": "Leaf",
+          "outputPath": "vendor/streamline-svg/micro-line/leaf-26448.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/leaf--26448",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/leaf--26423",
+        "https://www.streamlinehq.com/icons/download/leaf--26448"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/leaf-26423.svg",
+        "vendor/streamline-svg/micro-line/leaf-26448.svg"
+      ]
+    },
+    {
+      "key": "lemon-fruit-seasoning",
+      "family": "micro-line",
+      "slug": "lemon-fruit-seasoning",
+      "items": [
+        {
+          "slug": "lemon-fruit-seasoning",
+          "name": "Lemon Fruit Seasoning",
+          "outputPath": "vendor/streamline-svg/micro-line/lemon-fruit-seasoning.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/lemon-fruit-seasoning--26444",
+          "status": "success"
+        },
+        {
+          "slug": "lemon-fruit-seasoning",
+          "name": "Lemon Fruit Seasoning",
+          "outputPath": "vendor/streamline-svg/micro-line/lemon-fruit-seasoning.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/lemon-fruit-seasoning--26444",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/lemon-fruit-seasoning--26444"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/lemon-fruit-seasoning.svg"
+      ]
+    },
+    {
+      "key": "location-pin",
+      "family": "micro-line",
+      "slug": "location-pin",
+      "items": [
+        {
+          "slug": "location-pin",
+          "name": "Location Pin",
+          "outputPath": "vendor/streamline-svg/micro-line/location-pin.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/location-pin--26442",
+          "status": "success"
+        },
+        {
+          "slug": "location-pin",
+          "name": "Location Pin",
+          "outputPath": "vendor/streamline-svg/micro-line/location-pin.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/location-pin--26442",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/location-pin--26442"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/location-pin.svg"
+      ]
+    },
+    {
+      "key": "next",
+      "family": "micro-line",
+      "slug": "next",
+      "items": [
+        {
+          "slug": "next",
+          "name": "Next",
+          "outputPath": "vendor/streamline-svg/micro-line/next-26470.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/next--26470",
+          "status": "success"
+        },
+        {
+          "slug": "next",
+          "name": "Next",
+          "outputPath": "vendor/streamline-svg/micro-line/next-26507.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/next--26507",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/next--26470",
+        "https://www.streamlinehq.com/icons/download/next--26507"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/next-26470.svg",
+        "vendor/streamline-svg/micro-line/next-26507.svg"
+      ]
+    },
+    {
+      "key": "portrait-setting",
+      "family": "micro-line",
+      "slug": "portrait-setting",
+      "items": [
+        {
+          "slug": "portrait-setting",
+          "name": "Portrait Setting",
+          "outputPath": "vendor/streamline-svg/micro-line/portrait-setting-26423.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/portrait-setting--26423",
+          "status": "success"
+        },
+        {
+          "slug": "portrait-setting",
+          "name": "Portrait Setting",
+          "outputPath": "vendor/streamline-svg/micro-line/portrait-setting-26482.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/portrait-setting--26482",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/portrait-setting--26423",
+        "https://www.streamlinehq.com/icons/download/portrait-setting--26482"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/portrait-setting-26423.svg",
+        "vendor/streamline-svg/micro-line/portrait-setting-26482.svg"
+      ]
+    },
+    {
+      "key": "power-off",
+      "family": "micro-line",
+      "slug": "power-off",
+      "items": [
+        {
+          "slug": "power-off",
+          "name": "Power Off",
+          "outputPath": "vendor/streamline-svg/micro-line/power-off-26467.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/power-off--26467",
+          "status": "success"
+        },
+        {
+          "slug": "power-off",
+          "name": "Power Off",
+          "outputPath": "vendor/streamline-svg/micro-line/power-off-26470.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/power-off--26470",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/power-off--26467",
+        "https://www.streamlinehq.com/icons/download/power-off--26470"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/power-off-26467.svg",
+        "vendor/streamline-svg/micro-line/power-off-26470.svg"
+      ]
+    },
+    {
+      "key": "previous",
+      "family": "micro-line",
+      "slug": "previous",
+      "items": [
+        {
+          "slug": "previous",
+          "name": "Previous",
+          "outputPath": "vendor/streamline-svg/micro-line/previous-26470.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/previous--26470",
+          "status": "success"
+        },
+        {
+          "slug": "previous",
+          "name": "Previous",
+          "outputPath": "vendor/streamline-svg/micro-line/previous-26507.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/previous--26507",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/previous--26470",
+        "https://www.streamlinehq.com/icons/download/previous--26507"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/previous-26470.svg",
+        "vendor/streamline-svg/micro-line/previous-26507.svg"
+      ]
+    },
+    {
+      "key": "satellite",
+      "family": "micro-line",
+      "slug": "satellite",
+      "items": [
+        {
+          "slug": "satellite",
+          "name": "Satellite",
+          "outputPath": "vendor/streamline-svg/micro-line/satellite-26428.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/satellite--26428",
+          "status": "success"
+        },
+        {
+          "slug": "satellite",
+          "name": "Satellite",
+          "outputPath": "vendor/streamline-svg/micro-line/satellite-26446.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/satellite--26446",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/satellite--26428",
+        "https://www.streamlinehq.com/icons/download/satellite--26446"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/satellite-26428.svg",
+        "vendor/streamline-svg/micro-line/satellite-26446.svg"
+      ]
+    },
+    {
+      "key": "select-frame",
+      "family": "micro-line",
+      "slug": "select-frame",
+      "items": [
+        {
+          "slug": "select-frame",
+          "name": "Select Frame",
+          "outputPath": "vendor/streamline-svg/micro-line/select-frame-26405.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/select-frame--26405",
+          "status": "success"
+        },
+        {
+          "slug": "select-frame",
+          "name": "Select Frame",
+          "outputPath": "vendor/streamline-svg/micro-line/select-frame-26423.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/select-frame--26423",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/select-frame--26405",
+        "https://www.streamlinehq.com/icons/download/select-frame--26423"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/select-frame-26405.svg",
+        "vendor/streamline-svg/micro-line/select-frame-26423.svg"
+      ]
+    },
+    {
+      "key": "serving-dome",
+      "family": "micro-line",
+      "slug": "serving-dome",
+      "items": [
+        {
+          "slug": "serving-dome",
+          "name": "Serving Dome",
+          "outputPath": "vendor/streamline-svg/micro-line/serving-dome-26438.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/serving-dome--26438",
+          "status": "success"
+        },
+        {
+          "slug": "serving-dome",
+          "name": "Serving Dome",
+          "outputPath": "vendor/streamline-svg/micro-line/serving-dome-26445.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/serving-dome--26445",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/serving-dome--26438",
+        "https://www.streamlinehq.com/icons/download/serving-dome--26445"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/serving-dome-26438.svg",
+        "vendor/streamline-svg/micro-line/serving-dome-26445.svg"
+      ]
+    },
+    {
+      "key": "sunset",
+      "family": "micro-line",
+      "slug": "sunset",
+      "items": [
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/micro-line/sunset-26412.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--26412",
+          "status": "success"
+        },
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/micro-line/sunset-26412.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--26412",
+          "status": "success"
+        },
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/micro-line/sunset-26448.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--26448",
+          "status": "success"
+        }
+      ],
+      "itemCount": 3,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/sunset--26412",
+        "https://www.streamlinehq.com/icons/download/sunset--26448"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-line/sunset-26412.svg",
+        "vendor/streamline-svg/micro-line/sunset-26448.svg"
+      ]
+    },
+    {
+      "key": "landscape-setting",
+      "family": "micro-solid",
+      "slug": "landscape-setting",
+      "items": [
+        {
+          "slug": "landscape-setting",
+          "name": "Landscape Setting",
+          "outputPath": "vendor/streamline-svg/micro-solid/landscape-setting-26582.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/landscape-setting--26582",
+          "status": "success"
+        },
+        {
+          "slug": "landscape-setting",
+          "name": "Landscape Setting",
+          "outputPath": "vendor/streamline-svg/micro-solid/landscape-setting-26585.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/landscape-setting--26585",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/landscape-setting--26582",
+        "https://www.streamlinehq.com/icons/download/landscape-setting--26585"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/landscape-setting-26582.svg",
+        "vendor/streamline-svg/micro-solid/landscape-setting-26585.svg"
+      ]
+    },
+    {
+      "key": "leaf",
+      "family": "micro-solid",
+      "slug": "leaf",
+      "items": [
+        {
+          "slug": "leaf",
+          "name": "Leaf",
+          "outputPath": "vendor/streamline-svg/micro-solid/leaf-26582.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/leaf--26582",
+          "status": "success"
+        },
+        {
+          "slug": "leaf",
+          "name": "Leaf",
+          "outputPath": "vendor/streamline-svg/micro-solid/leaf-26657.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/leaf--26657",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/leaf--26582",
+        "https://www.streamlinehq.com/icons/download/leaf--26657"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/leaf-26582.svg",
+        "vendor/streamline-svg/micro-solid/leaf-26657.svg"
+      ]
+    },
+    {
+      "key": "next",
+      "family": "micro-solid",
+      "slug": "next",
+      "items": [
+        {
+          "slug": "next",
+          "name": "Next",
+          "outputPath": "vendor/streamline-svg/micro-solid/next-26622.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/next--26622",
+          "status": "success"
+        },
+        {
+          "slug": "next",
+          "name": "Next",
+          "outputPath": "vendor/streamline-svg/micro-solid/next-26662.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/next--26662",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/next--26622",
+        "https://www.streamlinehq.com/icons/download/next--26662"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/next-26622.svg",
+        "vendor/streamline-svg/micro-solid/next-26662.svg"
+      ]
+    },
+    {
+      "key": "portrait-setting",
+      "family": "micro-solid",
+      "slug": "portrait-setting",
+      "items": [
+        {
+          "slug": "portrait-setting",
+          "name": "Portrait Setting",
+          "outputPath": "vendor/streamline-svg/micro-solid/portrait-setting-26582.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/portrait-setting--26582",
+          "status": "success"
+        },
+        {
+          "slug": "portrait-setting",
+          "name": "Portrait Setting",
+          "outputPath": "vendor/streamline-svg/micro-solid/portrait-setting-26585.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/portrait-setting--26585",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/portrait-setting--26582",
+        "https://www.streamlinehq.com/icons/download/portrait-setting--26585"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/portrait-setting-26582.svg",
+        "vendor/streamline-svg/micro-solid/portrait-setting-26585.svg"
+      ]
+    },
+    {
+      "key": "power-off",
+      "family": "micro-solid",
+      "slug": "power-off",
+      "items": [
+        {
+          "slug": "power-off",
+          "name": "Power Off",
+          "outputPath": "vendor/streamline-svg/micro-solid/power-off-26619.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/power-off--26619",
+          "status": "success"
+        },
+        {
+          "slug": "power-off",
+          "name": "Power Off",
+          "outputPath": "vendor/streamline-svg/micro-solid/power-off-26622.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/power-off--26622",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/power-off--26619",
+        "https://www.streamlinehq.com/icons/download/power-off--26622"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/power-off-26619.svg",
+        "vendor/streamline-svg/micro-solid/power-off-26622.svg"
+      ]
+    },
+    {
+      "key": "previous",
+      "family": "micro-solid",
+      "slug": "previous",
+      "items": [
+        {
+          "slug": "previous",
+          "name": "Previous",
+          "outputPath": "vendor/streamline-svg/micro-solid/previous-26622.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/previous--26622",
+          "status": "success"
+        },
+        {
+          "slug": "previous",
+          "name": "Previous",
+          "outputPath": "vendor/streamline-svg/micro-solid/previous-26662.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/previous--26662",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/previous--26622",
+        "https://www.streamlinehq.com/icons/download/previous--26662"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/previous-26622.svg",
+        "vendor/streamline-svg/micro-solid/previous-26662.svg"
+      ]
+    },
+    {
+      "key": "satellite",
+      "family": "micro-solid",
+      "slug": "satellite",
+      "items": [
+        {
+          "slug": "satellite",
+          "name": "Satellite",
+          "outputPath": "vendor/streamline-svg/micro-solid/satellite-26574.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/satellite--26574",
+          "status": "success"
+        },
+        {
+          "slug": "satellite",
+          "name": "Satellite",
+          "outputPath": "vendor/streamline-svg/micro-solid/satellite-26655.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/satellite--26655",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/satellite--26574",
+        "https://www.streamlinehq.com/icons/download/satellite--26655"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/satellite-26574.svg",
+        "vendor/streamline-svg/micro-solid/satellite-26655.svg"
+      ]
+    },
+    {
+      "key": "select-frame",
+      "family": "micro-solid",
+      "slug": "select-frame",
+      "items": [
+        {
+          "slug": "select-frame",
+          "name": "Select Frame",
+          "outputPath": "vendor/streamline-svg/micro-solid/select-frame-26552.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/select-frame--26552",
+          "status": "success"
+        },
+        {
+          "slug": "select-frame",
+          "name": "Select Frame",
+          "outputPath": "vendor/streamline-svg/micro-solid/select-frame-26582.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/select-frame--26582",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/select-frame--26552",
+        "https://www.streamlinehq.com/icons/download/select-frame--26582"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/select-frame-26552.svg",
+        "vendor/streamline-svg/micro-solid/select-frame-26582.svg"
+      ]
+    },
+    {
+      "key": "serving-dome",
+      "family": "micro-solid",
+      "slug": "serving-dome",
+      "items": [
+        {
+          "slug": "serving-dome",
+          "name": "Serving Dome",
+          "outputPath": "vendor/streamline-svg/micro-solid/serving-dome-26647.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/serving-dome--26647",
+          "status": "success"
+        },
+        {
+          "slug": "serving-dome",
+          "name": "Serving Dome",
+          "outputPath": "vendor/streamline-svg/micro-solid/serving-dome-26654.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/serving-dome--26654",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/serving-dome--26647",
+        "https://www.streamlinehq.com/icons/download/serving-dome--26654"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/serving-dome-26647.svg",
+        "vendor/streamline-svg/micro-solid/serving-dome-26654.svg"
+      ]
+    },
+    {
+      "key": "sunset",
+      "family": "micro-solid",
+      "slug": "sunset",
+      "items": [
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/micro-solid/sunset-26559.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--26559",
+          "status": "success"
+        },
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/micro-solid/sunset-26657.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--26657",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/sunset--26559",
+        "https://www.streamlinehq.com/icons/download/sunset--26657"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/micro-solid/sunset-26559.svg",
+        "vendor/streamline-svg/micro-solid/sunset-26657.svg"
+      ]
+    }
+  ],
+  "outputPathCollisions": [
+    {
+      "key": "vendor/streamline-svg/micro-line/battery-empty.svg",
+      "family": "micro-line",
+      "outputPath": "vendor/streamline-svg/micro-line/battery-empty.svg",
+      "items": [
+        {
+          "slug": "battery-empty",
+          "name": "Battery Empty",
+          "outputPath": "vendor/streamline-svg/micro-line/battery-empty.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/battery-empty--26463",
+          "status": "success"
+        },
+        {
+          "slug": "battery-empty",
+          "name": "Battery Empty",
+          "outputPath": "vendor/streamline-svg/micro-line/battery-empty.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/battery-empty--26463",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/battery-empty--26463"
+      ],
+      "slugs": [
+        "battery-empty"
+      ]
+    },
+    {
+      "key": "vendor/streamline-svg/micro-line/chat-bubble-typing-oval.svg",
+      "family": "micro-line",
+      "outputPath": "vendor/streamline-svg/micro-line/chat-bubble-typing-oval.svg",
+      "items": [
+        {
+          "slug": "chat-bubble-typing-oval",
+          "name": "Chat Bubble Typing Oval",
+          "outputPath": "vendor/streamline-svg/micro-line/chat-bubble-typing-oval.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/chat-bubble-typing-oval--26453",
+          "status": "success"
+        },
+        {
+          "slug": "chat-bubble-typing-oval",
+          "name": "Chat Bubble Typing Oval",
+          "outputPath": "vendor/streamline-svg/micro-line/chat-bubble-typing-oval.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/chat-bubble-typing-oval--26453",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/chat-bubble-typing-oval--26453"
+      ],
+      "slugs": [
+        "chat-bubble-typing-oval"
+      ]
+    },
+    {
+      "key": "vendor/streamline-svg/micro-line/ice-cream-3.svg",
+      "family": "micro-line",
+      "outputPath": "vendor/streamline-svg/micro-line/ice-cream-3.svg",
+      "items": [
+        {
+          "slug": "ice-cream-3",
+          "name": "Ice Cream 3",
+          "outputPath": "vendor/streamline-svg/micro-line/ice-cream-3.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ice-cream-3--26444",
+          "status": "success"
+        },
+        {
+          "slug": "ice-cream-3",
+          "name": "Ice Cream 3",
+          "outputPath": "vendor/streamline-svg/micro-line/ice-cream-3.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ice-cream-3--26444",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/ice-cream-3--26444"
+      ],
+      "slugs": [
+        "ice-cream-3"
+      ]
+    },
+    {
+      "key": "vendor/streamline-svg/micro-line/ladder.svg",
+      "family": "micro-line",
+      "outputPath": "vendor/streamline-svg/micro-line/ladder.svg",
+      "items": [
+        {
+          "slug": "ladder",
+          "name": "Ladder",
+          "outputPath": "vendor/streamline-svg/micro-line/ladder.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ladder--26437",
+          "status": "success"
+        },
+        {
+          "slug": "ladder",
+          "name": "Ladder",
+          "outputPath": "vendor/streamline-svg/micro-line/ladder.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/ladder--26437",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/ladder--26437"
+      ],
+      "slugs": [
+        "ladder"
+      ]
+    },
+    {
+      "key": "vendor/streamline-svg/micro-line/lemon-fruit-seasoning.svg",
+      "family": "micro-line",
+      "outputPath": "vendor/streamline-svg/micro-line/lemon-fruit-seasoning.svg",
+      "items": [
+        {
+          "slug": "lemon-fruit-seasoning",
+          "name": "Lemon Fruit Seasoning",
+          "outputPath": "vendor/streamline-svg/micro-line/lemon-fruit-seasoning.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/lemon-fruit-seasoning--26444",
+          "status": "success"
+        },
+        {
+          "slug": "lemon-fruit-seasoning",
+          "name": "Lemon Fruit Seasoning",
+          "outputPath": "vendor/streamline-svg/micro-line/lemon-fruit-seasoning.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/lemon-fruit-seasoning--26444",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/lemon-fruit-seasoning--26444"
+      ],
+      "slugs": [
+        "lemon-fruit-seasoning"
+      ]
+    },
+    {
+      "key": "vendor/streamline-svg/micro-line/location-pin.svg",
+      "family": "micro-line",
+      "outputPath": "vendor/streamline-svg/micro-line/location-pin.svg",
+      "items": [
+        {
+          "slug": "location-pin",
+          "name": "Location Pin",
+          "outputPath": "vendor/streamline-svg/micro-line/location-pin.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/location-pin--26442",
+          "status": "success"
+        },
+        {
+          "slug": "location-pin",
+          "name": "Location Pin",
+          "outputPath": "vendor/streamline-svg/micro-line/location-pin.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/location-pin--26442",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/location-pin--26442"
+      ],
+      "slugs": [
+        "location-pin"
+      ]
+    },
+    {
+      "key": "vendor/streamline-svg/micro-line/sunset-26412.svg",
+      "family": "micro-line",
+      "outputPath": "vendor/streamline-svg/micro-line/sunset-26412.svg",
+      "items": [
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/micro-line/sunset-26412.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--26412",
+          "status": "success"
+        },
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/micro-line/sunset-26412.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--26412",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/sunset--26412"
+      ],
+      "slugs": [
+        "sunset"
+      ]
+    }
+  ]
+}

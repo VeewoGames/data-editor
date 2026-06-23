@@ -1,0 +1,16 @@
+{
+  "family": "micro-solid",
+  "generatedAt": "2026-06-23T01:58:25.546Z",
+  "items": [
+    {
+      "slug": "accessibility",
+      "name": "Accessibility",
+      "iconUrl": "https://www.streamlinehq.com/icons/download/accessibility--26555",
+      "status": "success",
+      "attempts": 0,
+      "outputPath": "vendor/streamline-svg/micro-solid/accessibility.svg",
+      "error": null,
+      "extractedAt": "2026-06-23T02:03:50.817Z"
+    }
+  ]
+}

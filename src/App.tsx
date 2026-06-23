@@ -102,9 +102,11 @@ import {
   renameSingleSelectOptionInRows,
 } from "./multiselect-config.mjs";
 import {
+  buildViewContextKey,
   buildScrollContextKey,
   readPageContextState,
   readProjectPageContext,
+  updatePageContextQuery,
   updatePageContextViewGrouping,
   writePageContextState,
   updatePageContextScroll,
@@ -489,10 +491,12 @@ export function App() {
   const [viewConfigDirty, setViewConfigDirty] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
   const [viewDraftDirty, setViewDraftDirty] = useState(false);
+  const [toolbarQueryOverride, setToolbarQueryOverride] = useState<string | null>(null);
   const [commandSaving, setCommandSaving] = useState(false);
   const [autosaveState, setAutosaveState] = useState<AutosaveState>("idle");
   const [closing, setClosing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const [serviceLifecycleState, setServiceLifecycleState] = useState<ServiceLifecycleState>("running");
   const [disconnectMessage, setDisconnectMessage] = useState("");
   const [flashStatus, setFlashStatus] = useState(() => consumeTransientStatus());
@@ -604,6 +608,7 @@ export function App() {
   const activeTextEditorRef = useRef<ActiveTextEditorHandle | null>(null);
   const closingRef = useRef(false);
   const rebuildingRef = useRef(false);
+  const restartingRef = useRef(false);
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
   const loadedProjectIdRef = useRef<string | null>(null);
   const viewDraftDirtyRef = useRef(false);
@@ -691,6 +696,7 @@ export function App() {
   useEffect(() => { commandSavingRef.current = commandSaving; }, [commandSaving]);
   useEffect(() => { closingRef.current = closing; }, [closing]);
   useEffect(() => { rebuildingRef.current = rebuilding; }, [rebuilding]);
+  useEffect(() => { restartingRef.current = restarting; }, [restarting]);
   useEffect(() => {
     document.documentElement.dataset.theme = uiPreferences.activeThemeId;
     document.documentElement.dataset.fontSizeBase = String(uiPreferences.baseFontSize);
@@ -1550,10 +1556,25 @@ export function App() {
       : null,
     [activeCollectionKey, activeSharedView, draftSource],
   );
+  const activeViewContextKey = useMemo(
+    () => buildViewContextKey(selectedPath, collectionPath, activeSharedView?.id ?? null),
+    [selectedPath, collectionPath, activeSharedView?.id],
+  );
+  useEffect(() => {
+    if (!activeViewContextKey) {
+      setToolbarQueryOverride(null);
+      return;
+    }
+    const persistedQuery = Object.hasOwn(projectPageContext.queryByView, activeViewContextKey)
+      ? projectPageContext.queryByView[activeViewContextKey]
+      : null;
+    setToolbarQueryOverride(persistedQuery);
+  }, [activeViewContextKey, projectPageContext.queryByView]);
   const previousVisibleRowViewsRef = useRef<TableRowView[] | null>(null);
   const previousViewResultRef = useRef<ViewResult | null>(null);
   const previousViewEngineRowsRef = useRef<ViewEngineRow[] | null>(null);
   const stableActiveViewRenderStateRef = useRef<{ query: string; filters: FilterGroup; sorts: SortRule[] } | null>(null);
+  const activeToolbarQuery = toolbarQueryOverride ?? (activeView?.query ?? "");
   const activeViewLayoutId = activeSharedView?.id ?? null;
   const activeViewHasFilters = Boolean(
     (activeView?.filters?.topLevelRules?.length ?? 0) > 0
@@ -1562,7 +1583,7 @@ export function App() {
   const activeViewSort = activeView?.sorts?.[0] ?? null;
   const activeViewRenderState = useMemo(() => {
     const nextState = {
-      query: activeView?.query ?? "",
+      query: activeToolbarQuery,
       filters: activeView?.filters ?? emptyFilterGroup,
       sorts: activeView?.sorts ?? emptySortRules,
     };
@@ -1577,7 +1598,7 @@ export function App() {
     }
     stableActiveViewRenderStateRef.current = nextState;
     return nextState;
-  }, [activeView?.query, activeView?.filters, activeView?.sorts]);
+  }, [activeToolbarQuery, activeView?.filters, activeView?.sorts]);
   const dirtyViewIds = useMemo(() => {
     if (!activeCollectionKey) return new Set<string>();
     return new Set(Object.keys(draftSource.viewDrafts?.[activeCollectionKey] ?? {}));
@@ -2217,6 +2238,7 @@ export function App() {
     commandSaving,
     closing,
     rebuilding,
+    restarting,
     status: statusText,
     hiddenFields,
   }), [
@@ -2233,6 +2255,7 @@ export function App() {
     commandSaving,
     closing,
     rebuilding,
+    restarting,
     statusText,
     hiddenFields,
   ]);
@@ -2538,6 +2561,20 @@ export function App() {
       return next;
     });
     setViewDraftDirty(true);
+  }
+
+  function handleToolbarQueryChange(value: string) {
+    if (!activeSharedView) return;
+    const fallbackQuery = activeView?.query ?? "";
+    const nextOverride = value === fallbackQuery ? null : value;
+    setToolbarQueryOverride(nextOverride);
+    updatePageContextQuery(window.localStorage, activeProjectId, {
+      path: selectedPath,
+      collectionPath,
+      viewId: activeSharedView.id,
+      query: value,
+      fallbackQuery,
+    });
   }
 
   function handleReorderFiles(fileOrder: string[], nextChildOrderByParent?: Record<string, string[]>) {
@@ -3393,6 +3430,14 @@ export function App() {
 
   function handleResetView() {
     if (!selectedPath || !activeViewLayoutId) return;
+    setToolbarQueryOverride(null);
+    updatePageContextQuery(window.localStorage, activeProjectId, {
+      path: selectedPath,
+      collectionPath,
+      viewId: activeViewLayoutId,
+      query: activeView?.query ?? "",
+      fallbackQuery: activeView?.query ?? "",
+    });
     if (mutateSelectedViewProfile((draft) => {
       const result = resetViewLayoutState({
         mode: "profile",
@@ -3760,13 +3805,15 @@ export function App() {
       operation,
     });
     updateSharedViewDraftState(next);
-    const previousGroupId = resolvedCollectionViews.parentGroupIdByViewId?.[operation.sourceViewId] ?? null;
+    const previousGroupId = "sourceViewId" in operation
+      ? resolvedCollectionViews.parentGroupIdByViewId?.[operation.sourceViewId] ?? null
+      : null;
     const previousGroupItem = previousGroupId
       ? resolvedCollectionViews.topLevelItems.find((item) => item.kind === "group" && item.id === previousGroupId)
       : null;
     const previousGroupViews = previousGroupItem?.kind === "group" ? previousGroupItem.views : [];
     const nextLastActiveViewIdByGroupId = { ...projectPageContext.lastActiveViewIdByGroupId };
-    if (previousGroupId && nextLastActiveViewIdByGroupId[previousGroupId] === operation.sourceViewId) {
+    if ("sourceViewId" in operation && previousGroupId && nextLastActiveViewIdByGroupId[previousGroupId] === operation.sourceViewId) {
       delete nextLastActiveViewIdByGroupId[previousGroupId];
     }
     if (operation.type === "group") {
@@ -3777,7 +3824,7 @@ export function App() {
         ? operation.groupId
         : previousGroupId && previousGroupViews.length === 1 && projectPageContext.expandedGroupId === previousGroupId
           ? null
-          : activeSharedView?.id === operation.sourceViewId
+          : "sourceViewId" in operation && activeSharedView?.id === operation.sourceViewId
             ? null
             : projectPageContext.expandedGroupId,
       lastActiveViewIdByGroupId: nextLastActiveViewIdByGroupId,
@@ -4084,7 +4131,7 @@ export function App() {
     const currentProjectId = activeProjectIdRef.current;
     let currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
     if (!dirtyDomains.length) return { outcome: "idle" } as const;
-    if (commandSavingRef.current || closingRef.current || rebuildingRef.current) return { outcome: "deferred" } as const;
+    if (commandSavingRef.current || closingRef.current || rebuildingRef.current || restartingRef.current) return { outcome: "deferred" } as const;
     if (currentDataDirty && currentModel && currentSelectedPath && !currentPrimaryKeySyncPlan) {
       currentPrimaryKeySyncPlan = await resolvePrimaryKeySyncPlanForFlush(currentModel, currentSelectedPath, currentViewConfig);
     }
@@ -4147,7 +4194,7 @@ export function App() {
       }
       const currentModel = modelRef.current;
       const currentSelectedPath = selectedPathRef.current;
-      if (!currentModel || !currentSelectedPath || commandSaving || closing || rebuilding) return;
+      if (!currentModel || !currentSelectedPath || commandSaving || closing || rebuilding || restarting) return;
       setCommandSaving(true);
       setStatus("");
       try {
@@ -4210,7 +4257,7 @@ export function App() {
   }
 
   async function handleCloseServer() {
-    if (closing || commandSaving || rebuilding) return;
+    if (closing || commandSaving || rebuilding || restarting) return;
     const closeConfirmMessage = globalDirty
       ? "确认关闭服务？当前有未保存更改，关闭后这些更改会丢失。"
       : "确认关闭服务？关闭后需要重新打开才能继续使用编辑器。";
@@ -4232,7 +4279,7 @@ export function App() {
   }
 
   async function handleRefreshBuild() {
-    if (rebuilding || closing || commandSaving) return;
+    if (rebuilding || restarting || closing || commandSaving) return;
     if (globalDirty && !window.confirm("有未保存更改，刷新构建会丢失这些更改。是否继续刷新构建？")) return;
     setRebuilding(true);
     setStatus("");
@@ -4249,8 +4296,31 @@ export function App() {
     }
   }
 
+  async function handleRestartServer() {
+    if (restarting || rebuilding || closing || commandSaving) return;
+    if (globalDirty && !window.confirm("有未保存更改，重启服务会丢失这些更改。是否继续重启服务？")) return;
+    setRestarting(true);
+    setStatus("");
+    setDisconnectMessage("");
+    setServiceLifecycleState("recovering");
+    try {
+      flushActiveTextEditorDraft();
+      await saveCoordinator.flush("flush");
+      manualClosedRef.current = false;
+      await shutdownServer();
+      await new Promise((resolve) => window.setTimeout(resolve, 800));
+      await reopenEditor(bridgePortRef.current);
+      rememberTransientStatus("服务已重启，页面已刷新");
+      window.location.reload();
+    } catch (error) {
+      setRestarting(false);
+      setDisconnectMessage(error instanceof Error ? error.message : String(error));
+      setServiceLifecycleState("disconnected");
+    }
+  }
+
   async function handleRecoverEditor() {
-    if (closing || rebuilding || commandSaving) return;
+    if (closing || rebuilding || restarting || commandSaving) return;
     setDisconnectMessage("");
     setServiceLifecycleState("recovering");
     try {
@@ -4410,8 +4480,9 @@ export function App() {
       <section className="workspace">
         <Toolbar
           snapshot={toolbarSnapshot}
-          onQueryChange={(value) => updateActiveViewDraft({ query: value })}
+          onQueryChange={handleToolbarQueryChange}
           onRefreshBuild={handleRefreshBuild}
+          onRestartServer={handleRestartServer}
           onCloseServer={handleCloseServer}
           onResetView={handleResetView}
           onSelectViewProfile={handleSelectViewProfile}

@@ -1,7 +1,10 @@
+import { streamlineSharedViewIconIds } from "../generated/streamline-shared-view-icons.mjs";
+
 const filterOperators = new Set(["is", "is_not", "contains", "does_not_contain", "is_empty", "is_not_empty"]);
 const sortDirections = new Set(["asc", "desc"]);
 export const sharedViewIconIds = new Set([
   "borderAll",
+  ...streamlineSharedViewIconIds,
   "folder",
   "folders",
   "folderOpen",

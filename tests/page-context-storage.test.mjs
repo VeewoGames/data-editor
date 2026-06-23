@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildViewContextKey,
   buildScrollContextKey,
   emptyPageContextState,
   readPageContextState,
   readProjectPageContext,
+  updatePageContextQuery,
   updatePageContextScroll,
   updatePageContextSelection,
   updatePageContextViewGrouping,
@@ -64,6 +66,7 @@ test("readPageContextState normalizes malformed persisted state", () => {
             scrollLeft: 40,
           },
         },
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -71,6 +74,7 @@ test("readPageContextState normalizes malformed persisted state", () => {
         selectedPath: "data/status_effects.json",
         collectionPath: "$.effects",
         scrollByView: {},
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -100,6 +104,7 @@ test("writePageContextState persists only normalized project buckets", () => {
             scrollLeft: 8,
           },
         },
+        queryByView: {},
       },
       "   ": {
         selectedPath: "data/ignored.json",
@@ -120,6 +125,7 @@ test("writePageContextState persists only normalized project buckets", () => {
             scrollLeft: 8,
           },
         },
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -165,6 +171,7 @@ test("readProjectPageContext returns empty project context for missing or invali
             scrollLeft: 16,
           },
         },
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -176,6 +183,7 @@ test("readProjectPageContext returns empty project context for missing or invali
     selectedPath: null,
     collectionPath: "$",
     scrollByView: {},
+    queryByView: {},
     expandedGroupId: null,
     lastActiveViewIdByGroupId: {},
   });
@@ -183,6 +191,7 @@ test("readProjectPageContext returns empty project context for missing or invali
     selectedPath: null,
     collectionPath: "$",
     scrollByView: {},
+    queryByView: {},
     expandedGroupId: null,
     lastActiveViewIdByGroupId: {},
   });
@@ -195,23 +204,25 @@ test("updatePageContextSelection writes only the targeted project bucket", () =>
         alpha: {
           selectedPath: "data/old.json",
           collectionPath: "$.old",
-          scrollByView: {
-            "data/old.json:$.old:main": {
-              scrollTop: 40,
-              scrollLeft: 10,
-            },
+        scrollByView: {
+          "data/old.json:$.old:main": {
+            scrollTop: 40,
+            scrollLeft: 10,
           },
         },
-        beta: {
-          selectedPath: "data/keep.json",
+        queryByView: {},
+      },
+      beta: {
+        selectedPath: "data/keep.json",
           collectionPath: "$.keep",
-          scrollByView: {
-            "data/keep.json:$.keep:side": {
-              scrollTop: 18,
-              scrollLeft: 4,
-            },
+        scrollByView: {
+          "data/keep.json:$.keep:side": {
+            scrollTop: 18,
+            scrollLeft: 4,
           },
         },
+        queryByView: {},
+      },
       },
     }),
   });
@@ -232,6 +243,7 @@ test("updatePageContextSelection writes only the targeted project bucket", () =>
             scrollLeft: 10,
           },
         },
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -244,6 +256,7 @@ test("updatePageContextSelection writes only the targeted project bucket", () =>
             scrollLeft: 4,
           },
         },
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -258,13 +271,14 @@ test("updatePageContextSelection applies partial patch without resetting unspeci
         alpha: {
           selectedPath: "data/old.json",
           collectionPath: "$.old",
-          scrollByView: {
-            "data/old.json:$.old:main": {
-              scrollTop: 40,
-              scrollLeft: 10,
-            },
+        scrollByView: {
+          "data/old.json:$.old:main": {
+            scrollTop: 40,
+            scrollLeft: 10,
           },
         },
+        queryByView: {},
+      },
       },
     }),
   });
@@ -284,6 +298,7 @@ test("updatePageContextSelection applies partial patch without resetting unspeci
             scrollLeft: 10,
           },
         },
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -298,13 +313,14 @@ test("updatePageContextScroll ignores invalid inputs and isolates scroll by proj
         beta: {
           selectedPath: "data/keep.json",
           collectionPath: "$",
-          scrollByView: {
-            "data/keep.json:$:side": {
-              scrollTop: 50,
-              scrollLeft: 6,
-            },
+        scrollByView: {
+          "data/keep.json:$:side": {
+            scrollTop: 50,
+            scrollLeft: 6,
           },
         },
+        queryByView: {},
+      },
       },
     }),
   });
@@ -344,6 +360,7 @@ test("updatePageContextScroll ignores invalid inputs and isolates scroll by proj
             scrollLeft: 6,
           },
         },
+        queryByView: {},
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
       },
@@ -355,6 +372,65 @@ test("updatePageContextScroll ignores invalid inputs and isolates scroll by proj
             scrollTop: 120,
             scrollLeft: 44,
           },
+        },
+        queryByView: {},
+        expandedGroupId: null,
+        lastActiveViewIdByGroupId: {},
+      },
+    },
+  });
+});
+
+test("updatePageContextQuery stores only local overrides and keeps other project state intact", () => {
+  const storage = createMemoryStorage({
+    "data-editor:page-context": JSON.stringify({
+      projects: {
+        alpha: {
+          selectedPath: "data/runes.json",
+          collectionPath: "$",
+          scrollByView: {
+            "data/runes.json:$:main": {
+              scrollTop: 12,
+              scrollLeft: 4,
+            },
+          },
+          queryByView: {
+            "data/runes.json:$:secondary": "shock",
+          },
+        },
+      },
+    }),
+  });
+
+  updatePageContextQuery(storage, "alpha", {
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "main",
+    query: "fire",
+    fallbackQuery: "",
+  });
+
+  updatePageContextQuery(storage, "alpha", {
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "secondary",
+    query: "",
+    fallbackQuery: "",
+  });
+
+  assert.deepEqual(readPageContextState(storage), {
+    projects: {
+      alpha: {
+        selectedPath: "data/runes.json",
+        collectionPath: "$",
+        scrollByView: {
+          "data/runes.json:$:main": {
+            scrollTop: 12,
+            scrollLeft: 4,
+          },
+        },
+        queryByView: {
+          "data/runes.json:$:main": "fire",
         },
         expandedGroupId: null,
         lastActiveViewIdByGroupId: {},
@@ -379,6 +455,7 @@ test("updatePageContextViewGrouping persists expanded group and last active chil
         selectedPath: null,
         collectionPath: "$",
         scrollByView: {},
+        queryByView: {},
         expandedGroupId: "combat",
         lastActiveViewIdByGroupId: { combat: "damage" },
       },
@@ -394,6 +471,7 @@ test("readPageContextState drops invalid grouping state payload", () => {
           selectedPath: null,
           collectionPath: "$",
           scrollByView: {},
+          queryByView: {},
           expandedGroupId: "   ",
           lastActiveViewIdByGroupId: {
             combat: "damage",
@@ -415,6 +493,12 @@ test("buildScrollContextKey normalizes collection path and rejects empty view id
   assert.equal(buildScrollContextKey("data/runes.json", "", "main"), "data/runes.json:$:main");
   assert.equal(buildScrollContextKey("data/runes.json", "$.sub", "table"), "data/runes.json:$.sub:table");
   assert.equal(buildScrollContextKey("data/runes.json", "$", ""), null);
+});
+
+test("buildViewContextKey shares the same normalization contract", () => {
+  assert.equal(buildViewContextKey("data/runes.json", "", "main"), "data/runes.json:$:main");
+  assert.equal(buildViewContextKey("data/runes.json", "$.sub", "table"), "data/runes.json:$.sub:table");
+  assert.equal(buildViewContextKey("data/runes.json", "$", ""), null);
 });
 
 test("emptyPageContextState returns an empty root object", () => {

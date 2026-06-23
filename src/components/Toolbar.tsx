@@ -10,6 +10,7 @@ type ToolbarProps = {
   snapshot: ToolbarSnapshot;
   onQueryChange: (value: string) => void;
   onRefreshBuild: () => void;
+  onRestartServer: () => void;
   onCloseServer: () => void;
   onResetView: () => void;
   onSelectViewProfile: (name: string) => void;
@@ -34,6 +35,7 @@ export type ToolbarSnapshot = {
   commandSaving: boolean;
   closing: boolean;
   rebuilding: boolean;
+  restarting: boolean;
   status: string;
   hiddenFields: string[];
 };
@@ -222,7 +224,7 @@ export function Toolbar(props: ToolbarProps) {
       <button
         aria-label="刷新构建"
         className={snapshot.rebuilding ? "ghost-button toolbar-rebuild-button" : "ghost-button icon-button toolbar-rebuild-button"}
-        disabled={snapshot.rebuilding || snapshot.closing || snapshot.commandSaving}
+        disabled={snapshot.rebuilding || snapshot.restarting || snapshot.closing || snapshot.commandSaving}
         onClick={props.onRefreshBuild}
         title="刷新构建"
         type="button"
@@ -231,9 +233,20 @@ export function Toolbar(props: ToolbarProps) {
         {snapshot.rebuilding ? "构建中..." : null}
       </button>
       <button
+        aria-label="重启服务"
+        className={snapshot.restarting ? "ghost-button toolbar-restart-button" : "ghost-button icon-button toolbar-restart-button"}
+        disabled={snapshot.restarting || snapshot.rebuilding || snapshot.closing || snapshot.commandSaving}
+        onClick={props.onRestartServer}
+        title="重启服务"
+        type="button"
+      >
+        <icons.reset size={16} />
+        {snapshot.restarting ? "重启中..." : null}
+      </button>
+      <button
         aria-label="关闭服务"
         className={snapshot.closing ? "ghost-button toolbar-close-button" : "ghost-button icon-button toolbar-close-button"}
-        disabled={snapshot.closing || snapshot.commandSaving || snapshot.rebuilding}
+        disabled={snapshot.closing || snapshot.commandSaving || snapshot.rebuilding || snapshot.restarting}
         onClick={props.onCloseServer}
         title="关闭服务"
         type="button"

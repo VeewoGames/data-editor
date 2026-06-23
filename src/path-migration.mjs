@@ -630,11 +630,30 @@ export function applyPageContextPathMigrations(pageContext, migrations, context 
     report.migrated.push(...rewritten.report.migrated);
   }
 
+  const queryByView = {};
+  for (const [key, value] of Object.entries(pageContext?.queryByView ?? {})) {
+    const rewritten = rewritePageScrollContextKey(key, migrations, context);
+    report.skipped.push(...rewritten.report.skipped);
+    if (!rewritten.changed) {
+      queryByView[key] = String(value ?? "");
+      continue;
+    }
+    if (Object.hasOwn(pageContext?.queryByView ?? {}, rewritten.value)) {
+      queryByView[key] = String(value ?? "");
+      report.conflicts.push({ surface: "pageContext.queryByView", oldKey: key, newKey: rewritten.value, action: "kept-new" });
+      continue;
+    }
+    queryByView[rewritten.value] = String(value ?? "");
+    changed = true;
+    report.migrated.push(...rewritten.report.migrated.map((item) => ({ ...item, surface: "pageContext.queryByView" })));
+  }
+
   return {
     value: {
       selectedPath,
       collectionPath: pageContext?.collectionPath ?? "$",
       scrollByView,
+      queryByView,
       expandedGroupId: typeof pageContext?.expandedGroupId === "string" && pageContext.expandedGroupId.trim()
         ? pageContext.expandedGroupId.trim()
         : null,

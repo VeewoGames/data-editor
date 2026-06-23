@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import {
   connectChromeBrowser,
   runStreamlineSvgExtractionFromNodeRepl,
+  runStreamlineSvgExtractionLoopFromNodeRepl,
 } from "../../scripts/streamline-export/run-streamline-svg-export-session.mjs";
+import { createManifest, markManifestItemSuccess } from "../../scripts/streamline-export/lib/manifest-store.mjs";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 test("connectChromeBrowser wires setup and browser acquisition", async () => {
   const calls = [];
@@ -33,11 +38,14 @@ test("connectChromeBrowser wires setup and browser acquisition", async () => {
 
 test("runStreamlineSvgExtractionFromNodeRepl delegates to browser runner", async () => {
   const calls = [];
+  const acquireTab = async () => ({ id: "tab-1" });
   const result = await runStreamlineSvgExtractionFromNodeRepl({
     manifestPath: "C:/Code/data-editor/artifacts/streamline-export/micro-solid-pilot.manifest.json",
     sessionName: "runner-test",
     attempts: 7,
     waitMs: 111,
+    maxItems: 9,
+    acquireTab,
     connectBrowser: async () => {
       calls.push(["connectBrowser"]);
       return { id: "browser-2" };
@@ -58,6 +66,61 @@ test("runStreamlineSvgExtractionFromNodeRepl delegates to browser runner", async
       sessionName: "runner-test",
       attempts: 7,
       waitMs: 111,
+      maxItems: 9,
+      acquireTab,
     },
   ]);
+});
+
+test("runStreamlineSvgExtractionLoopFromNodeRepl batches until manifest is complete", async () => {
+  const root = await mkdtemp(join(tmpdir(), "streamline-loop-"));
+  const manifestPath = join(root, "micro-line.manifest.json");
+  await createManifest({
+    manifestPath,
+    family: "micro-line",
+    items: [
+      { slug: "align-top", name: "Align Top", iconUrl: "https://example.test/align-top" },
+      { slug: "atom", name: "Atom", iconUrl: "https://example.test/atom" },
+      { slug: "beach", name: "Beach", iconUrl: "https://example.test/beach" },
+    ],
+    outputDir: "vendor/streamline-svg/micro-line",
+  });
+
+  const browser = { id: "browser-loop" };
+  const connectCalls = [];
+  const runCalls = [];
+  const slugBatches = [
+    ["align-top", "atom"],
+    ["beach"],
+  ];
+
+  const result = await runStreamlineSvgExtractionLoopFromNodeRepl({
+    manifestPath,
+    batchSize: 2,
+    maxBatches: 3,
+    connectBrowser: async () => {
+      connectCalls.push("connect");
+      return browser;
+    },
+    runWithBrowser: async (options) => {
+      runCalls.push({ sessionName: options.sessionName, maxItems: options.maxItems, browser: options.browser });
+      for (const slug of slugBatches.shift() ?? []) {
+        await markManifestItemSuccess({ manifestPath, slug, extractedAt: "2026-06-23T10:00:00.000Z" });
+      }
+      return { success: options.maxItems, failed: 0 };
+    },
+  });
+
+  assert.deepEqual(connectCalls, ["connect"]);
+  assert.equal(runCalls.length, 2);
+  assert.equal(runCalls[0].browser, browser);
+  assert.equal(runCalls[0].maxItems, 2);
+  assert.equal(runCalls[1].maxItems, 1);
+  assert.equal(result.complete, true);
+  assert.deepEqual(result.after, {
+    total: 3,
+    pending: 0,
+    success: 3,
+    failed: 0,
+  });
 });

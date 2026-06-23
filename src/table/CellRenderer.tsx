@@ -171,6 +171,7 @@ function CellRendererComponent({
         <div className="table-cell-content-main">
           <TextCellSurface
             cellId={cellId}
+            displayType="Text"
             editable={textEditable}
             active={textEditingActive}
             value={value}
@@ -194,6 +195,7 @@ function CellRendererComponent({
         <div className="table-cell-content-main">
           <TextCellSurface
             cellId={cellId}
+            displayType="Number"
             editable={textEditable}
             active={textEditingActive}
             value={value}

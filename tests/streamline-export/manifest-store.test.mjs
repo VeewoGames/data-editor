@@ -25,8 +25,29 @@ test("createManifest writes pending items with stable output paths", async () =>
 
   const manifest = JSON.parse(await readFile(path, "utf8"));
   assert.equal(manifest.family, "micro-solid");
+  assert.equal(manifest.items[0].itemId, "attachment-1");
   assert.equal(manifest.items[0].status, "pending");
   assert.equal(manifest.items[0].outputPath, "vendor/streamline-svg/micro-solid/attachment-1.svg");
+});
+
+test("createManifest suffixes variant collision outputs with source ids", async () => {
+  const root = await mkdtemp(join(tmpdir(), "streamline-manifest-"));
+  const path = join(root, "micro-line.manifest.json");
+  await createManifest({
+    manifestPath: path,
+    family: "micro-line",
+    items: [
+      { slug: "leaf", name: "Leaf A", iconUrl: "https://example.test/icons/download/leaf--26423" },
+      { slug: "leaf", name: "Leaf B", iconUrl: "https://example.test/icons/download/leaf--26448" },
+    ],
+    outputDir: "vendor/streamline-svg/micro-line",
+  });
+
+  const manifest = JSON.parse(await readFile(path, "utf8"));
+  assert.equal(manifest.items[0].itemId, "leaf--26423");
+  assert.equal(manifest.items[1].itemId, "leaf--26448");
+  assert.equal(manifest.items[0].outputPath, "vendor/streamline-svg/micro-line/leaf-26423.svg");
+  assert.equal(manifest.items[1].outputPath, "vendor/streamline-svg/micro-line/leaf-26448.svg");
 });
 
 test("markManifestItemSuccess persists timestamp and output path", async () => {
@@ -36,13 +57,13 @@ test("markManifestItemSuccess persists timestamp and output path", async () => {
     family: "micro-solid",
     generatedAt: "2026-06-23T00:00:00.000Z",
     items: [
-      { slug: "attachment-1", status: "pending", attempts: 0, outputPath: "vendor/streamline-svg/micro-solid/attachment-1.svg", error: null, extractedAt: null }
+      { itemId: "attachment-1", slug: "attachment-1", status: "pending", attempts: 0, outputPath: "vendor/streamline-svg/micro-solid/attachment-1.svg", error: null, extractedAt: null }
     ]
   }, null, 2));
 
   await markManifestItemSuccess({
     manifestPath: path,
-    slug: "attachment-1",
+    itemId: "attachment-1",
     extractedAt: "2026-06-23T10:00:00.000Z",
   });
 
@@ -59,13 +80,13 @@ test("markManifestItemFailed increments attempts and stores error", async () => 
     family: "micro-solid",
     generatedAt: "2026-06-23T00:00:00.000Z",
     items: [
-      { slug: "attachment-1", status: "pending", attempts: 0, outputPath: "vendor/streamline-svg/micro-solid/attachment-1.svg", error: null, extractedAt: null }
+      { itemId: "attachment-1", slug: "attachment-1", status: "pending", attempts: 0, outputPath: "vendor/streamline-svg/micro-solid/attachment-1.svg", error: null, extractedAt: null }
     ]
   }, null, 2));
 
   await markManifestItemFailed({
     manifestPath: path,
-    slug: "attachment-1",
+    itemId: "attachment-1",
     error: "svg-not-found",
   });
 

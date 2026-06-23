@@ -166,3 +166,56 @@ test("runManifestExtraction retries the same item once before marking it failed"
   const svgText = await readFile(manifest.items[0].outputPath, "utf8");
   assert.match(svgText, /id="two"/);
 });
+
+test("runManifestExtraction honors maxItems when selecting pending work", async () => {
+  const root = await mkdtemp(join(tmpdir(), "streamline-extract-"));
+  const manifestPath = join(root, "micro-solid.manifest.json");
+  await createManifest({
+    manifestPath,
+    family: "micro-solid",
+    outputDir: join(root, "vendor", "streamline-svg", "micro-solid"),
+    items: [
+      { slug: "one", name: "One", iconUrl: "https://example.test/one" },
+      { slug: "two", name: "Two", iconUrl: "https://example.test/two" },
+      { slug: "three", name: "Three", iconUrl: "https://example.test/three" },
+    ],
+  });
+
+  const visitedUrls = [];
+  let currentUrl = null;
+  const tab = {
+    async goto(url) {
+      currentUrl = url;
+      visitedUrls.push(url);
+    },
+    playwright: {
+      async waitForLoadState() {},
+      async evaluate() {
+        return {
+          ariaLabel: `${currentUrl} icon`,
+          svgOuterHTML: "<svg></svg>",
+        };
+      },
+      async waitForTimeout() {},
+    },
+  };
+
+  const result = await runManifestExtraction({
+    manifestPath,
+    tab,
+    attempts: 1,
+    waitMs: 1,
+    maxItems: 2,
+  });
+
+  assert.equal(result.total, 2);
+  assert.deepEqual(visitedUrls, [
+    "https://example.test/one",
+    "https://example.test/two",
+  ]);
+
+  const manifest = await loadManifest(manifestPath);
+  assert.equal(manifest.items[0].status, "success");
+  assert.equal(manifest.items[1].status, "success");
+  assert.equal(manifest.items[2].status, "pending");
+});

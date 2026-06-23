@@ -910,7 +910,7 @@ select {
   display: grid;
   gap: 10px;
   padding: 10px;
-  width: 336px;
+  width: 672px;
   z-index: 50;
 }
 
@@ -967,8 +967,8 @@ select {
 .view-tab-icon-picker-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  max-height: 260px;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  max-height: 520px;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -977,14 +977,16 @@ select {
   align-items: center;
   background: #fff;
   border: 1px solid #d9d6d1;
-  border-radius: 8px;
+  border-radius: 10px;
   color: inherit;
   cursor: pointer;
   display: inline-flex;
   justify-content: center;
-  min-height: 36px;
-  min-width: 36px;
-  padding: 0 10px;
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 52px;
+  min-width: 52px;
+  padding: 0;
 }
 
 .view-tab-icon-picker-grid .view-tab-icon-picker-option {
@@ -1361,6 +1363,10 @@ select {
   cursor: default;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.text-cell-display-layer[data-display-type="number"][data-zero-value="true"] span {
+  opacity: 0.2;
 }
 
 .text-cell-surface[data-text-cell-mode="editable-idle"] .text-cell-display-layer,

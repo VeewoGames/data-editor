@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   claimStreamlineTab,
   findPreferredStreamlineTab,
+  openStreamlineTab,
   runStreamlineSvgExtractionWithBrowser,
 } from "../../scripts/streamline-export/lib/chrome-session.mjs";
 
@@ -42,8 +43,38 @@ test("claimStreamlineTab claims the preferred tab", async () => {
   assert.equal(tab, claimed);
 });
 
+test("openStreamlineTab creates a new tab and navigates to streamline", async () => {
+  const calls = [];
+  const createdTab = {
+    async goto(url) {
+      calls.push(["goto", url]);
+    },
+  };
+  const browser = {
+    tabs: {
+      async new() {
+        calls.push(["new"]);
+        return createdTab;
+      },
+    },
+  };
+
+  const tab = await openStreamlineTab(browser);
+  assert.equal(tab, createdTab);
+  assert.deepEqual(calls, [
+    ["new"],
+    ["goto", "https://www.streamlinehq.com/icons/micro-solid"],
+  ]);
+});
+
 test("runStreamlineSvgExtractionWithBrowser finalizes after extraction", async () => {
   const calls = [];
+  const claimedTab = {
+    id: "claimed",
+    async close() {
+      calls.push(["close"]);
+    },
+  };
   const browser = {
     async nameSession(name) {
       calls.push(["nameSession", name]);
@@ -55,7 +86,7 @@ test("runStreamlineSvgExtractionWithBrowser finalizes after extraction", async (
       },
       async claimTab(tab) {
         calls.push(["claimTab", tab.id]);
-        return { id: "claimed" };
+        return claimedTab;
       },
     },
     tabs: {
@@ -83,6 +114,40 @@ test("runStreamlineSvgExtractionWithBrowser finalizes after extraction", async (
     ["openTabs"],
     ["claimTab", "2"],
     ["runManifestExtraction", "C:/Code/data-editor/artifacts/streamline-export/micro-solid-pilot.manifest.json", "claimed", 8, 123],
+    ["close"],
     ["finalize", { keep: [] }],
   ]);
+});
+
+test("runStreamlineSvgExtractionWithBrowser forwards maxItems", async () => {
+  const calls = [];
+  const browser = {
+    async nameSession() {},
+    user: {
+      async openTabs() {
+        return [{ id: "2", url: "https://www.streamlinehq.com/icons/download/cut-scissor--26582" }];
+      },
+      async claimTab() {
+        return {
+          id: "claimed",
+          async close() {},
+        };
+      },
+    },
+    tabs: {
+      async finalize() {},
+    },
+  };
+
+  await runStreamlineSvgExtractionWithBrowser({
+    browser,
+    manifestPath: "C:/Code/data-editor/artifacts/streamline-export/micro-solid-pilot.manifest.json",
+    maxItems: 5,
+    runManifestExtraction: async (options) => {
+      calls.push(options.maxItems);
+      return { success: 5, failed: 0 };
+    },
+  });
+
+  assert.deepEqual(calls, [5]);
 });
