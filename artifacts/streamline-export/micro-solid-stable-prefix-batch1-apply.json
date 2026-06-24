@@ -1,0 +1,987 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch1-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+  "appliedCount": 56,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "layout-1",
+      "slug": "layout-1",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-10",
+      "slug": "layout-10",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-2",
+      "slug": "layout-2",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-3",
+      "slug": "layout-3",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-4",
+      "slug": "layout-4",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-5",
+      "slug": "layout-5",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-6",
+      "slug": "layout-6",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-7",
+      "slug": "layout-7",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-8",
+      "slug": "layout-8",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-9",
+      "slug": "layout-9",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-bottom",
+      "slug": "layout-border-bottom",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-center",
+      "slug": "layout-border-center",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-corner",
+      "slug": "layout-border-corner",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-full",
+      "slug": "layout-border-full",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-horizontal",
+      "slug": "layout-border-horizontal",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-left",
+      "slug": "layout-border-left",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-none",
+      "slug": "layout-border-none",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-right",
+      "slug": "layout-border-right",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-top",
+      "slug": "layout-border-top",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-border-vertical",
+      "slug": "layout-border-vertical",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-position-bottom-left",
+      "slug": "layout-position-bottom-left",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-position-bottom-right",
+      "slug": "layout-position-bottom-right",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-position-top-left",
+      "slug": "layout-position-top-left",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-position-top-right",
+      "slug": "layout-position-top-right",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-three-columns",
+      "slug": "layout-three-columns",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "columns"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-two-columns",
+      "slug": "layout-two-columns",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "columns"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "layout-two-rows",
+      "slug": "layout-two-rows",
+      "tags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "rows"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-add",
+      "slug": "mail-add",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "add"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-block",
+      "slug": "mail-block",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "block",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-check",
+      "slug": "mail-check",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "check",
+        "confirm"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-favorite",
+      "slug": "mail-favorite",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-incoming",
+      "slug": "mail-incoming",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "incoming"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-loading",
+      "slug": "mail-loading",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "loading"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-lock",
+      "slug": "mail-lock",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "lock",
+        "privacy"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-mark-as-read",
+      "slug": "mail-mark-as-read",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "read"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-notification",
+      "slug": "mail-notification",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "notification",
+        "alert"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-outgoing",
+      "slug": "mail-outgoing",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "outgoing"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-remove",
+      "slug": "mail-remove",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-schedule",
+      "slug": "mail-schedule",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "schedule",
+        "time"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-search",
+      "slug": "mail-search",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "search",
+        "find"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-setting",
+      "slug": "mail-setting",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "settings",
+        "configuration"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-subtract",
+      "slug": "mail-subtract",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "subtract",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-book",
+      "slug": "phone-book",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "book",
+        "directory"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-landscape",
+      "slug": "phone-landscape",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile",
+        "landscape"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-numpad-up",
+      "slug": "phone-numpad-up",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "numpad",
+        "keypad"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-off",
+      "slug": "phone-off",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "off",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-open-in-mobile",
+      "slug": "phone-open-in-mobile",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-ringing-1",
+      "slug": "phone-ringing-1",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "ringing"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-ringing-2",
+      "slug": "phone-ringing-2",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "ringing"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-rotate-mobile",
+      "slug": "phone-rotate-mobile",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile",
+        "rotate"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-send-to-mobile",
+      "slug": "phone-send-to-mobile",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile",
+        "send",
+        "transfer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-signal-full",
+      "slug": "phone-signal-full",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "signal",
+        "full"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-signal-low",
+      "slug": "phone-signal-low",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "signal",
+        "low"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-signal-medium",
+      "slug": "phone-signal-medium",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "signal",
+        "medium"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-signal-off",
+      "slug": "phone-signal-off",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "off",
+        "disable",
+        "signal"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-vibrate",
+      "slug": "phone-vibrate",
+      "tags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "vibrate",
+        "vibration"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:10:45.875Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": []
+}

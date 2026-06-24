@@ -11,7 +11,7 @@ test.setTimeout(60_000);
 type SharedViewConfig = {
   id: string;
   name: string;
-  icon?: "borderAll" | "json" | "edit" | "tagsField" | "refresh" | "settings" | "filter";
+  icon?: string;
   type?: string;
   query?: string;
   filters?: {
@@ -420,7 +420,7 @@ async function waitForProjectConfigWrite(page: Page, predicate: (text: string) =
 }
 
 test("selection delete fixture is visible and drag helper can span two cells", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
   const start = tableRow(page, 0).locator('td[data-column-field="name"]').first();
   const end = tableRow(page, 0).locator('td[data-column-field="tags"]').first();
@@ -429,7 +429,7 @@ test("selection delete fixture is visible and drag helper can span two cells", a
 });
 
 test("dragging across visible data cells creates a retained rectangular selection", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
   const start = tableRow(page, 0).locator('td[data-column-field="name"]').first();
   const end = tableRow(page, 1).locator('td[data-column-field="power"]').first();
@@ -2388,11 +2388,12 @@ test("group menu also uses header shell and keeps icon button disabled", async (
   }
 });
 
-test("icon picker shows six groups, common starts with borderAll, battle exceeds baseline, and equipment includes game gear icons", async ({ page }) => {
+test("icon picker shows built-in and streamline family groups", async ({ page }) => {
+  test.setTimeout(120_000);
   const collectionKey = "data/runes.json:$";
   let originalSharedViews: SharedViewsConfig | null = null;
 
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   originalSharedViews = await loadSharedViewsConfig(page);
 
   try {
@@ -2402,7 +2403,7 @@ test("icon picker shows six groups, common starts with borderAll, battle exceeds
       items: [
         {
           kind: "view",
-          icon: "json",
+          icon: "tablerFilledAccessible",
           view: {
             id: "utility",
             name: "功能",
@@ -2423,33 +2424,186 @@ test("icon picker shows six groups, common starts with borderAll, battle exceeds
     await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
     await expect(page.locator(".view-tab-icon-picker-default")).toHaveCount(0);
     await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("最近");
-    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("常用");
-    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("生活");
-    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("战斗");
-    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("装备");
-    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("其他");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("收藏");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("Micro S");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("Core S");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("Tabler S");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("Micro L");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("Tabler L");
+    await expect(page.locator(".view-tab-icon-picker-tabs")).toContainText("Legacy");
+    await expect(page.locator(".view-tab-icon-picker-options-trigger")).toBeVisible();
 
-    await page.getByRole("button", { name: "常用" }).click();
-    const commonIcons = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option");
-    await expect(commonIcons.first()).toHaveAttribute("data-view-icon", "borderAll");
-    await expect(commonIcons).toHaveCount(30);
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "收藏" }).click();
+    await expect(page.locator(".view-tab-icon-picker-empty")).toBeVisible();
 
-    await page.getByRole("button", { name: "战斗" }).click();
-    const battleIcons = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option");
-    expect(await battleIcons.count()).toBeGreaterThanOrEqual(60);
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Legacy" }).click();
+    await expect(page.locator(".view-tab-icon-picker-grid")).toHaveCount(0);
+    await expect(page.locator(".view-tab-icon-picker-empty")).toContainText("Legacy 未加载");
+    await page.getByRole("button", { name: "加载 Legacy" }).click();
+    const legacyIcons = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option");
+    await expect(legacyIcons.first()).toHaveAttribute("data-view-icon", /.+/);
+    expect(await legacyIcons.count()).toBeGreaterThanOrEqual(20);
 
-    await page.getByRole("button", { name: "装备" }).click();
-    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='sword']")).toBeVisible();
-    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='hammer']")).toBeVisible();
-    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='wand']")).toBeVisible();
-    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='helmet']")).toBeVisible();
-    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='flask']")).toBeVisible();
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Micro S" }).click();
+    await expect(page.locator(".view-tab-icon-picker-empty")).toContainText("Micro S 未加载");
+    await page.getByRole("button", { name: "加载 Micro S" }).click();
+    const microSolidIcons = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option");
+    await expect(microSolidIcons.first()).toBeVisible();
+    expect(await microSolidIcons.count()).toBeGreaterThan(1000);
+
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Core S" }).click();
+    await expect(page.locator(".view-tab-icon-picker-grid")).toHaveCount(0);
+    await expect(page.locator(".view-tab-icon-picker-empty")).toContainText("Core S 未加载");
+    await expect(page.getByRole("button", { name: "加载 Core S" })).toBeVisible();
+    await page.locator(".view-tab-icon-picker-options-trigger").click();
+    const coreSolidPackRow = page.locator(".view-tab-icon-pack-row").filter({ hasText: "Core S" });
+    await expect(coreSolidPackRow.locator(".view-tab-icon-pack-detail")).toContainText("未加载");
+    await expect(coreSolidPackRow.getByRole("button", { name: "加载" })).toBeVisible();
+    await coreSolidPackRow.getByRole("button", { name: "加载" }).click();
+    await expect(page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option[data-view-icon='streamlineCoreSolidApplyToAll']")).not.toHaveClass(/is-unloaded/);
+
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Tabler S" }).click();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='tablerFilledAccessible']")).toBeVisible();
+    await page.locator(".view-tab-icon-picker-options-trigger").click();
+    const tablerSolidPackRow = page.locator(".view-tab-icon-pack-row").filter({ hasText: "Tabler S" });
+    await expect(tablerSolidPackRow.locator(".view-tab-icon-pack-detail")).toContainText("当前共享视图正在使用");
+    await expect(tablerSolidPackRow.getByRole("button", { name: "已使用" })).toBeDisabled();
+    const legacyPackRow = page.locator(".view-tab-icon-pack-row").filter({ hasText: "Legacy" });
+    await expect(legacyPackRow.locator(".view-tab-icon-pack-detail")).toContainText("已加载");
+    await page.locator(".view-tab-icon-picker-options-trigger").click();
+
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Micro L" }).click();
+    await expect(page.locator(".view-tab-icon-picker-empty")).toContainText("Micro L 未加载");
+    await page.getByRole("button", { name: "加载 Micro L" }).click();
+    const microLineIcons = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option");
+    await expect(microLineIcons.first()).toBeVisible();
+    expect(await microLineIcons.count()).toBeGreaterThan(1000);
+
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Tabler L" }).click();
+    await expect(page.locator(".view-tab-icon-picker-empty")).toContainText("Tabler L 未加载");
+    await page.getByRole("button", { name: "加载 Tabler L" }).click();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='tablerLineAccessible']")).toBeVisible();
+
+    const globalSearchToggle = page.getByLabel("全局搜索图标");
+    await expect(globalSearchToggle).not.toBeChecked();
+
+    await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Legacy" }).click();
+    await page.locator(".view-tab-icon-picker-search").fill("streamlinecoresolidapplytoall");
+    await expect(page.locator(".view-tab-icon-picker-empty")).toBeVisible();
+
+    await globalSearchToggle.check();
+    await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='streamlineCoreSolidApplyToAll']")).toBeVisible();
+
+    await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+    await expect(page.locator(".view-tab-icon-picker-content")).toHaveCount(0);
+    await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+    await expect(page.locator(".view-tab-icon-picker-content")).toBeVisible();
+    await expect(page.getByLabel("全局搜索图标")).not.toBeChecked();
 
     await page.locator(".view-tab-icon-picker-search").fill("not-found-keyword");
     await expect(page.locator(".view-tab-icon-picker-empty")).toBeVisible();
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
   }
+});
+
+test("icon favorites stay disabled in local mode and persist through selected profile reload", async ({ page }) => {
+  test.setTimeout(120_000);
+  let storedProfile: Record<string, unknown> = {
+    sidebarWidth: null,
+    detailPanelWidth: null,
+    detailDocumentPanelOpen: null,
+    detailDocumentPanelWidth: null,
+    favoriteSharedViewIconIds: [],
+    fileOrder: [],
+    sidebarTree: {
+      childOrderByParent: {},
+      expandedNodeIds: [],
+    },
+    lastActiveViews: {},
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    viewLayouts: {},
+    collections: {},
+  };
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await openActiveViewMenu(page);
+  await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+  await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "Core S" }).click();
+  await page.getByRole("button", { name: "加载 Core S" }).click();
+  const localModeOption = page.locator(".view-tab-icon-picker-option[data-view-icon='streamlineCoreSolidApplyToAll']");
+  const localModeStar = localModeOption.locator(".view-tab-icon-picker-option-star");
+  await expect(localModeStar).toBeHidden();
+  await localModeOption.hover();
+  await expect(localModeStar).toBeVisible();
+  await expect(localModeStar).toBeDisabled();
+
+  await page.route("**/api/view-profiles?*", async (route) => {
+    await route.fulfill({ json: ["icon_favorites_profile"] });
+  });
+  await page.route("**/api/view-profile?name=icon_favorites_profile*", async (route) => {
+    await route.fulfill({ json: storedProfile });
+  });
+  await page.route("**/api/view-profile", async (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}");
+    storedProfile = JSON.parse(JSON.stringify(body.profile ?? {}));
+    await route.fulfill({
+      json: {
+        ok: true,
+        name: body.name ?? "icon_favorites_profile",
+        path: "tests/.scratch/.data-editor/view-configs/icon_favorites_profile.json",
+      },
+    });
+  });
+
+  await page.evaluate(async () => {
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "icon_favorites_profile",
+        profile: {
+          sidebarWidth: null,
+          favoriteSharedViewIconIds: [],
+          collections: {},
+        },
+      }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "icon_favorites_profile");
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await openActiveViewMenu(page);
+  await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+  await page.getByRole("button", { name: "Core S" }).click();
+  const favoriteOption = page.locator(".view-tab-icon-picker-option[data-view-icon='streamlineCoreSolidApplyToAll']");
+  const favoriteStar = favoriteOption.locator(".view-tab-icon-picker-option-star");
+  await expect(favoriteStar).toBeHidden();
+  await favoriteOption.hover();
+  await expect(favoriteStar).toBeVisible();
+  await favoriteStar.click({ force: true });
+
+  await expect.poll(() => (
+    storedProfile.favoriteSharedViewIconIds as string[] | undefined
+  ) ?? []).toContain("streamlineCoreSolidApplyToAll");
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await openActiveViewMenu(page);
+  await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+  await page.locator(".view-tab-icon-picker-tab").filter({ hasText: "收藏" }).click();
+  await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='streamlineCoreSolidApplyToAll']")).toBeVisible();
+  const persistedFavoriteStar = page.locator(".view-tab-icon-picker-option[data-view-icon='streamlineCoreSolidApplyToAll'] .view-tab-icon-picker-option-star");
+  await expect(persistedFavoriteStar).toBeVisible();
+  await expect(persistedFavoriteStar).toHaveAttribute("aria-label", "取消收藏图标");
 });
 
 test("multi-select filter popover uses shared shell and scroll section", async ({ page }) => {

@@ -1,0 +1,201 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch10-suggestions.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+  "appliedCount": 13,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "laptop-add-plus",
+      "slug": "laptop-add-plus",
+      "tags": [
+        "laptop",
+        "computer",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-block-remove",
+      "slug": "laptop-block-remove",
+      "tags": [
+        "laptop",
+        "computer",
+        "block",
+        "remove",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-charging",
+      "slug": "laptop-charging",
+      "tags": [
+        "laptop",
+        "computer",
+        "charging",
+        "power",
+        "battery"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-check-validate",
+      "slug": "laptop-check-validate",
+      "tags": [
+        "laptop",
+        "computer",
+        "check",
+        "validate",
+        "approve"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-delete-cross",
+      "slug": "laptop-delete-cross",
+      "tags": [
+        "laptop",
+        "computer",
+        "delete",
+        "cross",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-disable",
+      "slug": "laptop-disable",
+      "tags": [
+        "laptop",
+        "computer",
+        "disable",
+        "inactive"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-help",
+      "slug": "laptop-help",
+      "tags": [
+        "laptop",
+        "computer",
+        "help",
+        "support"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-lock",
+      "slug": "laptop-lock",
+      "tags": [
+        "laptop",
+        "computer",
+        "lock",
+        "secure",
+        "privacy"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-project-screen",
+      "slug": "laptop-project-screen",
+      "tags": [
+        "laptop",
+        "computer",
+        "project",
+        "screen",
+        "display"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-remove-subtract",
+      "slug": "laptop-remove-subtract",
+      "tags": [
+        "laptop",
+        "computer",
+        "remove",
+        "subtract",
+        "minus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-search",
+      "slug": "laptop-search",
+      "tags": [
+        "laptop",
+        "computer",
+        "search",
+        "find"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-setting-1",
+      "slug": "laptop-setting-1",
+      "tags": [
+        "laptop",
+        "computer",
+        "setting",
+        "gear"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-warning-1",
+      "slug": "laptop-warning-1",
+      "tags": [
+        "laptop",
+        "computer",
+        "warning",
+        "alert"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.630Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": []
+}

@@ -1,0 +1,362 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-wave3-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+  "appliedCount": 25,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "list-1-to-9-arrangement",
+      "slug": "list-1-to-9-arrangement",
+      "tags": [
+        "list",
+        "sort",
+        "ascending",
+        "numbers",
+        "descending"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "list-9-to-1-arrangement",
+      "slug": "list-9-to-1-arrangement",
+      "tags": [
+        "list",
+        "sort",
+        "ascending",
+        "numbers",
+        "descending"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "list-a-to-z-arrangement",
+      "slug": "list-a-to-z-arrangement",
+      "tags": [
+        "list",
+        "sort",
+        "ascending",
+        "alphabet",
+        "descending"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "list-add",
+      "slug": "list-add",
+      "tags": [
+        "list",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "list-bullets",
+      "slug": "list-bullets",
+      "tags": [
+        "list",
+        "bullets",
+        "formatting"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.62
+    },
+    {
+      "itemId": "list-check",
+      "slug": "list-check",
+      "tags": [
+        "list",
+        "check",
+        "tasks"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "list-remove",
+      "slug": "list-remove",
+      "tags": [
+        "list",
+        "remove",
+        "delete"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "list-to-do-tasks-checklist",
+      "slug": "list-to-do-tasks-checklist",
+      "tags": [
+        "list",
+        "todo",
+        "tasks",
+        "checklist"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "list-z-to-a-arrangement",
+      "slug": "list-z-to-a-arrangement",
+      "tags": [
+        "list",
+        "sort",
+        "ascending",
+        "alphabet",
+        "descending"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "location-compass-1",
+      "slug": "location-compass-1",
+      "tags": [
+        "location",
+        "compass",
+        "navigation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "location-compass-2",
+      "slug": "location-compass-2",
+      "tags": [
+        "location",
+        "compass",
+        "navigation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "location-pin",
+      "slug": "location-pin",
+      "tags": [
+        "location",
+        "pin",
+        "marker"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.63
+    },
+    {
+      "itemId": "location-pin-2",
+      "slug": "location-pin-2",
+      "tags": [
+        "location",
+        "pin",
+        "marker"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.63
+    },
+    {
+      "itemId": "location-pin-disabled",
+      "slug": "location-pin-disabled",
+      "tags": [
+        "location",
+        "pin",
+        "marker",
+        "disabled",
+        "off"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "location-pin-option-add",
+      "slug": "location-pin-option-add",
+      "tags": [
+        "location",
+        "pin",
+        "marker",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "location-pin-option-check",
+      "slug": "location-pin-option-check",
+      "tags": [
+        "location",
+        "pin",
+        "marker",
+        "check",
+        "confirm"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "location-pin-option-remove",
+      "slug": "location-pin-option-remove",
+      "tags": [
+        "location",
+        "pin",
+        "marker",
+        "remove",
+        "delete"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "location-target-off",
+      "slug": "location-target-off",
+      "tags": [
+        "location",
+        "target",
+        "off",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "wifi-antenna",
+      "slug": "wifi-antenna",
+      "tags": [
+        "wifi",
+        "network",
+        "antenna",
+        "signal"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.63
+    },
+    {
+      "itemId": "wifi-disabled",
+      "slug": "wifi-disabled",
+      "tags": [
+        "wifi",
+        "network",
+        "disabled",
+        "off"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "wifi-not-secure-connection",
+      "slug": "wifi-not-secure-connection",
+      "tags": [
+        "wifi",
+        "network",
+        "connection",
+        "insecure"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "wifi-secure-connection",
+      "slug": "wifi-secure-connection",
+      "tags": [
+        "wifi",
+        "network",
+        "connection",
+        "secure"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "wifi-signal-low",
+      "slug": "wifi-signal-low",
+      "tags": [
+        "wifi",
+        "network",
+        "signal",
+        "low"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "wifi-signal-medium",
+      "slug": "wifi-signal-medium",
+      "tags": [
+        "wifi",
+        "network",
+        "signal",
+        "medium"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "wifi-signal-none",
+      "slug": "wifi-signal-none",
+      "tags": [
+        "wifi",
+        "network",
+        "signal",
+        "none"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:03:41.101Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

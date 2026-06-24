@@ -1,0 +1,122 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch6-suggestions.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+  "appliedCount": 8,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "share-code",
+      "slug": "share-code",
+      "tags": [
+        "share",
+        "code",
+        "programming",
+        "software"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "share-hand-lock",
+      "slug": "share-hand-lock",
+      "tags": [
+        "share",
+        "lock",
+        "privacy",
+        "secure"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "share-heart",
+      "slug": "share-heart",
+      "tags": [
+        "share",
+        "heart",
+        "favorite",
+        "like"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "share-link-approved",
+      "slug": "share-link-approved",
+      "tags": [
+        "share",
+        "link",
+        "approved",
+        "network"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "share-link-circle",
+      "slug": "share-link-circle",
+      "tags": [
+        "share",
+        "link",
+        "circle",
+        "network"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "share-link-lock",
+      "slug": "share-link-lock",
+      "tags": [
+        "share",
+        "link",
+        "lock",
+        "privacy",
+        "secure"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "share-symbol",
+      "slug": "share-symbol",
+      "tags": [
+        "share",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "share-user",
+      "slug": "share-user",
+      "tags": [
+        "share",
+        "user",
+        "account"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:35:58.191Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": []
+}

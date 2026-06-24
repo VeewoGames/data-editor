@@ -1,0 +1,5731 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-tag-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+  "appliedCount": 29,
+  "skippedCount": 1016,
+  "applied": [
+    {
+      "itemId": "indifferent-face-smiley",
+      "slug": "indifferent-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "kiss-face-smiley",
+      "slug": "kiss-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-ai-spark",
+      "slug": "laptop-ai-spark",
+      "tags": [
+        "ai",
+        "spark",
+        "innovation",
+        "technology",
+        "design",
+        "automation",
+        "creativity",
+        "digital",
+        "gear",
+        "settings",
+        "adjustment",
+        "bright"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-favorite-heart",
+      "slug": "laptop-favorite-heart",
+      "tags": [
+        "favorite",
+        "like",
+        "heart",
+        "love",
+        "bookmark",
+        "affection",
+        "social",
+        "bubble",
+        "chat",
+        "comment",
+        "feedback",
+        "message"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laptop-favorite-star",
+      "slug": "laptop-favorite-star",
+      "tags": [
+        "favorite",
+        "star",
+        "like",
+        "bookmark",
+        "rating",
+        "highlight",
+        "important",
+        "social",
+        "outline",
+        "reward",
+        "bubble",
+        "chat"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "laughing-face-smiley",
+      "slug": "laughing-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mad-face-smiley",
+      "slug": "mad-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-favorite-heart",
+      "slug": "mail-favorite-heart",
+      "tags": [
+        "favorite",
+        "like",
+        "heart",
+        "love",
+        "bookmark",
+        "affection",
+        "social",
+        "bubble",
+        "chat",
+        "comment",
+        "feedback",
+        "message"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mobile-ai-spark",
+      "slug": "mobile-ai-spark",
+      "tags": [
+        "ai",
+        "spark",
+        "innovation",
+        "technology",
+        "design",
+        "automation",
+        "creativity",
+        "digital",
+        "gear",
+        "settings",
+        "adjustment",
+        "bright"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "notification-alarm-1",
+      "slug": "notification-alarm-1",
+      "tags": [
+        "notification",
+        "alarm",
+        "alert",
+        "bell",
+        "reminder",
+        "sound",
+        "ring",
+        "chime",
+        "signal",
+        "emergency",
+        "siren",
+        "warning"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "notification-alarm-2",
+      "slug": "notification-alarm-2",
+      "tags": [
+        "notification",
+        "alarm",
+        "alert",
+        "bell",
+        "reminder",
+        "sound",
+        "ring",
+        "chime",
+        "signal",
+        "emergency",
+        "siren",
+        "warning"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "notification-alarm-snooze",
+      "slug": "notification-alarm-snooze",
+      "tags": [
+        "notification",
+        "alarm",
+        "alert",
+        "bell",
+        "reminder",
+        "sound",
+        "ring",
+        "chime",
+        "signal",
+        "emergency",
+        "siren",
+        "warning"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "rich-face-smiley",
+      "slug": "rich-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "sad-face-smiley",
+      "slug": "sad-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "sad-face-smiley-2",
+      "slug": "sad-face-smiley-2",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "security-setting-bolt-nut",
+      "slug": "security-setting-bolt-nut",
+      "tags": [
+        "setting",
+        "bolt",
+        "nut",
+        "gear",
+        "adjustments",
+        "alarm",
+        "alert",
+        "cloud",
+        "configure",
+        "edit",
+        "notification",
+        "configuration"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "settings-bolt-nut",
+      "slug": "settings-bolt-nut",
+      "tags": [
+        "gear",
+        "nut",
+        "settings",
+        "bolt",
+        "setting",
+        "ai",
+        "automation",
+        "configure",
+        "innovation",
+        "spark",
+        "technology",
+        "adjustment"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "sick-face-smiley",
+      "slug": "sick-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "sleepy-face-smiley",
+      "slug": "sleepy-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "storage-hard-drive-1",
+      "slug": "storage-hard-drive-1",
+      "tags": [
+        "backup",
+        "data",
+        "drive",
+        "external",
+        "hard",
+        "save",
+        "storage",
+        "device",
+        "disk",
+        "download",
+        "iconography",
+        "transfer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.93
+    },
+    {
+      "itemId": "storage-hard-drive-2",
+      "slug": "storage-hard-drive-2",
+      "tags": [
+        "backup",
+        "data",
+        "drive",
+        "external",
+        "hard",
+        "save",
+        "storage",
+        "device",
+        "disk",
+        "download",
+        "iconography",
+        "transfer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.93
+    },
+    {
+      "itemId": "straight-face-smiley",
+      "slug": "straight-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "surprised-face-smiley",
+      "slug": "surprised-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "upside-down-face-smiley",
+      "slug": "upside-down-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "vertical-toggle-button-single-bottom",
+      "slug": "vertical-toggle-button-single-bottom",
+      "tags": [
+        "button",
+        "control",
+        "interface",
+        "left",
+        "direction",
+        "horizontal",
+        "single",
+        "switch",
+        "toggle",
+        "right",
+        "symbol",
+        "arrow"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "vertical-toggle-button-single-top",
+      "slug": "vertical-toggle-button-single-top",
+      "tags": [
+        "button",
+        "control",
+        "interface",
+        "left",
+        "direction",
+        "horizontal",
+        "single",
+        "switch",
+        "toggle",
+        "right",
+        "symbol",
+        "arrow"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "very-happy-face-smiley-1",
+      "slug": "very-happy-face-smiley-1",
+      "tags": [
+        "face",
+        "smiley",
+        "emoji",
+        "chat",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "emotion",
+        "crying",
+        "frown",
+        "expression"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "very-happy-face-smiley-2",
+      "slug": "very-happy-face-smiley-2",
+      "tags": [
+        "face",
+        "smiley",
+        "emoji",
+        "chat",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "emotion",
+        "crying",
+        "frown",
+        "expression"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "wink-face-smiley",
+      "slug": "wink-face-smiley",
+      "tags": [
+        "face",
+        "smiley",
+        "chat",
+        "emoji",
+        "happy",
+        "message",
+        "sad",
+        "unhappy",
+        "crying",
+        "emotion",
+        "frown",
+        "cheerful"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T03:59:31.630Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": [
+    {
+      "itemId": "inbox",
+      "slug": "inbox",
+      "decision": "reject"
+    },
+    {
+      "itemId": "inbox-open",
+      "slug": "inbox-open",
+      "decision": "reject"
+    },
+    {
+      "itemId": "inbox-post",
+      "slug": "inbox-post",
+      "decision": "reject"
+    },
+    {
+      "itemId": "inbox-tray-1",
+      "slug": "inbox-tray-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "inbox-tray-2",
+      "slug": "inbox-tray-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "incognito-mode",
+      "slug": "incognito-mode",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "incoming-call",
+      "slug": "incoming-call",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "incorrect-password",
+      "slug": "incorrect-password",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "indent-decrease-1",
+      "slug": "indent-decrease-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "indent-decrease-2",
+      "slug": "indent-decrease-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "indent-increase-1",
+      "slug": "indent-increase-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "indent-increase-2",
+      "slug": "indent-increase-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "indent-left",
+      "slug": "indent-left",
+      "decision": "reject"
+    },
+    {
+      "itemId": "indent-right",
+      "slug": "indent-right",
+      "decision": "reject"
+    },
+    {
+      "itemId": "information-circle",
+      "slug": "information-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "information-desk",
+      "slug": "information-desk",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "information-square",
+      "slug": "information-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "inside-stroke",
+      "slug": "inside-stroke",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "instagram-logo",
+      "slug": "instagram-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "insurance-hand",
+      "slug": "insurance-hand",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "integration-connection-webhook",
+      "slug": "integration-connection-webhook",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "investing-and-banking",
+      "slug": "investing-and-banking",
+      "decision": "reject"
+    },
+    {
+      "itemId": "invisible-view",
+      "slug": "invisible-view",
+      "decision": "reject"
+    },
+    {
+      "itemId": "ios-ipados",
+      "slug": "ios-ipados",
+      "decision": "reject"
+    },
+    {
+      "itemId": "iphone",
+      "slug": "iphone",
+      "decision": "reject"
+    },
+    {
+      "itemId": "iron",
+      "slug": "iron",
+      "decision": "reject"
+    },
+    {
+      "itemId": "islam",
+      "slug": "islam",
+      "decision": "reject"
+    },
+    {
+      "itemId": "italic-off",
+      "slug": "italic-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "italic-text",
+      "slug": "italic-text",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "json-programming",
+      "slug": "json-programming",
+      "decision": "reject"
+    },
+    {
+      "itemId": "juice",
+      "slug": "juice",
+      "decision": "reject"
+    },
+    {
+      "itemId": "justified-align-1",
+      "slug": "justified-align-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "justified-align-2",
+      "slug": "justified-align-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "key",
+      "slug": "key",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "keyboard",
+      "slug": "keyboard",
+      "decision": "reject"
+    },
+    {
+      "itemId": "keyboard-virtual",
+      "slug": "keyboard-virtual",
+      "decision": "reject"
+    },
+    {
+      "itemId": "keyboard-wireless-2",
+      "slug": "keyboard-wireless-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "knife-2",
+      "slug": "knife-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "ladder",
+      "slug": "ladder",
+      "decision": "reject"
+    },
+    {
+      "itemId": "landscape-setting--26582",
+      "slug": "landscape-setting",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "landscape-setting--26585",
+      "slug": "landscape-setting",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-add-plus",
+      "slug": "laptop-add-plus",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-block-remove",
+      "slug": "laptop-block-remove",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-charging",
+      "slug": "laptop-charging",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-check-validate",
+      "slug": "laptop-check-validate",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-delete-cross",
+      "slug": "laptop-delete-cross",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-disable",
+      "slug": "laptop-disable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-help",
+      "slug": "laptop-help",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-lock",
+      "slug": "laptop-lock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-project-screen",
+      "slug": "laptop-project-screen",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-remove-subtract",
+      "slug": "laptop-remove-subtract",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-search",
+      "slug": "laptop-search",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-setting-1",
+      "slug": "laptop-setting-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "laptop-warning-1",
+      "slug": "laptop-warning-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lasso-tool",
+      "slug": "lasso-tool",
+      "decision": "reject"
+    },
+    {
+      "itemId": "laundry-shirt",
+      "slug": "laundry-shirt",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layer-add-1",
+      "slug": "layer-add-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layer-add-2",
+      "slug": "layer-add-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layer-style",
+      "slug": "layer-style",
+      "decision": "reject"
+    },
+    {
+      "itemId": "layout-1",
+      "slug": "layout-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-10",
+      "slug": "layout-10",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-2",
+      "slug": "layout-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-3",
+      "slug": "layout-3",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-4",
+      "slug": "layout-4",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-5",
+      "slug": "layout-5",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-6",
+      "slug": "layout-6",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-7",
+      "slug": "layout-7",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-8",
+      "slug": "layout-8",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-9",
+      "slug": "layout-9",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-bottom",
+      "slug": "layout-border-bottom",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-center",
+      "slug": "layout-border-center",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-corner",
+      "slug": "layout-border-corner",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-frame",
+      "slug": "layout-border-frame",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-full",
+      "slug": "layout-border-full",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-horizontal",
+      "slug": "layout-border-horizontal",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-left",
+      "slug": "layout-border-left",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-none",
+      "slug": "layout-border-none",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-right",
+      "slug": "layout-border-right",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-top",
+      "slug": "layout-border-top",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-border-vertical",
+      "slug": "layout-border-vertical",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-position-bottom-left",
+      "slug": "layout-position-bottom-left",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-position-bottom-right",
+      "slug": "layout-position-bottom-right",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-position-top-left",
+      "slug": "layout-position-top-left",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-position-top-right",
+      "slug": "layout-position-top-right",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-three-columns",
+      "slug": "layout-three-columns",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-two-columns",
+      "slug": "layout-two-columns",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "layout-two-rows",
+      "slug": "layout-two-rows",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "leaf--26582",
+      "slug": "leaf",
+      "decision": "reject"
+    },
+    {
+      "itemId": "leaf--26657",
+      "slug": "leaf",
+      "decision": "reject"
+    },
+    {
+      "itemId": "left-align-1",
+      "slug": "left-align-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "left-align-2",
+      "slug": "left-align-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "left-click-mouse",
+      "slug": "left-click-mouse",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "legal-justice-hammer",
+      "slug": "legal-justice-hammer",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "legal-justice-scale-1",
+      "slug": "legal-justice-scale-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "legal-justice-scale-2",
+      "slug": "legal-justice-scale-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "legal-justice-scale-3",
+      "slug": "legal-justice-scale-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "lemon-fruit-seasoning",
+      "slug": "lemon-fruit-seasoning",
+      "decision": "reject"
+    },
+    {
+      "itemId": "lens",
+      "slug": "lens",
+      "decision": "reject"
+    },
+    {
+      "itemId": "less-than-sign",
+      "slug": "less-than-sign",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lift",
+      "slug": "lift",
+      "decision": "reject"
+    },
+    {
+      "itemId": "lift-disability",
+      "slug": "lift-disability",
+      "decision": "reject"
+    },
+    {
+      "itemId": "light-bulb",
+      "slug": "light-bulb",
+      "decision": "reject"
+    },
+    {
+      "itemId": "light-bulb-on",
+      "slug": "light-bulb-on",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "light-dark-mode",
+      "slug": "light-dark-mode",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "light-display-mode",
+      "slug": "light-display-mode",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "light-home-ceiling-on",
+      "slug": "light-home-ceiling-on",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "light-off",
+      "slug": "light-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lightning",
+      "slug": "lightning",
+      "decision": "reject"
+    },
+    {
+      "itemId": "line-start-circle",
+      "slug": "line-start-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "line-start-diamond",
+      "slug": "line-start-diamond",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "line-start-square",
+      "slug": "line-start-square",
+      "decision": "reject"
+    },
+    {
+      "itemId": "line-start-triangle",
+      "slug": "line-start-triangle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "link",
+      "slug": "link",
+      "decision": "reject"
+    },
+    {
+      "itemId": "link-broken",
+      "slug": "link-broken",
+      "decision": "reject"
+    },
+    {
+      "itemId": "link-share-circle",
+      "slug": "link-share-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "link-share-square",
+      "slug": "link-share-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "linkedin-logo",
+      "slug": "linkedin-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lipstick",
+      "slug": "lipstick",
+      "decision": "reject"
+    },
+    {
+      "itemId": "list-1-to-9-arrangement",
+      "slug": "list-1-to-9-arrangement",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-9-to-1-arrangement",
+      "slug": "list-9-to-1-arrangement",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-a-to-z-arrangement",
+      "slug": "list-a-to-z-arrangement",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-add",
+      "slug": "list-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-bullets",
+      "slug": "list-bullets",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-check",
+      "slug": "list-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-remove",
+      "slug": "list-remove",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-to-do-tasks-checklist",
+      "slug": "list-to-do-tasks-checklist",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "list-z-to-a-arrangement",
+      "slug": "list-z-to-a-arrangement",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "live-video",
+      "slug": "live-video",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "loading-half-status",
+      "slug": "loading-half-status",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "loading-status",
+      "slug": "loading-status",
+      "decision": "reject"
+    },
+    {
+      "itemId": "location-compass-1",
+      "slug": "location-compass-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-compass-2",
+      "slug": "location-compass-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-map-app-street",
+      "slug": "location-map-app-street",
+      "decision": "reject"
+    },
+    {
+      "itemId": "location-pin",
+      "slug": "location-pin",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-pin-2",
+      "slug": "location-pin-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-pin-disabled",
+      "slug": "location-pin-disabled",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-pin-option-add",
+      "slug": "location-pin-option-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-pin-option-check",
+      "slug": "location-pin-option-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-pin-option-remove",
+      "slug": "location-pin-option-remove",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "location-target-1",
+      "slug": "location-target-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "location-target-2",
+      "slug": "location-target-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "location-target-off",
+      "slug": "location-target-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lock",
+      "slug": "lock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lock-circle",
+      "slug": "lock-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lock-encryption",
+      "slug": "lock-encryption",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lock-key",
+      "slug": "lock-key",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lock-rotation",
+      "slug": "lock-rotation",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lock-shield",
+      "slug": "lock-shield",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "log",
+      "slug": "log",
+      "decision": "reject"
+    },
+    {
+      "itemId": "login-arrow",
+      "slug": "login-arrow",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "login-circle",
+      "slug": "login-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "login-import",
+      "slug": "login-import",
+      "decision": "reject"
+    },
+    {
+      "itemId": "logout-arrow",
+      "slug": "logout-arrow",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "logout-circle",
+      "slug": "logout-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "logout-export",
+      "slug": "logout-export",
+      "decision": "reject"
+    },
+    {
+      "itemId": "loop-media",
+      "slug": "loop-media",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "lost-and-found",
+      "slug": "lost-and-found",
+      "decision": "reject"
+    },
+    {
+      "itemId": "lowercase",
+      "slug": "lowercase",
+      "decision": "reject"
+    },
+    {
+      "itemId": "magic-wand",
+      "slug": "magic-wand",
+      "decision": "reject"
+    },
+    {
+      "itemId": "magic-wand-2",
+      "slug": "magic-wand-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "magnet",
+      "slug": "magnet",
+      "decision": "reject"
+    },
+    {
+      "itemId": "mail-add",
+      "slug": "mail-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-block",
+      "slug": "mail-block",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-check",
+      "slug": "mail-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-favorite",
+      "slug": "mail-favorite",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-incoming",
+      "slug": "mail-incoming",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-loading",
+      "slug": "mail-loading",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-lock",
+      "slug": "mail-lock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-mark-as-read",
+      "slug": "mail-mark-as-read",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-notification",
+      "slug": "mail-notification",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-outgoing",
+      "slug": "mail-outgoing",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-remove",
+      "slug": "mail-remove",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-reply",
+      "slug": "mail-reply",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-reply-all",
+      "slug": "mail-reply-all",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-schedule",
+      "slug": "mail-schedule",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-search",
+      "slug": "mail-search",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-send",
+      "slug": "mail-send",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-send-email",
+      "slug": "mail-send-email",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-send-email-message-circle",
+      "slug": "mail-send-email-message-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-send-forward-email",
+      "slug": "mail-send-forward-email",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-send-reply",
+      "slug": "mail-send-reply",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-send-reply-all",
+      "slug": "mail-send-reply-all",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-setting",
+      "slug": "mail-setting",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mail-subtract",
+      "slug": "mail-subtract",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "make-up-brush",
+      "slug": "make-up-brush",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "man-symbol",
+      "slug": "man-symbol",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "map-direction-enable",
+      "slug": "map-direction-enable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "meat",
+      "slug": "meat",
+      "decision": "reject"
+    },
+    {
+      "itemId": "medal-badge-star",
+      "slug": "medal-badge-star",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "media-library",
+      "slug": "media-library",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "medical-bag",
+      "slug": "medical-bag",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "medical-cross-sign-healthcare",
+      "slug": "medical-cross-sign-healthcare",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "medical-files-report-history",
+      "slug": "medical-files-report-history",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "medical-folder",
+      "slug": "medical-folder",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "medical-search-diagnosis",
+      "slug": "medical-search-diagnosis",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mega-phone-1",
+      "slug": "mega-phone-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mega-phone-2",
+      "slug": "mega-phone-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mention-account-username-email-address",
+      "slug": "mention-account-username-email-address",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-alternate-1",
+      "slug": "menu-alternate-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-alternate-2",
+      "slug": "menu-alternate-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-alternate-horizontal",
+      "slug": "menu-alternate-horizontal",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-alternate-vertical",
+      "slug": "menu-alternate-vertical",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-horizontal-dots",
+      "slug": "menu-horizontal-dots",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-line-1",
+      "slug": "menu-line-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-line-2",
+      "slug": "menu-line-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "menu-vertical-dots",
+      "slug": "menu-vertical-dots",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "micro-chip-1",
+      "slug": "micro-chip-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "micro-chip-2",
+      "slug": "micro-chip-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "microscope-observation-sciene",
+      "slug": "microscope-observation-sciene",
+      "decision": "reject"
+    },
+    {
+      "itemId": "microwave",
+      "slug": "microwave",
+      "decision": "reject"
+    },
+    {
+      "itemId": "milk-carton",
+      "slug": "milk-carton",
+      "decision": "reject"
+    },
+    {
+      "itemId": "minus",
+      "slug": "minus",
+      "decision": "reject"
+    },
+    {
+      "itemId": "missed-call",
+      "slug": "missed-call",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mitter-corner",
+      "slug": "mitter-corner",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mobile-data-off",
+      "slug": "mobile-data-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mobile-data-on",
+      "slug": "mobile-data-on",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mobile-phone",
+      "slug": "mobile-phone",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "module",
+      "slug": "module",
+      "decision": "reject"
+    },
+    {
+      "itemId": "module-puzzle",
+      "slug": "module-puzzle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "module-three",
+      "slug": "module-three",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "money-bag",
+      "slug": "money-bag",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "money-safe-vault",
+      "slug": "money-safe-vault",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "money-shield",
+      "slug": "money-shield",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "money-wallet",
+      "slug": "money-wallet",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "monitor-project-screen",
+      "slug": "monitor-project-screen",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "moon",
+      "slug": "moon",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "moon-cloud",
+      "slug": "moon-cloud",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "motorcycle-courier",
+      "slug": "motorcycle-courier",
+      "decision": "reject"
+    },
+    {
+      "itemId": "mountain",
+      "slug": "mountain",
+      "decision": "reject"
+    },
+    {
+      "itemId": "mouse",
+      "slug": "mouse",
+      "decision": "reject"
+    },
+    {
+      "itemId": "mouse-wireless",
+      "slug": "mouse-wireless",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "mouse-wireless-1",
+      "slug": "mouse-wireless-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "moustache",
+      "slug": "moustache",
+      "decision": "reject"
+    },
+    {
+      "itemId": "mouth-lip",
+      "slug": "mouth-lip",
+      "decision": "reject"
+    },
+    {
+      "itemId": "move-circle",
+      "slug": "move-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "move-object-down",
+      "slug": "move-object-down",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "move-object-left",
+      "slug": "move-object-left",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "move-object-right",
+      "slug": "move-object-right",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "move-object-up",
+      "slug": "move-object-up",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "movie-video-clip",
+      "slug": "movie-video-clip",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "multiple-stars",
+      "slug": "multiple-stars",
+      "decision": "reject"
+    },
+    {
+      "itemId": "multiply",
+      "slug": "multiply",
+      "decision": "reject"
+    },
+    {
+      "itemId": "museum-painting",
+      "slug": "museum-painting",
+      "decision": "reject"
+    },
+    {
+      "itemId": "music-disc",
+      "slug": "music-disc",
+      "decision": "reject"
+    },
+    {
+      "itemId": "music-equalizer-1",
+      "slug": "music-equalizer-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "music-note-1",
+      "slug": "music-note-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "music-note-2",
+      "slug": "music-note-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "music-note-circle",
+      "slug": "music-note-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "music-note-circle-off",
+      "slug": "music-note-circle-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "music-note-off-1",
+      "slug": "music-note-off-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "music-note-off-2",
+      "slug": "music-note-off-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-1",
+      "slug": "navigation-arrow-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-2",
+      "slug": "navigation-arrow-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-east",
+      "slug": "navigation-arrow-east",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-fork-left",
+      "slug": "navigation-arrow-fork-left",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-fork-right",
+      "slug": "navigation-arrow-fork-right",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-off",
+      "slug": "navigation-arrow-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-south",
+      "slug": "navigation-arrow-south",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "navigation-arrow-west",
+      "slug": "navigation-arrow-west",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "network",
+      "slug": "network",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "network-node-connection-integration",
+      "slug": "network-node-connection-integration",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "newspaper",
+      "slug": "newspaper",
+      "decision": "reject"
+    },
+    {
+      "itemId": "next--26622",
+      "slug": "next",
+      "decision": "reject"
+    },
+    {
+      "itemId": "next--26662",
+      "slug": "next",
+      "decision": "reject"
+    },
+    {
+      "itemId": "next-circle",
+      "slug": "next-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "night-bedtime-mode-off",
+      "slug": "night-bedtime-mode-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "nintendo-xbox-controller",
+      "slug": "nintendo-xbox-controller",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "no-eyes",
+      "slug": "no-eyes",
+      "decision": "reject"
+    },
+    {
+      "itemId": "no-flight-airport",
+      "slug": "no-flight-airport",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "no-food-allowed",
+      "slug": "no-food-allowed",
+      "decision": "reject"
+    },
+    {
+      "itemId": "no-luggage",
+      "slug": "no-luggage",
+      "decision": "reject"
+    },
+    {
+      "itemId": "no-mouth",
+      "slug": "no-mouth",
+      "decision": "reject"
+    },
+    {
+      "itemId": "no-pets-allowed",
+      "slug": "no-pets-allowed",
+      "decision": "reject"
+    },
+    {
+      "itemId": "no-smoking-area",
+      "slug": "no-smoking-area",
+      "decision": "reject"
+    },
+    {
+      "itemId": "non-commercial",
+      "slug": "non-commercial",
+      "decision": "reject"
+    },
+    {
+      "itemId": "noodle",
+      "slug": "noodle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "north",
+      "slug": "north",
+      "decision": "reject"
+    },
+    {
+      "itemId": "nose-smell",
+      "slug": "nose-smell",
+      "decision": "reject"
+    },
+    {
+      "itemId": "not-equal-sign",
+      "slug": "not-equal-sign",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "note-pad",
+      "slug": "note-pad",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notepad-add",
+      "slug": "notepad-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notepad-check",
+      "slug": "notepad-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notepad-remove",
+      "slug": "notepad-remove",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notepad-subtract",
+      "slug": "notepad-subtract",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notepad-text",
+      "slug": "notepad-text",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notification-alert",
+      "slug": "notification-alert",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notification-application-1",
+      "slug": "notification-application-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notification-application-2",
+      "slug": "notification-application-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "notification-badge-circle",
+      "slug": "notification-badge-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number",
+      "slug": "number",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-eight",
+      "slug": "number-eight",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-eight-circle",
+      "slug": "number-eight-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-eight-square",
+      "slug": "number-eight-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-five",
+      "slug": "number-five",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-five-circle",
+      "slug": "number-five-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-five-square",
+      "slug": "number-five-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-four",
+      "slug": "number-four",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-four-circle",
+      "slug": "number-four-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-four-square",
+      "slug": "number-four-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-nine",
+      "slug": "number-nine",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-nine-circle",
+      "slug": "number-nine-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-nine-square",
+      "slug": "number-nine-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-one",
+      "slug": "number-one",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-one-circle",
+      "slug": "number-one-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-one-square",
+      "slug": "number-one-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-seven",
+      "slug": "number-seven",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-seven-circle",
+      "slug": "number-seven-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-seven-square",
+      "slug": "number-seven-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-six",
+      "slug": "number-six",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-six-circle",
+      "slug": "number-six-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-six-square",
+      "slug": "number-six-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-three",
+      "slug": "number-three",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-three-circle",
+      "slug": "number-three-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-three-square",
+      "slug": "number-three-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-two",
+      "slug": "number-two",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-two-circle",
+      "slug": "number-two-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-two-square",
+      "slug": "number-two-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-zero",
+      "slug": "number-zero",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-zero-circle",
+      "slug": "number-zero-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "number-zero-square",
+      "slug": "number-zero-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "nurse-assistant-emergency",
+      "slug": "nurse-assistant-emergency",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "nurse-hat",
+      "slug": "nurse-hat",
+      "decision": "reject"
+    },
+    {
+      "itemId": "nutrition-fruit-orange",
+      "slug": "nutrition-fruit-orange",
+      "decision": "reject"
+    },
+    {
+      "itemId": "office-building",
+      "slug": "office-building",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "ok-hand",
+      "slug": "ok-hand",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "one-finger-drag-horizontal",
+      "slug": "one-finger-drag-horizontal",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "one-finger-drag-vertical",
+      "slug": "one-finger-drag-vertical",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "one-finger-long-tap",
+      "slug": "one-finger-long-tap",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "one-finger-tap",
+      "slug": "one-finger-tap",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "online-medical-app-checkup-service",
+      "slug": "online-medical-app-checkup-service",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "online-medical-service-monitor",
+      "slug": "online-medical-service-monitor",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "online-medical-web-service",
+      "slug": "online-medical-web-service",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "open-hand",
+      "slug": "open-hand",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "open-quote",
+      "slug": "open-quote",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "option-1",
+      "slug": "option-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "option-2",
+      "slug": "option-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "orientation-landscape",
+      "slug": "orientation-landscape",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "orientation-portrait",
+      "slug": "orientation-portrait",
+      "decision": "reject"
+    },
+    {
+      "itemId": "outgoing-call",
+      "slug": "outgoing-call",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "outside-stroke",
+      "slug": "outside-stroke",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pacman",
+      "slug": "pacman",
+      "decision": "reject"
+    },
+    {
+      "itemId": "page-width-normal",
+      "slug": "page-width-normal",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "page-width-wide",
+      "slug": "page-width-wide",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "paint-palette",
+      "slug": "paint-palette",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "painting",
+      "slug": "painting",
+      "decision": "reject"
+    },
+    {
+      "itemId": "paper-clip-1",
+      "slug": "paper-clip-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "paragraph",
+      "slug": "paragraph",
+      "decision": "reject"
+    },
+    {
+      "itemId": "paragraph-article",
+      "slug": "paragraph-article",
+      "decision": "reject"
+    },
+    {
+      "itemId": "paragraph-bullets",
+      "slug": "paragraph-bullets",
+      "decision": "reject"
+    },
+    {
+      "itemId": "paragraph-column",
+      "slug": "paragraph-column",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "paragraph-indent-first-line",
+      "slug": "paragraph-indent-first-line",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "paragraph-indent-last-line",
+      "slug": "paragraph-indent-last-line",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "park-bench",
+      "slug": "park-bench",
+      "decision": "reject"
+    },
+    {
+      "itemId": "parking-sign",
+      "slug": "parking-sign",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "party-hat",
+      "slug": "party-hat",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "party-popper",
+      "slug": "party-popper",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "passport",
+      "slug": "passport",
+      "decision": "reject"
+    },
+    {
+      "itemId": "password-block",
+      "slug": "password-block",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "password-input",
+      "slug": "password-input",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "password-lock",
+      "slug": "password-lock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pathfinder-circle-divide",
+      "slug": "pathfinder-circle-divide",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-circle-exclude",
+      "slug": "pathfinder-circle-exclude",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-circle-intersect",
+      "slug": "pathfinder-circle-intersect",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-circle-merge",
+      "slug": "pathfinder-circle-merge",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-back-1",
+      "slug": "pathfinder-circle-minus-back-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-1",
+      "slug": "pathfinder-circle-minus-front-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-2",
+      "slug": "pathfinder-circle-minus-front-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pathfinder-circle-outline",
+      "slug": "pathfinder-circle-outline",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-circle-trim",
+      "slug": "pathfinder-circle-trim",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-circle-union",
+      "slug": "pathfinder-circle-union",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-divide",
+      "slug": "pathfinder-divide",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-exclude",
+      "slug": "pathfinder-exclude",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-intersect",
+      "slug": "pathfinder-intersect",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-merge",
+      "slug": "pathfinder-merge",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-minus-back-1",
+      "slug": "pathfinder-minus-back-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pathfinder-minus-front",
+      "slug": "pathfinder-minus-front",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pathfinder-outline",
+      "slug": "pathfinder-outline",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-square-minus-front-2",
+      "slug": "pathfinder-square-minus-front-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pathfinder-trim",
+      "slug": "pathfinder-trim",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pathfinder-union",
+      "slug": "pathfinder-union",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pause-2",
+      "slug": "pause-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pause-circle",
+      "slug": "pause-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pause-play-circle",
+      "slug": "pause-play-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "paypal-logo",
+      "slug": "paypal-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "peace-hand",
+      "slug": "peace-hand",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "peace-symbol",
+      "slug": "peace-symbol",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pen-1",
+      "slug": "pen-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pen-2",
+      "slug": "pen-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pen-3",
+      "slug": "pen-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pen-draw",
+      "slug": "pen-draw",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pen-tool",
+      "slug": "pen-tool",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pen-tool-add",
+      "slug": "pen-tool-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pen-tool-delete",
+      "slug": "pen-tool-delete",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pencil-circle",
+      "slug": "pencil-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pencil-edit",
+      "slug": "pencil-edit",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pepper-bottle",
+      "slug": "pepper-bottle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "permanently-delete",
+      "slug": "permanently-delete",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "personal-hotspot",
+      "slug": "personal-hotspot",
+      "decision": "reject"
+    },
+    {
+      "itemId": "perspective-wrap-transform-distort",
+      "slug": "perspective-wrap-transform-distort",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pet-paw",
+      "slug": "pet-paw",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pets-allowed",
+      "slug": "pets-allowed",
+      "decision": "reject"
+    },
+    {
+      "itemId": "phone-book",
+      "slug": "phone-book",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-call-caller-id-information-center",
+      "slug": "phone-call-caller-id-information-center",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-call-forwarded",
+      "slug": "phone-call-forwarded",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-call-locked",
+      "slug": "phone-call-locked",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-call-log-history",
+      "slug": "phone-call-log-history",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-call-ring-volume",
+      "slug": "phone-call-ring-volume",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-landscape",
+      "slug": "phone-landscape",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-numpad-up",
+      "slug": "phone-numpad-up",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-off",
+      "slug": "phone-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-open-in-mobile",
+      "slug": "phone-open-in-mobile",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-ringing-1",
+      "slug": "phone-ringing-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-ringing-2",
+      "slug": "phone-ringing-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-rotate-mobile",
+      "slug": "phone-rotate-mobile",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-send-to-mobile",
+      "slug": "phone-send-to-mobile",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-signal-full",
+      "slug": "phone-signal-full",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-signal-low",
+      "slug": "phone-signal-low",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-signal-medium",
+      "slug": "phone-signal-medium",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-signal-off",
+      "slug": "phone-signal-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "phone-vibrate",
+      "slug": "phone-vibrate",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "photo-composition-oval",
+      "slug": "photo-composition-oval",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "photo-composition-vertical",
+      "slug": "photo-composition-vertical",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "photo-compsition-horizontal",
+      "slug": "photo-compsition-horizontal",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "photo-focus-frame",
+      "slug": "photo-focus-frame",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "photo-four",
+      "slug": "photo-four",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "photo-polaroid",
+      "slug": "photo-polaroid",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pi-symbol",
+      "slug": "pi-symbol",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "piano-keys",
+      "slug": "piano-keys",
+      "decision": "reject"
+    },
+    {
+      "itemId": "piggy-bank",
+      "slug": "piggy-bank",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pin-1",
+      "slug": "pin-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pin-2",
+      "slug": "pin-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pine-tree",
+      "slug": "pine-tree",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pizza",
+      "slug": "pizza",
+      "decision": "reject"
+    },
+    {
+      "itemId": "plane-boarding-pass",
+      "slug": "plane-boarding-pass",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "plane-flight-board",
+      "slug": "plane-flight-board",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "plane-landing",
+      "slug": "plane-landing",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "plane-take-off",
+      "slug": "plane-take-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "planet",
+      "slug": "planet",
+      "decision": "reject"
+    },
+    {
+      "itemId": "plant-mint-minting",
+      "slug": "plant-mint-minting",
+      "decision": "reject"
+    },
+    {
+      "itemId": "play",
+      "slug": "play",
+      "decision": "reject"
+    },
+    {
+      "itemId": "play-list-1",
+      "slug": "play-list-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "play-list-2",
+      "slug": "play-list-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "play-list-3",
+      "slug": "play-list-3",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "play-list-4",
+      "slug": "play-list-4",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "play-list-folder",
+      "slug": "play-list-folder",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "play-list-phone",
+      "slug": "play-list-phone",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "play-pause",
+      "slug": "play-pause",
+      "decision": "reject"
+    },
+    {
+      "itemId": "playground",
+      "slug": "playground",
+      "decision": "reject"
+    },
+    {
+      "itemId": "plus",
+      "slug": "plus",
+      "decision": "reject"
+    },
+    {
+      "itemId": "plus-minus-1",
+      "slug": "plus-minus-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "plus-minus-2",
+      "slug": "plus-minus-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "podcast-wifi-hotspot",
+      "slug": "podcast-wifi-hotspot",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "police-car",
+      "slug": "police-car",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "polygonal-lasso-tool",
+      "slug": "polygonal-lasso-tool",
+      "decision": "reject"
+    },
+    {
+      "itemId": "pool-ladder",
+      "slug": "pool-ladder",
+      "decision": "reject"
+    },
+    {
+      "itemId": "popcorn",
+      "slug": "popcorn",
+      "decision": "reject"
+    },
+    {
+      "itemId": "portrait-setting--26582",
+      "slug": "portrait-setting",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "portrait-setting--26585",
+      "slug": "portrait-setting",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "potted-flower-tulip",
+      "slug": "potted-flower-tulip",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "pound-currency",
+      "slug": "pound-currency",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "power-1",
+      "slug": "power-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "power-2",
+      "slug": "power-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "power-off--26619",
+      "slug": "power-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "power-off--26622",
+      "slug": "power-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "prescription-pills-drugs-healthcare",
+      "slug": "prescription-pills-drugs-healthcare",
+      "decision": "reject"
+    },
+    {
+      "itemId": "presentation",
+      "slug": "presentation",
+      "decision": "reject"
+    },
+    {
+      "itemId": "presentation-podium",
+      "slug": "presentation-podium",
+      "decision": "reject"
+    },
+    {
+      "itemId": "presentation-speaker-speech",
+      "slug": "presentation-speaker-speech",
+      "decision": "reject"
+    },
+    {
+      "itemId": "previous--26622",
+      "slug": "previous",
+      "decision": "reject"
+    },
+    {
+      "itemId": "previous--26662",
+      "slug": "previous",
+      "decision": "reject"
+    },
+    {
+      "itemId": "previous-circle",
+      "slug": "previous-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "print-add-printer",
+      "slug": "print-add-printer",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "print-error",
+      "slug": "print-error",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "print-off-disabled",
+      "slug": "print-off-disabled",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "print-printer-connected",
+      "slug": "print-printer-connected",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "print-printer-disconnected",
+      "slug": "print-printer-disconnected",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "print-remove-printer",
+      "slug": "print-remove-printer",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "printer",
+      "slug": "printer",
+      "decision": "reject"
+    },
+    {
+      "itemId": "projector-board",
+      "slug": "projector-board",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "projector-screen",
+      "slug": "projector-screen",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "public-domain",
+      "slug": "public-domain",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "qr-code",
+      "slug": "qr-code",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "quality-4k",
+      "slug": "quality-4k",
+      "decision": "reject"
+    },
+    {
+      "itemId": "quality-hd",
+      "slug": "quality-hd",
+      "decision": "reject"
+    },
+    {
+      "itemId": "quality-hq",
+      "slug": "quality-hq",
+      "decision": "reject"
+    },
+    {
+      "itemId": "quotation",
+      "slug": "quotation",
+      "decision": "reject"
+    },
+    {
+      "itemId": "radio",
+      "slug": "radio",
+      "decision": "reject"
+    },
+    {
+      "itemId": "radio-active-1",
+      "slug": "radio-active-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "radio-active-2",
+      "slug": "radio-active-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rain-1",
+      "slug": "rain-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rain-2",
+      "slug": "rain-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rain-water-drop",
+      "slug": "rain-water-drop",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "rainbow",
+      "slug": "rainbow",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rainbow-cloud",
+      "slug": "rainbow-cloud",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "receipt",
+      "slug": "receipt",
+      "decision": "reject"
+    },
+    {
+      "itemId": "record-2",
+      "slug": "record-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "record-3",
+      "slug": "record-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "recording-tape-1",
+      "slug": "recording-tape-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "recording-tape-2",
+      "slug": "recording-tape-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rectangle-flag",
+      "slug": "rectangle-flag",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "rectangle-frame",
+      "slug": "rectangle-frame",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "recycle-2",
+      "slug": "recycle-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "refrigerator",
+      "slug": "refrigerator",
+      "decision": "reject"
+    },
+    {
+      "itemId": "registered",
+      "slug": "registered",
+      "decision": "reject"
+    },
+    {
+      "itemId": "remove-1",
+      "slug": "remove-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "remove-2",
+      "slug": "remove-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "remove-circle",
+      "slug": "remove-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "remove-square",
+      "slug": "remove-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "reply",
+      "slug": "reply",
+      "decision": "reject"
+    },
+    {
+      "itemId": "reply-2",
+      "slug": "reply-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "reports-document-analytics",
+      "slug": "reports-document-analytics",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "responsive-layout",
+      "slug": "responsive-layout",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "return-1",
+      "slug": "return-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "return-2",
+      "slug": "return-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "return-3",
+      "slug": "return-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rewind-1",
+      "slug": "rewind-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rewind-2",
+      "slug": "rewind-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "ribbon-1",
+      "slug": "ribbon-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "ribbon-2",
+      "slug": "ribbon-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "riceball",
+      "slug": "riceball",
+      "decision": "reject"
+    },
+    {
+      "itemId": "right-align-1",
+      "slug": "right-align-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "right-align-2",
+      "slug": "right-align-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "right-click-mouse",
+      "slug": "right-click-mouse",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "ring",
+      "slug": "ring",
+      "decision": "reject"
+    },
+    {
+      "itemId": "robot",
+      "slug": "robot",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rock-slide",
+      "slug": "rock-slide",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rocket",
+      "slug": "rocket",
+      "decision": "reject"
+    },
+    {
+      "itemId": "roller-paintbrush",
+      "slug": "roller-paintbrush",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rose",
+      "slug": "rose",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rotate-angle-45",
+      "slug": "rotate-angle-45",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rotate-angle-90",
+      "slug": "rotate-angle-90",
+      "decision": "reject"
+    },
+    {
+      "itemId": "round-brackets",
+      "slug": "round-brackets",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "round-cap",
+      "slug": "round-cap",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "round-corner",
+      "slug": "round-corner",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "route",
+      "slug": "route",
+      "decision": "reject"
+    },
+    {
+      "itemId": "router-wifi-network",
+      "slug": "router-wifi-network",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "rss",
+      "slug": "rss",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rss-square",
+      "slug": "rss-square",
+      "decision": "reject"
+    },
+    {
+      "itemId": "ruler",
+      "slug": "ruler",
+      "decision": "reject"
+    },
+    {
+      "itemId": "ruler-angle-measurement",
+      "slug": "ruler-angle-measurement",
+      "decision": "reject"
+    },
+    {
+      "itemId": "running",
+      "slug": "running",
+      "decision": "reject"
+    },
+    {
+      "itemId": "rupee",
+      "slug": "rupee",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sail-ship",
+      "slug": "sail-ship",
+      "decision": "reject"
+    },
+    {
+      "itemId": "salad-vegetable-diet",
+      "slug": "salad-vegetable-diet",
+      "decision": "reject"
+    },
+    {
+      "itemId": "salt-bottle",
+      "slug": "salt-bottle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "satellite--26574",
+      "slug": "satellite",
+      "decision": "reject"
+    },
+    {
+      "itemId": "satellite--26655",
+      "slug": "satellite",
+      "decision": "reject"
+    },
+    {
+      "itemId": "save-floppy-disk",
+      "slug": "save-floppy-disk",
+      "decision": "reject"
+    },
+    {
+      "itemId": "scan-dashed-line",
+      "slug": "scan-dashed-line",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scan-text",
+      "slug": "scan-text",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scanner-1",
+      "slug": "scanner-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scanner-bar-code",
+      "slug": "scanner-bar-code",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scanner-payment",
+      "slug": "scanner-payment",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "school",
+      "slug": "school",
+      "decision": "reject"
+    },
+    {
+      "itemId": "scissors",
+      "slug": "scissors",
+      "decision": "reject"
+    },
+    {
+      "itemId": "scooter",
+      "slug": "scooter",
+      "decision": "reject"
+    },
+    {
+      "itemId": "screen-1",
+      "slug": "screen-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "screen-2",
+      "slug": "screen-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "screen-broadcast",
+      "slug": "screen-broadcast",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "screen-curve",
+      "slug": "screen-curve",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "screen-sharing",
+      "slug": "screen-sharing",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "screen-sharing-tutorial",
+      "slug": "screen-sharing-tutorial",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "screen-tv",
+      "slug": "screen-tv",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "screw-driver",
+      "slug": "screw-driver",
+      "decision": "reject"
+    },
+    {
+      "itemId": "script-1",
+      "slug": "script-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "script-2",
+      "slug": "script-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "script-code",
+      "slug": "script-code",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "script-file-code-1",
+      "slug": "script-file-code-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "script-file-code-2",
+      "slug": "script-file-code-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scroll-top",
+      "slug": "scroll-top",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scroll-up",
+      "slug": "scroll-up",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scroll-up-double",
+      "slug": "scroll-up-double",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "scroll-up-down",
+      "slug": "scroll-up-down",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sd-card",
+      "slug": "sd-card",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search",
+      "slug": "search",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search-check",
+      "slug": "search-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search-circle",
+      "slug": "search-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search-dollar",
+      "slug": "search-dollar",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search-history-browser",
+      "slug": "search-history-browser",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search-off-disable",
+      "slug": "search-off-disable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search-square",
+      "slug": "search-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "search-text",
+      "slug": "search-text",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "security-shield",
+      "slug": "security-shield",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "security-shield-1",
+      "slug": "security-shield-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "security-shield-2",
+      "slug": "security-shield-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-all",
+      "slug": "select-all",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-back",
+      "slug": "select-back",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-button",
+      "slug": "select-button",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-circle-area-1",
+      "slug": "select-circle-area-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "select-frame--26552",
+      "slug": "select-frame",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-frame--26582",
+      "slug": "select-frame",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-front",
+      "slug": "select-front",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-none",
+      "slug": "select-none",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "select-square-area-1",
+      "slug": "select-square-area-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "select-square-area-2",
+      "slug": "select-square-area-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "selection-tool-select-items",
+      "slug": "selection-tool-select-items",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "send",
+      "slug": "send",
+      "decision": "reject"
+    },
+    {
+      "itemId": "send-email-square",
+      "slug": "send-email-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "serving-dome--26647",
+      "slug": "serving-dome",
+      "decision": "reject"
+    },
+    {
+      "itemId": "serving-dome--26654",
+      "slug": "serving-dome",
+      "decision": "reject"
+    },
+    {
+      "itemId": "setting-toggle",
+      "slug": "setting-toggle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "settings",
+      "slug": "settings",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "settings-alert-update",
+      "slug": "settings-alert-update",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "settings-question",
+      "slug": "settings-question",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-code",
+      "slug": "share-code",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-hand-lock",
+      "slug": "share-hand-lock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-heart",
+      "slug": "share-heart",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-link-approved",
+      "slug": "share-link-approved",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-link-circle",
+      "slug": "share-link-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-link-disabled",
+      "slug": "share-link-disabled",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-link-lock",
+      "slug": "share-link-lock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-symbol",
+      "slug": "share-symbol",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "share-user",
+      "slug": "share-user",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sharing-data",
+      "slug": "sharing-data",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shelf",
+      "slug": "shelf",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shield-check",
+      "slug": "shield-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shield-cross",
+      "slug": "shield-cross",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shield-protection-moderator-add",
+      "slug": "shield-protection-moderator-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shield-security-protection",
+      "slug": "shield-security-protection",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shield-star-police-badge",
+      "slug": "shield-star-police-badge",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shift",
+      "slug": "shift",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shift-square",
+      "slug": "shift-square",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shinto",
+      "slug": "shinto",
+      "decision": "reject"
+    },
+    {
+      "itemId": "ship",
+      "slug": "ship",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shipment-add",
+      "slug": "shipment-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shipment-check",
+      "slug": "shipment-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shipment-favorite",
+      "slug": "shipment-favorite",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shipment-remove",
+      "slug": "shipment-remove",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shipment-search",
+      "slug": "shipment-search",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shipping-truck",
+      "slug": "shipping-truck",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shirt",
+      "slug": "shirt",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-bag",
+      "slug": "shopping-bag",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-basket-1",
+      "slug": "shopping-basket-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-basket-2",
+      "slug": "shopping-basket-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-basket-3",
+      "slug": "shopping-basket-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-basket-add",
+      "slug": "shopping-basket-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-basket-remove",
+      "slug": "shopping-basket-remove",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart",
+      "slug": "shopping-cart",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart-add",
+      "slug": "shopping-cart-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart-check",
+      "slug": "shopping-cart-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart-cross",
+      "slug": "shopping-cart-cross",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart-heavy",
+      "slug": "shopping-cart-heavy",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart-load",
+      "slug": "shopping-cart-load",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart-subtract",
+      "slug": "shopping-cart-subtract",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-cart-unload",
+      "slug": "shopping-cart-unload",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "shopping-store-1",
+      "slug": "shopping-store-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-store-2",
+      "slug": "shopping-store-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-store-signage-1",
+      "slug": "shopping-store-signage-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-store-signage-2",
+      "slug": "shopping-store-signage-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shopping-store-signage-3",
+      "slug": "shopping-store-signage-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "show-hat-magician",
+      "slug": "show-hat-magician",
+      "decision": "reject"
+    },
+    {
+      "itemId": "shower-head",
+      "slug": "shower-head",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sigma",
+      "slug": "sigma",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sign-cross-circle",
+      "slug": "sign-cross-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sign-cross-shield",
+      "slug": "sign-cross-shield",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sign-cross-square",
+      "slug": "sign-cross-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sign-hashtag-straight",
+      "slug": "sign-hashtag-straight",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "signage-meeting-point",
+      "slug": "signage-meeting-point",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "signage-priority-pregnant-woman",
+      "slug": "signage-priority-pregnant-woman",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "signal-disconnected",
+      "slug": "signal-disconnected",
+      "decision": "reject"
+    },
+    {
+      "itemId": "signal-graph",
+      "slug": "signal-graph",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "signal-graph-circle",
+      "slug": "signal-graph-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "signal-loading",
+      "slug": "signal-loading",
+      "decision": "reject"
+    },
+    {
+      "itemId": "signal-square",
+      "slug": "signal-square",
+      "decision": "reject"
+    },
+    {
+      "itemId": "signature",
+      "slug": "signature",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sim-card",
+      "slug": "sim-card",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sim-card-alert",
+      "slug": "sim-card-alert",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sim-card-download-eject",
+      "slug": "sim-card-download-eject",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sim-card-upload-insert",
+      "slug": "sim-card-upload-insert",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sim-no-card",
+      "slug": "sim-no-card",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "siren-police-emergency",
+      "slug": "siren-police-emergency",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "skin",
+      "slug": "skin",
+      "decision": "reject"
+    },
+    {
+      "itemId": "skull",
+      "slug": "skull",
+      "decision": "reject"
+    },
+    {
+      "itemId": "skype-logo",
+      "slug": "skype-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "slash-command",
+      "slug": "slash-command",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sleep",
+      "slug": "sleep",
+      "decision": "reject"
+    },
+    {
+      "itemId": "slider-horizontal-1",
+      "slug": "slider-horizontal-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "slider-horizontal-2",
+      "slug": "slider-horizontal-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "slider-horizontal-square",
+      "slug": "slider-horizontal-square",
+      "decision": "reject"
+    },
+    {
+      "itemId": "slider-vertical-1",
+      "slug": "slider-vertical-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "slider-vertical-2",
+      "slug": "slider-vertical-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "slider-vertical-square",
+      "slug": "slider-vertical-square",
+      "decision": "reject"
+    },
+    {
+      "itemId": "smart-watch-1",
+      "slug": "smart-watch-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "smart-watch-2",
+      "slug": "smart-watch-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "smiley-emoticon-sad",
+      "slug": "smiley-emoticon-sad",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "smiley-emoticon-smile",
+      "slug": "smiley-emoticon-smile",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "smiley-laughing-3",
+      "slug": "smiley-laughing-3",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "smoking-area",
+      "slug": "smoking-area",
+      "decision": "reject"
+    },
+    {
+      "itemId": "snooze-clock",
+      "slug": "snooze-clock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "snorkle",
+      "slug": "snorkle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "snow-1",
+      "slug": "snow-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "snow-2",
+      "slug": "snow-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "snow-flake",
+      "slug": "snow-flake",
+      "decision": "reject"
+    },
+    {
+      "itemId": "snow-flake-cross",
+      "slug": "snow-flake-cross",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "soccer",
+      "slug": "soccer",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sock",
+      "slug": "sock",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sofa",
+      "slug": "sofa",
+      "decision": "reject"
+    },
+    {
+      "itemId": "song-lyric",
+      "slug": "song-lyric",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sort-ascending",
+      "slug": "sort-ascending",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sort-descending",
+      "slug": "sort-descending",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sos-help-emergency-sign",
+      "slug": "sos-help-emergency-sign",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sound-recording-copyright",
+      "slug": "sound-recording-copyright",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "south",
+      "slug": "south",
+      "decision": "reject"
+    },
+    {
+      "itemId": "spades-symbol",
+      "slug": "spades-symbol",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "speaker-1",
+      "slug": "speaker-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "speaker-2",
+      "slug": "speaker-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "split-vertical",
+      "slug": "split-vertical",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "spoon-plate",
+      "slug": "spoon-plate",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "spray-bottle",
+      "slug": "spray-bottle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sprout",
+      "slug": "sprout",
+      "decision": "reject"
+    },
+    {
+      "itemId": "square-brackets",
+      "slug": "square-brackets",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "square-cap",
+      "slug": "square-cap",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "square-root-sign",
+      "slug": "square-root-sign",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "stadium",
+      "slug": "stadium",
+      "decision": "reject"
+    },
+    {
+      "itemId": "stairs-1",
+      "slug": "stairs-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "stairs-2",
+      "slug": "stairs-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "star-badge",
+      "slug": "star-badge",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "star-circle",
+      "slug": "star-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "star-medal-2",
+      "slug": "star-medal-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "star-square",
+      "slug": "star-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "startup",
+      "slug": "startup",
+      "decision": "reject"
+    },
+    {
+      "itemId": "steak",
+      "slug": "steak",
+      "decision": "reject"
+    },
+    {
+      "itemId": "steering-wheel",
+      "slug": "steering-wheel",
+      "decision": "reject"
+    },
+    {
+      "itemId": "stethoscope",
+      "slug": "stethoscope",
+      "decision": "reject"
+    },
+    {
+      "itemId": "stock",
+      "slug": "stock",
+      "decision": "reject"
+    },
+    {
+      "itemId": "stop",
+      "slug": "stop",
+      "decision": "reject"
+    },
+    {
+      "itemId": "stop-circle",
+      "slug": "stop-circle",
+      "decision": "reject"
+    },
+    {
+      "itemId": "straight-cap",
+      "slug": "straight-cap",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "strategy-tasks",
+      "slug": "strategy-tasks",
+      "decision": "reject"
+    },
+    {
+      "itemId": "strawberry",
+      "slug": "strawberry",
+      "decision": "reject"
+    },
+    {
+      "itemId": "street-road",
+      "slug": "street-road",
+      "decision": "reject"
+    },
+    {
+      "itemId": "street-sign",
+      "slug": "street-sign",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "strike-through",
+      "slug": "strike-through",
+      "decision": "reject"
+    },
+    {
+      "itemId": "stroller",
+      "slug": "stroller",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sub-script",
+      "slug": "sub-script",
+      "decision": "reject"
+    },
+    {
+      "itemId": "subscription-cashflow",
+      "slug": "subscription-cashflow",
+      "decision": "reject"
+    },
+    {
+      "itemId": "suit-case-1",
+      "slug": "suit-case-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "suit-case-2",
+      "slug": "suit-case-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "suit-case-3",
+      "slug": "suit-case-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "suitcase-rolling",
+      "slug": "suitcase-rolling",
+      "decision": "reject"
+    },
+    {
+      "itemId": "summit",
+      "slug": "summit",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sun",
+      "slug": "sun",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sun-cloud-1",
+      "slug": "sun-cloud-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sun-cloud-2",
+      "slug": "sun-cloud-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "sun-haze",
+      "slug": "sun-haze",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sunlight",
+      "slug": "sunlight",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sunrise",
+      "slug": "sunrise",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sunset--26559",
+      "slug": "sunset",
+      "decision": "reject"
+    },
+    {
+      "itemId": "sunset--26657",
+      "slug": "sunset",
+      "decision": "reject"
+    },
+    {
+      "itemId": "super-script",
+      "slug": "super-script",
+      "decision": "reject"
+    },
+    {
+      "itemId": "swap-exchange-transaction",
+      "slug": "swap-exchange-transaction",
+      "decision": "reject"
+    },
+    {
+      "itemId": "swap-exchange-transaction-off-disabled",
+      "slug": "swap-exchange-transaction-off-disabled",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "swatch",
+      "slug": "swatch",
+      "decision": "reject"
+    },
+    {
+      "itemId": "swimming",
+      "slug": "swimming",
+      "decision": "reject"
+    },
+    {
+      "itemId": "syringe",
+      "slug": "syringe",
+      "decision": "reject"
+    },
+    {
+      "itemId": "table-lamp",
+      "slug": "table-lamp",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tablet-capsule",
+      "slug": "tablet-capsule",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tablet-disable",
+      "slug": "tablet-disable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tag",
+      "slug": "tag",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tag-label-off-disable",
+      "slug": "tag-label-off-disable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tall-hat",
+      "slug": "tall-hat",
+      "decision": "reject"
+    },
+    {
+      "itemId": "target",
+      "slug": "target",
+      "decision": "reject"
+    },
+    {
+      "itemId": "target-dollar",
+      "slug": "target-dollar",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "task-list",
+      "slug": "task-list",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "task-list-edit",
+      "slug": "task-list-edit",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tasks-projects",
+      "slug": "tasks-projects",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tea-cup",
+      "slug": "tea-cup",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tea-hot-relax",
+      "slug": "tea-hot-relax",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "teapot",
+      "slug": "teapot",
+      "decision": "reject"
+    },
+    {
+      "itemId": "telephone-phone",
+      "slug": "telephone-phone",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "telescope",
+      "slug": "telescope",
+      "decision": "reject"
+    },
+    {
+      "itemId": "temperature",
+      "slug": "temperature",
+      "decision": "reject"
+    },
+    {
+      "itemId": "temperature-cold-decrease",
+      "slug": "temperature-cold-decrease",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "temperature-hot-increase",
+      "slug": "temperature-hot-increase",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "temporary-lock",
+      "slug": "temporary-lock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tennis",
+      "slug": "tennis",
+      "decision": "reject"
+    },
+    {
+      "itemId": "test-tube",
+      "slug": "test-tube",
+      "decision": "reject"
+    },
+    {
+      "itemId": "text-bar",
+      "slug": "text-bar",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-box-1",
+      "slug": "text-box-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-box-2",
+      "slug": "text-box-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-character",
+      "slug": "text-character",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-flow-columns",
+      "slug": "text-flow-columns",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-flow-rows",
+      "slug": "text-flow-rows",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-line-spacing",
+      "slug": "text-line-spacing",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-search",
+      "slug": "text-search",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-select-end",
+      "slug": "text-select-end",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-select-start",
+      "slug": "text-select-start",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-shadow",
+      "slug": "text-shadow",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-square",
+      "slug": "text-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-strike-through",
+      "slug": "text-strike-through",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-style",
+      "slug": "text-style",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-to-speech-1",
+      "slug": "text-to-speech-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "text-to-speech-2",
+      "slug": "text-to-speech-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "theater-mask",
+      "slug": "theater-mask",
+      "decision": "reject"
+    },
+    {
+      "itemId": "thermometer-decrease",
+      "slug": "thermometer-decrease",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "thermometer-disable",
+      "slug": "thermometer-disable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "thermometer-increas",
+      "slug": "thermometer-increas",
+      "decision": "reject"
+    },
+    {
+      "itemId": "third-quarter-moon",
+      "slug": "third-quarter-moon",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "threat-browser-1",
+      "slug": "threat-browser-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "threat-document",
+      "slug": "threat-document",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "threat-folder",
+      "slug": "threat-folder",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "threat-monitor",
+      "slug": "threat-monitor",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "threat-phone",
+      "slug": "threat-phone",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "ticket",
+      "slug": "ticket",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tidal-wave",
+      "slug": "tidal-wave",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tiktok-logo",
+      "slug": "tiktok-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-alarm",
+      "slug": "time-alarm",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-clock-circle",
+      "slug": "time-clock-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-clock-hand",
+      "slug": "time-clock-hand",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-clock-square",
+      "slug": "time-clock-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-history-off",
+      "slug": "time-history-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-hour-glass",
+      "slug": "time-hour-glass",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-lapse",
+      "slug": "time-lapse",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-midnight",
+      "slug": "time-midnight",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-nine",
+      "slug": "time-nine",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-reset",
+      "slug": "time-reset",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-six",
+      "slug": "time-six",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-stop-watch",
+      "slug": "time-stop-watch",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-stop-watch-half-quarter",
+      "slug": "time-stop-watch-half-quarter",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-stop-watch-quarter",
+      "slug": "time-stop-watch-quarter",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-stop-watch-third-quarter",
+      "slug": "time-stop-watch-third-quarter",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-three",
+      "slug": "time-three",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "time-timer",
+      "slug": "time-timer",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "timer-10-seconds",
+      "slug": "timer-10-seconds",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "timer-3-seconds",
+      "slug": "timer-3-seconds",
+      "decision": "reject"
+    },
+    {
+      "itemId": "timer-5-seconds",
+      "slug": "timer-5-seconds",
+      "decision": "reject"
+    },
+    {
+      "itemId": "timer-auto",
+      "slug": "timer-auto",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "timer-pace",
+      "slug": "timer-pace",
+      "decision": "reject"
+    },
+    {
+      "itemId": "timer-pace-average",
+      "slug": "timer-pace-average",
+      "decision": "reject"
+    },
+    {
+      "itemId": "to-do-checklist",
+      "slug": "to-do-checklist",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "to-do-unchecked",
+      "slug": "to-do-unchecked",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "toast",
+      "slug": "toast",
+      "decision": "reject"
+    },
+    {
+      "itemId": "toilet",
+      "slug": "toilet",
+      "decision": "reject"
+    },
+    {
+      "itemId": "toilet-paper",
+      "slug": "toilet-paper",
+      "decision": "reject"
+    },
+    {
+      "itemId": "toilet-sign-man",
+      "slug": "toilet-sign-man",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "toilet-sign-man-woman",
+      "slug": "toilet-sign-man-woman",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "toiltet-sign-woman",
+      "slug": "toiltet-sign-woman",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tombstone-cemetery-graveyard",
+      "slug": "tombstone-cemetery-graveyard",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tongue-taste",
+      "slug": "tongue-taste",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tool-box",
+      "slug": "tool-box",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "tooth",
+      "slug": "tooth",
+      "decision": "reject"
+    },
+    {
+      "itemId": "towel",
+      "slug": "towel",
+      "decision": "reject"
+    },
+    {
+      "itemId": "trackpad-input",
+      "slug": "trackpad-input",
+      "decision": "reject"
+    },
+    {
+      "itemId": "traffic-cone",
+      "slug": "traffic-cone",
+      "decision": "reject"
+    },
+    {
+      "itemId": "traffic-light",
+      "slug": "traffic-light",
+      "decision": "reject"
+    },
+    {
+      "itemId": "train-front",
+      "slug": "train-front",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "transaction-refund-cashback",
+      "slug": "transaction-refund-cashback",
+      "decision": "reject"
+    },
+    {
+      "itemId": "transaction-repeat-recurring",
+      "slug": "transaction-repeat-recurring",
+      "decision": "reject"
+    },
+    {
+      "itemId": "transfer-cart",
+      "slug": "transfer-cart",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "transfer-motorcycle",
+      "slug": "transfer-motorcycle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "translate",
+      "slug": "translate",
+      "decision": "reject"
+    },
+    {
+      "itemId": "travel-map",
+      "slug": "travel-map",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tree-1",
+      "slug": "tree-1",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tree-2",
+      "slug": "tree-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tree-3",
+      "slug": "tree-3",
+      "decision": "reject"
+    },
+    {
+      "itemId": "tree-4",
+      "slug": "tree-4",
+      "decision": "reject"
+    },
+    {
+      "itemId": "trending-content",
+      "slug": "trending-content",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "triangle-flag",
+      "slug": "triangle-flag",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "trophy-winner",
+      "slug": "trophy-winner",
+      "decision": "reject"
+    },
+    {
+      "itemId": "twitter-logo",
+      "slug": "twitter-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "type-area",
+      "slug": "type-area",
+      "decision": "reject"
+    },
+    {
+      "itemId": "type-cursor-1",
+      "slug": "type-cursor-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "type-on-path",
+      "slug": "type-on-path",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "ufo",
+      "slug": "ufo",
+      "decision": "reject"
+    },
+    {
+      "itemId": "umbrella",
+      "slug": "umbrella",
+      "decision": "reject"
+    },
+    {
+      "itemId": "under-construction",
+      "slug": "under-construction",
+      "decision": "reject"
+    },
+    {
+      "itemId": "underline",
+      "slug": "underline",
+      "decision": "reject"
+    },
+    {
+      "itemId": "unlink",
+      "slug": "unlink",
+      "decision": "reject"
+    },
+    {
+      "itemId": "unlock",
+      "slug": "unlock",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "upload-upscale-image",
+      "slug": "upload-upscale-image",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "usb-cable",
+      "slug": "usb-cable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "usb-drive",
+      "slug": "usb-drive",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "usb-port",
+      "slug": "usb-port",
+      "decision": "reject"
+    },
+    {
+      "itemId": "user-add",
+      "slug": "user-add",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-block",
+      "slug": "user-block",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-check",
+      "slug": "user-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-circle",
+      "slug": "user-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-delete",
+      "slug": "user-delete",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-edit",
+      "slug": "user-edit",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-following",
+      "slug": "user-following",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-identifier-card",
+      "slug": "user-identifier-card",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-multiple",
+      "slug": "user-multiple",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-multiple-circle",
+      "slug": "user-multiple-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-off",
+      "slug": "user-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-protection",
+      "slug": "user-protection",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-question-query",
+      "slug": "user-question-query",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-refresh-sync",
+      "slug": "user-refresh-sync",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-remove-subtract",
+      "slug": "user-remove-subtract",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-search-magnifier",
+      "slug": "user-search-magnifier",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-share",
+      "slug": "user-share",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-single",
+      "slug": "user-single",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-square",
+      "slug": "user-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-story",
+      "slug": "user-story",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-sync",
+      "slug": "user-sync",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-team-community",
+      "slug": "user-team-community",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "user-warning",
+      "slug": "user-warning",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "validation-check",
+      "slug": "validation-check",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "validation-check-circle",
+      "slug": "validation-check-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "validation-check-square-1",
+      "slug": "validation-check-square-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "validation-check-square-2",
+      "slug": "validation-check-square-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "vertical-menu-circle-navigation",
+      "slug": "vertical-menu-circle-navigation",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "vertical-menu-square-navigation",
+      "slug": "vertical-menu-square-navigation",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "vertical-scroll",
+      "slug": "vertical-scroll",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "vertical-text-box",
+      "slug": "vertical-text-box",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "video-playlist-subscription",
+      "slug": "video-playlist-subscription",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "video-slow-motion",
+      "slug": "video-slow-motion",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "view",
+      "slug": "view",
+      "decision": "reject"
+    },
+    {
+      "itemId": "view-off",
+      "slug": "view-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "virtual-reality",
+      "slug": "virtual-reality",
+      "decision": "reject"
+    },
+    {
+      "itemId": "virus",
+      "slug": "virus",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "virus-antivirus",
+      "slug": "virus-antivirus",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "virus-immunity",
+      "slug": "virus-immunity",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "vision-pro",
+      "slug": "vision-pro",
+      "decision": "reject"
+    },
+    {
+      "itemId": "visual-blind",
+      "slug": "visual-blind",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "voice-mail",
+      "slug": "voice-mail",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "voice-mail-off",
+      "slug": "voice-mail-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "voice-scan",
+      "slug": "voice-scan",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volcano",
+      "slug": "volcano",
+      "decision": "reject"
+    },
+    {
+      "itemId": "volume-2",
+      "slug": "volume-2",
+      "decision": "reject"
+    },
+    {
+      "itemId": "volume-decrease",
+      "slug": "volume-decrease",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volume-disable-mute-1",
+      "slug": "volume-disable-mute-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volume-disable-mute-2",
+      "slug": "volume-disable-mute-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volume-high",
+      "slug": "volume-high",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volume-increase",
+      "slug": "volume-increase",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volume-low",
+      "slug": "volume-low",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volume-setting",
+      "slug": "volume-setting",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "volume-sleep",
+      "slug": "volume-sleep",
+      "decision": "reject"
+    },
+    {
+      "itemId": "volume-speaker",
+      "slug": "volume-speaker",
+      "decision": "reject"
+    },
+    {
+      "itemId": "volume-warning",
+      "slug": "volume-warning",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "vpn-connection",
+      "slug": "vpn-connection",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "waiting-appointments-calendar",
+      "slug": "waiting-appointments-calendar",
+      "decision": "reject"
+    },
+    {
+      "itemId": "walk-man",
+      "slug": "walk-man",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wallet-card-holder",
+      "slug": "wallet-card-holder",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wallet-purse",
+      "slug": "wallet-purse",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warehouse",
+      "slug": "warehouse",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warning-circle",
+      "slug": "warning-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warning-diamond",
+      "slug": "warning-diamond",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warning-octagon",
+      "slug": "warning-octagon",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warning-shield",
+      "slug": "warning-shield",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warning-square",
+      "slug": "warning-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warning-triangle",
+      "slug": "warning-triangle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warp-arc",
+      "slug": "warp-arc",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-arc-lower",
+      "slug": "warp-arc-lower",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-bulge",
+      "slug": "warp-bulge",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-fish",
+      "slug": "warp-fish",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warp-fisheye",
+      "slug": "warp-fisheye",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-flag",
+      "slug": "warp-flag",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "warp-inflate",
+      "slug": "warp-inflate",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-rise",
+      "slug": "warp-rise",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-shell-lower",
+      "slug": "warp-shell-lower",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-squeeze",
+      "slug": "warp-squeeze",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-twist",
+      "slug": "warp-twist",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warp-wave",
+      "slug": "warp-wave",
+      "decision": "reject"
+    },
+    {
+      "itemId": "warranty-badge-highlight",
+      "slug": "warranty-badge-highlight",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-circle-charging",
+      "slug": "watch-circle-charging",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-circle-disable",
+      "slug": "watch-circle-disable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-circle-download",
+      "slug": "watch-circle-download",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-circle-upload",
+      "slug": "watch-circle-upload",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-square-charging",
+      "slug": "watch-square-charging",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-square-disable",
+      "slug": "watch-square-disable",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-square-download",
+      "slug": "watch-square-download",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-square-time",
+      "slug": "watch-square-time",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "watch-square-upload",
+      "slug": "watch-square-upload",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "water-drop-1",
+      "slug": "water-drop-1",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "water-drop-2",
+      "slug": "water-drop-2",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "water-glass",
+      "slug": "water-glass",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "water-melon",
+      "slug": "water-melon",
+      "decision": "reject"
+    },
+    {
+      "itemId": "water-pitcher",
+      "slug": "water-pitcher",
+      "decision": "reject"
+    },
+    {
+      "itemId": "water-tap",
+      "slug": "water-tap",
+      "decision": "reject"
+    },
+    {
+      "itemId": "water-temperature",
+      "slug": "water-temperature",
+      "decision": "reject"
+    },
+    {
+      "itemId": "waving-hand",
+      "slug": "waving-hand",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "weather-hail",
+      "slug": "weather-hail",
+      "decision": "reject"
+    },
+    {
+      "itemId": "web",
+      "slug": "web",
+      "decision": "reject"
+    },
+    {
+      "itemId": "web-browser-content-wysiwyg",
+      "slug": "web-browser-content-wysiwyg",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "webcam",
+      "slug": "webcam",
+      "decision": "reject"
+    },
+    {
+      "itemId": "webcam-off",
+      "slug": "webcam-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "webcam-video",
+      "slug": "webcam-video",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "webcam-video-circle",
+      "slug": "webcam-video-circle",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "webcam-video-off",
+      "slug": "webcam-video-off",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "webcam-video-square",
+      "slug": "webcam-video-square",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "west",
+      "slug": "west",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wheat",
+      "slug": "wheat",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wheelchair",
+      "slug": "wheelchair",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wheelchair-disability",
+      "slug": "wheelchair-disability",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wifi",
+      "slug": "wifi",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wifi-antenna",
+      "slug": "wifi-antenna",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wifi-disabled",
+      "slug": "wifi-disabled",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wifi-not-secure-connection",
+      "slug": "wifi-not-secure-connection",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wifi-secure-connection",
+      "slug": "wifi-secure-connection",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wifi-signal-low",
+      "slug": "wifi-signal-low",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wifi-signal-medium",
+      "slug": "wifi-signal-medium",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wifi-signal-none",
+      "slug": "wifi-signal-none",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wind",
+      "slug": "wind",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wind-flow",
+      "slug": "wind-flow",
+      "decision": "reject"
+    },
+    {
+      "itemId": "windmill-turbine",
+      "slug": "windmill-turbine",
+      "decision": "reject"
+    },
+    {
+      "itemId": "windows-logo",
+      "slug": "windows-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wine",
+      "slug": "wine",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wine-glass",
+      "slug": "wine-glass",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wireless-fast-charging",
+      "slug": "wireless-fast-charging",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wireless-keyboard",
+      "slug": "wireless-keyboard",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "woman-symbol",
+      "slug": "woman-symbol",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "workflow-project-arrow",
+      "slug": "workflow-project-arrow",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "workspace-desk",
+      "slug": "workspace-desk",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "wrap-arc-upper",
+      "slug": "wrap-arc-upper",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wrap-arch",
+      "slug": "wrap-arch",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wrap-shell-upper",
+      "slug": "wrap-shell-upper",
+      "decision": "reject"
+    },
+    {
+      "itemId": "wrench",
+      "slug": "wrench",
+      "decision": "reject"
+    },
+    {
+      "itemId": "yin-yang-symbol",
+      "slug": "yin-yang-symbol",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "youtube-logo",
+      "slug": "youtube-logo",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "yuan-currency",
+      "slug": "yuan-currency",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "zoom-area",
+      "slug": "zoom-area",
+      "decision": "reject"
+    },
+    {
+      "itemId": "zoom-fit-screen",
+      "slug": "zoom-fit-screen",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "zoom-in",
+      "slug": "zoom-in",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "zoom-in-area",
+      "slug": "zoom-in-area",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "zoom-out",
+      "slug": "zoom-out",
+      "decision": "review_required"
+    },
+    {
+      "itemId": "zoom-out-area",
+      "slug": "zoom-out-area",
+      "decision": "review_required"
+    }
+  ]
+}

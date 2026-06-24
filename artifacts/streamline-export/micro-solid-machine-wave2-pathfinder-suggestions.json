@@ -1,0 +1,482 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch18",
+  "suggestions": [
+    {
+      "itemId": "pathfinder-divide",
+      "slug": "pathfinder-divide",
+      "name": "Pathfinder Divide",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-divide.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "divide",
+        "split"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-divide pathfinder divide pathfinder-divide 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-exclude",
+      "slug": "pathfinder-exclude",
+      "name": "Pathfinder Exclude",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-exclude.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "exclude",
+        "subtract"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-exclude pathfinder exclude pathfinder-exclude 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-intersect",
+      "slug": "pathfinder-intersect",
+      "name": "Pathfinder Intersect",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-intersect.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "intersect",
+        "overlap"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-intersect pathfinder intersect pathfinder-intersect 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-merge",
+      "slug": "pathfinder-merge",
+      "name": "Pathfinder Merge",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-merge.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "merge",
+        "combine"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-merge pathfinder merge pathfinder-merge 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-outline",
+      "slug": "pathfinder-outline",
+      "name": "Pathfinder Outline",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-outline.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "outline"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-outline pathfinder outline pathfinder-outline 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-trim",
+      "slug": "pathfinder-trim",
+      "name": "Pathfinder Trim",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-trim.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "trim"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-trim pathfinder trim pathfinder-trim 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-union",
+      "slug": "pathfinder-union",
+      "name": "Pathfinder Union",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-union.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "union",
+        "combine"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-union pathfinder union pathfinder-union 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    }
+  ]
+}

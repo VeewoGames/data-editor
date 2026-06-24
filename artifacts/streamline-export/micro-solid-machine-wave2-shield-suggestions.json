@@ -1,0 +1,284 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch31",
+  "suggestions": [
+    {
+      "itemId": "shield-check",
+      "slug": "shield-check",
+      "name": "Shield Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-check.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid shield-check shield check shield-check 26558 check confirm security alert privacy protection shield approval approved bubble chat checkmark",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    },
+    {
+      "itemId": "shield-cross",
+      "slug": "shield-cross",
+      "name": "Shield Cross",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-cross.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "cross",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid shield-cross shield cross shield-cross 26558 cross protection security shield alert guard privacy catholicism christianity emergency firstaid healthcare",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    },
+    {
+      "itemId": "shield-protection-moderator-add",
+      "slug": "shield-protection-moderator-add",
+      "name": "Shield Protection Moderator Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-protection-moderator-add.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "moderation",
+        "moderator",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shield-protection-moderator-add shield protection moderator add shield-protection-moderator-add 26558 add alert cross plus privacy protection security shield button buttons insert mathematics",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 17,
+            "lexicalScore": 14,
+            "nameMatches": [
+              "shield",
+              "protection"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 17,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    },
+    {
+      "itemId": "shield-star-police-badge",
+      "slug": "shield-star-police-badge",
+      "name": "Shield Star Police Badge",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-star-police-badge.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "star",
+        "police",
+        "badge"
+      ],
+      "searchTextPreview": "micro-solid shield-star-police-badge shield star police badge shield-star-police-badge 26558 favorite star bookmark like rating protection security shield important alert guard privacy",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    }
+  ]
+}

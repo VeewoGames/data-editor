@@ -1,0 +1,804 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-review-required-promoted-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+  "appliedCount": 44,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "layout-border-frame",
+      "slug": "layout-border-frame",
+      "tags": [
+        "frame",
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "customization",
+        "design",
+        "grid"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "left-click-mouse",
+      "slug": "left-click-mouse",
+      "tags": [
+        "arrow",
+        "click",
+        "cursor",
+        "interface",
+        "mouse",
+        "select",
+        "computer",
+        "point"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "lock-encryption",
+      "slug": "lock-encryption",
+      "tags": [
+        "lock",
+        "privacy",
+        "secure",
+        "security",
+        "encryption",
+        "cybersecurity",
+        "access",
+        "encrypted"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "mail-reply-all",
+      "slug": "mail-reply-all",
+      "tags": [
+        "all",
+        "communication",
+        "email",
+        "envelope",
+        "inbox",
+        "mail",
+        "message",
+        "send"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "mail-send-email",
+      "slug": "mail-send-email",
+      "tags": [
+        "email",
+        "envelope",
+        "message",
+        "communication",
+        "mail",
+        "inbox",
+        "send",
+        "all"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "mail-send-email-message-circle",
+      "slug": "mail-send-email-message-circle",
+      "tags": [
+        "message",
+        "email",
+        "envelope",
+        "communication",
+        "mail",
+        "inbox",
+        "send",
+        "all"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "mail-send-forward-email",
+      "slug": "mail-send-forward-email",
+      "tags": [
+        "forward",
+        "arrow",
+        "email",
+        "envelope",
+        "message",
+        "communication",
+        "mail",
+        "button"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-send-reply-all",
+      "slug": "mail-send-reply-all",
+      "tags": [
+        "all",
+        "communication",
+        "email",
+        "envelope",
+        "inbox",
+        "mail",
+        "message",
+        "send"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "menu-horizontal-dots",
+      "slug": "menu-horizontal-dots",
+      "tags": [
+        "menu",
+        "navigation",
+        "button",
+        "interface",
+        "options",
+        "app",
+        "circle",
+        "dots"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "menu-vertical-dots",
+      "slug": "menu-vertical-dots",
+      "tags": [
+        "menu",
+        "navigation",
+        "button",
+        "interface",
+        "options",
+        "app",
+        "circle",
+        "dots"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notification-alert",
+      "slug": "notification-alert",
+      "tags": [
+        "alert",
+        "notification",
+        "signal",
+        "warning",
+        "alarm",
+        "attention",
+        "bell",
+        "exclamation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notification-application-1",
+      "slug": "notification-application-1",
+      "tags": [
+        "application",
+        "interface",
+        "notification",
+        "alarm",
+        "alert",
+        "bell",
+        "reminder",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notification-application-2",
+      "slug": "notification-application-2",
+      "tags": [
+        "application",
+        "interface",
+        "notification",
+        "alarm",
+        "alert",
+        "bell",
+        "reminder",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "office-building",
+      "slug": "office-building",
+      "tags": [
+        "architecture",
+        "building",
+        "office",
+        "skyscraper",
+        "structure",
+        "tower",
+        "apartment",
+        "cityscape"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.93
+    },
+    {
+      "itemId": "password-lock",
+      "slug": "password-lock",
+      "tags": [
+        "lock",
+        "privacy",
+        "secure",
+        "security",
+        "encryption",
+        "login",
+        "password",
+        "cybersecurity"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "pencil-edit",
+      "slug": "pencil-edit",
+      "tags": [
+        "edit",
+        "design",
+        "modify",
+        "pencil",
+        "tool",
+        "adjustment",
+        "art",
+        "creative"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "phone-call-caller-id-information-center",
+      "slug": "phone-call-caller-id-information-center",
+      "tags": [
+        "call",
+        "center",
+        "telephone",
+        "align",
+        "phone",
+        "contact",
+        "alert",
+        "block"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "phone-call-forwarded",
+      "slug": "phone-call-forwarded",
+      "tags": [
+        "call",
+        "phone",
+        "telephone",
+        "contact",
+        "android",
+        "assistance",
+        "communication",
+        "device"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "phone-call-locked",
+      "slug": "phone-call-locked",
+      "tags": [
+        "call",
+        "phone",
+        "telephone",
+        "contact",
+        "android",
+        "assistance",
+        "communication",
+        "device"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "phone-call-log-history",
+      "slug": "phone-call-log-history",
+      "tags": [
+        "call",
+        "phone",
+        "telephone",
+        "contact",
+        "android",
+        "assistance",
+        "communication",
+        "device"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "phone-call-ring-volume",
+      "slug": "phone-call-ring-volume",
+      "tags": [
+        "call",
+        "phone",
+        "telephone",
+        "contact",
+        "android",
+        "assistance",
+        "communication",
+        "device"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "photo-focus-frame",
+      "slug": "photo-focus-frame",
+      "tags": [
+        "frame",
+        "photo",
+        "camera",
+        "design",
+        "edit",
+        "focus",
+        "modify",
+        "photography"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "right-click-mouse",
+      "slug": "right-click-mouse",
+      "tags": [
+        "arrow",
+        "click",
+        "cursor",
+        "interface",
+        "mouse",
+        "select",
+        "computer",
+        "point"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "scan-dashed-line",
+      "slug": "scan-dashed-line",
+      "tags": [
+        "arrow",
+        "dashed",
+        "direction",
+        "scan",
+        "face",
+        "id",
+        "recognition",
+        "security"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "screen-curve",
+      "slug": "screen-curve",
+      "tags": [
+        "screen",
+        "fullscreen",
+        "ar",
+        "curve",
+        "digital",
+        "display",
+        "immersive",
+        "interface"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "script-code",
+      "slug": "script-code",
+      "tags": [
+        "code",
+        "programming",
+        "software",
+        "developer",
+        "html",
+        "script",
+        "bracket",
+        "browser"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "script-file-code-1",
+      "slug": "script-file-code-1",
+      "tags": [
+        "code",
+        "programming",
+        "script",
+        "software",
+        "browser",
+        "data",
+        "developer",
+        "html"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "script-file-code-2",
+      "slug": "script-file-code-2",
+      "tags": [
+        "code",
+        "programming",
+        "script",
+        "software",
+        "browser",
+        "data",
+        "developer",
+        "html"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "scroll-up-double",
+      "slug": "scroll-up-double",
+      "tags": [
+        "double",
+        "direction",
+        "navigation",
+        "arrow",
+        "arrows",
+        "button",
+        "scroll",
+        "camera"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "search-history-browser",
+      "slug": "search-history-browser",
+      "tags": [
+        "browser",
+        "window",
+        "app",
+        "apps",
+        "explore",
+        "find",
+        "programming",
+        "search"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "security-shield",
+      "slug": "security-shield",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "guard",
+        "privacy",
+        "alert",
+        "array",
+        "attention"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "security-shield-1",
+      "slug": "security-shield-1",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "guard",
+        "privacy",
+        "alert",
+        "array",
+        "attention"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "security-shield-2",
+      "slug": "security-shield-2",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "guard",
+        "privacy",
+        "alert",
+        "array",
+        "attention"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "settings-question",
+      "slug": "settings-question",
+      "tags": [
+        "help",
+        "question",
+        "settings",
+        "gear",
+        "query",
+        "adjustment",
+        "ai",
+        "automation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "share-link-disabled",
+      "slug": "share-link-disabled",
+      "tags": [
+        "disabled",
+        "off",
+        "internet",
+        "network",
+        "server",
+        "prohibited",
+        "restricted",
+        "share"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shield-security-protection",
+      "slug": "shield-security-protection",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "defense",
+        "guard",
+        "privacy",
+        "alert",
+        "antispyware"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "sign-hashtag-straight",
+      "slug": "sign-hashtag-straight",
+      "tags": [
+        "sign",
+        "symbol",
+        "hashtag",
+        "media",
+        "network",
+        "tag",
+        "direction",
+        "navigation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "smiley-emoticon-smile",
+      "slug": "smiley-emoticon-smile",
+      "tags": [
+        "smiley",
+        "chat",
+        "face",
+        "message",
+        "emoji",
+        "happy",
+        "bubble",
+        "smile"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "text-select-end",
+      "slug": "text-select-end",
+      "tags": [
+        "navigation",
+        "text",
+        "align",
+        "arrow",
+        "button",
+        "direction",
+        "end",
+        "hamburger"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "time-stop-watch-half-quarter",
+      "slug": "time-stop-watch-half-quarter",
+      "tags": [
+        "half",
+        "clock",
+        "geometry",
+        "rating",
+        "shape",
+        "time",
+        "abstract",
+        "design"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "upload-upscale-image",
+      "slug": "upload-upscale-image",
+      "tags": [
+        "image",
+        "backup",
+        "data",
+        "save",
+        "storage",
+        "upload",
+        "adjustment",
+        "align"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "vertical-menu-circle-navigation",
+      "slug": "vertical-menu-circle-navigation",
+      "tags": [
+        "menu",
+        "navigation",
+        "button",
+        "interface",
+        "options",
+        "circle",
+        "dots",
+        "ellipsis"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "vertical-menu-square-navigation",
+      "slug": "vertical-menu-square-navigation",
+      "tags": [
+        "menu",
+        "navigation",
+        "button",
+        "interface",
+        "options",
+        "circle",
+        "dots",
+        "ellipsis"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "voice-scan",
+      "slug": "voice-scan",
+      "tags": [
+        "scan",
+        "id",
+        "communication",
+        "face",
+        "recognition",
+        "security",
+        "voice",
+        "audio"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:11:00.098Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

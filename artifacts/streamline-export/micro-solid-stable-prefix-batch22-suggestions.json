@@ -1,0 +1,312 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch22",
+  "suggestions": [
+    {
+      "itemId": "timer-10-seconds",
+      "slug": "timer-10-seconds",
+      "name": "Timer 10 Seconds",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-10-seconds.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "10",
+        "seconds"
+      ],
+      "searchTextPreview": "micro-solid timer-10-seconds timer 10 seconds timer-10-seconds 26566 arrangement chart dashboard diagram flowchart frame grid hierarchy interface layout link links",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "hierachy-organise-10",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "10"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "layout-10",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "10"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "hierachy-organise-10",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "layout-10",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-3-seconds",
+      "slug": "timer-3-seconds",
+      "name": "Timer 3 Seconds",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-3-seconds.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "3",
+        "seconds"
+      ],
+      "searchTextPreview": "micro-solid timer-3-seconds timer 3 seconds timer-3-seconds 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-5-seconds",
+      "slug": "timer-5-seconds",
+      "name": "Timer 5 Seconds",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-5-seconds.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "5",
+        "seconds"
+      ],
+      "searchTextPreview": "micro-solid timer-5-seconds timer 5 seconds timer-5-seconds 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-auto",
+      "slug": "timer-auto",
+      "name": "Timer Auto",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-auto.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "auto"
+      ],
+      "searchTextPreview": "micro-solid timer-auto timer auto timer-auto 26566 auto brightness adjustment alphabet automated contrast control display electric energy flash font",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "auto-flash",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "auto"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "brightness-auto",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "auto"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "auto-flash",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-auto",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-pace",
+      "slug": "timer-pace",
+      "name": "Timer Pace",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-pace.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "pace"
+      ],
+      "searchTextPreview": "micro-solid timer-pace timer pace timer-pace 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-pace-average",
+      "slug": "timer-pace-average",
+      "name": "Timer Pace Average",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-pace-average.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "pace",
+        "average"
+      ],
+      "searchTextPreview": "micro-solid timer-pace-average timer pace average timer-pace-average 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    }
+  ]
+}

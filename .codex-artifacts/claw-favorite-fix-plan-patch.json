@@ -1,0 +1,68 @@
+{
+  "requirements": {
+    "summary": "本轮聚焦共享视图图标选择器的两条回归链路：一是收藏写入 profile 后刷新页面不能丢失，二是按需加载图标包时必须真正从当前正式服务加载 SVG 并解除占位状态。范围限于 profile 持久化、图标包运行时加载、正式服务重启与验证，不扩展到新的图标资产导入或额外 UI 需求。",
+    "openQuestions": [],
+    "acceptanceCriteria": [
+      "选中 view profile 时，切换共享视图图标收藏后刷新页面，收藏列表仍保留该图标。",
+      "图标包未加载时显示占位；点击“加载”后，当前正式服务能够返回对应 pack 的 SVG 数据，图标解除 is-unloaded 状态并显示。",
+      "正式服务运行在当前代码版本上，8787/api/health 与 8791/health 均健康。"
+    ]
+  },
+  "rules": [
+    "先确认正式服务实际运行的 server 版本，再判断前端加载按钮是否失效。",
+    "收藏修复必须同时覆盖内存态复制和刷新前落盘时机，不能只修其中一侧。",
+    "验证分成源码/自动化/正式服务三层，避免只靠单一测试结论收口。"
+  ],
+  "references": [
+    {
+      "path": "src/App.tsx",
+      "why": "收藏 profile 复制与立即保存修复点。"
+    },
+    {
+      "path": "src/api/client.ts",
+      "why": "profile 保存请求 keepalive 修复点。"
+    },
+    {
+      "path": "src/components/icons.ts",
+      "why": "共享视图图标包运行时加载入口。"
+    },
+    {
+      "path": "server.mjs",
+      "why": "正式服务提供 /api/shared-view-icon-pack 接口。"
+    },
+    {
+      "path": "tests/data-editor.spec.ts",
+      "why": "图标包加载与收藏刷新回归的 e2e 证据。"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "用 planning 技能收敛本轮目标与可执行任务",
+      "detail": "补全本轮范围、验收标准、风险边界，并把桥接任务转换成可执行任务清单。",
+      "status": "done"
+    },
+    {
+      "id": 2,
+      "title": "恢复 active 执行态并对齐 Goal Mode",
+      "detail": "将 claw 计划恢复到 process.active，并确保当前线程按目标继续执行。",
+      "status": "done"
+    },
+    {
+      "id": 3,
+      "title": "定位并修复收藏持久化与图标包加载根因",
+      "detail": "修复 profile 克隆遗漏 favoriteSharedViewIconIds、收藏点击后立即保存；同时确认正式服务必须运行到带 /api/shared-view-icon-pack 的当前 server 版本。",
+      "status": "done"
+    },
+    {
+      "id": 4,
+      "title": "完成自动化与正式服务验证",
+      "detail": "跑回归测试、验证 /api/shared-view-icon-pack 返回 SVG 数据、确认真实 8787 服务下图标包加载可解除占位，并确认 8787/8791 健康。",
+      "status": "done"
+    }
+  ],
+  "keyDecisions": [
+    "共享视图图标包问题优先按服务版本漂移处理，而不是继续在前端按钮逻辑上猜测。",
+    "收藏操作采用立即 commitProfileSave，同时保留 autosave 体系，避免刷新时丢写。"
+  ]
+}

@@ -68,6 +68,7 @@ test("normalizeSharedViewsConfig keeps valid views and cleans invalid rules sort
         items: [
           {
             kind: "view",
+            icon: "borderAll",
             view: {
               id: "damage",
               name: "Damage",
@@ -266,6 +267,7 @@ test("saveSharedViews writes normalized shared views file", async () => {
           items: [
             {
               kind: "view",
+              icon: "borderAll",
               view: {
                 id: "all",
                 name: "All",
@@ -327,6 +329,42 @@ test("saveSharedViews writes grouped items to disk", async () => {
   }
 });
 
+test("saveSharedViews and loadSharedViews preserve generated core-solid icons", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-shared-views-"));
+  try {
+    await saveSharedViews(root, {
+      version: 1,
+      collections: {
+        "data/runes.json:$": {
+          defaultViewId: "all",
+          items: [{
+            kind: "view",
+            icon: "streamlineCoreSolidApplyToAll",
+            view: {
+              id: "all",
+              name: "All",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          }],
+        },
+      },
+    });
+
+    const loaded = await loadSharedViews(root);
+    assert.equal(loaded.collections["data/runes.json:$"].items[0].icon, "streamlineCoreSolidApplyToAll");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("Nocturnel trait tradeoff group keeps tag OR semantics and adds tradeoff filter to every tab", async () => {
   const configPath = "C:/Code/Nocturnel/.data-editor/shared-views.json";
   const config = normalizeSharedViewsConfig(JSON.parse(await readFile(configPath, "utf8")));
@@ -335,24 +373,25 @@ test("Nocturnel trait tradeoff group keeps tag OR semantics and adds tradeoff fi
   assert.ok(tradeoffGroup);
   assert.equal(tradeoffGroup.kind, "group");
 
-  for (const view of tradeoffGroup.views) {
-    const advancedRoot = view.filters.advancedRoot;
-    assert.ok(advancedRoot, `${view.name} 缺少 advancedRoot`);
-    assert.equal(advancedRoot.op, "and", `${view.name} 应使用顶层 AND`);
-    assert.equal(advancedRoot.children.length, 2, `${view.name} 应只有 tags 组和 tradeoff 规则`);
+  for (const item of tradeoffGroup.views) {
+    assert.equal(item.kind, "view");
+    const advancedRoot = item.view.filters.advancedRoot;
+    assert.ok(advancedRoot, `${item.view.name} 缺少 advancedRoot`);
+    assert.equal(advancedRoot.op, "and", `${item.view.name} 应使用顶层 AND`);
+    assert.equal(advancedRoot.children.length, 2, `${item.view.name} 应只有 tags 组和 tradeoff 规则`);
 
     const [tagsGroup, tradeoffRule] = advancedRoot.children;
-    assert.equal(tagsGroup.kind, "group", `${view.name} 的第一个 child 应为 tags 分组`);
-    assert.equal(tagsGroup.op, "or", `${view.name} 的 tags 分组应保持 OR`);
+    assert.equal(tagsGroup.kind, "group", `${item.view.name} 的第一个 child 应为 tags 分组`);
+    assert.equal(tagsGroup.op, "or", `${item.view.name} 的 tags 分组应保持 OR`);
     assert.deepEqual(
       tagsGroup.children.map((child) => child.field),
       ["input_tags", "output_tags"],
-      `${view.name} 的 tags 分组应匹配 input_tags/output_tags`,
+      `${item.view.name} 的 tags 分组应匹配 input_tags/output_tags`,
     );
 
-    assert.equal(tradeoffRule.kind, "rule", `${view.name} 的第二个 child 应为 tradeoff 规则`);
-    assert.equal(tradeoffRule.field, "type", `${view.name} 的 tradeoff 规则字段应为 type`);
-    assert.equal(tradeoffRule.operator, "contains", `${view.name} 的 tradeoff 规则操作应为 contains`);
-    assert.deepEqual(tradeoffRule.value, ["tradeoff"], `${view.name} 缺少 tradeoff 条件`);
+    assert.equal(tradeoffRule.kind, "rule", `${item.view.name} 的第二个 child 应为 tradeoff 规则`);
+    assert.equal(tradeoffRule.field, "type", `${item.view.name} 的 tradeoff 规则字段应为 type`);
+    assert.equal(tradeoffRule.operator, "contains", `${item.view.name} 的 tradeoff 规则操作应为 contains`);
+    assert.deepEqual(tradeoffRule.value, ["tradeoff"], `${item.view.name} 缺少 tradeoff 条件`);
   }
 });

@@ -1,0 +1,486 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-wave2-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+  "appliedCount": 36,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "text-bar",
+      "slug": "text-bar",
+      "tags": [
+        "text",
+        "bar",
+        "formatting"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-box-1",
+      "slug": "text-box-1",
+      "tags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-box-2",
+      "slug": "text-box-2",
+      "tags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-character",
+      "slug": "text-character",
+      "tags": [
+        "text",
+        "character",
+        "typography"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-flow-columns",
+      "slug": "text-flow-columns",
+      "tags": [
+        "text",
+        "flow",
+        "columns",
+        "layout"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-flow-rows",
+      "slug": "text-flow-rows",
+      "tags": [
+        "text",
+        "flow",
+        "rows",
+        "layout"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-line-spacing",
+      "slug": "text-line-spacing",
+      "tags": [
+        "text",
+        "line",
+        "spacing",
+        "formatting"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-search",
+      "slug": "text-search",
+      "tags": [
+        "text",
+        "search",
+        "find"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-select-start",
+      "slug": "text-select-start",
+      "tags": [
+        "text",
+        "select",
+        "start"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-shadow",
+      "slug": "text-shadow",
+      "tags": [
+        "text",
+        "shadow"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-square",
+      "slug": "text-square",
+      "tags": [
+        "text",
+        "square"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-strike-through",
+      "slug": "text-strike-through",
+      "tags": [
+        "text",
+        "strike",
+        "through",
+        "formatting"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-style",
+      "slug": "text-style",
+      "tags": [
+        "text",
+        "style",
+        "formatting"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-to-speech-1",
+      "slug": "text-to-speech-1",
+      "tags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "text-to-speech-2",
+      "slug": "text-to-speech-2",
+      "tags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "volume-2",
+      "slug": "volume-2",
+      "tags": [
+        "volume",
+        "audio",
+        "speaker"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.6
+    },
+    {
+      "itemId": "volume-decrease",
+      "slug": "volume-decrease",
+      "tags": [
+        "volume",
+        "audio",
+        "decrease",
+        "down"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "volume-disable-mute-1",
+      "slug": "volume-disable-mute-1",
+      "tags": [
+        "volume",
+        "audio",
+        "disable",
+        "mute",
+        "off"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "volume-disable-mute-2",
+      "slug": "volume-disable-mute-2",
+      "tags": [
+        "volume",
+        "audio",
+        "disable",
+        "mute",
+        "off",
+        "speaker"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "volume-high",
+      "slug": "volume-high",
+      "tags": [
+        "volume",
+        "audio",
+        "high",
+        "speaker"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "volume-increase",
+      "slug": "volume-increase",
+      "tags": [
+        "volume",
+        "audio",
+        "increase",
+        "up"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "volume-low",
+      "slug": "volume-low",
+      "tags": [
+        "volume",
+        "audio",
+        "low",
+        "speaker"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "volume-setting",
+      "slug": "volume-setting",
+      "tags": [
+        "volume",
+        "audio",
+        "setting",
+        "control"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "volume-sleep",
+      "slug": "volume-sleep",
+      "tags": [
+        "volume",
+        "audio",
+        "sleep"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.6
+    },
+    {
+      "itemId": "volume-speaker",
+      "slug": "volume-speaker",
+      "tags": [
+        "volume",
+        "audio",
+        "speaker"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.6
+    },
+    {
+      "itemId": "volume-warning",
+      "slug": "volume-warning",
+      "tags": [
+        "volume",
+        "audio",
+        "warning",
+        "alert"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "select-all",
+      "slug": "select-all",
+      "tags": [
+        "select",
+        "all"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "select-back",
+      "slug": "select-back",
+      "tags": [
+        "select",
+        "back"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "select-button",
+      "slug": "select-button",
+      "tags": [
+        "select",
+        "button"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "select-circle-area-1",
+      "slug": "select-circle-area-1",
+      "tags": [
+        "select",
+        "circle",
+        "area"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.6
+    },
+    {
+      "itemId": "select-frame--26552",
+      "slug": "select-frame",
+      "tags": [
+        "select",
+        "frame"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "select-frame--26582",
+      "slug": "select-frame",
+      "tags": [
+        "select",
+        "frame"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "select-front",
+      "slug": "select-front",
+      "tags": [
+        "select",
+        "front"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "select-none",
+      "slug": "select-none",
+      "tags": [
+        "select",
+        "none"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "select-square-area-1",
+      "slug": "select-square-area-1",
+      "tags": [
+        "select",
+        "square",
+        "area"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.6
+    },
+    {
+      "itemId": "select-square-area-2",
+      "slug": "select-square-area-2",
+      "tags": [
+        "select",
+        "square",
+        "area"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:01:03.767Z",
+      "confidence": 0.6
+    }
+  ],
+  "skipped": []
+}

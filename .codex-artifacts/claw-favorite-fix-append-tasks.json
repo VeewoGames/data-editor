@@ -1,0 +1,14 @@
+[
+  {
+    "id": 3,
+    "title": "定位并修复收藏持久化与图标包加载根因",
+    "detail": "修复 profile 克隆遗漏 favoriteSharedViewIconIds、收藏点击后立即保存；同时确认正式服务必须运行到带 /api/shared-view-icon-pack 的当前 server 版本。",
+    "status": "done"
+  },
+  {
+    "id": 4,
+    "title": "完成自动化与正式服务验证",
+    "detail": "跑回归测试、验证 /api/shared-view-icon-pack 返回 SVG 数据、确认真实 8787 服务下图标包加载可解除占位，并确认 8787/8791 健康。",
+    "status": "done"
+  }
+]

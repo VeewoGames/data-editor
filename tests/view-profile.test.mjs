@@ -36,6 +36,7 @@ test("saveViewProfile writes normalized profile file", async () => {
       detailPanelWidth: 455.6,
       detailDocumentPanelOpen: true,
       detailDocumentPanelWidth: 366.4,
+      favoriteSharedViewIconIds: ["shield", "shield", " ", "streamlineCoreSolidApplyToAll"],
       fileOrder: ["data/skills.json", "data/runes.json", "data/skills.json", " "],
       sidebarTree: {
         childOrderByParent: {
@@ -113,6 +114,7 @@ test("saveViewProfile writes normalized profile file", async () => {
       detailPanelWidth: 456,
       detailDocumentPanelOpen: true,
       detailDocumentPanelWidth: 366,
+      favoriteSharedViewIconIds: ["shield", "streamlineCoreSolidApplyToAll"],
       fileOrder: ["data/skills.json", "data/runes.json"],
       sidebarTree: {
         childOrderByParent: {

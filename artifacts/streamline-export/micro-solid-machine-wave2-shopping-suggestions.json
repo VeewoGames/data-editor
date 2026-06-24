@@ -1,0 +1,351 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch9",
+  "suggestions": [
+    {
+      "itemId": "shopping-store-1",
+      "slug": "shopping-store-1",
+      "name": "Shopping Store 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-1 shopping store 1 shopping-store-1 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-2",
+      "slug": "shopping-store-2",
+      "name": "Shopping Store 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-2 shopping store 2 shopping-store-2 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-signage-1",
+      "slug": "shopping-store-signage-1",
+      "name": "Shopping Store Signage 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-signage-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-signage-1 shopping store signage 1 shopping-store-signage-1 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-signage-2",
+      "slug": "shopping-store-signage-2",
+      "name": "Shopping Store Signage 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-signage-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-signage-2 shopping store signage 2 shopping-store-signage-2 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-signage-3",
+      "slug": "shopping-store-signage-3",
+      "name": "Shopping Store Signage 3",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-signage-3.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-signage-3 shopping store signage 3 shopping-store-signage-3 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "requirements": {
+    "summary": "本轮聚焦共享视图图标选择器的两条回归链路：一是收藏写入 profile 后刷新页面不能丢失，二是按需加载图标包时必须真正从当前正式服务加载 SVG 并解除占位状态。范围限于 profile 持久化、图标包运行时加载、正式服务重启与验证。",
+    "openQuestions": [],
+    "acceptanceCriteria": [
+      "选中 view profile 时，切换共享视图图标收藏后刷新页面，收藏列表仍保留该图标。",
+      "图标包未加载时显示占位；点击“加载”后，当前正式服务能够返回对应 pack 的 SVG 数据，图标解除 is-unloaded 状态并显示。",
+      "正式服务运行在当前代码版本上，8787/api/health 与 8791/health 均健康。"
+    ]
+  },
+  "retrospective": {
+    "summary": "本轮同时修正了收藏持久化链路与正式服务版本漂移问题：前者通过补齐 favoriteSharedViewIconIds 克隆和立即保存修复，后者通过重建并重启正式 8787/8791 服务恢复共享图标包接口。"
+  }
+}

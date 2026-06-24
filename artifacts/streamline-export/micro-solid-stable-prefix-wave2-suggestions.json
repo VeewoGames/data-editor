@@ -1,0 +1,2223 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_wave2",
+  "suggestions": [
+    {
+      "itemId": "text-bar",
+      "slug": "text-bar",
+      "name": "Text Bar",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-bar.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "bar",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-bar text bar text-bar 26563 text align button hamburger navigation arrow interface lines menu square ui app",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-box-1",
+      "slug": "text-box-1",
+      "name": "Text Box 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-1 text box 1 text-box-1 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-box-2",
+      "slug": "text-box-2",
+      "name": "Text Box 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-2 text box 2 text-box-2 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-character",
+      "slug": "text-character",
+      "name": "Text Character",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-character.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "character",
+        "typography"
+      ],
+      "searchTextPreview": "micro-solid text-character text character text-character 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-flow-columns",
+      "slug": "text-flow-columns",
+      "name": "Text Flow Columns",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-flow-columns.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "flow",
+        "columns",
+        "layout"
+      ],
+      "searchTextPreview": "micro-solid text-flow-columns text flow columns text-flow-columns 26563 text hamburger interface align button navigation menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-flow-rows",
+      "slug": "text-flow-rows",
+      "name": "Text Flow Rows",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-flow-rows.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "flow",
+        "rows",
+        "layout"
+      ],
+      "searchTextPreview": "micro-solid text-flow-rows text flow rows text-flow-rows 26563 text hamburger interface align button navigation menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-line-spacing",
+      "slug": "text-line-spacing",
+      "name": "Text Line Spacing",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-line-spacing.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "line",
+        "spacing",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-line-spacing text line spacing text-line-spacing 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-search",
+      "slug": "text-search",
+      "name": "Text Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-search.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid text-search text search text-search 26563 text navigation align button hamburger interface find search app menu ui lookup",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-text",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "text",
+              "search"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-text",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-select-start",
+      "slug": "text-select-start",
+      "name": "Text Select Start",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-select-start.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "select",
+        "start"
+      ],
+      "searchTextPreview": "micro-solid text-select-start text select start text-select-start 26563 text hamburger align button navigation interface menu arrow formatting lines square ui",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "text",
+              "select"
+            ],
+            "prefixMatches": [
+              "text",
+              "text-select"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-shadow",
+      "slug": "text-shadow",
+      "name": "Text Shadow",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-shadow.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "shadow"
+      ],
+      "searchTextPreview": "micro-solid text-shadow text shadow text-shadow 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-square",
+      "slug": "text-square",
+      "name": "Text Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid text-square text square text-square 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-strike-through",
+      "slug": "text-strike-through",
+      "name": "Text Strike Through",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-strike-through.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "strike",
+        "through",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-strike-through text strike through text-strike-through 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-style",
+      "slug": "text-style",
+      "name": "Text Style",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-style.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "style",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-style text style text-style 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-to-speech-1",
+      "slug": "text-to-speech-1",
+      "name": "Text To Speech 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-to-speech-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid text-to-speech-1 text to speech 1 text-to-speech-1 26563 button arrow navigation align hamburger text direction interface menu ui app bottom",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-to-speech-2",
+      "slug": "text-to-speech-2",
+      "name": "Text To Speech 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-to-speech-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid text-to-speech-2 text to speech 2 text-to-speech-2 26563 button arrow navigation align hamburger text direction interface menu ui app bottom",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "volume-2",
+      "slug": "volume-2",
+      "name": "Volume 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-2.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "speaker"
+      ],
+      "searchTextPreview": "micro-solid volume-2 volume 2 volume-2 26663 android assistance call communication contact device phone telephone",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "volume"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-decrease",
+      "slug": "volume-decrease",
+      "name": "Volume Decrease",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-decrease.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "decrease",
+        "down"
+      ],
+      "searchTextPreview": "micro-solid volume-decrease volume decrease volume-decrease 26663 arrow graph business chart decline decrease statistics trend analytics data fall loss",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "graph-arrow-decrease",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "decrease"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "graph-bar-decrease",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "decrease"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "graph-arrow-decrease",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "graph-bar-decrease",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-disable-mute-1",
+      "slug": "volume-disable-mute-1",
+      "name": "Volume Disable Mute 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-disable-mute-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "disable",
+        "mute",
+        "off"
+      ],
+      "searchTextPreview": "micro-solid volume-disable-mute-1 volume disable mute 1 volume-disable-mute-1 26663 disable off blocked deactivate denied block bubble chat disabled forbidden inactive mute",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-disable-mute-2",
+      "slug": "volume-disable-mute-2",
+      "name": "Volume Disable Mute 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-disable-mute-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "disable",
+        "mute",
+        "off",
+        "speaker"
+      ],
+      "searchTextPreview": "micro-solid volume-disable-mute-2 volume disable mute 2 volume-disable-mute-2 26663 disable off blocked deactivate denied block bubble chat disabled forbidden inactive mute",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-high",
+      "slug": "volume-high",
+      "name": "Volume High",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-high.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "high",
+        "speaker"
+      ],
+      "searchTextPreview": "micro-solid volume-high volume high volume-high 26663 android assistance call chair communication contact couch decor design device furniture high",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "high-speed-train-side",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "high"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "volume"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "high-speed-train-side",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-increase",
+      "slug": "volume-increase",
+      "name": "Volume Increase",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-increase.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "increase",
+        "up"
+      ],
+      "searchTextPreview": "micro-solid volume-increase volume increase volume-increase 26663 arrow graph statistics growth increase progress trend analytics business chart data improvement",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "graph-arrow-increase",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "increase"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "graph-bar-increase",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "increase"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "graph-arrow-increase",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "graph-bar-increase",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-low",
+      "slug": "volume-low",
+      "name": "Volume Low",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-low.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "low",
+        "speaker"
+      ],
+      "searchTextPreview": "micro-solid volume-low volume low volume-low 26663 low phone call communication contact device signal telephone alert android assistance battery",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alert-priority-low",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "low"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "battery-low",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "low"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alert-priority-low",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "battery-low",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-setting",
+      "slug": "volume-setting",
+      "name": "Volume Setting",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-setting.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "setting",
+        "control"
+      ],
+      "searchTextPreview": "micro-solid volume-setting volume setting volume-setting 26663 setting gear nut bolt cloud computer hexagon adjust adjustment adjustments alarm alert",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-setting-bolt-nut",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "setting"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-setting",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "setting"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-setting-bolt-nut",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "browser-setting",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-sleep",
+      "slug": "volume-sleep",
+      "name": "Volume Sleep",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-sleep.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "sleep"
+      ],
+      "searchTextPreview": "micro-solid volume-sleep volume sleep volume-sleep 26663 android assistance call communication contact device phone telephone",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "volume"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-speaker",
+      "slug": "volume-speaker",
+      "name": "Volume Speaker",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-speaker.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "speaker"
+      ],
+      "searchTextPreview": "micro-solid volume-speaker volume speaker volume-speaker 26663 android assistance call communication contact device phone telephone",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "volume"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-ring-volume",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "volume-warning",
+      "slug": "volume-warning",
+      "name": "Volume Warning",
+      "outputPath": "vendor/streamline-svg/micro-solid/volume-warning.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "volume",
+        "audio",
+        "warning",
+        "alert"
+      ],
+      "searchTextPreview": "micro-solid volume-warning volume warning volume-warning 26663 warning alert notification attention caution exclamation bubble chat computer danger device message",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch12"
+    },
+    {
+      "itemId": "select-all",
+      "slug": "select-all",
+      "name": "Select All",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-all.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "all"
+      ],
+      "searchTextPreview": "micro-solid select-all select all select-all 26552 all communication email envelope inbox mail message send direction navigation align approve",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-all-direction",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "all"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "check-double-read-done-all",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "all"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-all-direction",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "check-double-read-done-all",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-back",
+      "slug": "select-back",
+      "name": "Select Back",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-back.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "back"
+      ],
+      "searchTextPreview": "micro-solid select-back select back select-back 26582 align arrow back button change direction end exchange hamburger interface layer layers",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-button",
+      "slug": "select-button",
+      "name": "Select Button",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-button.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "button"
+      ],
+      "searchTextPreview": "micro-solid select-button select button select-button 26552 button direction arrow left symbol arrows chevron double down navigation previous back",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-button-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "button"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-button-down-double",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "button"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-button-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-button-down-double",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-circle-area-1",
+      "slug": "select-circle-area-1",
+      "name": "Select Circle Area 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-circle-area-1.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "circle",
+        "area"
+      ],
+      "searchTextPreview": "micro-solid select-circle-area-1 select circle area 1 select-circle-area-1 26552 align arrow button direction end hamburger navigation text",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-frame--26552",
+      "slug": "select-frame",
+      "name": "Select Frame",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-frame-26552.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "frame"
+      ],
+      "searchTextPreview": "micro-solid select-frame select frame select-frame--26552 26552 frame design edit layout modify adjust align alter analytics arrangement arrow border",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-frame--26582",
+      "slug": "select-frame",
+      "name": "Select Frame",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-frame-26582.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "frame"
+      ],
+      "searchTextPreview": "micro-solid select-frame select frame select-frame--26582 26582 frame design edit layout modify adjust align alter analytics arrangement arrow border",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-front",
+      "slug": "select-front",
+      "name": "Select Front",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-front.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "front"
+      ],
+      "searchTextPreview": "micro-solid select-front select front select-front 26582 align adjust front adjustment arrow balance box button calibration clone coordinate copy",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-none",
+      "slug": "select-none",
+      "name": "Select None",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-none.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "none"
+      ],
+      "searchTextPreview": "micro-solid select-none select none select-none 26552 none interface button buttons end grid layout navigation simple 2 align arrangement",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "none"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "buttons-none-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "none"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "buttons-none-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-square-area-1",
+      "slug": "select-square-area-1",
+      "name": "Select Square Area 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-square-area-1.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "square",
+        "area"
+      ],
+      "searchTextPreview": "micro-solid select-square-area-1 select square area 1 select-square-area-1 26552 align arrow button direction end hamburger navigation text",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-square-area-2",
+      "slug": "select-square-area-2",
+      "name": "Select Square Area 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-square-area-2.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "square",
+        "area"
+      ],
+      "searchTextPreview": "micro-solid select-square-area-2 select square area 2 select-square-area-2 26552 align arrow button direction end hamburger navigation text",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    }
+  ]
+}

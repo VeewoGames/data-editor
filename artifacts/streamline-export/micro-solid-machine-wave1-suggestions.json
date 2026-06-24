@@ -1,0 +1,1550 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "machine_wave1",
+  "suggestions": [
+    {
+      "itemId": "lock-circle",
+      "slug": "lock-circle",
+      "name": "Lock Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid lock-circle lock circle lock-circle 26577 lock privacy secure security encryption cybersecurity access encrypted computer locked login network",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    },
+    {
+      "itemId": "lock-key",
+      "slug": "lock-key",
+      "name": "Lock Key",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-key.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "key"
+      ],
+      "searchTextPreview": "micro-solid lock-key lock key lock-key 26577 lock privacy secure security encryption cybersecurity access encrypted browser data key locked",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    },
+    {
+      "itemId": "lock-rotation",
+      "slug": "lock-rotation",
+      "name": "Lock Rotation",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-rotation.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "rotation"
+      ],
+      "searchTextPreview": "micro-solid lock-rotation lock rotation lock-rotation 26577 lock privacy secure security encryption cybersecurity access encrypted computer locked login network",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    },
+    {
+      "itemId": "lock-shield",
+      "slug": "lock-shield",
+      "name": "Lock Shield",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-shield.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "shield",
+        "protection"
+      ],
+      "searchTextPreview": "micro-solid lock-shield lock shield lock-shield 26577 privacy secure security lock cybersecurity encryption protection encrypted password access data database",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    },
+    {
+      "itemId": "move-circle",
+      "slug": "move-circle",
+      "name": "Move Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid move-circle move circle move-circle 26662 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-down",
+      "slug": "move-object-down",
+      "name": "Move Object Down",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-down.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "down"
+      ],
+      "searchTextPreview": "micro-solid move-object-down move object down move-object-down 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-left",
+      "slug": "move-object-left",
+      "name": "Move Object Left",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-left.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "left"
+      ],
+      "searchTextPreview": "micro-solid move-object-left move object left move-object-left 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-right",
+      "slug": "move-object-right",
+      "name": "Move Object Right",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-right.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "right"
+      ],
+      "searchTextPreview": "micro-solid move-object-right move object right move-object-right 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-up",
+      "slug": "move-object-up",
+      "name": "Move Object Up",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-up.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "up"
+      ],
+      "searchTextPreview": "micro-solid move-object-up move object up move-object-up 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "notepad-add",
+      "slug": "notepad-add",
+      "name": "Notepad Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/notepad-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "notepad",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid notepad-add notepad add notepad-add 26555 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch27"
+    },
+    {
+      "itemId": "notepad-check",
+      "slug": "notepad-check",
+      "name": "Notepad Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/notepad-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "notepad",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid notepad-check notepad check notepad-check 26555 check confirm tick verify approve complete done read success approval approved bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch27"
+    },
+    {
+      "itemId": "notepad-remove",
+      "slug": "notepad-remove",
+      "name": "Notepad Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/notepad-remove.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "notepad",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid notepad-remove notepad remove notepad-remove 26555 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch27"
+    },
+    {
+      "itemId": "notepad-subtract",
+      "slug": "notepad-subtract",
+      "name": "Notepad Subtract",
+      "outputPath": "vendor/streamline-svg/micro-solid/notepad-subtract.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "notepad",
+        "subtract",
+        "minus"
+      ],
+      "searchTextPreview": "micro-solid notepad-subtract notepad subtract notepad-subtract 26555 subtract minus remove communication message bubble chat comment delete dialogue speech talk",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "subtract"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-oval-subtract",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "subtract"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-oval-subtract",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch27"
+    },
+    {
+      "itemId": "notepad-text",
+      "slug": "notepad-text",
+      "name": "Notepad Text",
+      "outputPath": "vendor/streamline-svg/micro-solid/notepad-text.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "notepad",
+        "text"
+      ],
+      "searchTextPreview": "micro-solid notepad-text notepad text notepad-text 26555 text formatting hamburger interface menu align button lines navigation square ui app",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-text-center",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-center",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch27"
+    },
+    {
+      "itemId": "shipment-add",
+      "slug": "shipment-add",
+      "name": "Shipment Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shipment-add shipment add shipment-add 26642 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-check",
+      "slug": "shipment-check",
+      "name": "Shipment Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid shipment-check shipment check shipment-check 26642 check confirm tick verify approve complete done read success approval approved bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-favorite",
+      "slug": "shipment-favorite",
+      "name": "Shipment Favorite",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-favorite.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "favorite",
+        "bookmark"
+      ],
+      "searchTextPreview": "micro-solid shipment-favorite shipment favorite shipment-favorite 26642 favorite like bookmark bubble chat comment feedback heart important love message star",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-favorite-heart",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "favorite"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-favorite-star",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "favorite"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-favorite-heart",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-favorite-star",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-remove",
+      "slug": "shipment-remove",
+      "name": "Shipment Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-remove.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid shipment-remove shipment remove shipment-remove 26642 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-search",
+      "slug": "shipment-search",
+      "name": "Shipment Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-search.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid shipment-search shipment search shipment-search 26642 search find lookup research computer data explore glass interface magnify monitor programming",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "signal-disconnected",
+      "slug": "signal-disconnected",
+      "name": "Signal Disconnected",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-disconnected.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "disconnected",
+        "network"
+      ],
+      "searchTextPreview": "micro-solid signal-disconnected signal disconnected signal-disconnected 26619 signal call communication contact phone telephone network wifi low medium disable disconnected",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-graph",
+      "slug": "signal-graph",
+      "name": "Signal Graph",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-graph.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "graph",
+        "bars"
+      ],
+      "searchTextPreview": "micro-solid signal-graph signal graph signal-graph 26553 graph chart statistics analytics arrow data bars business decrease metrics product trend",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-graph-circle",
+      "slug": "signal-graph-circle",
+      "name": "Signal Graph Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-graph-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "graph",
+        "bars",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid signal-graph-circle signal graph circle signal-graph-circle 26553 graph chart statistics analytics arrow data bars business decrease metrics product trend",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-loading",
+      "slug": "signal-loading",
+      "name": "Signal Loading",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-loading.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "loading"
+      ],
+      "searchTextPreview": "micro-solid signal-loading signal loading signal-loading 26619 signal communication call contact phone telephone network wifi low medium disable email",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-loading",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "loading"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-loading",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-square",
+      "slug": "signal-square",
+      "name": "Signal Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid signal-square signal square signal-square 26553 signal call communication contact phone telephone network wifi low medium disable full",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    }
+  ]
+}

@@ -1,0 +1,322 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-machine-wave1-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+  "appliedCount": 24,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "lock-circle",
+      "slug": "lock-circle",
+      "tags": [
+        "lock",
+        "secure",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "lock-key",
+      "slug": "lock-key",
+      "tags": [
+        "lock",
+        "secure",
+        "key"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "lock-rotation",
+      "slug": "lock-rotation",
+      "tags": [
+        "lock",
+        "secure",
+        "rotation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "lock-shield",
+      "slug": "lock-shield",
+      "tags": [
+        "lock",
+        "secure",
+        "shield",
+        "protection"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "move-circle",
+      "slug": "move-circle",
+      "tags": [
+        "move",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "move-object-down",
+      "slug": "move-object-down",
+      "tags": [
+        "move",
+        "object",
+        "down"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "move-object-left",
+      "slug": "move-object-left",
+      "tags": [
+        "move",
+        "object",
+        "left"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "move-object-right",
+      "slug": "move-object-right",
+      "tags": [
+        "move",
+        "object",
+        "right"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "move-object-up",
+      "slug": "move-object-up",
+      "tags": [
+        "move",
+        "object",
+        "up"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notepad-add",
+      "slug": "notepad-add",
+      "tags": [
+        "notepad",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notepad-check",
+      "slug": "notepad-check",
+      "tags": [
+        "notepad",
+        "check",
+        "confirm"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notepad-remove",
+      "slug": "notepad-remove",
+      "tags": [
+        "notepad",
+        "remove",
+        "delete"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notepad-subtract",
+      "slug": "notepad-subtract",
+      "tags": [
+        "notepad",
+        "subtract",
+        "minus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "notepad-text",
+      "slug": "notepad-text",
+      "tags": [
+        "notepad",
+        "text"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shipment-add",
+      "slug": "shipment-add",
+      "tags": [
+        "shipment",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shipment-check",
+      "slug": "shipment-check",
+      "tags": [
+        "shipment",
+        "check",
+        "confirm"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shipment-favorite",
+      "slug": "shipment-favorite",
+      "tags": [
+        "shipment",
+        "favorite",
+        "bookmark"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shipment-remove",
+      "slug": "shipment-remove",
+      "tags": [
+        "shipment",
+        "remove",
+        "delete"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shipment-search",
+      "slug": "shipment-search",
+      "tags": [
+        "shipment",
+        "search",
+        "find"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "signal-disconnected",
+      "slug": "signal-disconnected",
+      "tags": [
+        "signal",
+        "disconnected",
+        "network"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "signal-graph",
+      "slug": "signal-graph",
+      "tags": [
+        "signal",
+        "graph",
+        "bars"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "signal-graph-circle",
+      "slug": "signal-graph-circle",
+      "tags": [
+        "signal",
+        "graph",
+        "bars",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "signal-loading",
+      "slug": "signal-loading",
+      "tags": [
+        "signal",
+        "loading"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "signal-square",
+      "slug": "signal-square",
+      "tags": [
+        "signal",
+        "square"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:16:31.906Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

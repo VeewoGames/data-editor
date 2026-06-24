@@ -4,14 +4,25 @@ import type { CollectionView, SharedViewGroupItem, SharedViewIconId, SharedViewL
 import { ExpandableSearch } from "./ExpandableSearch";
 import {
   icons,
+  hydratePersistedSharedViewIconPacks,
+  isSharedViewIconLoaded,
+  isSharedViewIconPackLoaded,
+  loadSharedViewIconPack,
   readRecentSharedViewIconIds,
+  readLoadedSharedViewIconPackIds,
+  readSharedViewIconIdsForPack,
+  readSharedViewIconComponent,
+  resolveSharedViewIconPackId,
   sharedViewDefaultIconId,
+  sharedViewFallbackIcon,
+  sharedViewFavoriteFilledIcon,
+  sharedViewFavoriteOutlineIcon,
   sharedViewIconGroups,
-  sharedViewIconIds,
-  sharedViewIconRegistry,
+  sharedViewIconPackLabels,
   sharedViewGeneratedIconSearchText,
   sharedViewIconSearchAliases,
   sharedViewRecentIconStorageKey,
+  unloadSharedViewIconPack,
 } from "./icons";
 import { TableSettingsPopover } from "./TableSettingsPopover";
 
@@ -30,6 +41,9 @@ export type ViewTabsProps = {
   onDeleteView: (viewId: string) => void;
   onDuplicateView: (viewId: string) => void;
   onUpdateViewIcon: (viewId: string, icon: SharedViewIconId) => void;
+  favoriteIconIds: SharedViewIconId[];
+  favoritesEnabled: boolean;
+  onToggleFavoriteIcon: (iconId: SharedViewIconId) => void;
   onReorderViews: (operation: ViewTabReorderOperation) => void;
   onToggleFilterBar: () => void;
   onToggleTableTextEditMode: () => void;
@@ -37,6 +51,7 @@ export type ViewTabsProps = {
   onSetDocumentFieldEnabled: (fieldName: string, enabled: boolean) => void;
   onSaveDocumentRoot: (value: string) => void;
   onRefreshDocumentIndex: () => void;
+  protectedIconPackIds: string[];
 };
 
 export type ViewTabsSnapshot = {
@@ -86,6 +101,9 @@ export function ViewTabs({
   onDeleteView,
   onDuplicateView,
   onUpdateViewIcon,
+  favoriteIconIds,
+  favoritesEnabled,
+  onToggleFavoriteIcon,
   onReorderViews,
   onToggleFilterBar,
   onToggleTableTextEditMode,
@@ -93,6 +111,7 @@ export function ViewTabs({
   onSetDocumentFieldEnabled,
   onSaveDocumentRoot,
   onRefreshDocumentIndex,
+  protectedIconPackIds,
 }: ViewTabsProps) {
   const {
     views,
@@ -126,7 +145,13 @@ export function ViewTabs({
   const [groupRenameDraftByGroupId, setGroupRenameDraftByGroupId] = useState<Record<string, string>>({});
   const [iconPickerOpenForViewId, setIconPickerOpenForViewId] = useState<string | null>(null);
   const [iconPickerSearchQuery, setIconPickerSearchQuery] = useState("");
+  const [iconPickerGlobalSearchEnabled, setIconPickerGlobalSearchEnabled] = useState(false);
   const [activeIconGroupId, setActiveIconGroupId] = useState<(typeof sharedViewIconGroups)[number]["id"]>("recent");
+  const [iconPackOptionsOpen, setIconPackOptionsOpen] = useState(false);
+  const [iconPackBusyId, setIconPackBusyId] = useState<keyof typeof sharedViewIconPackLabels | null>(null);
+  const [loadedIconPackIds, setLoadedIconPackIds] = useState<Array<keyof typeof sharedViewIconPackLabels>>(() => readLoadedSharedViewIconPackIds());
+  const [, setIconPickerVersion] = useState(0);
+  const [hoverPreviewIconId, setHoverPreviewIconId] = useState<SharedViewIconId | null>(null);
   const [recentIconIds, setRecentIconIds] = useState<SharedViewIconId[]>([]);
   const [optimisticIconByViewId, setOptimisticIconByViewId] = useState<Record<string, SharedViewIconId>>({});
   const [groupTabFilter, setGroupTabFilter] = useState("");
@@ -162,6 +187,7 @@ export function ViewTabs({
     dragging: boolean;
   }>(null);
   const suppressClickRef = useRef(false);
+  const hoverPreviewResetTimeoutRef = useRef<number | null>(null);
   const viewTabsDisabled = commandSaving;
   const expandedGroup = useMemo(
     () => topLevelItems.find((item): item is Extract<ViewTabsSnapshot["topLevelItems"][number], { kind: "group" }> => item.kind === "group" && item.id === expandedGroupId) ?? null,
@@ -177,6 +203,12 @@ export function ViewTabs({
     () => (expandedGroup ? { ...expandedGroup, views: filteredGroupViews } : null),
     [expandedGroup, filteredGroupViews],
   );
+  const favoriteIconIdSet = useMemo(() => new Set(favoriteIconIds), [favoriteIconIds]);
+  const protectedIconPackIdSet = useMemo(() => new Set(protectedIconPackIds), [protectedIconPackIds]);
+  const managedIconPackIds = useMemo(
+    () => ["micro-solid", "core-solid", "tabler-filled", "micro-line", "tabler-outline", "legacy"] as Array<keyof typeof sharedViewIconPackLabels>,
+    [],
+  );
 
   useEffect(() => {
     setGroupTabFilter("");
@@ -188,11 +220,46 @@ export function ViewTabs({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      await hydratePersistedSharedViewIconPacks();
+      if (!cancelled) syncLoadedIconPacks();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const missingProtectedPackIds = protectedIconPackIds.filter((packId) => !readLoadedSharedViewIconPackIds().includes(packId as keyof typeof sharedViewIconPackLabels));
+    if (!missingProtectedPackIds.length) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.all(
+        missingProtectedPackIds.map((packId) => loadSharedViewIconPack(packId as keyof typeof sharedViewIconPackLabels)),
+      );
+      if (!cancelled) syncLoadedIconPacks();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [protectedIconPackIds]);
+
+  useEffect(() => {
     if (!iconPickerOpenForViewId) {
       setIconPickerSearchQuery("");
+      setIconPickerGlobalSearchEnabled(false);
       setActiveIconGroupId("recent");
+      setIconPackOptionsOpen(false);
+      setHoverPreviewIconId(null);
     }
   }, [iconPickerOpenForViewId]);
+
+  useEffect(() => () => {
+    if (hoverPreviewResetTimeoutRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(hoverPreviewResetTimeoutRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!draggingViewId) return;
@@ -333,33 +400,146 @@ export function ViewTabs({
     }
   }
 
-  function resolveSearchIconIds(query: string) {
+  function resolveSearchIconIds(query: string, searchPool: readonly SharedViewIconId[]) {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return [];
-    return sharedViewIconIds.filter((iconId) => {
+    return searchPool.filter((iconId) => {
       if (iconId === sharedViewDefaultIconId) return false;
       if (iconId.toLowerCase().includes(normalizedQuery)) return true;
       if (sharedViewGeneratedIconSearchText[iconId]?.includes(normalizedQuery)) return true;
-      const matchingGroup = sharedViewIconGroups.find((group) => (group.iconIds as readonly string[]).includes(iconId));
+      const matchingGroup = sharedViewIconGroups.find((group) => group.id === resolveSharedViewIconPackId(iconId));
       if (matchingGroup?.label.toLowerCase().includes(normalizedQuery)) return true;
       const aliases = matchingGroup ? sharedViewIconSearchAliases[matchingGroup.id as keyof typeof sharedViewIconSearchAliases] : undefined;
       return !!aliases?.some((alias) => alias.toLowerCase().includes(normalizedQuery));
     });
   }
 
-  function resolvePickerIconIds() {
-    if (iconPickerSearchQuery.trim()) return resolveSearchIconIds(iconPickerSearchQuery);
+  function resolveActiveGroupIconIds() {
     if (activeIconGroupId === "recent") return recentIconIds.filter((iconId) => iconId !== sharedViewDefaultIconId);
-    return [...sharedViewIconGroups.find((group) => group.id === activeIconGroupId)?.iconIds ?? []] as SharedViewIconId[];
+    if (activeIconGroupId === "favorites") return [...favoriteIconIdSet] as SharedViewIconId[];
+    if (!isSharedViewIconPackLoaded(activeIconGroupId)) return [];
+    return readSharedViewIconIdsForPack(activeIconGroupId) as SharedViewIconId[];
   }
 
-  function updateViewIcon(view: CollectionView, iconId: SharedViewIconId) {
+  function resolvePickerIconIds() {
+    const activeGroupIconIds = resolveActiveGroupIconIds();
+    if (iconPickerSearchQuery.trim()) {
+      const searchableIconIds = Array.from(new Set([
+        ...recentIconIds,
+        ...favoriteIconIds,
+        ...readSharedViewIconIdsForPack("legacy"),
+        ...managedIconPackIds.flatMap((packId) => (
+          packId === "legacy" || packId === "base" || !loadedIconPackIds.includes(packId)
+            ? []
+            : readSharedViewIconIdsForPack(packId)
+        )),
+      ])) as SharedViewIconId[];
+      return resolveSearchIconIds(
+        iconPickerSearchQuery,
+        iconPickerGlobalSearchEnabled ? searchableIconIds : activeGroupIconIds,
+      );
+    }
+    return activeGroupIconIds;
+  }
+
+  function syncLoadedIconPacks() {
+    setLoadedIconPackIds(readLoadedSharedViewIconPackIds());
+    setIconPickerVersion((current) => current + 1);
+  }
+
+  function showHoverPreview(iconId: SharedViewIconId) {
+    if (hoverPreviewResetTimeoutRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(hoverPreviewResetTimeoutRef.current);
+      hoverPreviewResetTimeoutRef.current = null;
+    }
+    setHoverPreviewIconId(iconId);
+  }
+
+  function hideHoverPreview(iconId: SharedViewIconId) {
+    if (typeof window === "undefined") {
+      setHoverPreviewIconId((current) => current === iconId ? null : current);
+      return;
+    }
+    if (hoverPreviewResetTimeoutRef.current !== null) {
+      window.clearTimeout(hoverPreviewResetTimeoutRef.current);
+    }
+    hoverPreviewResetTimeoutRef.current = window.setTimeout(() => {
+      setHoverPreviewIconId((current) => current === iconId ? null : current);
+      hoverPreviewResetTimeoutRef.current = null;
+    }, 180);
+  }
+
+  function resolveManagedPackSummary(packId: keyof typeof sharedViewIconPackLabels) {
+    const loaded = loadedIconPackIds.includes(packId);
+    const unloadProtected = loaded && protectedIconPackIdSet.has(packId);
+    if (unloadProtected) {
+      return {
+        loaded,
+        unloadProtected,
+        detail: `当前共享视图正在使用，暂不可卸载 · ${readSharedViewIconIdsForPack(packId).length} 个图标`,
+      };
+    }
+    if (loaded) {
+      return {
+        loaded,
+        unloadProtected,
+        detail: `已加载，可卸载 · ${readSharedViewIconIdsForPack(packId).length} 个图标`,
+      };
+    }
+    return {
+      loaded,
+      unloadProtected,
+      detail: "未加载，加载后才会浏览和搜索该图标包",
+    };
+  }
+
+  async function ensureIconPackLoaded(iconId: SharedViewIconId) {
+    const packId = resolveSharedViewIconPackId(iconId);
+    if (isSharedViewIconLoaded(iconId)) return;
+    setIconPackBusyId(packId);
+    try {
+      await loadSharedViewIconPack(packId);
+      syncLoadedIconPacks();
+    } finally {
+      setIconPackBusyId((current) => current === packId ? null : current);
+    }
+  }
+
+  async function updateViewIcon(view: CollectionView, iconId: SharedViewIconId) {
     if (viewTabsDisabled) return;
+    await ensureIconPackLoaded(iconId);
     setOptimisticIconByViewId((current) => ({ ...current, [view.id]: iconId }));
     onUpdateViewIcon(view.id, iconId);
     rememberRecentIcon(iconId);
     setIconPickerOpenForViewId(null);
   }
+
+  async function handleToggleIconPack(packId: keyof typeof sharedViewIconPackLabels) {
+    setIconPackBusyId(packId);
+    try {
+      if (loadedIconPackIds.includes(packId)) {
+        unloadSharedViewIconPack(packId);
+      } else {
+        await loadSharedViewIconPack(packId);
+      }
+      syncLoadedIconPacks();
+    } finally {
+      setIconPackBusyId((current) => current === packId ? null : current);
+    }
+  }
+
+  function renderSharedViewIcon(iconId: SharedViewIconId, size: number) {
+    const IconComponent = readSharedViewIconComponent(iconId) ?? sharedViewFallbackIcon;
+    return <IconComponent size={size} />;
+  }
+
+  const activePackLabel = activeIconGroupId in sharedViewIconPackLabels
+    ? sharedViewIconPackLabels[activeIconGroupId as keyof typeof sharedViewIconPackLabels]
+    : null;
+  const showPackLoadEmptyState = iconPickerSearchQuery.trim().length === 0
+    && activeIconGroupId !== "recent"
+    && activeIconGroupId !== "favorites"
+    && !loadedIconPackIds.includes(activeIconGroupId);
 
   function closeViewMenu(view: CollectionView) {
     commitViewRename(view);
@@ -523,7 +703,6 @@ export function ViewTabs({
   function renderViewTab(item: SharedViewLeafItem, location: { kind: "top-level" } | { kind: "group"; groupId: string }) {
     const view = item.view;
     const iconId = optimisticIconByViewId[view.id] ?? item.icon ?? sharedViewDefaultIconId;
-    const ViewIcon = sharedViewIconRegistry[iconId];
     const pickerIconIds = resolvePickerIconIds();
     const active = view.id === activeViewId;
     const dropBefore = location.kind === "top-level"
@@ -587,7 +766,7 @@ export function ViewTabs({
               onPointerUp={handlePointerUp}
             >
               <span className="view-tab-icon" data-view-icon={iconId}>
-                <ViewIcon size={17} />
+                {renderSharedViewIcon(iconId, 17)}
               </span>
               <span className="view-tab-name">{view.name}</span>
               {dirtyViewIds.has(view.id) ? <span className="view-tab-dirty-dot" aria-label="未保存的视图更改" /> : null}
@@ -620,7 +799,7 @@ export function ViewTabs({
                       aria-label="打开图标选择器"
                     >
                       <span className="view-tab-icon" data-view-icon={iconId}>
-                        <ViewIcon size={18} />
+                        {renderSharedViewIcon(iconId, 18)}
                       </span>
                     </button>
                   </Popover.Trigger>
@@ -634,6 +813,50 @@ export function ViewTabs({
                           value={iconPickerSearchQuery}
                           onChange={(event) => setIconPickerSearchQuery(event.target.value)}
                         />
+                        <label className="view-tab-icon-picker-search-scope">
+                          <input
+                            type="checkbox"
+                            aria-label="全局搜索图标"
+                            checked={iconPickerGlobalSearchEnabled}
+                            onChange={(event) => setIconPickerGlobalSearchEnabled(event.target.checked)}
+                          />
+                          <span>全局</span>
+                        </label>
+                        <Popover.Root open={iconPackOptionsOpen} onOpenChange={setIconPackOptionsOpen}>
+                          <Popover.Trigger asChild>
+                            <button
+                              type="button"
+                              className="view-tab-icon-picker-options-trigger"
+                              aria-label="图标包选项"
+                            >
+                              <icons.settings size={16} />
+                            </button>
+                          </Popover.Trigger>
+                          <Popover.Portal>
+                            <Popover.Content className="view-tab-icon-pack-options" sideOffset={6} align="end">
+                              <div className="view-tab-icon-pack-options-title">图标包</div>
+                              {managedIconPackIds.map((packId) => {
+                                const summary = resolveManagedPackSummary(packId);
+                                return (
+                                  <div key={packId} className="view-tab-icon-pack-row">
+                                    <span className="view-tab-icon-pack-copy">
+                                      <span className="view-tab-icon-pack-name">{sharedViewIconPackLabels[packId]}</span>
+                                      <span className="view-tab-icon-pack-detail">{summary.detail}</span>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="view-tab-icon-pack-toggle"
+                                      disabled={iconPackBusyId === packId || summary.unloadProtected}
+                                      onClick={() => void handleToggleIconPack(packId)}
+                                    >
+                                      {iconPackBusyId === packId ? "处理中..." : summary.loaded ? (summary.unloadProtected ? "已使用" : "卸载") : "加载"}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </Popover.Content>
+                          </Popover.Portal>
+                        </Popover.Root>
                       </div>
                       <div className="view-tab-icon-picker-tabs" role="tablist" aria-label="图标分组">
                         {sharedViewIconGroups.map((group) => (
@@ -648,22 +871,64 @@ export function ViewTabs({
                           </button>
                         ))}
                       </div>
-                      {pickerIconIds.length ? (
+                      {showPackLoadEmptyState ? (
+                        <div className="view-tab-icon-picker-empty">
+                          <div>{activePackLabel} 未加载</div>
+                          <button
+                            type="button"
+                            className="view-tab-icon-pack-toggle"
+                            onClick={() => void handleToggleIconPack(activeIconGroupId as keyof typeof sharedViewIconPackLabels)}
+                          >
+                            加载 {activePackLabel}
+                          </button>
+                        </div>
+                      ) : pickerIconIds.length ? (
                         <div className="view-tab-icon-picker-grid">
                           {pickerIconIds.map((candidate) => {
-                            const CandidateIcon = sharedViewIconRegistry[candidate];
+                            const candidateLoaded = isSharedViewIconLoaded(candidate);
+                            const candidateFavorite = favoriteIconIdSet.has(candidate);
+                            const candidatePackId = resolveSharedViewIconPackId(candidate);
+                            const FavoriteIcon = candidateFavorite ? sharedViewFavoriteFilledIcon : sharedViewFavoriteOutlineIcon;
                             return (
-                              <button
+                              <div
                                 key={candidate}
-                                type="button"
-                                className={["view-tab-icon-picker-option", candidate === iconId ? "is-selected" : ""].filter(Boolean).join(" ")}
+                                className={[
+                                  "view-tab-icon-picker-option",
+                                  candidate === iconId ? "is-selected" : "",
+                                  candidateLoaded ? "" : "is-unloaded",
+                                  candidateFavorite ? "is-favorite" : "",
+                                  hoverPreviewIconId === candidate ? "is-hover-preview" : "",
+                                ].filter(Boolean).join(" ")}
                                 data-view-icon={candidate}
-                                onClick={() => updateViewIcon(view, candidate)}
+                                onPointerEnter={() => showHoverPreview(candidate)}
+                                onPointerLeave={() => hideHoverPreview(candidate)}
                               >
-                                <span className="view-tab-icon">
-                                  <CandidateIcon size={18} />
+                                <button
+                                  type="button"
+                                  className="view-tab-icon-picker-option-main"
+                                  onClick={() => void updateViewIcon(view, candidate)}
+                                >
+                                  <span className="view-tab-icon">
+                                    {renderSharedViewIcon(candidate, 18)}
+                                  </span>
+                                  {!candidateLoaded ? <span className="view-tab-icon-picker-option-hint">需先加载 {sharedViewIconPackLabels[candidatePackId]}</span> : null}
+                                </button>
+                                <span className="view-tab-icon-picker-option-star-shell">
+                                  <button
+                                    type="button"
+                                    className="view-tab-icon-picker-option-star"
+                                    aria-label={candidateFavorite ? "取消收藏图标" : "收藏图标"}
+                                    disabled={!favoritesEnabled}
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      onToggleFavoriteIcon(candidate);
+                                    }}
+                                  >
+                                    <FavoriteIcon size={14} />
+                                  </button>
                                 </span>
-                              </button>
+                              </div>
                             );
                           })}
                         </div>
@@ -1037,8 +1302,7 @@ export function ViewTabs({
           <span className="view-tab-icon" data-view-icon={dragGhost.icon}>
             {(() => {
               if (dragGhost.kind === "group") return <icons.folder size={17} />;
-              const DragGhostIcon = sharedViewIconRegistry[dragGhost.icon ?? sharedViewDefaultIconId];
-              return <DragGhostIcon size={17} />;
+              return renderSharedViewIcon(dragGhost.icon ?? sharedViewDefaultIconId, 17);
             })()}
           </span>
           <span>{dragGhost.label}</span>

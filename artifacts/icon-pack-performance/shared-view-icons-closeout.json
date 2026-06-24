@@ -1,0 +1,23 @@
+{
+  "capturedAt": "2026-06-24T07:45:07.000Z",
+  "phase": "shared-view-icons-closeout",
+  "mode": "dev",
+  "projectRoot": "C:\\Code\\data-editor\\tests\\.scratch",
+  "filePath": "data/runes.json",
+  "timings": {
+    "goto": 95.38,
+    "openDocument": 5161.32,
+    "openViewMenu": 224.07,
+    "openPicker": 63.24,
+    "switchToCoreSolid": 1161.9,
+    "loadCoreSolidPack": 8142.06,
+    "switchToLegacy": 137.07
+  },
+  "groupCounts": {
+    "microSolidCount": 1904,
+    "coreSolidCount": 5603,
+    "legacyCount": 153
+  },
+  "packDetails": [],
+  "legacyCount": 153
+}

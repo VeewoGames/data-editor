@@ -1,0 +1,402 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch18",
+  "suggestions": [
+    {
+      "itemId": "pathfinder-circle-minus-back-1",
+      "slug": "pathfinder-circle-minus-back-1",
+      "name": "Pathfinder Circle Minus Back 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-circle-minus-back-1.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "back",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-circle-minus-back-1 pathfinder circle minus back 1 pathfinder-circle-minus-back-1 26546 back align change exchange interface layer layers replace select stack straightforward swap",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-1",
+      "slug": "pathfinder-circle-minus-front-1",
+      "name": "Pathfinder Circle Minus Front 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-circle-minus-front-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-circle-minus-front-1 pathfinder circle minus front 1 pathfinder-circle-minus-front-1 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-2",
+      "slug": "pathfinder-circle-minus-front-2",
+      "name": "Pathfinder Circle Minus Front 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-circle-minus-front-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-circle-minus-front-2 pathfinder circle minus front 2 pathfinder-circle-minus-front-2 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-minus-back-1",
+      "slug": "pathfinder-minus-back-1",
+      "name": "Pathfinder Minus Back 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-minus-back-1.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "minus",
+        "back",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-minus-back-1 pathfinder minus back 1 pathfinder-minus-back-1 26546 back align change exchange interface layer layers replace select stack straightforward swap",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-minus-front",
+      "slug": "pathfinder-minus-front",
+      "name": "Pathfinder Minus Front",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-minus-front.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-minus-front pathfinder minus front pathfinder-minus-front 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-square-minus-front-2",
+      "slug": "pathfinder-square-minus-front-2",
+      "name": "Pathfinder Square Minus Front 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-square-minus-front-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "square",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-square-minus-front-2 pathfinder square minus front 2 pathfinder-square-minus-front-2 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    }
+  ]
+}

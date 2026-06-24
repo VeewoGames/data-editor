@@ -1,0 +1,212 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch32",
+  "suggestions": [
+    {
+      "itemId": "sign-cross-circle",
+      "slug": "sign-cross-circle",
+      "name": "Sign Cross Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-circle sign cross circle sign-cross-circle 26676 sign symbol cross direction navigation network catholicism christianity pointer religion dangerous octagon",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch32"
+    },
+    {
+      "itemId": "sign-cross-shield",
+      "slug": "sign-cross-shield",
+      "name": "Sign Cross Shield",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-shield.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "shield"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-shield sign cross shield sign-cross-shield 26676 sign cross direction symbol network catholicism christianity pointer religion dangerous octagon hashtag",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch32"
+    },
+    {
+      "itemId": "sign-cross-square",
+      "slug": "sign-cross-square",
+      "name": "Sign Cross Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-square sign cross square sign-cross-square 26676 sign symbol cross direction navigation network catholicism christianity pointer religion dangerous octagon",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch32"
+    }
+  ]
+}

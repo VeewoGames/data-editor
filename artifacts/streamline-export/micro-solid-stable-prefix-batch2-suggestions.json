@@ -1,0 +1,1424 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch2",
+  "suggestions": [
+    {
+      "itemId": "menu-alternate-1",
+      "slug": "menu-alternate-1",
+      "name": "Menu Alternate 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/menu-alternate-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate"
+      ],
+      "searchTextPreview": "micro-solid menu-alternate-1 menu alternate 1 menu-alternate-1 26567 menu navigation button interface options circle dots app ellipsis dropdown hamburger horizontal",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "menu-alternate-2",
+      "slug": "menu-alternate-2",
+      "name": "Menu Alternate 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/menu-alternate-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate"
+      ],
+      "searchTextPreview": "micro-solid menu-alternate-2 menu alternate 2 menu-alternate-2 26567 menu navigation button interface options circle dots app ellipsis dropdown hamburger horizontal",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "menu-alternate-horizontal",
+      "slug": "menu-alternate-horizontal",
+      "name": "Menu Alternate Horizontal",
+      "outputPath": "vendor/streamline-svg/micro-solid/menu-alternate-horizontal.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate",
+        "horizontal"
+      ],
+      "searchTextPreview": "micro-solid menu-alternate-horizontal menu alternate horizontal menu-alternate-horizontal 26567 menu navigation button interface options circle dots app ellipsis dropdown hamburger horizontal",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "menu-alternate-vertical",
+      "slug": "menu-alternate-vertical",
+      "name": "Menu Alternate Vertical",
+      "outputPath": "vendor/streamline-svg/micro-solid/menu-alternate-vertical.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate",
+        "vertical"
+      ],
+      "searchTextPreview": "micro-solid menu-alternate-vertical menu alternate vertical menu-alternate-vertical 26567 menu navigation button interface options circle dots app ellipsis dropdown hamburger horizontal",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "menu-line-1",
+      "slug": "menu-line-1",
+      "name": "Menu Line 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/menu-line-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "line"
+      ],
+      "searchTextPreview": "micro-solid menu-line-1 menu line 1 menu-line-1 26567 menu navigation button interface options circle dots app ellipsis dropdown hamburger horizontal",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "menu-line-2",
+      "slug": "menu-line-2",
+      "name": "Menu Line 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/menu-line-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "line"
+      ],
+      "searchTextPreview": "micro-solid menu-line-2 menu line 2 menu-line-2 26567 menu navigation button interface options circle dots app ellipsis dropdown hamburger horizontal",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "menu"
+            ],
+            "prefixMatches": [
+              "menu"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "menu-horizontal-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "menu-vertical-dots",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-1",
+      "slug": "navigation-arrow-1",
+      "name": "Navigation Arrow 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-1 navigation arrow 1 navigation-arrow-1 26651 arrow direction dashed forward point backward click cursor guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-2",
+      "slug": "navigation-arrow-2",
+      "name": "Navigation Arrow 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-2 navigation arrow 2 navigation-arrow-2 26651 arrow direction dashed forward point backward click cursor guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-east",
+      "slug": "navigation-arrow-east",
+      "name": "Navigation Arrow East",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-east.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "east"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-east navigation arrow east navigation-arrow-east 26651 arrow direction dashed forward point backward click cursor guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-fork-left",
+      "slug": "navigation-arrow-fork-left",
+      "name": "Navigation Arrow Fork Left",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-fork-left.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "fork",
+        "left"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-fork-left navigation arrow fork left navigation-arrow-fork-left 26651 arrow direction dashed forward point backward click cursor guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-fork-right",
+      "slug": "navigation-arrow-fork-right",
+      "name": "Navigation Arrow Fork Right",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-fork-right.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "fork",
+        "right"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-fork-right navigation arrow fork right navigation-arrow-fork-right 26651 arrow direction dashed forward point backward click cursor guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-off",
+      "slug": "navigation-arrow-off",
+      "name": "Navigation Arrow Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-off.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-off navigation arrow off navigation-arrow-off 26651 arrow direction dashed point backward click cursor forward guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-south",
+      "slug": "navigation-arrow-south",
+      "name": "Navigation Arrow South",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-south.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "south"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-south navigation arrow south navigation-arrow-south 26651 arrow direction dashed forward point backward click cursor guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "navigation-arrow-west",
+      "slug": "navigation-arrow-west",
+      "name": "Navigation Arrow West",
+      "outputPath": "vendor/streamline-svg/micro-solid/navigation-arrow-west.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "west"
+      ],
+      "searchTextPreview": "micro-solid navigation-arrow-west navigation arrow west navigation-arrow-west 26651 arrow direction dashed forward point backward click cursor guide interface left mouse",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "arrow"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrow-cursor-click-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrow-cursor-click-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "search",
+      "slug": "search",
+      "name": "Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/search.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "search",
+        "find",
+        "lookup"
+      ],
+      "searchTextPreview": "micro-solid search search search 26550 search find lookup explore programming research app apps browser window data glass",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "search-check",
+      "slug": "search-check",
+      "name": "Search Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-check.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "search",
+        "find",
+        "lookup",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid search-check search check search-check 26550 check apps browser explore find search window confirm app programming approval bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "search-circle",
+      "slug": "search-circle",
+      "name": "Search Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "search",
+        "find",
+        "lookup",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid search-circle search circle search-circle 26550 search find lookup explore programming research app apps browser window data glass",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "search-dollar",
+      "slug": "search-dollar",
+      "name": "Search Dollar",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-dollar.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "search",
+        "find",
+        "lookup",
+        "dollar",
+        "finance",
+        "money"
+      ],
+      "searchTextPreview": "micro-solid search-dollar search dollar search-dollar 26604 search find lookup explore programming research app apps browser window banking cash",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "search-off-disable",
+      "slug": "search-off-disable",
+      "name": "Search Off Disable",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-off-disable.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "search",
+        "find",
+        "lookup",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid search-off-disable search off disable search-off-disable 26550 disable off explore find search app apps browser programming window disabled inactive",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "filter-off-disable",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "off",
+              "disable"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "filter-off-disable",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "search-square",
+      "slug": "search-square",
+      "name": "Search Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "search",
+        "find",
+        "lookup",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid search-square search square search-square 26550 search find lookup explore programming research app apps browser window data glass",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    },
+    {
+      "itemId": "search-text",
+      "slug": "search-text",
+      "name": "Search Text",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-text.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "search",
+        "find",
+        "lookup",
+        "text"
+      ],
+      "searchTextPreview": "micro-solid search-text search text search-text 26550 text app interface navigation explore find search align button hamburger menu square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch2"
+    }
+  ]
+}

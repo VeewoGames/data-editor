@@ -1,0 +1,178 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch7-suggestions.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+  "appliedCount": 13,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "time-alarm",
+      "slug": "time-alarm",
+      "tags": [
+        "time",
+        "alarm",
+        "alert",
+        "reminder"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-clock-circle",
+      "slug": "time-clock-circle",
+      "tags": [
+        "time",
+        "clock",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-clock-hand",
+      "slug": "time-clock-hand",
+      "tags": [
+        "time",
+        "clock",
+        "hand"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-clock-square",
+      "slug": "time-clock-square",
+      "tags": [
+        "time",
+        "clock",
+        "square"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-history-off",
+      "slug": "time-history-off",
+      "tags": [
+        "time",
+        "history",
+        "off",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-hour-glass",
+      "slug": "time-hour-glass",
+      "tags": [
+        "time",
+        "hourglass"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-lapse",
+      "slug": "time-lapse",
+      "tags": [
+        "time",
+        "lapse"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-midnight",
+      "slug": "time-midnight",
+      "tags": [
+        "time",
+        "midnight"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-nine",
+      "slug": "time-nine",
+      "tags": [
+        "time",
+        "nine",
+        "digit"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-reset",
+      "slug": "time-reset",
+      "tags": [
+        "time",
+        "reset"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-six",
+      "slug": "time-six",
+      "tags": [
+        "time",
+        "six",
+        "digit"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-three",
+      "slug": "time-three",
+      "tags": [
+        "time",
+        "three",
+        "digit"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "time-timer",
+      "slug": "time-timer",
+      "tags": [
+        "time",
+        "timer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:40:47.964Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": []
+}

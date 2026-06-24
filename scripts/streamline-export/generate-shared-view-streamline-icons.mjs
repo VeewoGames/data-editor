@@ -2,13 +2,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadManifest } from "./lib/manifest-store.mjs";
+import { getStreamlineFamilyEntryConfig } from "./lib/streamline-family-entry-config.mjs";
 
 const generatedModulePath = "src/generated/streamline-shared-view-icons.mjs";
 const generatedTypesPath = "src/generated/streamline-shared-view-icons.d.ts";
-const familyLabels = {
-  "micro-line": "Line",
-  "micro-solid": "Solid",
-};
 
 function toPascalCase(value) {
   return String(value)
@@ -28,6 +25,14 @@ function buildIconId(family, slug) {
 
 function buildFamilyGroupId(family) {
   return `streamline-${family}`;
+}
+
+function resolveFamilyLabel(family) {
+  try {
+    return getStreamlineFamilyEntryConfig(family).label ?? family;
+  } catch {
+    return family;
+  }
 }
 
 export async function generateSharedViewStreamlineIcons({
@@ -56,6 +61,7 @@ export async function generateSharedViewStreamlineIcons({
       if (item?.status !== "success" || !item?.outputPath) continue;
       const hasVariantCollision = (uniqueUrlsBySlug.get(String(item.slug ?? "").trim())?.size ?? 0) > 1;
       const sourceId = item?.sourceId ?? null;
+      const normalizedTags = Array.isArray(item?.tags) ? item.tags : [];
       const displayName = hasVariantCollision && sourceId
         ? `${item.name ?? item.slug} (${sourceId})`
         : (item.name ?? item.slug);
@@ -67,7 +73,15 @@ export async function generateSharedViewStreamlineIcons({
         sourceId,
         name: displayName,
         outputPath: String(item.outputPath).replace(/\\/g, "/"),
-        searchText: [family, item.slug, displayName, item.itemId ?? item.slug, sourceId ?? ""].join(" ").toLowerCase(),
+        tags: normalizedTags,
+        searchText: [
+          family,
+          item.slug,
+          displayName,
+          item.itemId ?? item.slug,
+          sourceId ?? "",
+          normalizedTags.join(" "),
+        ].join(" ").toLowerCase(),
       };
       iconMap.set(icon.id, icon);
     }
@@ -83,7 +97,7 @@ export async function generateSharedViewStreamlineIcons({
       if (!iconIds.length) return null;
       return {
         id: buildFamilyGroupId(family),
-        label: familyLabels[family] ?? family,
+        label: resolveFamilyLabel(family),
         family,
         iconIds,
       };
@@ -113,6 +127,7 @@ export async function generateSharedViewStreamlineIcons({
     "  sourceId: string | null;",
     "  name: string;",
     "  outputPath: string;",
+    "  tags: string[];",
     "  searchText: string;",
     "};",
     "",
@@ -144,15 +159,42 @@ export async function generateSharedViewStreamlineIcons({
 
 async function main(argv) {
   const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-  const manifests = argv.slice(2).filter(Boolean);
+  const args = argv.slice(2);
+  const manifests = [];
+  let runtimeOutputPath = resolve(projectRoot, generatedModulePath);
+  let typesOutputPath = resolve(projectRoot, generatedTypesPath);
+
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "--runtime-output") {
+      const nextValue = args[index + 1];
+      if (!nextValue) {
+        throw new Error("Usage: node scripts/streamline-export/generate-shared-view-streamline-icons.mjs [--runtime-output <path>] [--types-output <path>] <manifestPath...>");
+      }
+      runtimeOutputPath = resolve(projectRoot, nextValue);
+      index += 1;
+      continue;
+    }
+    if (value === "--types-output") {
+      const nextValue = args[index + 1];
+      if (!nextValue) {
+        throw new Error("Usage: node scripts/streamline-export/generate-shared-view-streamline-icons.mjs [--runtime-output <path>] [--types-output <path>] <manifestPath...>");
+      }
+      typesOutputPath = resolve(projectRoot, nextValue);
+      index += 1;
+      continue;
+    }
+    manifests.push(value);
+  }
+
   if (!manifests.length) {
-    throw new Error("Usage: node scripts/streamline-export/generate-shared-view-streamline-icons.mjs <manifestPath...>");
+    throw new Error("Usage: node scripts/streamline-export/generate-shared-view-streamline-icons.mjs [--runtime-output <path>] [--types-output <path>] <manifestPath...>");
   }
   const normalizedManifestPaths = manifests.map((manifestPath) => resolve(projectRoot, manifestPath));
   const result = await generateSharedViewStreamlineIcons({
     manifestPaths: normalizedManifestPaths,
-    runtimeOutputPath: resolve(projectRoot, generatedModulePath),
-    typesOutputPath: resolve(projectRoot, generatedTypesPath),
+    runtimeOutputPath,
+    typesOutputPath,
   });
   console.log(JSON.stringify({
     ...result,

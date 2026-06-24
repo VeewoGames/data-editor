@@ -1,0 +1,1181 @@
+{
+  "generatedAt": "2026-06-24T02:40:28.021Z",
+  "manifests": [
+    {
+      "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\core-solid-full.manifest.json",
+      "family": "core-solid",
+      "counts": {
+        "total": 5603,
+        "pending": 0,
+        "success": 5603,
+        "failed": 0
+      }
+    }
+  ],
+  "summary": {
+    "duplicateSlugGroups": 38,
+    "duplicateSlugItems": 77,
+    "outputPathCollisionGroups": 0,
+    "outputPathCollisionItems": 0,
+    "duplicateSlugExactDuplicateGroups": 0,
+    "duplicateSlugExactDuplicateItems": 0,
+    "duplicateSlugVariantCollisionGroups": 38,
+    "duplicateSlugVariantCollisionItems": 77,
+    "outputPathExactDuplicateGroups": 0,
+    "outputPathExactDuplicateItems": 0,
+    "outputPathVariantCollisionGroups": 0,
+    "outputPathVariantCollisionItems": 0
+  },
+  "duplicateSlugs": [
+    {
+      "key": "align-left-2",
+      "family": "core-solid",
+      "slug": "align-left-2",
+      "items": [
+        {
+          "slug": "align-left-2",
+          "name": "Align Left 2",
+          "outputPath": "vendor/streamline-svg/core-solid/align-left-2-23742.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/align-left-2--23742",
+          "status": "success"
+        },
+        {
+          "slug": "align-left-2",
+          "name": "Align Left 2",
+          "outputPath": "vendor/streamline-svg/core-solid/align-left-2-23707.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/align-left-2--23707",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/align-left-2--23707",
+        "https://www.streamlinehq.com/icons/download/align-left-2--23742"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/align-left-2-23707.svg",
+        "vendor/streamline-svg/core-solid/align-left-2-23742.svg"
+      ]
+    },
+    {
+      "key": "align-right-2",
+      "family": "core-solid",
+      "slug": "align-right-2",
+      "items": [
+        {
+          "slug": "align-right-2",
+          "name": "Align Right 2",
+          "outputPath": "vendor/streamline-svg/core-solid/align-right-2-23742.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/align-right-2--23742",
+          "status": "success"
+        },
+        {
+          "slug": "align-right-2",
+          "name": "Align Right 2",
+          "outputPath": "vendor/streamline-svg/core-solid/align-right-2-23707.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/align-right-2--23707",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/align-right-2--23707",
+        "https://www.streamlinehq.com/icons/download/align-right-2--23742"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/align-right-2-23707.svg",
+        "vendor/streamline-svg/core-solid/align-right-2-23742.svg"
+      ]
+    },
+    {
+      "key": "apple",
+      "family": "core-solid",
+      "slug": "apple",
+      "items": [
+        {
+          "slug": "apple",
+          "name": "Apple Logo",
+          "outputPath": "vendor/streamline-svg/core-solid/apple-23788.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/apple--23788",
+          "status": "success"
+        },
+        {
+          "slug": "apple",
+          "name": "Apple",
+          "outputPath": "vendor/streamline-svg/core-solid/apple-23815.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/apple--23815",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/apple--23788",
+        "https://www.streamlinehq.com/icons/download/apple--23815"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/apple-23788.svg",
+        "vendor/streamline-svg/core-solid/apple-23815.svg"
+      ]
+    },
+    {
+      "key": "arrow-down-circle-2",
+      "family": "core-solid",
+      "slug": "arrow-down-circle-2",
+      "items": [
+        {
+          "slug": "arrow-down-circle-2",
+          "name": "Line Arrow Down Circle 2",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-down-circle-2-27574.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-down-circle-2--27574",
+          "status": "success"
+        },
+        {
+          "slug": "arrow-down-circle-2",
+          "name": "Triangle Arrow Down Circle 1",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-down-circle-2-27575.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-down-circle-2--27575",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/arrow-down-circle-2--27574",
+        "https://www.streamlinehq.com/icons/download/arrow-down-circle-2--27575"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/arrow-down-circle-2-27574.svg",
+        "vendor/streamline-svg/core-solid/arrow-down-circle-2-27575.svg"
+      ]
+    },
+    {
+      "key": "arrow-left-circle-2",
+      "family": "core-solid",
+      "slug": "arrow-left-circle-2",
+      "items": [
+        {
+          "slug": "arrow-left-circle-2",
+          "name": "Line Arrow Left Circle 2",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-left-circle-2-27574.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-left-circle-2--27574",
+          "status": "success"
+        },
+        {
+          "slug": "arrow-left-circle-2",
+          "name": "Triangle Arrow Left Circle 1",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-left-circle-2-27575.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-left-circle-2--27575",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/arrow-left-circle-2--27574",
+        "https://www.streamlinehq.com/icons/download/arrow-left-circle-2--27575"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/arrow-left-circle-2-27574.svg",
+        "vendor/streamline-svg/core-solid/arrow-left-circle-2-27575.svg"
+      ]
+    },
+    {
+      "key": "arrow-right-circle-2",
+      "family": "core-solid",
+      "slug": "arrow-right-circle-2",
+      "items": [
+        {
+          "slug": "arrow-right-circle-2",
+          "name": "Line Arrow Right Circle 2",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-right-circle-2-27574.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-right-circle-2--27574",
+          "status": "success"
+        },
+        {
+          "slug": "arrow-right-circle-2",
+          "name": "Triangle Arrow Right Circle 1",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-right-circle-2-27575.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-right-circle-2--27575",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/arrow-right-circle-2--27574",
+        "https://www.streamlinehq.com/icons/download/arrow-right-circle-2--27575"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/arrow-right-circle-2-27574.svg",
+        "vendor/streamline-svg/core-solid/arrow-right-circle-2-27575.svg"
+      ]
+    },
+    {
+      "key": "arrow-up-circle-2",
+      "family": "core-solid",
+      "slug": "arrow-up-circle-2",
+      "items": [
+        {
+          "slug": "arrow-up-circle-2",
+          "name": "Line Arrow Up Circle 2",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-up-circle-2-27574.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-up-circle-2--27574",
+          "status": "success"
+        },
+        {
+          "slug": "arrow-up-circle-2",
+          "name": "Triangle Arrow Up Circle 1",
+          "outputPath": "vendor/streamline-svg/core-solid/arrow-up-circle-2-27575.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/arrow-up-circle-2--27575",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/arrow-up-circle-2--27574",
+        "https://www.streamlinehq.com/icons/download/arrow-up-circle-2--27575"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/arrow-up-circle-2-27574.svg",
+        "vendor/streamline-svg/core-solid/arrow-up-circle-2-27575.svg"
+      ]
+    },
+    {
+      "key": "book-flip-previous-page-arrow",
+      "family": "core-solid",
+      "slug": "book-flip-previous-page-arrow",
+      "items": [
+        {
+          "slug": "book-flip-previous-page-arrow",
+          "name": "Book Flip Previous Page Arrow",
+          "outputPath": "vendor/streamline-svg/core-solid/book-flip-previous-page-arrow-23736.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/book-flip-previous-page-arrow--23736",
+          "status": "success"
+        },
+        {
+          "slug": "book-flip-previous-page-arrow",
+          "name": "Book Flip Previous Page Arrow",
+          "outputPath": "vendor/streamline-svg/core-solid/book-flip-previous-page-arrow-27205.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/book-flip-previous-page-arrow--27205",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/book-flip-previous-page-arrow--23736",
+        "https://www.streamlinehq.com/icons/download/book-flip-previous-page-arrow--27205"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/book-flip-previous-page-arrow-23736.svg",
+        "vendor/streamline-svg/core-solid/book-flip-previous-page-arrow-27205.svg"
+      ]
+    },
+    {
+      "key": "cane",
+      "family": "core-solid",
+      "slug": "cane",
+      "items": [
+        {
+          "slug": "cane",
+          "name": "Cane",
+          "outputPath": "vendor/streamline-svg/core-solid/cane-23761.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/cane--23761",
+          "status": "success"
+        },
+        {
+          "slug": "cane",
+          "name": "Cane",
+          "outputPath": "vendor/streamline-svg/core-solid/cane-23812.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/cane--23812",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/cane--23761",
+        "https://www.streamlinehq.com/icons/download/cane--23812"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/cane-23761.svg",
+        "vendor/streamline-svg/core-solid/cane-23812.svg"
+      ]
+    },
+    {
+      "key": "cloud",
+      "family": "core-solid",
+      "slug": "cloud",
+      "items": [
+        {
+          "slug": "cloud",
+          "name": "Cloud",
+          "outputPath": "vendor/streamline-svg/core-solid/cloud-23698.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/cloud--23698",
+          "status": "success"
+        },
+        {
+          "slug": "cloud",
+          "name": "Cloud",
+          "outputPath": "vendor/streamline-svg/core-solid/cloud-23775.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/cloud--23775",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/cloud--23698",
+        "https://www.streamlinehq.com/icons/download/cloud--23775"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/cloud-23698.svg",
+        "vendor/streamline-svg/core-solid/cloud-23775.svg"
+      ]
+    },
+    {
+      "key": "cross-reference",
+      "family": "core-solid",
+      "slug": "cross-reference",
+      "items": [
+        {
+          "slug": "cross-reference",
+          "name": "Cross Reference",
+          "outputPath": "vendor/streamline-svg/core-solid/cross-reference-23733.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/cross-reference--23733",
+          "status": "success"
+        },
+        {
+          "slug": "cross-reference",
+          "name": "Cross Reference",
+          "outputPath": "vendor/streamline-svg/core-solid/cross-reference-23707.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/cross-reference--23707",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/cross-reference--23707",
+        "https://www.streamlinehq.com/icons/download/cross-reference--23733"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/cross-reference-23707.svg",
+        "vendor/streamline-svg/core-solid/cross-reference-23733.svg"
+      ]
+    },
+    {
+      "key": "custom-feeds-like-favorite",
+      "family": "core-solid",
+      "slug": "custom-feeds-like-favorite",
+      "items": [
+        {
+          "slug": "custom-feeds-like-favorite",
+          "name": "Custom Feeds Like Favorite",
+          "outputPath": "vendor/streamline-svg/core-solid/custom-feeds-like-favorite-23725.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/custom-feeds-like-favorite--23725",
+          "status": "success"
+        },
+        {
+          "slug": "custom-feeds-like-favorite",
+          "name": "Custom Feeds Like Favorite",
+          "outputPath": "vendor/streamline-svg/core-solid/custom-feeds-like-favorite-23709.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/custom-feeds-like-favorite--23709",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/custom-feeds-like-favorite--23709",
+        "https://www.streamlinehq.com/icons/download/custom-feeds-like-favorite--23725"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/custom-feeds-like-favorite-23709.svg",
+        "vendor/streamline-svg/core-solid/custom-feeds-like-favorite-23725.svg"
+      ]
+    },
+    {
+      "key": "delete-square",
+      "family": "core-solid",
+      "slug": "delete-square",
+      "items": [
+        {
+          "slug": "delete-square",
+          "name": "Delete Square",
+          "outputPath": "vendor/streamline-svg/core-solid/delete-square-23744.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/delete-square--23744",
+          "status": "success"
+        },
+        {
+          "slug": "delete-square",
+          "name": "Delete Backspace",
+          "outputPath": "vendor/streamline-svg/core-solid/delete-square-23789.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/delete-square--23789",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/delete-square--23744",
+        "https://www.streamlinehq.com/icons/download/delete-square--23789"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/delete-square-23744.svg",
+        "vendor/streamline-svg/core-solid/delete-square-23789.svg"
+      ]
+    },
+    {
+      "key": "flower",
+      "family": "core-solid",
+      "slug": "flower",
+      "items": [
+        {
+          "slug": "flower",
+          "name": "Flower",
+          "outputPath": "vendor/streamline-svg/core-solid/flower-23751.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/flower--23751",
+          "status": "success"
+        },
+        {
+          "slug": "flower",
+          "name": "Flower",
+          "outputPath": "vendor/streamline-svg/core-solid/flower-23818.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/flower--23818",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/flower--23751",
+        "https://www.streamlinehq.com/icons/download/flower--23818"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/flower-23751.svg",
+        "vendor/streamline-svg/core-solid/flower-23818.svg"
+      ]
+    },
+    {
+      "key": "gallery",
+      "family": "core-solid",
+      "slug": "gallery",
+      "items": [
+        {
+          "slug": "gallery",
+          "name": "Gallery",
+          "outputPath": "vendor/streamline-svg/core-solid/gallery-23707.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/gallery--23707",
+          "status": "success"
+        },
+        {
+          "slug": "gallery",
+          "name": "Gallery",
+          "outputPath": "vendor/streamline-svg/core-solid/gallery-23751.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/gallery--23751",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/gallery--23707",
+        "https://www.streamlinehq.com/icons/download/gallery--23751"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/gallery-23707.svg",
+        "vendor/streamline-svg/core-solid/gallery-23751.svg"
+      ]
+    },
+    {
+      "key": "landscape-setting",
+      "family": "core-solid",
+      "slug": "landscape-setting",
+      "items": [
+        {
+          "slug": "landscape-setting",
+          "name": "Landscape Setting",
+          "outputPath": "vendor/streamline-svg/core-solid/landscape-setting-23746.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/landscape-setting--23746",
+          "status": "success"
+        },
+        {
+          "slug": "landscape-setting",
+          "name": "Landscape Setting",
+          "outputPath": "vendor/streamline-svg/core-solid/landscape-setting-23750.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/landscape-setting--23750",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/landscape-setting--23746",
+        "https://www.streamlinehq.com/icons/download/landscape-setting--23750"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/landscape-setting-23746.svg",
+        "vendor/streamline-svg/core-solid/landscape-setting-23750.svg"
+      ]
+    },
+    {
+      "key": "move-down",
+      "family": "core-solid",
+      "slug": "move-down",
+      "items": [
+        {
+          "slug": "move-down",
+          "name": "Move Down",
+          "outputPath": "vendor/streamline-svg/core-solid/move-down-23714.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-down--23714",
+          "status": "success"
+        },
+        {
+          "slug": "move-down",
+          "name": "Triangle Arrow Move Down 2",
+          "outputPath": "vendor/streamline-svg/core-solid/move-down-27571.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-down--27571",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/move-down--23714",
+        "https://www.streamlinehq.com/icons/download/move-down--27571"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/move-down-23714.svg",
+        "vendor/streamline-svg/core-solid/move-down-27571.svg"
+      ]
+    },
+    {
+      "key": "move-left",
+      "family": "core-solid",
+      "slug": "move-left",
+      "items": [
+        {
+          "slug": "move-left",
+          "name": "Move Left",
+          "outputPath": "vendor/streamline-svg/core-solid/move-left-23714.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-left--23714",
+          "status": "success"
+        },
+        {
+          "slug": "move-left",
+          "name": "Triangle Arrow Move Left 2",
+          "outputPath": "vendor/streamline-svg/core-solid/move-left-27571.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-left--27571",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/move-left--23714",
+        "https://www.streamlinehq.com/icons/download/move-left--27571"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/move-left-23714.svg",
+        "vendor/streamline-svg/core-solid/move-left-27571.svg"
+      ]
+    },
+    {
+      "key": "move-right",
+      "family": "core-solid",
+      "slug": "move-right",
+      "items": [
+        {
+          "slug": "move-right",
+          "name": "Move Right",
+          "outputPath": "vendor/streamline-svg/core-solid/move-right-23714.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-right--23714",
+          "status": "success"
+        },
+        {
+          "slug": "move-right",
+          "name": "Triangle Arrow Move Right 2",
+          "outputPath": "vendor/streamline-svg/core-solid/move-right-27571.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-right--27571",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/move-right--23714",
+        "https://www.streamlinehq.com/icons/download/move-right--27571"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/move-right-23714.svg",
+        "vendor/streamline-svg/core-solid/move-right-27571.svg"
+      ]
+    },
+    {
+      "key": "move-up",
+      "family": "core-solid",
+      "slug": "move-up",
+      "items": [
+        {
+          "slug": "move-up",
+          "name": "Move Up",
+          "outputPath": "vendor/streamline-svg/core-solid/move-up-23714.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-up--23714",
+          "status": "success"
+        },
+        {
+          "slug": "move-up",
+          "name": "Triangle Arrow Move Up 2",
+          "outputPath": "vendor/streamline-svg/core-solid/move-up-27571.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/move-up--27571",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/move-up--23714",
+        "https://www.streamlinehq.com/icons/download/move-up--27571"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/move-up-23714.svg",
+        "vendor/streamline-svg/core-solid/move-up-27571.svg"
+      ]
+    },
+    {
+      "key": "portrait-setting",
+      "family": "core-solid",
+      "slug": "portrait-setting",
+      "items": [
+        {
+          "slug": "portrait-setting",
+          "name": "Portrait Setting",
+          "outputPath": "vendor/streamline-svg/core-solid/portrait-setting-23746.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/portrait-setting--23746",
+          "status": "success"
+        },
+        {
+          "slug": "portrait-setting",
+          "name": "Portrait Setting",
+          "outputPath": "vendor/streamline-svg/core-solid/portrait-setting-23750.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/portrait-setting--23750",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/portrait-setting--23746",
+        "https://www.streamlinehq.com/icons/download/portrait-setting--23750"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/portrait-setting-23746.svg",
+        "vendor/streamline-svg/core-solid/portrait-setting-23750.svg"
+      ]
+    },
+    {
+      "key": "potted-tree-2",
+      "family": "core-solid",
+      "slug": "potted-tree-2",
+      "items": [
+        {
+          "slug": "potted-tree-2",
+          "name": "Potted Tree 2",
+          "outputPath": "vendor/streamline-svg/core-solid/potted-tree-2-26694.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/potted-tree-2--26694",
+          "status": "success"
+        },
+        {
+          "slug": "potted-tree-2",
+          "name": "Potted Tree 2",
+          "outputPath": "vendor/streamline-svg/core-solid/potted-tree-2-23818.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/potted-tree-2--23818",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/potted-tree-2--23818",
+        "https://www.streamlinehq.com/icons/download/potted-tree-2--26694"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/potted-tree-2-23818.svg",
+        "vendor/streamline-svg/core-solid/potted-tree-2-26694.svg"
+      ]
+    },
+    {
+      "key": "power-off",
+      "family": "core-solid",
+      "slug": "power-off",
+      "items": [
+        {
+          "slug": "power-off",
+          "name": "Power Off",
+          "outputPath": "vendor/streamline-svg/core-solid/power-off-23793.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/power-off--23793",
+          "status": "success"
+        },
+        {
+          "slug": "power-off",
+          "name": "Power Off",
+          "outputPath": "vendor/streamline-svg/core-solid/power-off-23789.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/power-off--23789",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/power-off--23789",
+        "https://www.streamlinehq.com/icons/download/power-off--23793"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/power-off-23789.svg",
+        "vendor/streamline-svg/core-solid/power-off-23793.svg"
+      ]
+    },
+    {
+      "key": "printer",
+      "family": "core-solid",
+      "slug": "printer",
+      "items": [
+        {
+          "slug": "printer",
+          "name": "Printer",
+          "outputPath": "vendor/streamline-svg/core-solid/printer-23786.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/printer--23786",
+          "status": "success"
+        },
+        {
+          "slug": "printer",
+          "name": "Printer",
+          "outputPath": "vendor/streamline-svg/core-solid/printer-23793.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/printer--23793",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/printer--23786",
+        "https://www.streamlinehq.com/icons/download/printer--23793"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/printer-23786.svg",
+        "vendor/streamline-svg/core-solid/printer-23793.svg"
+      ]
+    },
+    {
+      "key": "refrigerator",
+      "family": "core-solid",
+      "slug": "refrigerator",
+      "items": [
+        {
+          "slug": "refrigerator",
+          "name": "Refrigerator",
+          "outputPath": "vendor/streamline-svg/core-solid/refrigerator-23793.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/refrigerator--23793",
+          "status": "success"
+        },
+        {
+          "slug": "refrigerator",
+          "name": "Refrigerator",
+          "outputPath": "vendor/streamline-svg/core-solid/refrigerator-23816.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/refrigerator--23816",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/refrigerator--23793",
+        "https://www.streamlinehq.com/icons/download/refrigerator--23816"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/refrigerator-23793.svg",
+        "vendor/streamline-svg/core-solid/refrigerator-23816.svg"
+      ]
+    },
+    {
+      "key": "rotate-left",
+      "family": "core-solid",
+      "slug": "rotate-left",
+      "items": [
+        {
+          "slug": "rotate-left",
+          "name": "Rotate Left Dash 1",
+          "outputPath": "vendor/streamline-svg/core-solid/rotate-left-23746.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/rotate-left--23746",
+          "status": "success"
+        },
+        {
+          "slug": "rotate-left",
+          "name": "Triangle Arrow Rotate Left 2",
+          "outputPath": "vendor/streamline-svg/core-solid/rotate-left-27573.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/rotate-left--27573",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/rotate-left--23746",
+        "https://www.streamlinehq.com/icons/download/rotate-left--27573"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/rotate-left-23746.svg",
+        "vendor/streamline-svg/core-solid/rotate-left-27573.svg"
+      ]
+    },
+    {
+      "key": "rotate-right",
+      "family": "core-solid",
+      "slug": "rotate-right",
+      "items": [
+        {
+          "slug": "rotate-right",
+          "name": "Rotate Right Dash 1",
+          "outputPath": "vendor/streamline-svg/core-solid/rotate-right-23746.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/rotate-right--23746",
+          "status": "success"
+        },
+        {
+          "slug": "rotate-right",
+          "name": "Triangle Arrow Rotate Right 2",
+          "outputPath": "vendor/streamline-svg/core-solid/rotate-right-27573.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/rotate-right--27573",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/rotate-right--23746",
+        "https://www.streamlinehq.com/icons/download/rotate-right--27573"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/rotate-right-23746.svg",
+        "vendor/streamline-svg/core-solid/rotate-right-27573.svg"
+      ]
+    },
+    {
+      "key": "scanner",
+      "family": "core-solid",
+      "slug": "scanner",
+      "items": [
+        {
+          "slug": "scanner",
+          "name": "Scanner",
+          "outputPath": "vendor/streamline-svg/core-solid/scanner-23746.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/scanner--23746",
+          "status": "success"
+        },
+        {
+          "slug": "scanner",
+          "name": "Scanner",
+          "outputPath": "vendor/streamline-svg/core-solid/scanner-24009.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/scanner--24009",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/scanner--23746",
+        "https://www.streamlinehq.com/icons/download/scanner--24009"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/scanner-23746.svg",
+        "vendor/streamline-svg/core-solid/scanner-24009.svg"
+      ]
+    },
+    {
+      "key": "search-dollar",
+      "family": "core-solid",
+      "slug": "search-dollar",
+      "items": [
+        {
+          "slug": "search-dollar",
+          "name": "Search Dollar",
+          "outputPath": "vendor/streamline-svg/core-solid/search-dollar-27205.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/search-dollar--27205",
+          "status": "success"
+        },
+        {
+          "slug": "search-dollar",
+          "name": "Search Dollar",
+          "outputPath": "vendor/streamline-svg/core-solid/search-dollar-23764.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/search-dollar--23764",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/search-dollar--23764",
+        "https://www.streamlinehq.com/icons/download/search-dollar--27205"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/search-dollar-23764.svg",
+        "vendor/streamline-svg/core-solid/search-dollar-27205.svg"
+      ]
+    },
+    {
+      "key": "serving-dome",
+      "family": "core-solid",
+      "slug": "serving-dome",
+      "items": [
+        {
+          "slug": "serving-dome",
+          "name": "Serving Dome",
+          "outputPath": "vendor/streamline-svg/core-solid/serving-dome-23811.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/serving-dome--23811",
+          "status": "success"
+        },
+        {
+          "slug": "serving-dome",
+          "name": "Serving Dome",
+          "outputPath": "vendor/streamline-svg/core-solid/serving-dome-23816.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/serving-dome--23816",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/serving-dome--23811",
+        "https://www.streamlinehq.com/icons/download/serving-dome--23816"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/serving-dome-23811.svg",
+        "vendor/streamline-svg/core-solid/serving-dome-23816.svg"
+      ]
+    },
+    {
+      "key": "share-link-circle",
+      "family": "core-solid",
+      "slug": "share-link-circle",
+      "items": [
+        {
+          "slug": "share-link-circle",
+          "name": "Share Link Circle",
+          "outputPath": "vendor/streamline-svg/core-solid/share-link-circle-23736.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/share-link-circle--23736",
+          "status": "success"
+        },
+        {
+          "slug": "share-link-circle",
+          "name": "Share Link Circle",
+          "outputPath": "vendor/streamline-svg/core-solid/share-link-circle-23709.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/share-link-circle--23709",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/share-link-circle--23709",
+        "https://www.streamlinehq.com/icons/download/share-link-circle--23736"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/share-link-circle-23709.svg",
+        "vendor/streamline-svg/core-solid/share-link-circle-23736.svg"
+      ]
+    },
+    {
+      "key": "split-vertical",
+      "family": "core-solid",
+      "slug": "split-vertical",
+      "items": [
+        {
+          "slug": "split-vertical",
+          "name": "Split Vertical",
+          "outputPath": "vendor/streamline-svg/core-solid/split-vertical-23724.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/split-vertical--23724",
+          "status": "success"
+        },
+        {
+          "slug": "split-vertical",
+          "name": "Triangle Arrow Split Vertical Up 2",
+          "outputPath": "vendor/streamline-svg/core-solid/split-vertical-27567.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/split-vertical--27567",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/split-vertical--23724",
+        "https://www.streamlinehq.com/icons/download/split-vertical--27567"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/split-vertical-23724.svg",
+        "vendor/streamline-svg/core-solid/split-vertical-27567.svg"
+      ]
+    },
+    {
+      "key": "sunset",
+      "family": "core-solid",
+      "slug": "sunset",
+      "items": [
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/core-solid/sunset-23698.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--23698",
+          "status": "success"
+        },
+        {
+          "slug": "sunset",
+          "name": "Sunset",
+          "outputPath": "vendor/streamline-svg/core-solid/sunset-23818.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/sunset--23818",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/sunset--23698",
+        "https://www.streamlinehq.com/icons/download/sunset--23818"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/sunset-23698.svg",
+        "vendor/streamline-svg/core-solid/sunset-23818.svg"
+      ]
+    },
+    {
+      "key": "table",
+      "family": "core-solid",
+      "slug": "table",
+      "items": [
+        {
+          "slug": "table",
+          "name": "Table",
+          "outputPath": "vendor/streamline-svg/core-solid/table-23707.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/table--23707",
+          "status": "success"
+        },
+        {
+          "slug": "table",
+          "name": "Table",
+          "outputPath": "vendor/streamline-svg/core-solid/table-27205.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/table--27205",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/table--23707",
+        "https://www.streamlinehq.com/icons/download/table--27205"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/table-23707.svg",
+        "vendor/streamline-svg/core-solid/table-27205.svg"
+      ]
+    },
+    {
+      "key": "tag",
+      "family": "core-solid",
+      "slug": "tag",
+      "items": [
+        {
+          "slug": "tag",
+          "name": "Tag",
+          "outputPath": "vendor/streamline-svg/core-solid/tag-23740.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/tag--23740",
+          "status": "success"
+        },
+        {
+          "slug": "tag",
+          "name": "Tag",
+          "outputPath": "vendor/streamline-svg/core-solid/tag-23763.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/tag--23763",
+          "status": "success"
+        },
+        {
+          "slug": "tag",
+          "name": "Tag",
+          "outputPath": "vendor/streamline-svg/core-solid/tag-23768.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/tag--23768",
+          "status": "success"
+        }
+      ],
+      "itemCount": 3,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/tag--23740",
+        "https://www.streamlinehq.com/icons/download/tag--23763",
+        "https://www.streamlinehq.com/icons/download/tag--23768"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/tag-23740.svg",
+        "vendor/streamline-svg/core-solid/tag-23763.svg",
+        "vendor/streamline-svg/core-solid/tag-23768.svg"
+      ]
+    },
+    {
+      "key": "vertical-scroll",
+      "family": "core-solid",
+      "slug": "vertical-scroll",
+      "items": [
+        {
+          "slug": "vertical-scroll",
+          "name": "Vertical Scroll",
+          "outputPath": "vendor/streamline-svg/core-solid/vertical-scroll-23718.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/vertical-scroll--23718",
+          "status": "success"
+        },
+        {
+          "slug": "vertical-scroll",
+          "name": "Tailless Triangle Arrow Vertical Scroll",
+          "outputPath": "vendor/streamline-svg/core-solid/vertical-scroll-27569.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/vertical-scroll--27569",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/vertical-scroll--23718",
+        "https://www.streamlinehq.com/icons/download/vertical-scroll--27569"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/vertical-scroll-23718.svg",
+        "vendor/streamline-svg/core-solid/vertical-scroll-27569.svg"
+      ]
+    },
+    {
+      "key": "zoom-in",
+      "family": "core-solid",
+      "slug": "zoom-in",
+      "items": [
+        {
+          "slug": "zoom-in",
+          "name": "Zoom In",
+          "outputPath": "vendor/streamline-svg/core-solid/zoom-in-23730.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/zoom-in--23730",
+          "status": "success"
+        },
+        {
+          "slug": "zoom-in",
+          "name": "Zoom In",
+          "outputPath": "vendor/streamline-svg/core-solid/zoom-in-23700.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/zoom-in--23700",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/zoom-in--23700",
+        "https://www.streamlinehq.com/icons/download/zoom-in--23730"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/zoom-in-23700.svg",
+        "vendor/streamline-svg/core-solid/zoom-in-23730.svg"
+      ]
+    },
+    {
+      "key": "zoom-out",
+      "family": "core-solid",
+      "slug": "zoom-out",
+      "items": [
+        {
+          "slug": "zoom-out",
+          "name": "Zoom Out",
+          "outputPath": "vendor/streamline-svg/core-solid/zoom-out-23730.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/zoom-out--23730",
+          "status": "success"
+        },
+        {
+          "slug": "zoom-out",
+          "name": "Zoom Out",
+          "outputPath": "vendor/streamline-svg/core-solid/zoom-out-23700.svg",
+          "iconUrl": "https://www.streamlinehq.com/icons/download/zoom-out--23700",
+          "status": "success"
+        }
+      ],
+      "itemCount": 2,
+      "uniqueIconUrls": [
+        "https://www.streamlinehq.com/icons/download/zoom-out--23700",
+        "https://www.streamlinehq.com/icons/download/zoom-out--23730"
+      ],
+      "outputPaths": [
+        "vendor/streamline-svg/core-solid/zoom-out-23700.svg",
+        "vendor/streamline-svg/core-solid/zoom-out-23730.svg"
+      ]
+    }
+  ],
+  "outputPathCollisions": []
+}

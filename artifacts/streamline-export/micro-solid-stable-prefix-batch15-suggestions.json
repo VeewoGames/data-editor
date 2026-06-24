@@ -1,0 +1,551 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch15",
+  "suggestions": [
+    {
+      "itemId": "location-compass-1",
+      "slug": "location-compass-1",
+      "name": "Location Compass 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-compass-1.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "compass",
+        "navigation"
+      ],
+      "searchTextPreview": "micro-solid location-compass-1 location compass 1 location-compass-1 26651 compass design adjustment apple architect brand branding circles coordinates device direction drawing",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "compass-navigator",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "compass"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "drawing-compass",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "compass"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "compass-navigator",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "drawing-compass",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-compass-2",
+      "slug": "location-compass-2",
+      "name": "Location Compass 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-compass-2.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "compass",
+        "navigation"
+      ],
+      "searchTextPreview": "micro-solid location-compass-2 location compass 2 location-compass-2 26651 compass design adjustment apple architect brand branding circles coordinates device direction drawing",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "compass-navigator",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "compass"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "drawing-compass",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "compass"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "compass-navigator",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "drawing-compass",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-pin",
+      "slug": "location-pin",
+      "name": "Location Pin",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-pin.svg",
+      "confidence": 0.63,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "pin",
+        "marker"
+      ],
+      "searchTextPreview": "micro-solid location-pin location pin location-pin 26651 camera destination geotag gps location marker photo photography photomap photos picture pin",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "camera-setting-pin",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "pin"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "camera-setting-pin",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-pin-2",
+      "slug": "location-pin-2",
+      "name": "Location Pin 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-pin-2.svg",
+      "confidence": 0.63,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "pin",
+        "marker"
+      ],
+      "searchTextPreview": "micro-solid location-pin-2 location pin 2 location-pin-2 26651 camera destination geotag gps location marker photo photography photomap photos picture pin",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "camera-setting-pin",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "pin"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "camera-setting-pin",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-pin-disabled",
+      "slug": "location-pin-disabled",
+      "name": "Location Pin Disabled",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-pin-disabled.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "pin",
+        "marker",
+        "disabled",
+        "off"
+      ],
+      "searchTextPreview": "micro-solid location-pin-disabled location pin disabled location-pin-disabled 26651 disabled off internet network prohibited restricted server camera photo photography photos picture",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disabled"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "bluetooth-disabled",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disabled"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "bluetooth-disabled",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-pin-option-add",
+      "slug": "location-pin-option-add",
+      "name": "Location Pin Option Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-pin-option-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "pin",
+        "marker",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid location-pin-option-add location pin option add location-pin-option-add 26651 add plus cross button buttons create insert mathematics new positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-pin-option-check",
+      "slug": "location-pin-option-check",
+      "name": "Location Pin Option Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-pin-option-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "pin",
+        "marker",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid location-pin-option-check location pin option check location-pin-option-check 26651 check confirm read tick verify approval approve approved bubble chat checkmark complete",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "camera-setting-pin",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "pin"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "camera-setting-pin",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-pin-option-remove",
+      "slug": "location-pin-option-remove",
+      "name": "Location Pin Option Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-pin-option-remove.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "pin",
+        "marker",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid location-pin-option-remove location pin option remove location-pin-option-remove 26651 remove delete minus subtract application cross interface reminder selection alarm alert appointment",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    },
+    {
+      "itemId": "location-target-off",
+      "slug": "location-target-off",
+      "name": "Location Target Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/location-target-off.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "location",
+        "target",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid location-target-off location target off location-target-off 26651 off disable disabled inactive mute block forbidden offline privacy shutdown silence silent",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch15"
+    }
+  ]
+}

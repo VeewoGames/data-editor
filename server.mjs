@@ -1,6 +1,6 @@
 import http from "node:http";
 import path from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -16,6 +16,7 @@ import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
 import { createConnectionShutdown } from "./src/server-shutdown.mjs";
+import { listSharedViewIconManifestEntries } from "./src/shared-view-icon-manifest.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const projectRoot = path.resolve(args.project ?? args.root ?? process.cwd());
@@ -52,6 +53,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/view-profiles") return sendJson(res, await listViewProfiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-profile" && req.method === "GET") return await handleLoadViewProfile(url, res);
     if (url.pathname === "/api/view-profile" && req.method === "POST") return await handleSaveViewProfile(req, res);
+    if (url.pathname === "/api/shared-view-icon-pack-manifest" && req.method === "GET") return await handleSharedViewIconPackManifest(url, res);
+    if (url.pathname === "/api/shared-view-icon-pack" && req.method === "GET") return await handleSharedViewIconPack(url, res);
     if (url.pathname === "/api/health" && req.method === "GET") return sendJson(res, { ok: true, bridgePort });
     if (url.pathname === "/api/rebuild" && req.method === "POST") return await handleRebuild(res);
     if (url.pathname === "/api/shutdown" && req.method === "POST") return handleShutdown(res);
@@ -200,6 +203,19 @@ async function handleRebuild(res) {
   sendJson(res, { ok: true });
 }
 
+async function handleSharedViewIconPack(url, res) {
+  const packId = String(url.searchParams.get("packId") ?? "").trim();
+  const packRoot = resolveSharedViewIconPackRoot(packId);
+  const payload = {};
+  await collectSharedViewIconPackSvg(packRoot, payload);
+  sendJson(res, payload);
+}
+
+async function handleSharedViewIconPackManifest(url, res) {
+  const packId = String(url.searchParams.get("packId") ?? "").trim();
+  sendJson(res, listSharedViewIconManifestEntries(packId));
+}
+
 async function serveStatic(urlPath, res) {
   if (!staticRoot) {
     sendJson(res, { error: "Static build is not configured. Use npm run dev for development." }, 404);
@@ -307,6 +323,42 @@ function contentType(filePath) {
   if (filePath.endsWith(".js")) return "text/javascript; charset=utf-8";
   if (filePath.endsWith(".svg")) return "image/svg+xml; charset=utf-8";
   return "application/octet-stream";
+}
+
+function resolveSharedViewIconPackRoot(packId) {
+  const mapping = {
+    "micro-solid": "vendor/streamline-svg/micro-solid",
+    "core-solid": "vendor/streamline-svg/core-solid",
+    "micro-line": "vendor/streamline-svg/micro-line",
+    "tabler-filled": "vendor/tabler-svg/filled",
+    "tabler-outline": "vendor/tabler-svg/outline",
+  };
+  const relativeRoot = mapping[packId];
+  if (!relativeRoot) throw new Error(`Unsupported shared view icon pack: ${packId}`);
+  return {
+    relativeRoot,
+    absoluteRoot: resolveInsideRoot(toolRoot, relativeRoot),
+  };
+}
+
+async function collectSharedViewIconPackSvg(packRoot, payload, currentRelativeDir = "") {
+  const currentAbsoluteDir = currentRelativeDir
+    ? resolveInsideRoot(packRoot.absoluteRoot, currentRelativeDir)
+    : packRoot.absoluteRoot;
+  const entries = await readdir(currentAbsoluteDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const nextRelative = currentRelativeDir
+      ? `${currentRelativeDir}/${entry.name}`.replaceAll("\\", "/")
+      : entry.name;
+    if (entry.isDirectory()) {
+      await collectSharedViewIconPackSvg(packRoot, payload, nextRelative);
+      continue;
+    }
+    if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".svg")) continue;
+    const absolutePath = resolveInsideRoot(packRoot.absoluteRoot, nextRelative);
+    const relativePath = `${packRoot.relativeRoot}/${nextRelative}`.replaceAll("\\", "/");
+    payload[relativePath] = await readFile(absolutePath, "utf8");
+  }
 }
 
 function parseArgs(argv) {

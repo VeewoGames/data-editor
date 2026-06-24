@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" id="Attribution--Streamline-Core" height="14" width="14">
+  <desc>
+    Attribution Streamline Icon: https://streamlinehq.com
+  </desc>
+  <g id="attribution">
+    <path id="Subtract" fill="#000000" fill-rule="evenodd" d="M7 14c3.866 0 7 -3.134 7 -7 0 -3.86599 -3.134 -7 -7 -7 -3.86599 0 -7 3.13401 -7 7 0 3.866 3.13401 7 7 7ZM8.5 3.5C8.5 4.32843 7.82843 5 7 5s-1.5 -0.67157 -1.5 -1.5S6.17157 2 7 2s1.5 0.67157 1.5 1.5ZM7 5.5C5.61929 5.5 4.5 6.61929 4.5 8v0.75c0 0.27614 0.22386 0.5 0.5 0.5h0.54339l0.20866 2.2953c0.02342 0.2575 0.23935 0.4547 0.49795 0.4547h1.5c0.2586 0 0.47453 -0.1972 0.49795 -0.4547L8.45661 9.25H9c0.27614 0 0.5 -0.22386 0.5 -0.5V8c0 -1.38071 -1.11929 -2.5 -2.5 -2.5Z" clip-rule="evenodd" stroke-width="1"></path>
+  </g>
+</svg>

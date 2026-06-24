@@ -1,0 +1,404 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch5",
+  "suggestions": [
+    {
+      "itemId": "warning-circle",
+      "slug": "warning-circle",
+      "name": "Warning Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/warning-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid warning-circle warning circle warning-circle 26554 warning alert notification attention caution exclamation bubble chat danger message messages agenda",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch5"
+    },
+    {
+      "itemId": "warning-diamond",
+      "slug": "warning-diamond",
+      "name": "Warning Diamond",
+      "outputPath": "vendor/streamline-svg/micro-solid/warning-diamond.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "diamond"
+      ],
+      "searchTextPreview": "micro-solid warning-diamond warning diamond warning-diamond 26554 warning alert notification attention caution exclamation bubble chat danger diamond message messages",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch5"
+    },
+    {
+      "itemId": "warning-octagon",
+      "slug": "warning-octagon",
+      "name": "Warning Octagon",
+      "outputPath": "vendor/streamline-svg/micro-solid/warning-octagon.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "octagon"
+      ],
+      "searchTextPreview": "micro-solid warning-octagon warning octagon warning-octagon 26554 warning alert notification attention caution exclamation bubble chat danger message messages sign",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch5"
+    },
+    {
+      "itemId": "warning-shield",
+      "slug": "warning-shield",
+      "name": "Warning Shield",
+      "outputPath": "vendor/streamline-svg/micro-solid/warning-shield.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "shield"
+      ],
+      "searchTextPreview": "micro-solid warning-shield warning shield warning-shield 26554 warning alert attention caution exclamation notification bubble chat code danger message messages",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch5"
+    },
+    {
+      "itemId": "warning-square",
+      "slug": "warning-square",
+      "name": "Warning Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/warning-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid warning-square warning square warning-square 26554 warning alert notification attention caution exclamation bubble chat danger message messages agenda",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch5"
+    },
+    {
+      "itemId": "warning-triangle",
+      "slug": "warning-triangle",
+      "name": "Warning Triangle",
+      "outputPath": "vendor/streamline-svg/micro-solid/warning-triangle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "triangle"
+      ],
+      "searchTextPreview": "micro-solid warning-triangle warning triangle warning-triangle 26554 warning alert notification attention caution exclamation bubble chat danger message messages agenda",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch5"
+    }
+  ]
+}

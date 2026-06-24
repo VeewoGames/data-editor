@@ -1,0 +1,2261 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_wave4",
+  "suggestions": [
+    {
+      "itemId": "music-note-1",
+      "slug": "music-note-1",
+      "name": "Music Note 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-1.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid music-note-1 music note 1 music-note-1 26668 bubble chat communication message note video voice audio circle media play playback",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-2",
+      "slug": "music-note-2",
+      "name": "Music Note 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-2.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid music-note-2 music note 2 music-note-2 26668 bubble chat communication message note video voice audio circle media play playback",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-circle",
+      "slug": "music-note-circle",
+      "name": "Music Note Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-circle.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid music-note-circle music note circle music-note-circle 26668 bubble chat communication message note video voice audio circle media play playback",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-circle-off",
+      "slug": "music-note-circle-off",
+      "name": "Music Note Circle Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-circle-off.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "circle",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid music-note-circle-off music note circle off music-note-circle-off 26668 off disable disabled inactive message mute block bubble chat communication forbidden note",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-off-1",
+      "slug": "music-note-off-1",
+      "name": "Music Note Off 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-off-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid music-note-off-1 music note off 1 music-note-off-1 26668 off disable disabled inactive message mute block bubble chat communication forbidden note",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-off-2",
+      "slug": "music-note-off-2",
+      "name": "Music Note Off 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-off-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid music-note-off-2 music note off 2 music-note-off-2 26668 off disable disabled inactive message mute block bubble chat communication forbidden note",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-back-1",
+      "slug": "pathfinder-circle-minus-back-1",
+      "name": "Pathfinder Circle Minus Back 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-circle-minus-back-1.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "back",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-circle-minus-back-1 pathfinder circle minus back 1 pathfinder-circle-minus-back-1 26546 back align change exchange interface layer layers replace select stack straightforward swap",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-1",
+      "slug": "pathfinder-circle-minus-front-1",
+      "name": "Pathfinder Circle Minus Front 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-circle-minus-front-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-circle-minus-front-1 pathfinder circle minus front 1 pathfinder-circle-minus-front-1 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-2",
+      "slug": "pathfinder-circle-minus-front-2",
+      "name": "Pathfinder Circle Minus Front 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-circle-minus-front-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-circle-minus-front-2 pathfinder circle minus front 2 pathfinder-circle-minus-front-2 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-minus-back-1",
+      "slug": "pathfinder-minus-back-1",
+      "name": "Pathfinder Minus Back 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-minus-back-1.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "minus",
+        "back",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-minus-back-1 pathfinder minus back 1 pathfinder-minus-back-1 26546 back align change exchange interface layer layers replace select stack straightforward swap",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "select-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-minus-front",
+      "slug": "pathfinder-minus-front",
+      "name": "Pathfinder Minus Front",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-minus-front.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-minus-front pathfinder minus front pathfinder-minus-front 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-square-minus-front-2",
+      "slug": "pathfinder-square-minus-front-2",
+      "name": "Pathfinder Square Minus Front 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-square-minus-front-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "square",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-square-minus-front-2 pathfinder square minus front 2 pathfinder-square-minus-front-2 26546 front adjust align adjustment balance box calibration clone coordinate copy crop duplicate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "play-list-1",
+      "slug": "play-list-1",
+      "name": "Play List 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-1 play list 1 play-list-1 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-2",
+      "slug": "play-list-2",
+      "name": "Play List 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-2 play list 2 play-list-2 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-3",
+      "slug": "play-list-3",
+      "name": "Play List 3",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-3.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-3 play list 3 play-list-3 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-4",
+      "slug": "play-list-4",
+      "name": "Play List 4",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-4.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-4 play list 4 play-list-4 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-folder",
+      "slug": "play-list-folder",
+      "name": "Play List Folder",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-folder.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "folder"
+      ],
+      "searchTextPreview": "micro-solid play-list-folder play list folder play-list-folder 26664 list ascending descending sort archive document file folder numbers storage add alphabet",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "archive-folder",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "folder"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "folder",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "folder"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "archive-folder",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "folder",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-phone",
+      "slug": "play-list-phone",
+      "name": "Play List Phone",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-phone.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "phone"
+      ],
+      "searchTextPreview": "micro-solid play-list-phone play list phone play-list-phone 26664 list ascending descending sort numbers add alphabet arrangement bullets channel check format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "hashtag-tag-channel-phone-number",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "hashtag-tag-channel-phone-number",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "print-add-printer",
+      "slug": "print-add-printer",
+      "name": "Print Add Printer",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-add-printer.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid print-add-printer print add printer print-add-printer 26625 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-error",
+      "slug": "print-error",
+      "name": "Print Error",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-error.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "error",
+        "alert"
+      ],
+      "searchTextPreview": "micro-solid print-error print error print-error 26625 fingerprint id touch access attraction field finger force gesture hand identification keyhole",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-off-disabled",
+      "slug": "print-off-disabled",
+      "name": "Print Off Disabled",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-off-disabled.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid print-off-disabled print off disabled print-off-disabled 26625 off disabled mute disable forbidden inactive network prohibited server silence ban internet",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "email-off-disabled",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "off",
+              "disabled"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disabled"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "email-off-disabled",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-printer-connected",
+      "slug": "print-printer-connected",
+      "name": "Print Printer Connected",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-printer-connected.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "connected"
+      ],
+      "searchTextPreview": "micro-solid print-printer-connected print printer connected print-printer-connected 26625 fingerprint id touch access attraction field finger force gesture hand identification keyhole",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-printer-disconnected",
+      "slug": "print-printer-disconnected",
+      "name": "Print Printer Disconnected",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-printer-disconnected.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "disconnected"
+      ],
+      "searchTextPreview": "micro-solid print-printer-disconnected print printer disconnected print-printer-disconnected 26625 fingerprint id touch access attraction field finger force gesture hand identification keyhole",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-remove-printer",
+      "slug": "print-remove-printer",
+      "name": "Print Remove Printer",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-remove-printer.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid print-remove-printer print remove printer print-remove-printer 26625 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "screen-1",
+      "slug": "screen-1",
+      "name": "Screen 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display"
+      ],
+      "searchTextPreview": "micro-solid screen-1 screen 1 screen-1 26630 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-2",
+      "slug": "screen-2",
+      "name": "Screen 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display"
+      ],
+      "searchTextPreview": "micro-solid screen-2 screen 2 screen-2 26630 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-broadcast",
+      "slug": "screen-broadcast",
+      "name": "Screen Broadcast",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-broadcast.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "broadcast"
+      ],
+      "searchTextPreview": "micro-solid screen-broadcast screen broadcast screen-broadcast 26610 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-sharing",
+      "slug": "screen-sharing",
+      "name": "Screen Sharing",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-sharing.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "sharing"
+      ],
+      "searchTextPreview": "micro-solid screen-sharing screen sharing screen-sharing 26634 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-sharing-tutorial",
+      "slug": "screen-sharing-tutorial",
+      "name": "Screen Sharing Tutorial",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-sharing-tutorial.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "sharing",
+        "tutorial"
+      ],
+      "searchTextPreview": "micro-solid screen-sharing-tutorial screen sharing tutorial screen-sharing-tutorial 26683 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-tv",
+      "slug": "screen-tv",
+      "name": "Screen Tv",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-tv.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "tv"
+      ],
+      "searchTextPreview": "micro-solid screen-tv screen tv screen-tv 26630 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "timer-10-seconds",
+      "slug": "timer-10-seconds",
+      "name": "Timer 10 Seconds",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-10-seconds.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "10",
+        "seconds"
+      ],
+      "searchTextPreview": "micro-solid timer-10-seconds timer 10 seconds timer-10-seconds 26566 arrangement chart dashboard diagram flowchart frame grid hierarchy interface layout link links",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "hierachy-organise-10",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "10"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "layout-10",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "10"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "hierachy-organise-10",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "layout-10",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-3-seconds",
+      "slug": "timer-3-seconds",
+      "name": "Timer 3 Seconds",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-3-seconds.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "3",
+        "seconds"
+      ],
+      "searchTextPreview": "micro-solid timer-3-seconds timer 3 seconds timer-3-seconds 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-5-seconds",
+      "slug": "timer-5-seconds",
+      "name": "Timer 5 Seconds",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-5-seconds.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "5",
+        "seconds"
+      ],
+      "searchTextPreview": "micro-solid timer-5-seconds timer 5 seconds timer-5-seconds 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-auto",
+      "slug": "timer-auto",
+      "name": "Timer Auto",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-auto.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "auto"
+      ],
+      "searchTextPreview": "micro-solid timer-auto timer auto timer-auto 26566 auto brightness adjustment alphabet automated contrast control display electric energy flash font",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "auto-flash",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "auto"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "brightness-auto",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "auto"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "auto-flash",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-auto",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-pace",
+      "slug": "timer-pace",
+      "name": "Timer Pace",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-pace.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "pace"
+      ],
+      "searchTextPreview": "micro-solid timer-pace timer pace timer-pace 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    },
+    {
+      "itemId": "timer-pace-average",
+      "slug": "timer-pace-average",
+      "name": "Timer Pace Average",
+      "outputPath": "vendor/streamline-svg/micro-solid/timer-pace-average.svg",
+      "confidence": 0.55,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "timer",
+        "time",
+        "pace",
+        "average"
+      ],
+      "searchTextPreview": "micro-solid timer-pace-average timer pace average timer-pace-average 26566 time timer",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "timer"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-timer",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch22"
+    }
+  ]
+}

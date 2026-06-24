@@ -1,0 +1,33 @@
+{
+  "capturedAt": "2026-06-24T13:59:51.4700848+08:00",
+  "phase": "phase-a-after",
+  "verification": {
+    "focusedNodeTests": {
+      "ok": true,
+      "durationMs": 285,
+      "command": "node --test tests/view-profile.test.mjs tests/view-state.test.mjs"
+    },
+    "typecheck": {
+      "ok": true,
+      "durationMs": 3643,
+      "command": "npm run typecheck"
+    },
+    "build": {
+      "ok": true,
+      "durationMs": 15161,
+      "command": "npm run build"
+    },
+    "iconPickerE2E": {
+      "ok": true,
+      "durationMs": 12800,
+      "command": "DATA_EDITOR_E2E_PORT=8788 DATA_EDITOR_E2E_BRIDGE_PORT=8792 npx playwright test --grep \"icon picker shows built-in and streamline family groups\"",
+      "note": "measured in prior command output for this turn"
+    },
+    "iconFavoritesProfileE2E": {
+      "ok": true,
+      "durationMs": 20400,
+      "command": "DATA_EDITOR_E2E_PORT=8788 DATA_EDITOR_E2E_BRIDGE_PORT=8792 npx playwright test --grep \"icon favorites stay disabled in local mode and persist through selected profile reload\""
+    }
+  }
+}
+

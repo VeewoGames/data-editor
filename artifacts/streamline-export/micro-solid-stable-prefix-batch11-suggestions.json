@@ -1,0 +1,1003 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch11",
+  "suggestions": [
+    {
+      "itemId": "text-bar",
+      "slug": "text-bar",
+      "name": "Text Bar",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-bar.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "bar",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-bar text bar text-bar 26563 text align button hamburger navigation arrow interface lines menu square ui app",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-box-1",
+      "slug": "text-box-1",
+      "name": "Text Box 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-1 text box 1 text-box-1 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-box-2",
+      "slug": "text-box-2",
+      "name": "Text Box 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-2 text box 2 text-box-2 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-character",
+      "slug": "text-character",
+      "name": "Text Character",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-character.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "character",
+        "typography"
+      ],
+      "searchTextPreview": "micro-solid text-character text character text-character 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-flow-columns",
+      "slug": "text-flow-columns",
+      "name": "Text Flow Columns",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-flow-columns.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "flow",
+        "columns",
+        "layout"
+      ],
+      "searchTextPreview": "micro-solid text-flow-columns text flow columns text-flow-columns 26563 text hamburger interface align button navigation menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-flow-rows",
+      "slug": "text-flow-rows",
+      "name": "Text Flow Rows",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-flow-rows.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "flow",
+        "rows",
+        "layout"
+      ],
+      "searchTextPreview": "micro-solid text-flow-rows text flow rows text-flow-rows 26563 text hamburger interface align button navigation menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-line-spacing",
+      "slug": "text-line-spacing",
+      "name": "Text Line Spacing",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-line-spacing.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "line",
+        "spacing",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-line-spacing text line spacing text-line-spacing 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-search",
+      "slug": "text-search",
+      "name": "Text Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-search.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid text-search text search text-search 26563 text navigation align button hamburger interface find search app menu ui lookup",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-text",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "text",
+              "search"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-text",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-select-start",
+      "slug": "text-select-start",
+      "name": "Text Select Start",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-select-start.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "select",
+        "start"
+      ],
+      "searchTextPreview": "micro-solid text-select-start text select start text-select-start 26563 text hamburger align button navigation interface menu arrow formatting lines square ui",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "text",
+              "select"
+            ],
+            "prefixMatches": [
+              "text",
+              "text-select"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-shadow",
+      "slug": "text-shadow",
+      "name": "Text Shadow",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-shadow.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "shadow"
+      ],
+      "searchTextPreview": "micro-solid text-shadow text shadow text-shadow 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-square",
+      "slug": "text-square",
+      "name": "Text Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid text-square text square text-square 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-strike-through",
+      "slug": "text-strike-through",
+      "name": "Text Strike Through",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-strike-through.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "strike",
+        "through",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-strike-through text strike through text-strike-through 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-style",
+      "slug": "text-style",
+      "name": "Text Style",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-style.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "style",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-style text style text-style 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-to-speech-1",
+      "slug": "text-to-speech-1",
+      "name": "Text To Speech 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-to-speech-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid text-to-speech-1 text to speech 1 text-to-speech-1 26563 button arrow navigation align hamburger text direction interface menu ui app bottom",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-to-speech-2",
+      "slug": "text-to-speech-2",
+      "name": "Text To Speech 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-to-speech-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid text-to-speech-2 text to speech 2 text-to-speech-2 26563 button arrow navigation align hamburger text direction interface menu ui app bottom",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    }
+  ]
+}

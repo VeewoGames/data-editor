@@ -1,0 +1,578 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch13",
+  "suggestions": [
+    {
+      "itemId": "select-all",
+      "slug": "select-all",
+      "name": "Select All",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-all.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "all"
+      ],
+      "searchTextPreview": "micro-solid select-all select all select-all 26552 all communication email envelope inbox mail message send direction navigation align approve",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-all-direction",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "all"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "check-double-read-done-all",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "all"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-all-direction",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "check-double-read-done-all",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-back",
+      "slug": "select-back",
+      "name": "Select Back",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-back.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "back"
+      ],
+      "searchTextPreview": "micro-solid select-back select back select-back 26582 align arrow back button change direction end exchange hamburger interface layer layers",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "back"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-back",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-button",
+      "slug": "select-button",
+      "name": "Select Button",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-button.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "button"
+      ],
+      "searchTextPreview": "micro-solid select-button select button select-button 26552 button direction arrow left symbol arrows chevron double down navigation previous back",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-button-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "button"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-button-down-double",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "button"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-button-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-button-down-double",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-circle-area-1",
+      "slug": "select-circle-area-1",
+      "name": "Select Circle Area 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-circle-area-1.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "circle",
+        "area"
+      ],
+      "searchTextPreview": "micro-solid select-circle-area-1 select circle area 1 select-circle-area-1 26552 align arrow button direction end hamburger navigation text",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-frame--26552",
+      "slug": "select-frame",
+      "name": "Select Frame",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-frame-26552.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "frame"
+      ],
+      "searchTextPreview": "micro-solid select-frame select frame select-frame--26552 26552 frame design edit layout modify adjust align alter analytics arrangement arrow border",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-frame--26582",
+      "slug": "select-frame",
+      "name": "Select Frame",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-frame-26582.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "frame"
+      ],
+      "searchTextPreview": "micro-solid select-frame select frame select-frame--26582 26582 frame design edit layout modify adjust align alter analytics arrangement arrow border",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "frame"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "edit-frame-textbox",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "elipse-frame",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-front",
+      "slug": "select-front",
+      "name": "Select Front",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-front.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "front"
+      ],
+      "searchTextPreview": "micro-solid select-front select front select-front 26582 align adjust front adjustment arrow balance box button calibration clone coordinate copy",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "front"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "align-front",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-front-selection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-none",
+      "slug": "select-none",
+      "name": "Select None",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-none.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "none"
+      ],
+      "searchTextPreview": "micro-solid select-none select none select-none 26552 none interface button buttons end grid layout navigation simple 2 align arrangement",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "none"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "buttons-none-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "none"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "buttons-none-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-square-area-1",
+      "slug": "select-square-area-1",
+      "name": "Select Square Area 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-square-area-1.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "square",
+        "area"
+      ],
+      "searchTextPreview": "micro-solid select-square-area-1 select square area 1 select-square-area-1 26552 align arrow button direction end hamburger navigation text",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    },
+    {
+      "itemId": "select-square-area-2",
+      "slug": "select-square-area-2",
+      "name": "Select Square Area 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/select-square-area-2.svg",
+      "confidence": 0.6,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "select",
+        "square",
+        "area"
+      ],
+      "searchTextPreview": "micro-solid select-square-area-2 select square area 2 select-square-area-2 26552 align arrow button direction end hamburger navigation text",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "select"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch13"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" id="Insert-Page--Streamline-Core" height="14" width="14">
+  <desc>
+    Insert Page Streamline Icon: https://streamlinehq.com
+  </desc>
+  <g id="insert-page">
+    <path id="Union" fill="#000000" fill-rule="evenodd" d="M3.5 3V0H13v3c0 1.10457 -0.8954 2 -2 2H5.5c-1.10457 0 -2 -0.89543 -2 -2Zm5.67157 5.5H5.5c-1.10457 0 -2 0.89543 -2 2V14H13v-1.6716c0 -0.5304 -0.2107 -1.0391 -0.5858 -1.4142l-1.8284 -1.82841C10.2107 8.71071 9.70201 8.5 9.17157 8.5ZM1.30866 4.53807c0.18684 -0.07739 0.40189 -0.03461 0.54489 0.10839l2 2c0.19527 0.19526 0.19527 0.51185 0 0.70711l-2 2c-0.143 0.143 -0.35805 0.18577 -0.54489 0.10838C1.12182 9.38456 1 9.20225 1 9.00001v-4c0 -0.20223 0.12182 -0.38454 0.30866 -0.46194Z" clip-rule="evenodd" stroke-width="1"></path>
+  </g>
+</svg>

@@ -11,12 +11,10 @@ async function exists(path) {
   }
 }
 
-async function main() {
-  const manifestPath = process.argv[2];
+export async function verifyStreamlineSvgManifest({ manifestPath } = {}) {
   if (!manifestPath) {
-    throw new Error("Usage: node verify-streamline-svg.mjs <manifestPath>");
+    throw new Error("verifyStreamlineSvgManifest requires manifestPath");
   }
-
   const manifest = await loadManifest(manifestPath);
   const results = [];
   for (const item of manifest.items) {
@@ -31,17 +29,46 @@ async function main() {
     });
   }
 
-  console.log(JSON.stringify({
+  return {
     family: manifest.family,
     total: results.length,
     success: results.filter((item) => item.status === "success").length,
+    pending: results.filter((item) => item.status === "pending").length,
+    failed: results.filter((item) => item.status === "failed").length,
+    presentFiles: results.filter((item) => item.present).length,
     missingFiles: results.filter((item) => !item.present).map((item) => item.slug),
     invalidSvg: results.filter((item) => item.present && !item.hasSvg).map((item) => item.slug),
     emptyFiles: results.filter((item) => item.present && item.empty).map((item) => item.slug),
-  }, null, 2));
+    successMissingFiles: results
+      .filter((item) => item.status === "success" && !item.present)
+      .map((item) => item.slug),
+    successInvalidSvg: results
+      .filter((item) => item.status === "success" && item.present && !item.hasSvg)
+      .map((item) => item.slug),
+    successEmptyFiles: results
+      .filter((item) => item.status === "success" && item.present && item.empty)
+      .map((item) => item.slug),
+    pendingExistingFiles: results
+      .filter((item) => item.status === "pending" && item.present)
+      .map((item) => item.slug),
+    failedExistingFiles: results
+      .filter((item) => item.status === "failed" && item.present)
+      .map((item) => item.slug),
+  };
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+async function main() {
+  const manifestPath = process.argv[2];
+  if (!manifestPath) {
+    throw new Error("Usage: node verify-streamline-svg.mjs <manifestPath>");
+  }
+
+  console.log(JSON.stringify(await verifyStreamlineSvgManifest({ manifestPath }), null, 2));
+}
+
+if (typeof process !== "undefined" && process.argv?.[1]?.endsWith("verify-streamline-svg.mjs")) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

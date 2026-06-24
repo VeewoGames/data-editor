@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" id="Calendar-Event--Streamline-Core" height="14" width="14">
+  <desc>
+    Calendar Event Streamline Icon: https://streamlinehq.com
+  </desc>
+  <g id="calendar-event">
+    <path id="Subtract" fill="#000000" fill-rule="evenodd" d="M4.5 1.5c0 -0.552285 -0.44772 -1 -1 -1s-1 0.447715 -1 1l0 1H2C1.17157 2.5 0.5 3.17157 0.5 4l0 8c0 0.8284 0.67157 1.5 1.5 1.5l10 0c0.8284 0 1.5 -0.6716 1.5 -1.5l0 -8c0 -0.82843 -0.6716 -1.5 -1.5 -1.5h-0.5v-1c0 -0.552285 -0.4477 -1 -1 -1 -0.55229 0 -1 0.447715 -1 1v1l-5 0v-1ZM3.25 6c0 -0.13807 0.11193 -0.25 0.25 -0.25l3 0c0.13807 0 0.25 0.11193 0.25 0.25v3c0 0.13807 -0.11193 0.25 -0.25 0.25h-3c-0.13807 0 -0.25 -0.11193 -0.25 -0.25V6Z" clip-rule="evenodd" stroke-width="1"></path>
+  </g>
+</svg>

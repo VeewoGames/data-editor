@@ -1,0 +1,444 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch16",
+  "suggestions": [
+    {
+      "itemId": "wifi-antenna",
+      "slug": "wifi-antenna",
+      "name": "Wifi Antenna",
+      "outputPath": "vendor/streamline-svg/micro-solid/wifi-antenna.svg",
+      "confidence": 0.63,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "wifi",
+        "network",
+        "antenna",
+        "signal"
+      ],
+      "searchTextPreview": "micro-solid wifi-antenna wifi antenna wifi-antenna 26619 atmosphere cloud cloud storage forecast internet meteorology network partlycloudy predict radar rain server",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cloud-wifi",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "wifi"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cloud-wifi",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch16"
+    },
+    {
+      "itemId": "wifi-disabled",
+      "slug": "wifi-disabled",
+      "name": "Wifi Disabled",
+      "outputPath": "vendor/streamline-svg/micro-solid/wifi-disabled.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "wifi",
+        "network",
+        "disabled",
+        "off"
+      ],
+      "searchTextPreview": "micro-solid wifi-disabled wifi disabled wifi-disabled 26619 disabled off internet network server prohibited restricted wireless abstract access aerospace airplane",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disabled"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "bluetooth-disabled",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disabled"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "bluetooth-disabled",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch16"
+    },
+    {
+      "itemId": "wifi-not-secure-connection",
+      "slug": "wifi-not-secure-connection",
+      "name": "Wifi Not Secure Connection",
+      "outputPath": "vendor/streamline-svg/micro-solid/wifi-not-secure-connection.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "wifi",
+        "network",
+        "connection",
+        "insecure"
+      ],
+      "searchTextPreview": "micro-solid wifi-not-secure-connection wifi not secure connection wifi-not-secure-connection 26619 network api atmosphere cloud cloud storage code connection deployment development forecast integration internet",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cloud-wifi",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "wifi"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "connection-integration-system-api",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "connection"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cloud-wifi",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "connection-integration-system-api",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch16"
+    },
+    {
+      "itemId": "wifi-secure-connection",
+      "slug": "wifi-secure-connection",
+      "name": "Wifi Secure Connection",
+      "outputPath": "vendor/streamline-svg/micro-solid/wifi-secure-connection.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "wifi",
+        "network",
+        "connection",
+        "secure"
+      ],
+      "searchTextPreview": "micro-solid wifi-secure-connection wifi secure connection wifi-secure-connection 26619 network api atmosphere cloud cloud storage code connection deployment development forecast integration internet",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cloud-wifi",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "wifi"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "connection-integration-system-api",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "connection"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cloud-wifi",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "connection-integration-system-api",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch16"
+    },
+    {
+      "itemId": "wifi-signal-low",
+      "slug": "wifi-signal-low",
+      "name": "Wifi Signal Low",
+      "outputPath": "vendor/streamline-svg/micro-solid/wifi-signal-low.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "wifi",
+        "network",
+        "signal",
+        "low"
+      ],
+      "searchTextPreview": "micro-solid wifi-signal-low wifi signal low wifi-signal-low 26619 signal phone call communication contact low telephone alert atmosphere audio battery batteryicon",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-signal-low",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "signal",
+              "low"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "alert-priority-low",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "low"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-signal-low",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-priority-low",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch16"
+    },
+    {
+      "itemId": "wifi-signal-medium",
+      "slug": "wifi-signal-medium",
+      "name": "Wifi Signal Medium",
+      "outputPath": "vendor/streamline-svg/micro-solid/wifi-signal-medium.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "wifi",
+        "network",
+        "signal",
+        "medium"
+      ],
+      "searchTextPreview": "micro-solid wifi-signal-medium wifi signal medium wifi-signal-medium 26619 signal call communication contact medium phone telephone alert attention exclamation notification priority",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-signal-medium",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "signal",
+              "medium"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "alert-circle-priority-medium",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "medium"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-signal-medium",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-circle-priority-medium",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch16"
+    },
+    {
+      "itemId": "wifi-signal-none",
+      "slug": "wifi-signal-none",
+      "name": "Wifi Signal None",
+      "outputPath": "vendor/streamline-svg/micro-solid/wifi-signal-none.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "wifi",
+        "network",
+        "signal",
+        "none"
+      ],
+      "searchTextPreview": "micro-solid wifi-signal-none wifi signal none wifi-signal-none 26619 none interface signal buttons call communication contact grid layout phone simple telephone",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "none"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "buttons-none-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "none"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "buttons-none-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch16"
+    }
+  ]
+}

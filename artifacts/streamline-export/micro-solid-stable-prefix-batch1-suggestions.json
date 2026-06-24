@@ -1,0 +1,4003 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch1",
+  "suggestions": [
+    {
+      "itemId": "layout-1",
+      "slug": "layout-1",
+      "name": "Layout 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-1 layout 1 layout-1 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-10",
+      "slug": "layout-10",
+      "name": "Layout 10",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-10.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-10 layout 10 layout-10 26573 dashboard layout widgets arrangement customization frame grid design interface navigation structure abstract",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-2",
+      "slug": "layout-2",
+      "name": "Layout 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-2 layout 2 layout-2 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-3",
+      "slug": "layout-3",
+      "name": "Layout 3",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-3.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-3 layout 3 layout-3 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-4",
+      "slug": "layout-4",
+      "name": "Layout 4",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-4.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-4 layout 4 layout-4 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-5",
+      "slug": "layout-5",
+      "name": "Layout 5",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-5.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-5 layout 5 layout-5 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-6",
+      "slug": "layout-6",
+      "name": "Layout 6",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-6.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-6 layout 6 layout-6 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-7",
+      "slug": "layout-7",
+      "name": "Layout 7",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-7.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-7 layout 7 layout-7 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-8",
+      "slug": "layout-8",
+      "name": "Layout 8",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-8.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-8 layout 8 layout-8 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-9",
+      "slug": "layout-9",
+      "name": "Layout 9",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-9.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-9 layout 9 layout-9 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-bottom",
+      "slug": "layout-border-bottom",
+      "name": "Layout Border Bottom",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-bottom.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-bottom layout border bottom layout-border-bottom 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-center",
+      "slug": "layout-border-center",
+      "name": "Layout Border Center",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-center.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-center layout border center layout-border-center 26573 center align design layout centered formatting hamburger interface lines menu midpoint outline",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "align-horizontal-center",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "center"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-horizontal-center",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-corner",
+      "slug": "layout-border-corner",
+      "name": "Layout Border Corner",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-corner.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-corner layout border corner layout-border-corner 26573 arrow corner design diagonal direction layout geometry arrangement customization dashboard frame grid",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "arrows-corner-down-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "corner"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-corner-down-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-full",
+      "slug": "layout-border-full",
+      "name": "Layout Border Full",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-full.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-full layout border full layout-border-full 26573 dashboard layout widgets arrangement customization frame grid design full interface navigation outline",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "battery-full",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "full"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "battery-full",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-horizontal",
+      "slug": "layout-border-horizontal",
+      "name": "Layout Border Horizontal",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-horizontal.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-horizontal layout border horizontal layout-border-horizontal 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-left",
+      "slug": "layout-border-left",
+      "name": "Layout Border Left",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-left.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-left layout border left layout-border-left 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-none",
+      "slug": "layout-border-none",
+      "name": "Layout Border None",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-none.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-none layout border none layout-border-none 26573 layout dashboard grid widgets arrangement customization frame interface none design navigation simple",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "none"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "buttons-none-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-right",
+      "slug": "layout-border-right",
+      "name": "Layout Border Right",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-right.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-right layout border right layout-border-right 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-top",
+      "slug": "layout-border-top",
+      "name": "Layout Border Top",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-top.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-top layout border top layout-border-top 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-border-vertical",
+      "slug": "layout-border-vertical",
+      "name": "Layout Border Vertical",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-vertical.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "border"
+      ],
+      "searchTextPreview": "micro-solid layout-border-vertical layout border vertical layout-border-vertical 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-position-bottom-left",
+      "slug": "layout-position-bottom-left",
+      "name": "Layout Position Bottom Left",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-position-bottom-left.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "searchTextPreview": "micro-solid layout-position-bottom-left layout position bottom left layout-position-bottom-left 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-position-bottom-right",
+      "slug": "layout-position-bottom-right",
+      "name": "Layout Position Bottom Right",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-position-bottom-right.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "searchTextPreview": "micro-solid layout-position-bottom-right layout position bottom right layout-position-bottom-right 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-position-top-left",
+      "slug": "layout-position-top-left",
+      "name": "Layout Position Top Left",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-position-top-left.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "searchTextPreview": "micro-solid layout-position-top-left layout position top left layout-position-top-left 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-position-top-right",
+      "slug": "layout-position-top-right",
+      "name": "Layout Position Top Right",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-position-top-right.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "position"
+      ],
+      "searchTextPreview": "micro-solid layout-position-top-right layout position top right layout-position-top-right 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract blocks",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-three-columns",
+      "slug": "layout-three-columns",
+      "name": "Layout Three Columns",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-three-columns.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "columns"
+      ],
+      "searchTextPreview": "micro-solid layout-three-columns layout three columns layout-three-columns 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-two-columns",
+      "slug": "layout-two-columns",
+      "name": "Layout Two Columns",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-two-columns.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "columns"
+      ],
+      "searchTextPreview": "micro-solid layout-two-columns layout two columns layout-two-columns 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "layout-two-rows",
+      "slug": "layout-two-rows",
+      "name": "Layout Two Rows",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-two-rows.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "layout",
+        "dashboard",
+        "widgets",
+        "arrangement",
+        "frame",
+        "grid",
+        "interface",
+        "rows"
+      ],
+      "searchTextPreview": "micro-solid layout-two-rows layout two rows layout-two-rows 26573 dashboard layout widgets arrangement customization frame grid design interface navigation abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": [
+              "layout"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "layout"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "dashboard-layout-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-add",
+      "slug": "mail-add",
+      "name": "Mail Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-add.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "add"
+      ],
+      "searchTextPreview": "micro-solid mail-add mail add mail-add 26638 message communication email envelope mail all inbox send button add cross plus",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-block",
+      "slug": "mail-block",
+      "name": "Mail Block",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-block.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "block",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid mail-block mail block mail-block 26638 message communication email envelope mail all inbox send ban block denied disable",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-check",
+      "slug": "mail-check",
+      "name": "Mail Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-check.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid mail-check mail check mail-check 26638 message communication email envelope mail all inbox send approval check affection arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-favorite",
+      "slug": "mail-favorite",
+      "name": "Mail Favorite",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-favorite.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox"
+      ],
+      "searchTextPreview": "micro-solid mail-favorite mail favorite mail-favorite 26638 message communication email envelope mail all inbox send bookmark favorite like affection",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "mail",
+              "favorite"
+            ],
+            "prefixMatches": [
+              "mail",
+              "mail-favorite"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-incoming",
+      "slug": "mail-incoming",
+      "name": "Mail Incoming",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-incoming.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "incoming"
+      ],
+      "searchTextPreview": "micro-solid mail-incoming mail incoming mail-incoming 26638 message communication email envelope mail inbox send all affection arrow bookmark bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-loading",
+      "slug": "mail-loading",
+      "name": "Mail Loading",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-loading.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "loading"
+      ],
+      "searchTextPreview": "micro-solid mail-loading mail loading mail-loading 26638 message communication email envelope mail inbox send all affection arrow bookmark bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-lock",
+      "slug": "mail-lock",
+      "name": "Mail Lock",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-lock.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "lock",
+        "privacy"
+      ],
+      "searchTextPreview": "micro-solid mail-lock mail lock mail-lock 26638 message communication email envelope mail all inbox send lock privacy secure affection",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-mark-as-read",
+      "slug": "mail-mark-as-read",
+      "name": "Mail Mark As Read",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-mark-as-read.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "read"
+      ],
+      "searchTextPreview": "micro-solid mail-mark-as-read mail mark as read mail-mark-as-read 26638 message communication email envelope mail all inbox send affection arrow bookmark bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-notification",
+      "slug": "mail-notification",
+      "name": "Mail Notification",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-notification.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "notification",
+        "alert"
+      ],
+      "searchTextPreview": "micro-solid mail-notification mail notification mail-notification 26638 message communication email envelope mail all inbox send alarm alert bell notification",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-outgoing",
+      "slug": "mail-outgoing",
+      "name": "Mail Outgoing",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-outgoing.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "outgoing"
+      ],
+      "searchTextPreview": "micro-solid mail-outgoing mail outgoing mail-outgoing 26638 message communication email envelope mail inbox send all affection arrow bookmark bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-remove",
+      "slug": "mail-remove",
+      "name": "Mail Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-remove.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid mail-remove mail remove mail-remove 26638 message communication email envelope mail all inbox send remove affection arrow bookmark",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-schedule",
+      "slug": "mail-schedule",
+      "name": "Mail Schedule",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-schedule.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "schedule",
+        "time"
+      ],
+      "searchTextPreview": "micro-solid mail-schedule mail schedule mail-schedule 26638 message communication email envelope mail inbox send all affection arrow bookmark bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-search",
+      "slug": "mail-search",
+      "name": "Mail Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-search.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid mail-search mail search mail-search 26638 message communication email envelope mail all inbox send explore find search affection",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-setting",
+      "slug": "mail-setting",
+      "name": "Mail Setting",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-setting.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "settings",
+        "configuration"
+      ],
+      "searchTextPreview": "micro-solid mail-setting mail setting mail-setting 26638 message communication email envelope mail all inbox send setting affection arrow bookmark",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "mail-subtract",
+      "slug": "mail-subtract",
+      "name": "Mail Subtract",
+      "outputPath": "vendor/streamline-svg/micro-solid/mail-subtract.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "subtract",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid mail-subtract mail subtract mail-subtract 26638 message communication email envelope mail all inbox send bubble chat comment delete",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "mail"
+            ],
+            "prefixMatches": [
+              "mail"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "mail-reply-all",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-book",
+      "slug": "phone-book",
+      "name": "Phone Book",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-book.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "book",
+        "directory"
+      ],
+      "searchTextPreview": "micro-solid phone-book phone book phone-book 26636 call contact phone telephone android assistance communication device book content education learning",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-landscape",
+      "slug": "phone-landscape",
+      "name": "Phone Landscape",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-landscape.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile",
+        "landscape"
+      ],
+      "searchTextPreview": "micro-solid phone-landscape phone landscape phone-landscape 26635 phone call contact telephone android assistance communication device camera gallery image landscape",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-numpad-up",
+      "slug": "phone-numpad-up",
+      "name": "Phone Numpad Up",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-numpad-up.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "numpad",
+        "keypad"
+      ],
+      "searchTextPreview": "micro-solid phone-numpad-up phone numpad up phone-numpad-up 26633 phone call contact telephone android assistance communication device alert align block center",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-off",
+      "slug": "phone-off",
+      "name": "Phone Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-off.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid phone-off phone off phone-off 26635 call contact phone telephone android assistance communication device off alert disable disabled",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-open-in-mobile",
+      "slug": "phone-open-in-mobile",
+      "name": "Phone Open In Mobile",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-open-in-mobile.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile"
+      ],
+      "searchTextPreview": "micro-solid phone-open-in-mobile phone open in mobile phone-open-in-mobile 26635 phone call contact telephone android assistance communication device media symbol alert align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-ringing-1",
+      "slug": "phone-ringing-1",
+      "name": "Phone Ringing 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-ringing-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "ringing"
+      ],
+      "searchTextPreview": "micro-solid phone-ringing-1 phone ringing 1 phone-ringing-1 26635 phone call contact telephone android assistance communication device alert align block center",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-ringing-2",
+      "slug": "phone-ringing-2",
+      "name": "Phone Ringing 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-ringing-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "ringing"
+      ],
+      "searchTextPreview": "micro-solid phone-ringing-2 phone ringing 2 phone-ringing-2 26635 phone call contact telephone android assistance communication device alert align block center",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-rotate-mobile",
+      "slug": "phone-rotate-mobile",
+      "name": "Phone Rotate Mobile",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-rotate-mobile.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile",
+        "rotate"
+      ],
+      "searchTextPreview": "micro-solid phone-rotate-mobile phone rotate mobile phone-rotate-mobile 26635 phone call contact telephone android assistance communication device alert align block center",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-send-to-mobile",
+      "slug": "phone-send-to-mobile",
+      "name": "Phone Send To Mobile",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-send-to-mobile.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "mobile",
+        "send",
+        "transfer"
+      ],
+      "searchTextPreview": "micro-solid phone-send-to-mobile phone send to mobile phone-send-to-mobile 26635 call contact phone telephone communication android assistance device arrow button direction left",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-signal-full",
+      "slug": "phone-signal-full",
+      "name": "Phone Signal Full",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-signal-full.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "signal",
+        "full"
+      ],
+      "searchTextPreview": "micro-solid phone-signal-full phone signal full phone-signal-full 26634 call contact phone telephone android assistance communication device full symbol alert align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-signal-low",
+      "slug": "phone-signal-low",
+      "name": "Phone Signal Low",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-signal-low.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "signal",
+        "low"
+      ],
+      "searchTextPreview": "micro-solid phone-signal-low phone signal low phone-signal-low 26634 phone call contact telephone device android assistance communication alert low align block",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-signal-medium",
+      "slug": "phone-signal-medium",
+      "name": "Phone Signal Medium",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-signal-medium.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "signal",
+        "medium"
+      ],
+      "searchTextPreview": "micro-solid phone-signal-medium phone signal medium phone-signal-medium 26634 call contact phone telephone android assistance communication device alert attention exclamation medium",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-signal-off",
+      "slug": "phone-signal-off",
+      "name": "Phone Signal Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-signal-off.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "off",
+        "disable",
+        "signal"
+      ],
+      "searchTextPreview": "micro-solid phone-signal-off phone signal off phone-signal-off 26634 call contact phone telephone android assistance communication device off alert disable disabled",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    },
+    {
+      "itemId": "phone-vibrate",
+      "slug": "phone-vibrate",
+      "name": "Phone Vibrate",
+      "outputPath": "vendor/streamline-svg/micro-solid/phone-vibrate.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "communication",
+        "vibrate",
+        "vibration"
+      ],
+      "searchTextPreview": "micro-solid phone-vibrate phone vibrate phone-vibrate 26635 phone call contact telephone android assistance communication device alert align block center",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": [
+              "phone"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "phone-call-forwarded",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch1"
+    }
+  ]
+}

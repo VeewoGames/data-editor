@@ -1,0 +1,399 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch21",
+  "suggestions": [
+    {
+      "itemId": "screen-1",
+      "slug": "screen-1",
+      "name": "Screen 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display"
+      ],
+      "searchTextPreview": "micro-solid screen-1 screen 1 screen-1 26630 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-2",
+      "slug": "screen-2",
+      "name": "Screen 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display"
+      ],
+      "searchTextPreview": "micro-solid screen-2 screen 2 screen-2 26630 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-broadcast",
+      "slug": "screen-broadcast",
+      "name": "Screen Broadcast",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-broadcast.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "broadcast"
+      ],
+      "searchTextPreview": "micro-solid screen-broadcast screen broadcast screen-broadcast 26610 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-sharing",
+      "slug": "screen-sharing",
+      "name": "Screen Sharing",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-sharing.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "sharing"
+      ],
+      "searchTextPreview": "micro-solid screen-sharing screen sharing screen-sharing 26634 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-sharing-tutorial",
+      "slug": "screen-sharing-tutorial",
+      "name": "Screen Sharing Tutorial",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-sharing-tutorial.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "sharing",
+        "tutorial"
+      ],
+      "searchTextPreview": "micro-solid screen-sharing-tutorial screen sharing tutorial screen-sharing-tutorial 26683 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    },
+    {
+      "itemId": "screen-tv",
+      "slug": "screen-tv",
+      "name": "Screen Tv",
+      "outputPath": "vendor/streamline-svg/micro-solid/screen-tv.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "screen",
+        "display",
+        "tv"
+      ],
+      "searchTextPreview": "micro-solid screen-tv screen tv screen-tv 26630 screen display fullscreen ar curve digital immersive interface add adjustment aspect ratio brackets",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": [
+              "screen"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "screen-curve",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch21"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch5-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T05:32:10.713Z",
+  "appliedCount": 6,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "warning-circle",
+      "slug": "warning-circle",
+      "tags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:32:10.713Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "warning-diamond",
+      "slug": "warning-diamond",
+      "tags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "diamond"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:32:10.713Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "warning-octagon",
+      "slug": "warning-octagon",
+      "tags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "octagon"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:32:10.713Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "warning-shield",
+      "slug": "warning-shield",
+      "tags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "shield"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:32:10.713Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "warning-square",
+      "slug": "warning-square",
+      "tags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "square"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:32:10.713Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "warning-triangle",
+      "slug": "warning-triangle",
+      "tags": [
+        "warning",
+        "alert",
+        "caution",
+        "exclamation",
+        "triangle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:32:10.713Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

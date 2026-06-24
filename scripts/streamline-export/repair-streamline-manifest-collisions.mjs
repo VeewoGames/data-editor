@@ -28,7 +28,18 @@ function buildCollisionUrlSets(items) {
   return map;
 }
 
-export async function repairStreamlineManifestCollisions({ manifestPath } = {}) {
+function buildExactDuplicateKey(item) {
+  return JSON.stringify([
+    item?.itemId ?? null,
+    item?.slug ?? null,
+    item?.sourceId ?? null,
+    item?.outputPath ?? null,
+    item?.iconUrl ?? null,
+    item?.hash ?? null,
+  ]);
+}
+
+export async function repairStreamlineManifestCollisions({ manifestPath, dryRun = false } = {}) {
   if (!manifestPath) {
     throw new Error("repairStreamlineManifestCollisions requires manifestPath");
   }
@@ -36,15 +47,30 @@ export async function repairStreamlineManifestCollisions({ manifestPath } = {}) 
   const manifest = await loadManifest(manifestPath);
   const outputDir = dirname(String(manifest.items?.[0]?.outputPath ?? ""));
   const hydratedItems = hydrateManifestItems(manifest.items, { outputDir });
-  const uniqueUrlsBySlug = buildCollisionUrlSets(hydratedItems);
+  const dedupedEntries = [];
+  const seenExactDuplicateKeys = new Set();
+  for (let index = 0; index < hydratedItems.length; index += 1) {
+    const item = hydratedItems[index];
+    const key = buildExactDuplicateKey(item);
+    if (seenExactDuplicateKeys.has(key)) {
+      continue;
+    }
+    seenExactDuplicateKeys.add(key);
+    dedupedEntries.push({
+      previous: manifest.items[index],
+      next: item,
+    });
+  }
+  const dedupedItems = dedupedEntries.map((entry) => entry.next);
+  const uniqueUrlsBySlug = buildCollisionUrlSets(dedupedItems);
 
   let changedItems = 0;
   let resetToPending = 0;
   const repairedItems = [];
 
-  for (let index = 0; index < hydratedItems.length; index += 1) {
-    const previous = manifest.items[index];
-    const next = { ...hydratedItems[index] };
+  for (let index = 0; index < dedupedEntries.length; index += 1) {
+    const previous = dedupedEntries[index].previous;
+    const next = { ...dedupedEntries[index].next };
     const hasVariantCollision = (uniqueUrlsBySlug.get(next.slug)?.size ?? 0) > 1;
     const metadataChanged =
       previous?.itemId !== next.itemId ||
@@ -72,26 +98,41 @@ export async function repairStreamlineManifestCollisions({ manifestPath } = {}) 
     ...manifest,
     items: repairedItems,
   };
-  await saveManifest(manifestPath, repairedManifest);
+  if (!dryRun) {
+    await saveManifest(manifestPath, repairedManifest);
+  }
 
   return {
     manifestPath,
     changedItems,
     resetToPending,
+    removedExactDuplicates: hydratedItems.length - dedupedItems.length,
     total: repairedItems.length,
+    dryRun,
   };
 }
 
 async function main(argv) {
   const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-  const manifestPaths = argv.slice(2).filter(Boolean).map((value) => resolve(projectRoot, value));
+  const args = argv.slice(2);
+  const manifestPaths = [];
+  let dryRun = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === "--dry-run") {
+      dryRun = true;
+      continue;
+    }
+    manifestPaths.push(resolve(projectRoot, value));
+  }
   if (!manifestPaths.length) {
-    throw new Error("Usage: node scripts/streamline-export/repair-streamline-manifest-collisions.mjs <manifestPath...>");
+    throw new Error("Usage: node scripts/streamline-export/repair-streamline-manifest-collisions.mjs [--dry-run] <manifestPath...>");
   }
 
   const results = [];
   for (const manifestPath of manifestPaths) {
-    const result = await repairStreamlineManifestCollisions({ manifestPath });
+    const result = await repairStreamlineManifestCollisions({ manifestPath, dryRun });
     results.push({
       ...result,
       manifestPath: relative(projectRoot, result.manifestPath).replace(/\\/g, "/"),

@@ -1,0 +1,397 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch20",
+  "suggestions": [
+    {
+      "itemId": "print-add-printer",
+      "slug": "print-add-printer",
+      "name": "Print Add Printer",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-add-printer.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid print-add-printer print add printer print-add-printer 26625 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-error",
+      "slug": "print-error",
+      "name": "Print Error",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-error.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "error",
+        "alert"
+      ],
+      "searchTextPreview": "micro-solid print-error print error print-error 26625 fingerprint id touch access attraction field finger force gesture hand identification keyhole",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-off-disabled",
+      "slug": "print-off-disabled",
+      "name": "Print Off Disabled",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-off-disabled.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid print-off-disabled print off disabled print-off-disabled 26625 off disabled mute disable forbidden inactive network prohibited server silence ban internet",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "email-off-disabled",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "off",
+              "disabled"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disabled"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "email-off-disabled",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airplane-disabled",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-printer-connected",
+      "slug": "print-printer-connected",
+      "name": "Print Printer Connected",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-printer-connected.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "connected"
+      ],
+      "searchTextPreview": "micro-solid print-printer-connected print printer connected print-printer-connected 26625 fingerprint id touch access attraction field finger force gesture hand identification keyhole",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-printer-disconnected",
+      "slug": "print-printer-disconnected",
+      "name": "Print Printer Disconnected",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-printer-disconnected.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "disconnected"
+      ],
+      "searchTextPreview": "micro-solid print-printer-disconnected print printer disconnected print-printer-disconnected 26625 fingerprint id touch access attraction field finger force gesture hand identification keyhole",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "print"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-finger-print",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "id-finger-print-scan",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    },
+    {
+      "itemId": "print-remove-printer",
+      "slug": "print-remove-printer",
+      "name": "Print Remove Printer",
+      "outputPath": "vendor/streamline-svg/micro-solid/print-remove-printer.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "print",
+        "printer",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid print-remove-printer print remove printer print-remove-printer 26625 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch20"
+    }
+  ]
+}

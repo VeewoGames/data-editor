@@ -1,0 +1,388 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch19",
+  "suggestions": [
+    {
+      "itemId": "play-list-1",
+      "slug": "play-list-1",
+      "name": "Play List 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-1 play list 1 play-list-1 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-2",
+      "slug": "play-list-2",
+      "name": "Play List 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-2 play list 2 play-list-2 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-3",
+      "slug": "play-list-3",
+      "name": "Play List 3",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-3.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-3 play list 3 play-list-3 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-4",
+      "slug": "play-list-4",
+      "name": "Play List 4",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-4.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "searchTextPreview": "micro-solid play-list-4 play list 4 play-list-4 26664 list ascending descending sort numbers add alphabet arrangement bullets check delete format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "list-1-to-9-arrangement",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-folder",
+      "slug": "play-list-folder",
+      "name": "Play List Folder",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-folder.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "folder"
+      ],
+      "searchTextPreview": "micro-solid play-list-folder play list folder play-list-folder 26664 list ascending descending sort archive document file folder numbers storage add alphabet",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "archive-folder",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "folder"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "folder",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "folder"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "archive-folder",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "folder",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    },
+    {
+      "itemId": "play-list-phone",
+      "slug": "play-list-phone",
+      "name": "Play List Phone",
+      "outputPath": "vendor/streamline-svg/micro-solid/play-list-phone.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "play",
+        "playlist",
+        "phone"
+      ],
+      "searchTextPreview": "micro-solid play-list-phone play list phone play-list-phone 26664 list ascending descending sort numbers add alphabet arrangement bullets channel check format",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "hashtag-tag-channel-phone-number",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "hashtag-tag-channel-phone-number",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch19"
+    }
+  ]
+}

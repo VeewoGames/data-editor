@@ -1,0 +1,328 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch28",
+  "suggestions": [
+    {
+      "itemId": "shipment-add",
+      "slug": "shipment-add",
+      "name": "Shipment Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shipment-add shipment add shipment-add 26642 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-check",
+      "slug": "shipment-check",
+      "name": "Shipment Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid shipment-check shipment check shipment-check 26642 check confirm tick verify approve complete done read success approval approved bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-favorite",
+      "slug": "shipment-favorite",
+      "name": "Shipment Favorite",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-favorite.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "favorite",
+        "bookmark"
+      ],
+      "searchTextPreview": "micro-solid shipment-favorite shipment favorite shipment-favorite 26642 favorite like bookmark bubble chat comment feedback heart important love message star",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-favorite-heart",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "favorite"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-favorite-star",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "favorite"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-favorite-heart",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-favorite-star",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-remove",
+      "slug": "shipment-remove",
+      "name": "Shipment Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-remove.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid shipment-remove shipment remove shipment-remove 26642 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    },
+    {
+      "itemId": "shipment-search",
+      "slug": "shipment-search",
+      "name": "Shipment Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/shipment-search.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shipment",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid shipment-search shipment search shipment-search 26642 search find lookup research computer data explore glass interface magnify monitor programming",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch28"
+    }
+  ]
+}

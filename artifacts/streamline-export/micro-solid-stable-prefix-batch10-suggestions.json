@@ -1,0 +1,887 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch10",
+  "suggestions": [
+    {
+      "itemId": "laptop-add-plus",
+      "slug": "laptop-add-plus",
+      "name": "Laptop Add Plus",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-add-plus.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid laptop-add-plus laptop add plus laptop-add-plus 26628 add cross plus bookmark bubble button buttons chat favorite insert like mathematics",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-block-remove",
+      "slug": "laptop-block-remove",
+      "name": "Laptop Block Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-block-remove.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "block",
+        "remove",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid laptop-block-remove laptop block remove laptop-block-remove 26628 remove bookmark bubble chat favorite like social application ban block delete denied",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-charging",
+      "slug": "laptop-charging",
+      "name": "Laptop Charging",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-charging.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "charging",
+        "power",
+        "battery"
+      ],
+      "searchTextPreview": "micro-solid laptop-charging laptop charging laptop-charging 26628 charging device energy power battery bolt bookmark bubble charge chat electricity favorite",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-check-validate",
+      "slug": "laptop-check-validate",
+      "name": "Laptop Check Validate",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-check-validate.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "check",
+        "validate",
+        "approve"
+      ],
+      "searchTextPreview": "micro-solid laptop-check-validate laptop check validate laptop-check-validate 26628 bubble chat check message bookmark confirm favorite like social comment approval checkmark",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-delete-cross",
+      "slug": "laptop-delete-cross",
+      "name": "Laptop Delete Cross",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-delete-cross.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "delete",
+        "cross",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid laptop-delete-cross laptop delete cross laptop-delete-cross 26628 bubble chat cross delete remove message bookmark cancel close favorite like social",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-disable",
+      "slug": "laptop-disable",
+      "name": "Laptop Disable",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-disable.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "disable",
+        "inactive"
+      ],
+      "searchTextPreview": "micro-solid laptop-disable laptop disable laptop-disable 26628 bubble chat disable bookmark favorite like social digital message technology block blocked",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-help",
+      "slug": "laptop-help",
+      "name": "Laptop Help",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-help.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "help",
+        "support"
+      ],
+      "searchTextPreview": "micro-solid laptop-help laptop help laptop-help 26628 chat help bookmark bubble favorite like social digital technology alert computer device",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-lock",
+      "slug": "laptop-lock",
+      "name": "Laptop Lock",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-lock.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "lock",
+        "secure",
+        "privacy"
+      ],
+      "searchTextPreview": "micro-solid laptop-lock laptop lock laptop-lock 26628 lock privacy secure bookmark bubble chat cybersecurity favorite like security social adjustment",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-project-screen",
+      "slug": "laptop-project-screen",
+      "name": "Laptop Project Screen",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-project-screen.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "project",
+        "screen",
+        "display"
+      ],
+      "searchTextPreview": "micro-solid laptop-project-screen laptop project screen laptop-project-screen 26628 screen digital bookmark bubble chat favorite fullscreen like social adjustment technology ar",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-remove-subtract",
+      "slug": "laptop-remove-subtract",
+      "name": "Laptop Remove Subtract",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-remove-subtract.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "remove",
+        "subtract",
+        "minus"
+      ],
+      "searchTextPreview": "micro-solid laptop-remove-subtract laptop remove subtract laptop-remove-subtract 26628 remove subtract bubble chat delete minus bookmark favorite like social application interface",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "remove",
+              "subtract"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-search",
+      "slug": "laptop-search",
+      "name": "Laptop Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-search.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid laptop-search laptop search laptop-search 26628 search bookmark bubble chat favorite find like lookup social digital technology explore",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-setting-1",
+      "slug": "laptop-setting-1",
+      "name": "Laptop Setting 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-setting-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "setting",
+        "gear"
+      ],
+      "searchTextPreview": "micro-solid laptop-setting-1 laptop setting 1 laptop-setting-1 26628 setting gear bookmark bubble chat favorite like social adjustment bolt nut affection",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-warning-1",
+      "slug": "laptop-warning-1",
+      "name": "Laptop Warning 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-warning-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "warning",
+        "alert"
+      ],
+      "searchTextPreview": "micro-solid laptop-warning-1 laptop warning 1 laptop-warning-1 26628 alert bubble chat warning notification message attention bookmark caution exclamation favorite like",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    }
+  ]
+}

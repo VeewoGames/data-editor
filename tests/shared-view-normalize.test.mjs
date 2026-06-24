@@ -220,6 +220,38 @@ test("normalizeSharedViewsConfig keeps valid icon and falls back on invalid icon
   assert.equal(config.collections["data/runes.json:$"].items[1].icon, "borderAll");
 });
 
+test("normalizeSharedViewsConfig keeps generated core-solid icon ids", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        items: [
+          {
+            kind: "view",
+            icon: "streamlineCoreSolidApplyToAll",
+            view: {
+              id: "all",
+              name: "全部",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  assert.equal(config.collections["data/runes.json:$"].items[0].icon, "streamlineCoreSolidApplyToAll");
+});
+
 test("normalizeCollectionViewDraft does not keep icon", () => {
   assert.deepEqual(normalizeCollectionViewDraft({
     icon: "edit",

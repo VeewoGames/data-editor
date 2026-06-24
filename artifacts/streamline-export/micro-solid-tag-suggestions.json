@@ -1,0 +1,19 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "generatedAt": "2026-06-24T17:11:09.836Z",
+  "mode": "precise",
+  "summary": {
+    "totalItems": 1904,
+    "labeledItems": 1904,
+    "unlabeledItems": 0,
+    "suggestedItems": 0,
+    "autoAcceptItems": 0,
+    "reviewRequiredItems": 0,
+    "rejectedItems": 0,
+    "maxTags": 12
+  },
+  "suggestions": []
+}

@@ -1,0 +1,572 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch14",
+  "suggestions": [
+    {
+      "itemId": "list-1-to-9-arrangement",
+      "slug": "list-1-to-9-arrangement",
+      "name": "List 1 To 9 Arrangement",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-1-to-9-arrangement.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "sort",
+        "ascending",
+        "numbers",
+        "descending"
+      ],
+      "searchTextPreview": "micro-solid list-1-to-9-arrangement list 1 to 9 arrangement list-1-to-9-arrangement 26563 arrow button audio communication direction left navigate navigation outline send speech structure",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-9-to-1-arrangement",
+      "slug": "list-9-to-1-arrangement",
+      "name": "List 9 To 1 Arrangement",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-9-to-1-arrangement.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "sort",
+        "ascending",
+        "numbers",
+        "descending"
+      ],
+      "searchTextPreview": "micro-solid list-9-to-1-arrangement list 9 to 1 arrangement list-9-to-1-arrangement 26563 arrow button audio communication direction left navigate navigation outline send speech structure",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-a-to-z-arrangement",
+      "slug": "list-a-to-z-arrangement",
+      "name": "List A To Z Arrangement",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-a-to-z-arrangement.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "sort",
+        "ascending",
+        "alphabet",
+        "descending"
+      ],
+      "searchTextPreview": "micro-solid list-a-to-z-arrangement list a to z arrangement list-a-to-z-arrangement 26563 arrow button audio communication direction left navigate navigation outline send speech structure",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-add",
+      "slug": "list-add",
+      "name": "List Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid list-add list add list-add 26563 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-bullets",
+      "slug": "list-bullets",
+      "name": "List Bullets",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-bullets.svg",
+      "confidence": 0.62,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "bullets",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid list-bullets list bullets list-bullets 26563 arrangement format list numbered order outline sequence steps structure task",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "list"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "format-list-numbered",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-check",
+      "slug": "list-check",
+      "name": "List Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "check",
+        "tasks"
+      ],
+      "searchTextPreview": "micro-solid list-check list check list-check 26563 check confirm tick verify approve complete done read success approval approved bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-remove",
+      "slug": "list-remove",
+      "name": "List Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-remove.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid list-remove list remove list-remove 26563 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-to-do-tasks-checklist",
+      "slug": "list-to-do-tasks-checklist",
+      "name": "List To Do Tasks Checklist",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-to-do-tasks-checklist.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "todo",
+        "tasks",
+        "checklist"
+      ],
+      "searchTextPreview": "micro-solid list-to-do-tasks-checklist list to do tasks checklist list-to-do-tasks-checklist 26563 arrow button audio communication direction left navigate navigation outline send speech structure",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    },
+    {
+      "itemId": "list-z-to-a-arrangement",
+      "slug": "list-z-to-a-arrangement",
+      "name": "List Z To A Arrangement",
+      "outputPath": "vendor/streamline-svg/micro-solid/list-z-to-a-arrangement.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "list",
+        "sort",
+        "ascending",
+        "alphabet",
+        "descending"
+      ],
+      "searchTextPreview": "micro-solid list-z-to-a-arrangement list z to a arrangement list-z-to-a-arrangement 26563 arrow button audio communication direction left navigate navigation outline send speech structure",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "to"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-button-to-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-button-to-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch14"
+    }
+  ]
+}

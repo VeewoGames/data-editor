@@ -1,0 +1,3070 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_wave1",
+  "suggestions": [
+    {
+      "itemId": "user-add",
+      "slug": "user-add",
+      "name": "User Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid user-add user add user-add 26580 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-block",
+      "slug": "user-block",
+      "name": "User Block",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-block.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "block",
+        "disable",
+        "deny"
+      ],
+      "searchTextPreview": "micro-solid user-block user block user-block 26580 block disable deny ban denied error restricted access bubble chat code forbidden",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "block",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "block"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-block",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "block"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "block",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-block",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-check",
+      "slug": "user-check",
+      "name": "User Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "check",
+        "verify",
+        "approve"
+      ],
+      "searchTextPreview": "micro-solid user-check user check user-check 26580 check confirm tick verify approve complete done read success approval approved bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-circle",
+      "slug": "user-circle",
+      "name": "User Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-circle.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "circle",
+        "profile"
+      ],
+      "searchTextPreview": "micro-solid user-circle user circle user-circle 26580 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-delete",
+      "slug": "user-delete",
+      "name": "User Delete",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-delete.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "delete",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid user-delete user delete user-delete 26580 delete remove cross cancel close stop denied disable exit deny discard dismiss",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-delete",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "delete"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-oval-delete",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "delete"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-delete",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-oval-delete",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-edit",
+      "slug": "user-edit",
+      "name": "User Edit",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-edit.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "edit"
+      ],
+      "searchTextPreview": "micro-solid user-edit user edit user-edit 26580 edit design modify pencil tool adjustment art creative image note resize shape",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ai-edit-spark",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "edit"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "book-edit",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "edit"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ai-edit-spark",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "book-edit",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-following",
+      "slug": "user-following",
+      "name": "User Following",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-following.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "following",
+        "account"
+      ],
+      "searchTextPreview": "micro-solid user-following user following user-following 26580 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-identifier-card",
+      "slug": "user-identifier-card",
+      "name": "User Identifier Card",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-identifier-card.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "identifier",
+        "card",
+        "id"
+      ],
+      "searchTextPreview": "micro-solid user-identifier-card user identifier card user-identifier-card 26580 card payment credit transaction finance atm denied deposit digital financial money secure",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "atm-card-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "card"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "atm-card-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "card"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "atm-card-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "atm-card-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-multiple",
+      "slug": "user-multiple",
+      "name": "User Multiple",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-multiple.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "multiple",
+        "group"
+      ],
+      "searchTextPreview": "micro-solid user-multiple user multiple user-multiple 26580 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-multiple-circle",
+      "slug": "user-multiple-circle",
+      "name": "User Multiple Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-multiple-circle.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "circle",
+        "profile",
+        "multiple",
+        "group"
+      ],
+      "searchTextPreview": "micro-solid user-multiple-circle user multiple circle user-multiple-circle 26580 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-off",
+      "slug": "user-off",
+      "name": "User Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-off.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "off",
+        "disable",
+        "inactive"
+      ],
+      "searchTextPreview": "micro-solid user-off user off user-off 26580 off disable disabled inactive mute block forbidden offline privacy shutdown silence silent",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-protection",
+      "slug": "user-protection",
+      "name": "User Protection",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-protection.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "protection",
+        "security",
+        "shield"
+      ],
+      "searchTextPreview": "micro-solid user-protection user protection user-protection 26558 account antispyware defense protection security shield user alert antivirus authentication avatar biometrics",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "disable-protection",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "protection"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "disable-protection",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-question-query",
+      "slug": "user-question-query",
+      "name": "User Question Query",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-question-query.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "question",
+        "query",
+        "help"
+      ],
+      "searchTextPreview": "micro-solid user-question-query user question query user-question-query 26580 help question query account doubt faq information inquiry square support unknown user",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alert-help-question",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "question"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "help-question-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "question"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alert-help-question",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "help-question-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-refresh-sync",
+      "slug": "user-refresh-sync",
+      "name": "User Refresh Sync",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-refresh-sync.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "refresh",
+        "sync"
+      ],
+      "searchTextPreview": "micro-solid user-refresh-sync user refresh sync user-refresh-sync 26580 refresh reload account backup cloud code data forward server storage sync synchronize",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-refresh",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "refresh"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cloud-refresh",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "refresh"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-refresh",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cloud-refresh",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-remove-subtract",
+      "slug": "user-remove-subtract",
+      "name": "User Remove Subtract",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-remove-subtract.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "remove",
+        "subtract",
+        "minus"
+      ],
+      "searchTextPreview": "micro-solid user-remove-subtract user remove subtract user-remove-subtract 26580 remove subtract delete minus application interface bubble chat comment communication cross dialogue",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "remove",
+              "subtract"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-search-magnifier",
+      "slug": "user-search-magnifier",
+      "name": "User Search Magnifier",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-search-magnifier.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "search",
+        "find",
+        "magnifier"
+      ],
+      "searchTextPreview": "micro-solid user-search-magnifier user search magnifier user-search-magnifier 26580 search find lookup research data explore glass interface magnify monitor programming query",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-share",
+      "slug": "user-share",
+      "name": "User Share",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-share.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "share",
+        "account"
+      ],
+      "searchTextPreview": "micro-solid user-share user share user-share 26580 share account user link network approved avatar care cash charity cloud code",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-user",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "user",
+              "share"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-user",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-single",
+      "slug": "user-single",
+      "name": "User Single",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-single.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "single",
+        "profile"
+      ],
+      "searchTextPreview": "micro-solid user-single user single user-single 26580 button control horizontal interface single switch toggle left right account arrow direction",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "horizontal-toggle-button-single-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "single"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "horizontal-toggle-button-single-right",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "single"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "horizontal-toggle-button-single-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "horizontal-toggle-button-single-right",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-square",
+      "slug": "user-square",
+      "name": "User Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-square.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "square",
+        "profile"
+      ],
+      "searchTextPreview": "micro-solid user-square user square user-square 26580 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-story",
+      "slug": "user-story",
+      "name": "User Story",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-story.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "story",
+        "profile"
+      ],
+      "searchTextPreview": "micro-solid user-story user story user-story 26574 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-sync",
+      "slug": "user-sync",
+      "name": "User Sync",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-sync.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "sync",
+        "account"
+      ],
+      "searchTextPreview": "micro-solid user-sync user sync user-sync 26580 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-team-community",
+      "slug": "user-team-community",
+      "name": "User Team Community",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-team-community.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "team",
+        "community",
+        "group"
+      ],
+      "searchTextPreview": "micro-solid user-team-community user team community user-team-community 26580 account user avatar human id identity person photo portrait profile share silhouette",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "user"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "id-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "share-user",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "user-warning",
+      "slug": "user-warning",
+      "name": "User Warning",
+      "outputPath": "vendor/streamline-svg/micro-solid/user-warning.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "user",
+        "warning",
+        "alert"
+      ],
+      "searchTextPreview": "micro-solid user-warning user warning user-warning 26580 warning alert notification attention caution exclamation account bubble chat danger message messages",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "warning"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-synchronize-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-warning",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch8"
+    },
+    {
+      "itemId": "shopping-bag",
+      "slug": "shopping-bag",
+      "name": "Shopping Bag",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-bag.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "bag",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-bag shopping bag shopping-bag 26600 bag approval backpack carry check checkout clutch commerce confirm goods hand handbag",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "bag"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "hand-bag",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "bag"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "hand-bag",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-basket-add",
+      "slug": "shopping-basket-add",
+      "name": "Shopping Basket Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-basket-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "basket",
+        "commerce",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shopping-basket-add shopping basket add shopping-basket-add 26595 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-basket-remove",
+      "slug": "shopping-basket-remove",
+      "name": "Shopping Basket Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-basket-remove.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "basket",
+        "commerce",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid shopping-basket-remove shopping basket remove shopping-basket-remove 26595 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart",
+      "slug": "shopping-cart",
+      "name": "Shopping Cart",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart shopping cart shopping-cart 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-add",
+      "slug": "shopping-cart-add",
+      "name": "Shopping Cart Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-add shopping cart add shopping-cart-add 26595 add plus cross button buttons create insert mathematics new positive addition alert",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-check",
+      "slug": "shopping-cart-check",
+      "name": "Shopping Cart Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "check",
+        "approve"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-check shopping cart check shopping-cart-check 26595 check confirm approval approved bubble cart chat checkmark checkout message read shopping",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-cross",
+      "slug": "shopping-cart-cross",
+      "name": "Shopping Cart Cross",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-cross.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "cross",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-cross shopping cart cross shopping-cart-cross 26595 cross cart catholicism checkout christianity emergency firstaid healthcare hospital medical religion shopping",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-cross-over",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-cross-over",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-heavy",
+      "slug": "shopping-cart-heavy",
+      "name": "Shopping Cart Heavy",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-heavy.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "heavy"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-heavy shopping cart heavy shopping-cart-heavy 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-load",
+      "slug": "shopping-cart-load",
+      "name": "Shopping Cart Load",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-load.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "load"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-load shopping cart load shopping-cart-load 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-subtract",
+      "slug": "shopping-cart-subtract",
+      "name": "Shopping Cart Subtract",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-subtract.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "subtract",
+        "minus"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-subtract shopping cart subtract shopping-cart-subtract 26595 subtract remove communication message minus bubble cart chat checkout comment delete dialogue",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "subtract"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-unload",
+      "slug": "shopping-cart-unload",
+      "name": "Shopping Cart Unload",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-unload.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "unload"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-unload shopping cart unload shopping-cart-unload 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "laptop-add-plus",
+      "slug": "laptop-add-plus",
+      "name": "Laptop Add Plus",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-add-plus.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid laptop-add-plus laptop add plus laptop-add-plus 26628 add cross plus bookmark bubble button buttons chat favorite insert like mathematics",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-block-remove",
+      "slug": "laptop-block-remove",
+      "name": "Laptop Block Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-block-remove.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "block",
+        "remove",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid laptop-block-remove laptop block remove laptop-block-remove 26628 remove bookmark bubble chat favorite like social application ban block delete denied",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-charging",
+      "slug": "laptop-charging",
+      "name": "Laptop Charging",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-charging.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "charging",
+        "power",
+        "battery"
+      ],
+      "searchTextPreview": "micro-solid laptop-charging laptop charging laptop-charging 26628 charging device energy power battery bolt bookmark bubble charge chat electricity favorite",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-check-validate",
+      "slug": "laptop-check-validate",
+      "name": "Laptop Check Validate",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-check-validate.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "check",
+        "validate",
+        "approve"
+      ],
+      "searchTextPreview": "micro-solid laptop-check-validate laptop check validate laptop-check-validate 26628 bubble chat check message bookmark confirm favorite like social comment approval checkmark",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-delete-cross",
+      "slug": "laptop-delete-cross",
+      "name": "Laptop Delete Cross",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-delete-cross.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "delete",
+        "cross",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid laptop-delete-cross laptop delete cross laptop-delete-cross 26628 bubble chat cross delete remove message bookmark cancel close favorite like social",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-disable",
+      "slug": "laptop-disable",
+      "name": "Laptop Disable",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-disable.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "disable",
+        "inactive"
+      ],
+      "searchTextPreview": "micro-solid laptop-disable laptop disable laptop-disable 26628 bubble chat disable bookmark favorite like social digital message technology block blocked",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-help",
+      "slug": "laptop-help",
+      "name": "Laptop Help",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-help.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "help",
+        "support"
+      ],
+      "searchTextPreview": "micro-solid laptop-help laptop help laptop-help 26628 chat help bookmark bubble favorite like social digital technology alert computer device",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-lock",
+      "slug": "laptop-lock",
+      "name": "Laptop Lock",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-lock.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "lock",
+        "secure",
+        "privacy"
+      ],
+      "searchTextPreview": "micro-solid laptop-lock laptop lock laptop-lock 26628 lock privacy secure bookmark bubble chat cybersecurity favorite like security social adjustment",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-project-screen",
+      "slug": "laptop-project-screen",
+      "name": "Laptop Project Screen",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-project-screen.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "project",
+        "screen",
+        "display"
+      ],
+      "searchTextPreview": "micro-solid laptop-project-screen laptop project screen laptop-project-screen 26628 screen digital bookmark bubble chat favorite fullscreen like social adjustment technology ar",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-remove-subtract",
+      "slug": "laptop-remove-subtract",
+      "name": "Laptop Remove Subtract",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-remove-subtract.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "remove",
+        "subtract",
+        "minus"
+      ],
+      "searchTextPreview": "micro-solid laptop-remove-subtract laptop remove subtract laptop-remove-subtract 26628 remove subtract bubble chat delete minus bookmark favorite like social application interface",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "remove",
+              "subtract"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-search",
+      "slug": "laptop-search",
+      "name": "Laptop Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-search.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid laptop-search laptop search laptop-search 26628 search bookmark bubble chat favorite find like lookup social digital technology explore",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-setting-1",
+      "slug": "laptop-setting-1",
+      "name": "Laptop Setting 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-setting-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "setting",
+        "gear"
+      ],
+      "searchTextPreview": "micro-solid laptop-setting-1 laptop setting 1 laptop-setting-1 26628 setting gear bookmark bubble chat favorite like social adjustment bolt nut affection",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    },
+    {
+      "itemId": "laptop-warning-1",
+      "slug": "laptop-warning-1",
+      "name": "Laptop Warning 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/laptop-warning-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "laptop",
+        "computer",
+        "warning",
+        "alert"
+      ],
+      "searchTextPreview": "micro-solid laptop-warning-1 laptop warning 1 laptop-warning-1 26628 alert bubble chat warning notification message attention bookmark caution exclamation favorite like",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "laptop"
+            ],
+            "prefixMatches": [
+              "laptop"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "laptop-ai-spark",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "laptop-favorite-heart",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch10"
+    }
+  ]
+}

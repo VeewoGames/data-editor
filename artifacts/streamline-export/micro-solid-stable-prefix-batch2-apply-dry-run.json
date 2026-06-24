@@ -1,0 +1,318 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch2-suggestions.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+  "appliedCount": 21,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "menu-alternate-1",
+      "slug": "menu-alternate-1",
+      "tags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "menu-alternate-2",
+      "slug": "menu-alternate-2",
+      "tags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "menu-alternate-horizontal",
+      "slug": "menu-alternate-horizontal",
+      "tags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate",
+        "horizontal"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "menu-alternate-vertical",
+      "slug": "menu-alternate-vertical",
+      "tags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "alternate",
+        "vertical"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "menu-line-1",
+      "slug": "menu-line-1",
+      "tags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "line"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "menu-line-2",
+      "slug": "menu-line-2",
+      "tags": [
+        "menu",
+        "navigation",
+        "options",
+        "interface",
+        "line"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "navigation-arrow-1",
+      "slug": "navigation-arrow-1",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "navigation-arrow-2",
+      "slug": "navigation-arrow-2",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "navigation-arrow-east",
+      "slug": "navigation-arrow-east",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "east"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "navigation-arrow-fork-left",
+      "slug": "navigation-arrow-fork-left",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "fork",
+        "left"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "navigation-arrow-fork-right",
+      "slug": "navigation-arrow-fork-right",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "fork",
+        "right"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "navigation-arrow-off",
+      "slug": "navigation-arrow-off",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "off",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "navigation-arrow-south",
+      "slug": "navigation-arrow-south",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "south"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "navigation-arrow-west",
+      "slug": "navigation-arrow-west",
+      "tags": [
+        "arrow",
+        "direction",
+        "navigation",
+        "west"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "search",
+      "slug": "search",
+      "tags": [
+        "search",
+        "find",
+        "lookup"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "search-check",
+      "slug": "search-check",
+      "tags": [
+        "search",
+        "find",
+        "lookup",
+        "check",
+        "confirm"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "search-circle",
+      "slug": "search-circle",
+      "tags": [
+        "search",
+        "find",
+        "lookup",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "search-dollar",
+      "slug": "search-dollar",
+      "tags": [
+        "search",
+        "find",
+        "lookup",
+        "dollar",
+        "finance",
+        "money"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "search-off-disable",
+      "slug": "search-off-disable",
+      "tags": [
+        "search",
+        "find",
+        "lookup",
+        "off",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "search-square",
+      "slug": "search-square",
+      "tags": [
+        "search",
+        "find",
+        "lookup",
+        "square"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "search-text",
+      "slug": "search-text",
+      "tags": [
+        "search",
+        "find",
+        "lookup",
+        "text"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:18:50.864Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": []
+}

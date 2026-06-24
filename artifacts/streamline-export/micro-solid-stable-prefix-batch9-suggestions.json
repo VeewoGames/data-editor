@@ -1,0 +1,715 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch9",
+  "suggestions": [
+    {
+      "itemId": "shopping-bag",
+      "slug": "shopping-bag",
+      "name": "Shopping Bag",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-bag.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "bag",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-bag shopping bag shopping-bag 26600 bag approval backpack carry check checkout clutch commerce confirm goods hand handbag",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "bag"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "hand-bag",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "bag"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "hand-bag",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-basket-add",
+      "slug": "shopping-basket-add",
+      "name": "Shopping Basket Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-basket-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "basket",
+        "commerce",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shopping-basket-add shopping basket add shopping-basket-add 26595 add plus cross new button buttons create insert mathematics positive addition crosshair",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-basket-remove",
+      "slug": "shopping-basket-remove",
+      "name": "Shopping Basket Remove",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-basket-remove.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "basket",
+        "commerce",
+        "remove",
+        "delete"
+      ],
+      "searchTextPreview": "micro-solid shopping-basket-remove shopping basket remove shopping-basket-remove 26595 remove delete minus cross subtract application cancel denied deny disable interface omit",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "remove"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-remove-bell-notification",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-remove",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart",
+      "slug": "shopping-cart",
+      "name": "Shopping Cart",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart shopping cart shopping-cart 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-add",
+      "slug": "shopping-cart-add",
+      "name": "Shopping Cart Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-add.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-add shopping cart add shopping-cart-add 26595 add plus cross button buttons create insert mathematics new positive addition alert",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-2",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-check",
+      "slug": "shopping-cart-check",
+      "name": "Shopping Cart Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-check.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "check",
+        "approve"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-check shopping cart check shopping-cart-check 26595 check confirm approval approved bubble cart chat checkmark checkout message read shopping",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "check"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-cross",
+      "slug": "shopping-cart-cross",
+      "name": "Shopping Cart Cross",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-cross.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "cross",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-cross shopping cart cross shopping-cart-cross 26595 cross cart catholicism checkout christianity emergency firstaid healthcare hospital medical religion shopping",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-cross-over",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-cross-over",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-heavy",
+      "slug": "shopping-cart-heavy",
+      "name": "Shopping Cart Heavy",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-heavy.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "heavy"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-heavy shopping cart heavy shopping-cart-heavy 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-load",
+      "slug": "shopping-cart-load",
+      "name": "Shopping Cart Load",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-load.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "load"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-load shopping cart load shopping-cart-load 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-subtract",
+      "slug": "shopping-cart-subtract",
+      "name": "Shopping Cart Subtract",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-subtract.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "subtract",
+        "minus"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-subtract shopping cart subtract shopping-cart-subtract 26595 subtract remove communication message minus bubble cart chat checkout comment delete dialogue",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "subtract"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "application-remove-subtract",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-cart-unload",
+      "slug": "shopping-cart-unload",
+      "name": "Shopping Cart Unload",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-cart-unload.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "unload"
+      ],
+      "searchTextPreview": "micro-solid shopping-cart-unload shopping cart unload shopping-cart-unload 26595 cart checkout shopping alert buy ecommerce exclamation inventory limits online order purchase",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "cart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cart-alert-quantity-limits",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cart-checkout",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    }
+  ]
+}

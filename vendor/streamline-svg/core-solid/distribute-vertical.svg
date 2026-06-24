@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" id="Distribute-Vertical--Streamline-Core" height="14" width="14">
+  <desc>
+    Distribute Vertical Streamline Icon: https://streamlinehq.com
+  </desc>
+  <g id="distribute-vertical">
+    <path id="Union" fill="#000000" fill-rule="evenodd" d="M0 1.75C0 1.33579 0.335786 1 0.75 1h12.5c0.4142 0 0.75 0.33579 0.75 0.75s-0.3358 0.75 -0.75 0.75H0.75C0.335786 2.5 0 2.16421 0 1.75Zm0 10.5c0 -0.4142 0.335786 -0.75 0.75 -0.75h12.5c0.4142 0 0.75 0.3358 0.75 0.75s-0.3358 0.75 -0.75 0.75H0.75c-0.414214 0 -0.75 -0.3358 -0.75 -0.75Zm3.00012 -7.74988c-0.82843 0 -1.5 0.67157 -1.5 1.5v2c0 0.82843 0.67157 1.5 1.5 1.5h7.99998c0.8284 0 1.5 -0.67157 1.5 -1.5v-2c0 -0.82843 -0.6716 -1.5 -1.5 -1.5H3.00012Z" clip-rule="evenodd" stroke-width="1"></path>
+  </g>
+</svg>

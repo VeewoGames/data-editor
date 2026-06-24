@@ -1,0 +1,1295 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "second_stage_gate",
+  "suggestions": [
+    {
+      "itemId": "layout-border-center",
+      "slug": "layout-border-center",
+      "name": "Layout Border Center",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-center.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "center",
+        "align",
+        "design",
+        "layout",
+        "centered",
+        "formatting",
+        "hamburger",
+        "interface"
+      ],
+      "searchTextPreview": "micro-solid layout-border-center layout border center layout-border-center 26573 center align design layout centered formatting hamburger interface lines menu midpoint outline",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "align-horizontal-center",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "center"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-horizontal-center",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "layout-border-corner",
+      "slug": "layout-border-corner",
+      "name": "Layout Border Corner",
+      "outputPath": "vendor/streamline-svg/micro-solid/layout-border-corner.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "arrow",
+        "corner",
+        "design",
+        "diagonal",
+        "direction",
+        "layout",
+        "geometry",
+        "arrangement"
+      ],
+      "searchTextPreview": "micro-solid layout-border-corner layout border corner layout-border-corner 26573 arrow corner design diagonal direction layout geometry arrangement customization dashboard frame grid",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "layout",
+              "border"
+            ],
+            "prefixMatches": [
+              "layout",
+              "layout-border"
+            ]
+          },
+          {
+            "itemId": "arrows-corner-down-left",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "corner"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "layout-border-frame",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-corner-down-left",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "search-check",
+      "slug": "search-check",
+      "name": "Search Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-check.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "check",
+        "apps",
+        "browser",
+        "explore",
+        "find",
+        "search",
+        "window",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid search-check search check search-check 26550 check apps browser explore find search window confirm app programming approval bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "application-search",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "search-off-disable",
+      "slug": "search-off-disable",
+      "name": "Search Off Disable",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-off-disable.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "disable",
+        "off",
+        "explore",
+        "find",
+        "search",
+        "app",
+        "apps",
+        "browser"
+      ],
+      "searchTextPreview": "micro-solid search-off-disable search off disable search-off-disable 26550 disable off explore find search app apps browser programming window disabled inactive",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "filter-off-disable",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "off",
+              "disable"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "filter-off-disable",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "search-text",
+      "slug": "search-text",
+      "name": "Search Text",
+      "outputPath": "vendor/streamline-svg/micro-solid/search-text.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "app",
+        "interface",
+        "navigation",
+        "explore",
+        "find",
+        "search",
+        "align"
+      ],
+      "searchTextPreview": "micro-solid search-text search text search-text 26550 text app interface navigation explore find search align button hamburger menu square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "search"
+            ],
+            "prefixMatches": [
+              "search"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-history-browser",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "settings-alert-update",
+      "slug": "settings-alert-update",
+      "name": "Settings Alert Update",
+      "outputPath": "vendor/streamline-svg/micro-solid/settings-alert-update.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "ai",
+        "automation",
+        "gear",
+        "settings",
+        "adjustment",
+        "alert",
+        "help",
+        "innovation"
+      ],
+      "searchTextPreview": "micro-solid settings-alert-update settings alert update settings-alert-update 26567 ai automation gear settings adjustment alert help innovation spark technology nut question",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "settings-bolt-nut",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "settings"
+            ],
+            "prefixMatches": [
+              "settings"
+            ]
+          },
+          {
+            "itemId": "settings-question",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "settings"
+            ],
+            "prefixMatches": [
+              "settings"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "settings-bolt-nut",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "settings-question",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "share-hand-lock",
+      "slug": "share-hand-lock",
+      "name": "Share Hand Lock",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-hand-lock.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "network",
+        "lock",
+        "privacy",
+        "secure",
+        "server",
+        "share",
+        "cybersecurity",
+        "security"
+      ],
+      "searchTextPreview": "micro-solid share-hand-lock share hand lock share-hand-lock 26574 network lock privacy secure server share cybersecurity security internet cloud data encrypted",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": [
+              "share"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "share-link-lock",
+      "slug": "share-link-lock",
+      "name": "Share Link Lock",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-link-lock.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "network",
+        "lock",
+        "privacy",
+        "secure",
+        "server",
+        "share",
+        "security",
+        "internet"
+      ],
+      "searchTextPreview": "micro-solid share-link-lock share link lock share-link-lock 26574 network lock privacy secure server share security internet cybersecurity encryption disabled off",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "share",
+              "link"
+            ],
+            "prefixMatches": [
+              "share",
+              "share-link"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "shield-check",
+      "slug": "shield-check",
+      "name": "Shield Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-check.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "check",
+        "confirm",
+        "security",
+        "alert",
+        "privacy",
+        "protection",
+        "shield",
+        "approval"
+      ],
+      "searchTextPreview": "micro-solid shield-check shield check shield-check 26558 check confirm security alert privacy protection shield approval approved bubble chat checkmark",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "shield-cross",
+      "slug": "shield-cross",
+      "name": "Shield Cross",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-cross.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "cross",
+        "protection",
+        "security",
+        "shield",
+        "alert",
+        "guard",
+        "privacy",
+        "firstaid"
+      ],
+      "searchTextPreview": "micro-solid shield-cross shield cross shield-cross 26558 cross protection security shield alert guard privacy catholicism christianity emergency firstaid healthcare",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "shield-protection-moderator-add",
+      "slug": "shield-protection-moderator-add",
+      "name": "Shield Protection Moderator Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-protection-moderator-add.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "add",
+        "alert",
+        "cross",
+        "plus",
+        "privacy",
+        "protection",
+        "security",
+        "shield"
+      ],
+      "searchTextPreview": "micro-solid shield-protection-moderator-add shield protection moderator add shield-protection-moderator-add 26558 add alert cross plus privacy protection security shield button buttons insert mathematics",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 17,
+            "lexicalScore": 14,
+            "nameMatches": [
+              "shield",
+              "protection"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 17,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "sign-cross-circle",
+      "slug": "sign-cross-circle",
+      "name": "Sign Cross Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "direction",
+        "navigation",
+        "network",
+        "pointer",
+        "religion"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-circle sign cross circle sign-cross-circle 26676 sign symbol cross direction navigation network catholicism christianity pointer religion dangerous octagon",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "sign-cross-shield",
+      "slug": "sign-cross-shield",
+      "name": "Sign Cross Shield",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-shield.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "cross",
+        "direction",
+        "symbol",
+        "network",
+        "pointer",
+        "religion",
+        "dangerous"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-shield sign cross shield sign-cross-shield 26676 sign cross direction symbol network catholicism christianity pointer religion dangerous octagon hashtag",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "sign-cross-square",
+      "slug": "sign-cross-square",
+      "name": "Sign Cross Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "direction",
+        "navigation",
+        "network",
+        "pointer",
+        "religion"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-square sign cross square sign-cross-square 26676 sign symbol cross direction navigation network catholicism christianity pointer religion dangerous octagon",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "telephone-phone",
+      "slug": "telephone-phone",
+      "name": "Telephone Phone",
+      "outputPath": "vendor/streamline-svg/micro-solid/telephone-phone.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "phone",
+        "call",
+        "contact",
+        "telephone",
+        "android",
+        "assistance",
+        "communication",
+        "device"
+      ],
+      "searchTextPreview": "micro-solid telephone-phone telephone phone telephone-phone 26635 phone call contact telephone android assistance communication device alert align block center",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "hashtag-tag-channel-phone-number",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "phone"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "hashtag-tag-channel-phone-number",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-call-caller-id-information-center",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "text-box-1",
+      "slug": "text-box-1",
+      "name": "Text Box 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "align",
+        "button",
+        "hamburger",
+        "navigation",
+        "text",
+        "box",
+        "ui",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-1 text box 1 text-box-1 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "text-box-2",
+      "slug": "text-box-2",
+      "name": "Text Box 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "align",
+        "button",
+        "hamburger",
+        "navigation",
+        "text",
+        "box",
+        "ui",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-2 text box 2 text-box-2 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    },
+    {
+      "itemId": "time-clock-hand",
+      "slug": "time-clock-hand",
+      "name": "Time Clock Hand",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-clock-hand.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "clock",
+        "time",
+        "hand",
+        "schedule",
+        "rating",
+        "timer",
+        "abstract",
+        "design"
+      ],
+      "searchTextPreview": "micro-solid time-clock-hand time clock hand time-clock-hand 26566 clock time hand schedule rating favorite flight timer travel abstract design geometry",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "second_stage_gate"
+    }
+  ]
+}

@@ -1,0 +1,6514 @@
+{
+  "kind": "streamline-stable-prefix-batch11-promotion",
+  "version": 1,
+  "family": "micro-solid",
+  "summary": {
+    "totalSuggestions": 777,
+    "promotedCount": 15,
+    "reasons": {
+      "not_review_required": 332,
+      "unsupported_prefix": 430,
+      "stable_prefix_batch11": 15
+    }
+  },
+  "promotedSuggestions": [
+    {
+      "itemId": "text-bar",
+      "slug": "text-bar",
+      "name": "Text Bar",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-bar.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "bar",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-bar text bar text-bar 26563 text align button hamburger navigation arrow interface lines menu square ui app",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-box-1",
+      "slug": "text-box-1",
+      "name": "Text Box 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-1 text box 1 text-box-1 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-box-2",
+      "slug": "text-box-2",
+      "name": "Text Box 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-box-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ],
+      "searchTextPreview": "micro-solid text-box-2 text box 2 text-box-2 26563 align button hamburger navigation text box ui container interface menu square storage",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-character",
+      "slug": "text-character",
+      "name": "Text Character",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-character.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "character",
+        "typography"
+      ],
+      "searchTextPreview": "micro-solid text-character text character text-character 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-flow-columns",
+      "slug": "text-flow-columns",
+      "name": "Text Flow Columns",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-flow-columns.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "flow",
+        "columns",
+        "layout"
+      ],
+      "searchTextPreview": "micro-solid text-flow-columns text flow columns text-flow-columns 26563 text hamburger interface align button navigation menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-flow-rows",
+      "slug": "text-flow-rows",
+      "name": "Text Flow Rows",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-flow-rows.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "flow",
+        "rows",
+        "layout"
+      ],
+      "searchTextPreview": "micro-solid text-flow-rows text flow rows text-flow-rows 26563 text hamburger interface align button navigation menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-line-spacing",
+      "slug": "text-line-spacing",
+      "name": "Text Line Spacing",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-line-spacing.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "line",
+        "spacing",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-line-spacing text line spacing text-line-spacing 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-search",
+      "slug": "text-search",
+      "name": "Text Search",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-search.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "search",
+        "find"
+      ],
+      "searchTextPreview": "micro-solid text-search text search text-search 26563 text navigation align button hamburger interface find search app menu ui lookup",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "search-text",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "text",
+              "search"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "search-text",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-select-start",
+      "slug": "text-select-start",
+      "name": "Text Select Start",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-select-start.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "select",
+        "start"
+      ],
+      "searchTextPreview": "micro-solid text-select-start text select start text-select-start 26563 text hamburger align button navigation interface menu arrow formatting lines square ui",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "text",
+              "select"
+            ],
+            "prefixMatches": [
+              "text",
+              "text-select"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-shadow",
+      "slug": "text-shadow",
+      "name": "Text Shadow",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-shadow.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "shadow"
+      ],
+      "searchTextPreview": "micro-solid text-shadow text shadow text-shadow 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-square",
+      "slug": "text-square",
+      "name": "Text Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid text-square text square text-square 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-strike-through",
+      "slug": "text-strike-through",
+      "name": "Text Strike Through",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-strike-through.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "strike",
+        "through",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-strike-through text strike through text-strike-through 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-style",
+      "slug": "text-style",
+      "name": "Text Style",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-style.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "style",
+        "formatting"
+      ],
+      "searchTextPreview": "micro-solid text-style text style text-style 26563 text hamburger align button navigation interface menu formatting lines square ui arrow",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-to-speech-1",
+      "slug": "text-to-speech-1",
+      "name": "Text To Speech 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-to-speech-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid text-to-speech-1 text to speech 1 text-to-speech-1 26563 button arrow navigation align hamburger text direction interface menu ui app bottom",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    },
+    {
+      "itemId": "text-to-speech-2",
+      "slug": "text-to-speech-2",
+      "name": "Text To Speech 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/text-to-speech-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid text-to-speech-2 text to speech 2 text-to-speech-2 26563 button arrow navigation align hamburger text direction interface menu ui app bottom",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": [
+              "text"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "text"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "text-select-end",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "align-text-bottom",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch11"
+    }
+  ],
+  "audit": [
+    {
+      "itemId": "inbox",
+      "slug": "inbox",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "inbox-open",
+      "slug": "inbox-open",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "inbox-post",
+      "slug": "inbox-post",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "inbox-tray-1",
+      "slug": "inbox-tray-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "inbox-tray-2",
+      "slug": "inbox-tray-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "incognito-mode",
+      "slug": "incognito-mode",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "incoming-call",
+      "slug": "incoming-call",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "incorrect-password",
+      "slug": "incorrect-password",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "indent-decrease-1",
+      "slug": "indent-decrease-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "indent-decrease-2",
+      "slug": "indent-decrease-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "indent-increase-1",
+      "slug": "indent-increase-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "indent-increase-2",
+      "slug": "indent-increase-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "indent-left",
+      "slug": "indent-left",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "indent-right",
+      "slug": "indent-right",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "information-circle",
+      "slug": "information-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "information-desk",
+      "slug": "information-desk",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "information-square",
+      "slug": "information-square",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "inside-stroke",
+      "slug": "inside-stroke",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "instagram-logo",
+      "slug": "instagram-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "insurance-hand",
+      "slug": "insurance-hand",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "integration-connection-webhook",
+      "slug": "integration-connection-webhook",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "investing-and-banking",
+      "slug": "investing-and-banking",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "invisible-view",
+      "slug": "invisible-view",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ios-ipados",
+      "slug": "ios-ipados",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "iphone",
+      "slug": "iphone",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "iron",
+      "slug": "iron",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "islam",
+      "slug": "islam",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "italic-off",
+      "slug": "italic-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "italic-text",
+      "slug": "italic-text",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "json-programming",
+      "slug": "json-programming",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "juice",
+      "slug": "juice",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "justified-align-1",
+      "slug": "justified-align-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "justified-align-2",
+      "slug": "justified-align-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "key",
+      "slug": "key",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "keyboard",
+      "slug": "keyboard",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "keyboard-virtual",
+      "slug": "keyboard-virtual",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "keyboard-wireless-2",
+      "slug": "keyboard-wireless-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "knife-2",
+      "slug": "knife-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ladder",
+      "slug": "ladder",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "landscape-setting--26582",
+      "slug": "landscape-setting",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "landscape-setting--26585",
+      "slug": "landscape-setting",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lasso-tool",
+      "slug": "lasso-tool",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "laundry-shirt",
+      "slug": "laundry-shirt",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "layer-add-1",
+      "slug": "layer-add-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "layer-add-2",
+      "slug": "layer-add-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "layer-style",
+      "slug": "layer-style",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "leaf--26582",
+      "slug": "leaf",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "leaf--26657",
+      "slug": "leaf",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "left-align-1",
+      "slug": "left-align-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "left-align-2",
+      "slug": "left-align-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "legal-justice-hammer",
+      "slug": "legal-justice-hammer",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "legal-justice-scale-1",
+      "slug": "legal-justice-scale-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "legal-justice-scale-2",
+      "slug": "legal-justice-scale-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "legal-justice-scale-3",
+      "slug": "legal-justice-scale-3",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lemon-fruit-seasoning",
+      "slug": "lemon-fruit-seasoning",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lens",
+      "slug": "lens",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "less-than-sign",
+      "slug": "less-than-sign",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lift",
+      "slug": "lift",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lift-disability",
+      "slug": "lift-disability",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "light-bulb",
+      "slug": "light-bulb",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "light-bulb-on",
+      "slug": "light-bulb-on",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "light-dark-mode",
+      "slug": "light-dark-mode",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "light-display-mode",
+      "slug": "light-display-mode",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "light-home-ceiling-on",
+      "slug": "light-home-ceiling-on",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "light-off",
+      "slug": "light-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lightning",
+      "slug": "lightning",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "line-start-circle",
+      "slug": "line-start-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "line-start-diamond",
+      "slug": "line-start-diamond",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "line-start-square",
+      "slug": "line-start-square",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "line-start-triangle",
+      "slug": "line-start-triangle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "link",
+      "slug": "link",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "link-broken",
+      "slug": "link-broken",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "link-share-circle",
+      "slug": "link-share-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "link-share-square",
+      "slug": "link-share-square",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "linkedin-logo",
+      "slug": "linkedin-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lipstick",
+      "slug": "lipstick",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-1-to-9-arrangement",
+      "slug": "list-1-to-9-arrangement",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-9-to-1-arrangement",
+      "slug": "list-9-to-1-arrangement",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-a-to-z-arrangement",
+      "slug": "list-a-to-z-arrangement",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-add",
+      "slug": "list-add",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-bullets",
+      "slug": "list-bullets",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-check",
+      "slug": "list-check",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-remove",
+      "slug": "list-remove",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-to-do-tasks-checklist",
+      "slug": "list-to-do-tasks-checklist",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "list-z-to-a-arrangement",
+      "slug": "list-z-to-a-arrangement",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "live-video",
+      "slug": "live-video",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "loading-half-status",
+      "slug": "loading-half-status",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "loading-status",
+      "slug": "loading-status",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-compass-1",
+      "slug": "location-compass-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-compass-2",
+      "slug": "location-compass-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-map-app-street",
+      "slug": "location-map-app-street",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-pin",
+      "slug": "location-pin",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-pin-2",
+      "slug": "location-pin-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-pin-disabled",
+      "slug": "location-pin-disabled",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-pin-option-add",
+      "slug": "location-pin-option-add",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-pin-option-check",
+      "slug": "location-pin-option-check",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-pin-option-remove",
+      "slug": "location-pin-option-remove",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-target-1",
+      "slug": "location-target-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-target-2",
+      "slug": "location-target-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "location-target-off",
+      "slug": "location-target-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lock",
+      "slug": "lock",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lock-circle",
+      "slug": "lock-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lock-key",
+      "slug": "lock-key",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lock-rotation",
+      "slug": "lock-rotation",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lock-shield",
+      "slug": "lock-shield",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "log",
+      "slug": "log",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "login-arrow",
+      "slug": "login-arrow",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "login-circle",
+      "slug": "login-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "login-import",
+      "slug": "login-import",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "logout-arrow",
+      "slug": "logout-arrow",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "logout-circle",
+      "slug": "logout-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "logout-export",
+      "slug": "logout-export",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "loop-media",
+      "slug": "loop-media",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lost-and-found",
+      "slug": "lost-and-found",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "lowercase",
+      "slug": "lowercase",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "magic-wand",
+      "slug": "magic-wand",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "magic-wand-2",
+      "slug": "magic-wand-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "magnet",
+      "slug": "magnet",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "make-up-brush",
+      "slug": "make-up-brush",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "man-symbol",
+      "slug": "man-symbol",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "map-direction-enable",
+      "slug": "map-direction-enable",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "meat",
+      "slug": "meat",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "medal-badge-star",
+      "slug": "medal-badge-star",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "media-library",
+      "slug": "media-library",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "medical-bag",
+      "slug": "medical-bag",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "medical-cross-sign-healthcare",
+      "slug": "medical-cross-sign-healthcare",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "medical-files-report-history",
+      "slug": "medical-files-report-history",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "medical-folder",
+      "slug": "medical-folder",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "medical-search-diagnosis",
+      "slug": "medical-search-diagnosis",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mega-phone-1",
+      "slug": "mega-phone-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mega-phone-2",
+      "slug": "mega-phone-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mention-account-username-email-address",
+      "slug": "mention-account-username-email-address",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "micro-chip-1",
+      "slug": "micro-chip-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "micro-chip-2",
+      "slug": "micro-chip-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "microscope-observation-sciene",
+      "slug": "microscope-observation-sciene",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "microwave",
+      "slug": "microwave",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "milk-carton",
+      "slug": "milk-carton",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "minus",
+      "slug": "minus",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "missed-call",
+      "slug": "missed-call",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mitter-corner",
+      "slug": "mitter-corner",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mobile-data-off",
+      "slug": "mobile-data-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mobile-data-on",
+      "slug": "mobile-data-on",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mobile-phone",
+      "slug": "mobile-phone",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "module",
+      "slug": "module",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "module-puzzle",
+      "slug": "module-puzzle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "module-three",
+      "slug": "module-three",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "money-bag",
+      "slug": "money-bag",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "money-safe-vault",
+      "slug": "money-safe-vault",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "money-shield",
+      "slug": "money-shield",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "money-wallet",
+      "slug": "money-wallet",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "monitor-project-screen",
+      "slug": "monitor-project-screen",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "moon",
+      "slug": "moon",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "moon-cloud",
+      "slug": "moon-cloud",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "motorcycle-courier",
+      "slug": "motorcycle-courier",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mountain",
+      "slug": "mountain",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mouse",
+      "slug": "mouse",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mouse-wireless",
+      "slug": "mouse-wireless",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mouse-wireless-1",
+      "slug": "mouse-wireless-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "moustache",
+      "slug": "moustache",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "mouth-lip",
+      "slug": "mouth-lip",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "move-circle",
+      "slug": "move-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "move-object-down",
+      "slug": "move-object-down",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "move-object-left",
+      "slug": "move-object-left",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "move-object-right",
+      "slug": "move-object-right",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "move-object-up",
+      "slug": "move-object-up",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "movie-video-clip",
+      "slug": "movie-video-clip",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "multiple-stars",
+      "slug": "multiple-stars",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "multiply",
+      "slug": "multiply",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "museum-painting",
+      "slug": "museum-painting",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-disc",
+      "slug": "music-disc",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-equalizer-1",
+      "slug": "music-equalizer-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-note-1",
+      "slug": "music-note-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-note-2",
+      "slug": "music-note-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-note-circle",
+      "slug": "music-note-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-note-circle-off",
+      "slug": "music-note-circle-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-note-off-1",
+      "slug": "music-note-off-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "music-note-off-2",
+      "slug": "music-note-off-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "network",
+      "slug": "network",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "network-node-connection-integration",
+      "slug": "network-node-connection-integration",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "newspaper",
+      "slug": "newspaper",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "next--26622",
+      "slug": "next",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "next--26662",
+      "slug": "next",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "next-circle",
+      "slug": "next-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "night-bedtime-mode-off",
+      "slug": "night-bedtime-mode-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "nintendo-xbox-controller",
+      "slug": "nintendo-xbox-controller",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "no-eyes",
+      "slug": "no-eyes",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "no-flight-airport",
+      "slug": "no-flight-airport",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "no-food-allowed",
+      "slug": "no-food-allowed",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "no-luggage",
+      "slug": "no-luggage",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "no-mouth",
+      "slug": "no-mouth",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "no-pets-allowed",
+      "slug": "no-pets-allowed",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "no-smoking-area",
+      "slug": "no-smoking-area",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "non-commercial",
+      "slug": "non-commercial",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "noodle",
+      "slug": "noodle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "north",
+      "slug": "north",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "nose-smell",
+      "slug": "nose-smell",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "not-equal-sign",
+      "slug": "not-equal-sign",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "note-pad",
+      "slug": "note-pad",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "notepad-add",
+      "slug": "notepad-add",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "notepad-check",
+      "slug": "notepad-check",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "notepad-remove",
+      "slug": "notepad-remove",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "notepad-subtract",
+      "slug": "notepad-subtract",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "notepad-text",
+      "slug": "notepad-text",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "notification-badge-circle",
+      "slug": "notification-badge-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "number",
+      "slug": "number",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "nurse-assistant-emergency",
+      "slug": "nurse-assistant-emergency",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "nurse-hat",
+      "slug": "nurse-hat",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "nutrition-fruit-orange",
+      "slug": "nutrition-fruit-orange",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ok-hand",
+      "slug": "ok-hand",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "one-finger-drag-horizontal",
+      "slug": "one-finger-drag-horizontal",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "one-finger-drag-vertical",
+      "slug": "one-finger-drag-vertical",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "one-finger-long-tap",
+      "slug": "one-finger-long-tap",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "one-finger-tap",
+      "slug": "one-finger-tap",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "online-medical-app-checkup-service",
+      "slug": "online-medical-app-checkup-service",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "online-medical-service-monitor",
+      "slug": "online-medical-service-monitor",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "online-medical-web-service",
+      "slug": "online-medical-web-service",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "open-hand",
+      "slug": "open-hand",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "open-quote",
+      "slug": "open-quote",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "option-1",
+      "slug": "option-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "option-2",
+      "slug": "option-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "orientation-landscape",
+      "slug": "orientation-landscape",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "orientation-portrait",
+      "slug": "orientation-portrait",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "outgoing-call",
+      "slug": "outgoing-call",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "outside-stroke",
+      "slug": "outside-stroke",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pacman",
+      "slug": "pacman",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "page-width-normal",
+      "slug": "page-width-normal",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "page-width-wide",
+      "slug": "page-width-wide",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paint-palette",
+      "slug": "paint-palette",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "painting",
+      "slug": "painting",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paper-clip-1",
+      "slug": "paper-clip-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paragraph",
+      "slug": "paragraph",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paragraph-article",
+      "slug": "paragraph-article",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paragraph-bullets",
+      "slug": "paragraph-bullets",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paragraph-column",
+      "slug": "paragraph-column",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paragraph-indent-first-line",
+      "slug": "paragraph-indent-first-line",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paragraph-indent-last-line",
+      "slug": "paragraph-indent-last-line",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "park-bench",
+      "slug": "park-bench",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "parking-sign",
+      "slug": "parking-sign",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "party-hat",
+      "slug": "party-hat",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "party-popper",
+      "slug": "party-popper",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "passport",
+      "slug": "passport",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "password-block",
+      "slug": "password-block",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "password-input",
+      "slug": "password-input",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-divide",
+      "slug": "pathfinder-circle-divide",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-exclude",
+      "slug": "pathfinder-circle-exclude",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-intersect",
+      "slug": "pathfinder-circle-intersect",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-merge",
+      "slug": "pathfinder-circle-merge",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-minus-back-1",
+      "slug": "pathfinder-circle-minus-back-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-1",
+      "slug": "pathfinder-circle-minus-front-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-2",
+      "slug": "pathfinder-circle-minus-front-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-outline",
+      "slug": "pathfinder-circle-outline",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-trim",
+      "slug": "pathfinder-circle-trim",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-circle-union",
+      "slug": "pathfinder-circle-union",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-divide",
+      "slug": "pathfinder-divide",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-exclude",
+      "slug": "pathfinder-exclude",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-intersect",
+      "slug": "pathfinder-intersect",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-merge",
+      "slug": "pathfinder-merge",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-minus-back-1",
+      "slug": "pathfinder-minus-back-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-minus-front",
+      "slug": "pathfinder-minus-front",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-outline",
+      "slug": "pathfinder-outline",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-square-minus-front-2",
+      "slug": "pathfinder-square-minus-front-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-trim",
+      "slug": "pathfinder-trim",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pathfinder-union",
+      "slug": "pathfinder-union",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pause-2",
+      "slug": "pause-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pause-circle",
+      "slug": "pause-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pause-play-circle",
+      "slug": "pause-play-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "paypal-logo",
+      "slug": "paypal-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "peace-hand",
+      "slug": "peace-hand",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "peace-symbol",
+      "slug": "peace-symbol",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pen-1",
+      "slug": "pen-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pen-2",
+      "slug": "pen-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pen-3",
+      "slug": "pen-3",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pen-draw",
+      "slug": "pen-draw",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pen-tool",
+      "slug": "pen-tool",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pen-tool-add",
+      "slug": "pen-tool-add",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pen-tool-delete",
+      "slug": "pen-tool-delete",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pencil-circle",
+      "slug": "pencil-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pepper-bottle",
+      "slug": "pepper-bottle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "permanently-delete",
+      "slug": "permanently-delete",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "personal-hotspot",
+      "slug": "personal-hotspot",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "perspective-wrap-transform-distort",
+      "slug": "perspective-wrap-transform-distort",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pet-paw",
+      "slug": "pet-paw",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pets-allowed",
+      "slug": "pets-allowed",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "photo-composition-oval",
+      "slug": "photo-composition-oval",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "photo-composition-vertical",
+      "slug": "photo-composition-vertical",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "photo-compsition-horizontal",
+      "slug": "photo-compsition-horizontal",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "photo-four",
+      "slug": "photo-four",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "photo-polaroid",
+      "slug": "photo-polaroid",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pi-symbol",
+      "slug": "pi-symbol",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "piano-keys",
+      "slug": "piano-keys",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "piggy-bank",
+      "slug": "piggy-bank",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pin-1",
+      "slug": "pin-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pin-2",
+      "slug": "pin-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pine-tree",
+      "slug": "pine-tree",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pizza",
+      "slug": "pizza",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plane-boarding-pass",
+      "slug": "plane-boarding-pass",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plane-flight-board",
+      "slug": "plane-flight-board",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plane-landing",
+      "slug": "plane-landing",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plane-take-off",
+      "slug": "plane-take-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "planet",
+      "slug": "planet",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plant-mint-minting",
+      "slug": "plant-mint-minting",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play",
+      "slug": "play",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play-list-1",
+      "slug": "play-list-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play-list-2",
+      "slug": "play-list-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play-list-3",
+      "slug": "play-list-3",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play-list-4",
+      "slug": "play-list-4",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play-list-folder",
+      "slug": "play-list-folder",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play-list-phone",
+      "slug": "play-list-phone",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "play-pause",
+      "slug": "play-pause",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "playground",
+      "slug": "playground",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plus",
+      "slug": "plus",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plus-minus-1",
+      "slug": "plus-minus-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "plus-minus-2",
+      "slug": "plus-minus-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "podcast-wifi-hotspot",
+      "slug": "podcast-wifi-hotspot",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "police-car",
+      "slug": "police-car",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "polygonal-lasso-tool",
+      "slug": "polygonal-lasso-tool",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pool-ladder",
+      "slug": "pool-ladder",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "popcorn",
+      "slug": "popcorn",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "portrait-setting--26582",
+      "slug": "portrait-setting",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "portrait-setting--26585",
+      "slug": "portrait-setting",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "potted-flower-tulip",
+      "slug": "potted-flower-tulip",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "pound-currency",
+      "slug": "pound-currency",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "power-1",
+      "slug": "power-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "power-2",
+      "slug": "power-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "power-off--26619",
+      "slug": "power-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "power-off--26622",
+      "slug": "power-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "prescription-pills-drugs-healthcare",
+      "slug": "prescription-pills-drugs-healthcare",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "presentation",
+      "slug": "presentation",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "presentation-podium",
+      "slug": "presentation-podium",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "presentation-speaker-speech",
+      "slug": "presentation-speaker-speech",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "previous--26622",
+      "slug": "previous",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "previous--26662",
+      "slug": "previous",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "previous-circle",
+      "slug": "previous-circle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "print-add-printer",
+      "slug": "print-add-printer",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "print-error",
+      "slug": "print-error",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "print-off-disabled",
+      "slug": "print-off-disabled",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "print-printer-connected",
+      "slug": "print-printer-connected",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "print-printer-disconnected",
+      "slug": "print-printer-disconnected",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "print-remove-printer",
+      "slug": "print-remove-printer",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "printer",
+      "slug": "printer",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "projector-board",
+      "slug": "projector-board",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "projector-screen",
+      "slug": "projector-screen",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "public-domain",
+      "slug": "public-domain",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "qr-code",
+      "slug": "qr-code",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "quality-4k",
+      "slug": "quality-4k",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "quality-hd",
+      "slug": "quality-hd",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "quality-hq",
+      "slug": "quality-hq",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "quotation",
+      "slug": "quotation",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "radio",
+      "slug": "radio",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "radio-active-1",
+      "slug": "radio-active-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "radio-active-2",
+      "slug": "radio-active-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rain-1",
+      "slug": "rain-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rain-2",
+      "slug": "rain-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rain-water-drop",
+      "slug": "rain-water-drop",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rainbow",
+      "slug": "rainbow",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rainbow-cloud",
+      "slug": "rainbow-cloud",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "receipt",
+      "slug": "receipt",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "record-2",
+      "slug": "record-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "record-3",
+      "slug": "record-3",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "recording-tape-1",
+      "slug": "recording-tape-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "recording-tape-2",
+      "slug": "recording-tape-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rectangle-flag",
+      "slug": "rectangle-flag",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rectangle-frame",
+      "slug": "rectangle-frame",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "recycle-2",
+      "slug": "recycle-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "refrigerator",
+      "slug": "refrigerator",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "registered",
+      "slug": "registered",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "remove-1",
+      "slug": "remove-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "remove-2",
+      "slug": "remove-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "remove-circle",
+      "slug": "remove-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "remove-square",
+      "slug": "remove-square",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "reply",
+      "slug": "reply",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "reply-2",
+      "slug": "reply-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "reports-document-analytics",
+      "slug": "reports-document-analytics",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "responsive-layout",
+      "slug": "responsive-layout",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "return-1",
+      "slug": "return-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "return-2",
+      "slug": "return-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "return-3",
+      "slug": "return-3",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rewind-1",
+      "slug": "rewind-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rewind-2",
+      "slug": "rewind-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ribbon-1",
+      "slug": "ribbon-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ribbon-2",
+      "slug": "ribbon-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "riceball",
+      "slug": "riceball",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "right-align-1",
+      "slug": "right-align-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "right-align-2",
+      "slug": "right-align-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ring",
+      "slug": "ring",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "robot",
+      "slug": "robot",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rock-slide",
+      "slug": "rock-slide",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rocket",
+      "slug": "rocket",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "roller-paintbrush",
+      "slug": "roller-paintbrush",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rose",
+      "slug": "rose",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rotate-angle-45",
+      "slug": "rotate-angle-45",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rotate-angle-90",
+      "slug": "rotate-angle-90",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "round-brackets",
+      "slug": "round-brackets",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "round-cap",
+      "slug": "round-cap",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "round-corner",
+      "slug": "round-corner",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "route",
+      "slug": "route",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "router-wifi-network",
+      "slug": "router-wifi-network",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rss",
+      "slug": "rss",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rss-square",
+      "slug": "rss-square",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ruler",
+      "slug": "ruler",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ruler-angle-measurement",
+      "slug": "ruler-angle-measurement",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "running",
+      "slug": "running",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "rupee",
+      "slug": "rupee",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sail-ship",
+      "slug": "sail-ship",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "salad-vegetable-diet",
+      "slug": "salad-vegetable-diet",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "salt-bottle",
+      "slug": "salt-bottle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "satellite--26574",
+      "slug": "satellite",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "satellite--26655",
+      "slug": "satellite",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "save-floppy-disk",
+      "slug": "save-floppy-disk",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scan-text",
+      "slug": "scan-text",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scanner-1",
+      "slug": "scanner-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scanner-bar-code",
+      "slug": "scanner-bar-code",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scanner-payment",
+      "slug": "scanner-payment",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "school",
+      "slug": "school",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scissors",
+      "slug": "scissors",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scooter",
+      "slug": "scooter",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "screen-1",
+      "slug": "screen-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "screen-2",
+      "slug": "screen-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "screen-broadcast",
+      "slug": "screen-broadcast",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "screen-sharing",
+      "slug": "screen-sharing",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "screen-sharing-tutorial",
+      "slug": "screen-sharing-tutorial",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "screen-tv",
+      "slug": "screen-tv",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "screw-driver",
+      "slug": "screw-driver",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "script-1",
+      "slug": "script-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "script-2",
+      "slug": "script-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scroll-top",
+      "slug": "scroll-top",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scroll-up",
+      "slug": "scroll-up",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "scroll-up-down",
+      "slug": "scroll-up-down",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sd-card",
+      "slug": "sd-card",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-all",
+      "slug": "select-all",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-back",
+      "slug": "select-back",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-button",
+      "slug": "select-button",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-circle-area-1",
+      "slug": "select-circle-area-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-frame--26552",
+      "slug": "select-frame",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-frame--26582",
+      "slug": "select-frame",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-front",
+      "slug": "select-front",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-none",
+      "slug": "select-none",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-square-area-1",
+      "slug": "select-square-area-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "select-square-area-2",
+      "slug": "select-square-area-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "selection-tool-select-items",
+      "slug": "selection-tool-select-items",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "send",
+      "slug": "send",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "serving-dome--26647",
+      "slug": "serving-dome",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "serving-dome--26654",
+      "slug": "serving-dome",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "setting-toggle",
+      "slug": "setting-toggle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "settings",
+      "slug": "settings",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "settings-alert-update",
+      "slug": "settings-alert-update",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sharing-data",
+      "slug": "sharing-data",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shelf",
+      "slug": "shelf",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shield-check",
+      "slug": "shield-check",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shield-cross",
+      "slug": "shield-cross",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shield-protection-moderator-add",
+      "slug": "shield-protection-moderator-add",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shield-star-police-badge",
+      "slug": "shield-star-police-badge",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shift",
+      "slug": "shift",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shift-square",
+      "slug": "shift-square",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shinto",
+      "slug": "shinto",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ship",
+      "slug": "ship",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shipment-add",
+      "slug": "shipment-add",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shipment-check",
+      "slug": "shipment-check",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shipment-favorite",
+      "slug": "shipment-favorite",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shipment-remove",
+      "slug": "shipment-remove",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shipment-search",
+      "slug": "shipment-search",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shipping-truck",
+      "slug": "shipping-truck",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shirt",
+      "slug": "shirt",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-basket-1",
+      "slug": "shopping-basket-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-basket-2",
+      "slug": "shopping-basket-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-basket-3",
+      "slug": "shopping-basket-3",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-store-1",
+      "slug": "shopping-store-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-store-2",
+      "slug": "shopping-store-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-store-signage-1",
+      "slug": "shopping-store-signage-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-store-signage-2",
+      "slug": "shopping-store-signage-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shopping-store-signage-3",
+      "slug": "shopping-store-signage-3",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "show-hat-magician",
+      "slug": "show-hat-magician",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "shower-head",
+      "slug": "shower-head",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sigma",
+      "slug": "sigma",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sign-cross-circle",
+      "slug": "sign-cross-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sign-cross-shield",
+      "slug": "sign-cross-shield",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sign-cross-square",
+      "slug": "sign-cross-square",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signage-meeting-point",
+      "slug": "signage-meeting-point",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signage-priority-pregnant-woman",
+      "slug": "signage-priority-pregnant-woman",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signal-disconnected",
+      "slug": "signal-disconnected",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signal-graph",
+      "slug": "signal-graph",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signal-graph-circle",
+      "slug": "signal-graph-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signal-loading",
+      "slug": "signal-loading",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signal-square",
+      "slug": "signal-square",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "signature",
+      "slug": "signature",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sim-card",
+      "slug": "sim-card",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sim-card-alert",
+      "slug": "sim-card-alert",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sim-card-download-eject",
+      "slug": "sim-card-download-eject",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sim-card-upload-insert",
+      "slug": "sim-card-upload-insert",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sim-no-card",
+      "slug": "sim-no-card",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "siren-police-emergency",
+      "slug": "siren-police-emergency",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "skin",
+      "slug": "skin",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "skull",
+      "slug": "skull",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "skype-logo",
+      "slug": "skype-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "slash-command",
+      "slug": "slash-command",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sleep",
+      "slug": "sleep",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "slider-horizontal-1",
+      "slug": "slider-horizontal-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "slider-horizontal-2",
+      "slug": "slider-horizontal-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "slider-horizontal-square",
+      "slug": "slider-horizontal-square",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "slider-vertical-1",
+      "slug": "slider-vertical-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "slider-vertical-2",
+      "slug": "slider-vertical-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "slider-vertical-square",
+      "slug": "slider-vertical-square",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "smart-watch-1",
+      "slug": "smart-watch-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "smart-watch-2",
+      "slug": "smart-watch-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "smiley-laughing-3",
+      "slug": "smiley-laughing-3",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "smoking-area",
+      "slug": "smoking-area",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "snooze-clock",
+      "slug": "snooze-clock",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "snorkle",
+      "slug": "snorkle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "snow-1",
+      "slug": "snow-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "snow-2",
+      "slug": "snow-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "snow-flake",
+      "slug": "snow-flake",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "snow-flake-cross",
+      "slug": "snow-flake-cross",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "soccer",
+      "slug": "soccer",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sock",
+      "slug": "sock",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sofa",
+      "slug": "sofa",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "song-lyric",
+      "slug": "song-lyric",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sort-ascending",
+      "slug": "sort-ascending",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sort-descending",
+      "slug": "sort-descending",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sos-help-emergency-sign",
+      "slug": "sos-help-emergency-sign",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sound-recording-copyright",
+      "slug": "sound-recording-copyright",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "south",
+      "slug": "south",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "spades-symbol",
+      "slug": "spades-symbol",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "speaker-1",
+      "slug": "speaker-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "speaker-2",
+      "slug": "speaker-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "split-vertical",
+      "slug": "split-vertical",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "spoon-plate",
+      "slug": "spoon-plate",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "spray-bottle",
+      "slug": "spray-bottle",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sprout",
+      "slug": "sprout",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "square-brackets",
+      "slug": "square-brackets",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "square-cap",
+      "slug": "square-cap",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "square-root-sign",
+      "slug": "square-root-sign",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stadium",
+      "slug": "stadium",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stairs-1",
+      "slug": "stairs-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stairs-2",
+      "slug": "stairs-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "star-badge",
+      "slug": "star-badge",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "star-circle",
+      "slug": "star-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "star-medal-2",
+      "slug": "star-medal-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "star-square",
+      "slug": "star-square",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "startup",
+      "slug": "startup",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "steak",
+      "slug": "steak",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "steering-wheel",
+      "slug": "steering-wheel",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stethoscope",
+      "slug": "stethoscope",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stock",
+      "slug": "stock",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stop",
+      "slug": "stop",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stop-circle",
+      "slug": "stop-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "straight-cap",
+      "slug": "straight-cap",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "strategy-tasks",
+      "slug": "strategy-tasks",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "strawberry",
+      "slug": "strawberry",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "street-road",
+      "slug": "street-road",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "street-sign",
+      "slug": "street-sign",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "strike-through",
+      "slug": "strike-through",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "stroller",
+      "slug": "stroller",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sub-script",
+      "slug": "sub-script",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "subscription-cashflow",
+      "slug": "subscription-cashflow",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "suit-case-1",
+      "slug": "suit-case-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "suit-case-2",
+      "slug": "suit-case-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "suit-case-3",
+      "slug": "suit-case-3",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "suitcase-rolling",
+      "slug": "suitcase-rolling",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "summit",
+      "slug": "summit",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sun",
+      "slug": "sun",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sun-cloud-1",
+      "slug": "sun-cloud-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sun-cloud-2",
+      "slug": "sun-cloud-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sun-haze",
+      "slug": "sun-haze",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sunlight",
+      "slug": "sunlight",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sunrise",
+      "slug": "sunrise",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sunset--26559",
+      "slug": "sunset",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "sunset--26657",
+      "slug": "sunset",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "super-script",
+      "slug": "super-script",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "swap-exchange-transaction",
+      "slug": "swap-exchange-transaction",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "swap-exchange-transaction-off-disabled",
+      "slug": "swap-exchange-transaction-off-disabled",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "swatch",
+      "slug": "swatch",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "swimming",
+      "slug": "swimming",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "syringe",
+      "slug": "syringe",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "table-lamp",
+      "slug": "table-lamp",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tablet-capsule",
+      "slug": "tablet-capsule",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tablet-disable",
+      "slug": "tablet-disable",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tag",
+      "slug": "tag",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tag-label-off-disable",
+      "slug": "tag-label-off-disable",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tall-hat",
+      "slug": "tall-hat",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "target",
+      "slug": "target",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "target-dollar",
+      "slug": "target-dollar",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "task-list",
+      "slug": "task-list",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "task-list-edit",
+      "slug": "task-list-edit",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tasks-projects",
+      "slug": "tasks-projects",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tea-cup",
+      "slug": "tea-cup",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tea-hot-relax",
+      "slug": "tea-hot-relax",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "teapot",
+      "slug": "teapot",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "telephone-phone",
+      "slug": "telephone-phone",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "telescope",
+      "slug": "telescope",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "temperature",
+      "slug": "temperature",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "temperature-cold-decrease",
+      "slug": "temperature-cold-decrease",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "temperature-hot-increase",
+      "slug": "temperature-hot-increase",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "temporary-lock",
+      "slug": "temporary-lock",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tennis",
+      "slug": "tennis",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "test-tube",
+      "slug": "test-tube",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "text-bar",
+      "slug": "text-bar",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "bar",
+        "formatting"
+      ]
+    },
+    {
+      "itemId": "text-box-1",
+      "slug": "text-box-1",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ]
+    },
+    {
+      "itemId": "text-box-2",
+      "slug": "text-box-2",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "box",
+        "container"
+      ]
+    },
+    {
+      "itemId": "text-character",
+      "slug": "text-character",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "character",
+        "typography"
+      ]
+    },
+    {
+      "itemId": "text-flow-columns",
+      "slug": "text-flow-columns",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "flow",
+        "columns",
+        "layout"
+      ]
+    },
+    {
+      "itemId": "text-flow-rows",
+      "slug": "text-flow-rows",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "flow",
+        "rows",
+        "layout"
+      ]
+    },
+    {
+      "itemId": "text-line-spacing",
+      "slug": "text-line-spacing",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "line",
+        "spacing",
+        "formatting"
+      ]
+    },
+    {
+      "itemId": "text-search",
+      "slug": "text-search",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "search",
+        "find"
+      ]
+    },
+    {
+      "itemId": "text-select-start",
+      "slug": "text-select-start",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "select",
+        "start"
+      ]
+    },
+    {
+      "itemId": "text-shadow",
+      "slug": "text-shadow",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "shadow"
+      ]
+    },
+    {
+      "itemId": "text-square",
+      "slug": "text-square",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "square"
+      ]
+    },
+    {
+      "itemId": "text-strike-through",
+      "slug": "text-strike-through",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "strike",
+        "through",
+        "formatting"
+      ]
+    },
+    {
+      "itemId": "text-style",
+      "slug": "text-style",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "style",
+        "formatting"
+      ]
+    },
+    {
+      "itemId": "text-to-speech-1",
+      "slug": "text-to-speech-1",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ]
+    },
+    {
+      "itemId": "text-to-speech-2",
+      "slug": "text-to-speech-2",
+      "reason": "stable_prefix_batch11",
+      "promote": true,
+      "suggestedTags": [
+        "text",
+        "speech",
+        "audio"
+      ]
+    },
+    {
+      "itemId": "theater-mask",
+      "slug": "theater-mask",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "thermometer-decrease",
+      "slug": "thermometer-decrease",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "thermometer-disable",
+      "slug": "thermometer-disable",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "thermometer-increas",
+      "slug": "thermometer-increas",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "third-quarter-moon",
+      "slug": "third-quarter-moon",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "threat-browser-1",
+      "slug": "threat-browser-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "threat-document",
+      "slug": "threat-document",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "threat-folder",
+      "slug": "threat-folder",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "threat-monitor",
+      "slug": "threat-monitor",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "threat-phone",
+      "slug": "threat-phone",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ticket",
+      "slug": "ticket",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tidal-wave",
+      "slug": "tidal-wave",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tiktok-logo",
+      "slug": "tiktok-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "time-stop-watch",
+      "slug": "time-stop-watch",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "time-stop-watch-quarter",
+      "slug": "time-stop-watch-quarter",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "time-stop-watch-third-quarter",
+      "slug": "time-stop-watch-third-quarter",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "timer-10-seconds",
+      "slug": "timer-10-seconds",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "timer-3-seconds",
+      "slug": "timer-3-seconds",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "timer-5-seconds",
+      "slug": "timer-5-seconds",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "timer-auto",
+      "slug": "timer-auto",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "timer-pace",
+      "slug": "timer-pace",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "timer-pace-average",
+      "slug": "timer-pace-average",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "to-do-checklist",
+      "slug": "to-do-checklist",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "to-do-unchecked",
+      "slug": "to-do-unchecked",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "toast",
+      "slug": "toast",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "toilet",
+      "slug": "toilet",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "toilet-paper",
+      "slug": "toilet-paper",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "toilet-sign-man",
+      "slug": "toilet-sign-man",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "toilet-sign-man-woman",
+      "slug": "toilet-sign-man-woman",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "toiltet-sign-woman",
+      "slug": "toiltet-sign-woman",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tombstone-cemetery-graveyard",
+      "slug": "tombstone-cemetery-graveyard",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tongue-taste",
+      "slug": "tongue-taste",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tool-box",
+      "slug": "tool-box",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tooth",
+      "slug": "tooth",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "towel",
+      "slug": "towel",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "trackpad-input",
+      "slug": "trackpad-input",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "traffic-cone",
+      "slug": "traffic-cone",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "traffic-light",
+      "slug": "traffic-light",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "train-front",
+      "slug": "train-front",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "transaction-refund-cashback",
+      "slug": "transaction-refund-cashback",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "transaction-repeat-recurring",
+      "slug": "transaction-repeat-recurring",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "transfer-cart",
+      "slug": "transfer-cart",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "transfer-motorcycle",
+      "slug": "transfer-motorcycle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "translate",
+      "slug": "translate",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "travel-map",
+      "slug": "travel-map",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tree-1",
+      "slug": "tree-1",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tree-2",
+      "slug": "tree-2",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tree-3",
+      "slug": "tree-3",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "tree-4",
+      "slug": "tree-4",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "trending-content",
+      "slug": "trending-content",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "triangle-flag",
+      "slug": "triangle-flag",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "trophy-winner",
+      "slug": "trophy-winner",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "twitter-logo",
+      "slug": "twitter-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "type-area",
+      "slug": "type-area",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "type-cursor-1",
+      "slug": "type-cursor-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "type-on-path",
+      "slug": "type-on-path",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "ufo",
+      "slug": "ufo",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "umbrella",
+      "slug": "umbrella",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "under-construction",
+      "slug": "under-construction",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "underline",
+      "slug": "underline",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "unlink",
+      "slug": "unlink",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "unlock",
+      "slug": "unlock",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "usb-cable",
+      "slug": "usb-cable",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "usb-drive",
+      "slug": "usb-drive",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "usb-port",
+      "slug": "usb-port",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "validation-check",
+      "slug": "validation-check",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "validation-check-circle",
+      "slug": "validation-check-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "validation-check-square-1",
+      "slug": "validation-check-square-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "validation-check-square-2",
+      "slug": "validation-check-square-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "vertical-scroll",
+      "slug": "vertical-scroll",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "vertical-text-box",
+      "slug": "vertical-text-box",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "video-playlist-subscription",
+      "slug": "video-playlist-subscription",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "video-slow-motion",
+      "slug": "video-slow-motion",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "view",
+      "slug": "view",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "view-off",
+      "slug": "view-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "virtual-reality",
+      "slug": "virtual-reality",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "virus",
+      "slug": "virus",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "virus-antivirus",
+      "slug": "virus-antivirus",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "virus-immunity",
+      "slug": "virus-immunity",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "vision-pro",
+      "slug": "vision-pro",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "visual-blind",
+      "slug": "visual-blind",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "voice-mail",
+      "slug": "voice-mail",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "voice-mail-off",
+      "slug": "voice-mail-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volcano",
+      "slug": "volcano",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-2",
+      "slug": "volume-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-decrease",
+      "slug": "volume-decrease",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-disable-mute-1",
+      "slug": "volume-disable-mute-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-disable-mute-2",
+      "slug": "volume-disable-mute-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-high",
+      "slug": "volume-high",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-increase",
+      "slug": "volume-increase",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-low",
+      "slug": "volume-low",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-setting",
+      "slug": "volume-setting",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-sleep",
+      "slug": "volume-sleep",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-speaker",
+      "slug": "volume-speaker",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "volume-warning",
+      "slug": "volume-warning",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "vpn-connection",
+      "slug": "vpn-connection",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "waiting-appointments-calendar",
+      "slug": "waiting-appointments-calendar",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "walk-man",
+      "slug": "walk-man",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wallet-card-holder",
+      "slug": "wallet-card-holder",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wallet-purse",
+      "slug": "wallet-purse",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warehouse",
+      "slug": "warehouse",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-arc",
+      "slug": "warp-arc",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-arc-lower",
+      "slug": "warp-arc-lower",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-bulge",
+      "slug": "warp-bulge",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-fish",
+      "slug": "warp-fish",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-fisheye",
+      "slug": "warp-fisheye",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-flag",
+      "slug": "warp-flag",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-inflate",
+      "slug": "warp-inflate",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-rise",
+      "slug": "warp-rise",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-shell-lower",
+      "slug": "warp-shell-lower",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-squeeze",
+      "slug": "warp-squeeze",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-twist",
+      "slug": "warp-twist",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warp-wave",
+      "slug": "warp-wave",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "warranty-badge-highlight",
+      "slug": "warranty-badge-highlight",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "water-drop-1",
+      "slug": "water-drop-1",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "water-drop-2",
+      "slug": "water-drop-2",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "water-glass",
+      "slug": "water-glass",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "water-melon",
+      "slug": "water-melon",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "water-pitcher",
+      "slug": "water-pitcher",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "water-tap",
+      "slug": "water-tap",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "water-temperature",
+      "slug": "water-temperature",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "waving-hand",
+      "slug": "waving-hand",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "weather-hail",
+      "slug": "weather-hail",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "web",
+      "slug": "web",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "web-browser-content-wysiwyg",
+      "slug": "web-browser-content-wysiwyg",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "webcam",
+      "slug": "webcam",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "webcam-off",
+      "slug": "webcam-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "webcam-video",
+      "slug": "webcam-video",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "webcam-video-circle",
+      "slug": "webcam-video-circle",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "webcam-video-off",
+      "slug": "webcam-video-off",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "webcam-video-square",
+      "slug": "webcam-video-square",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "west",
+      "slug": "west",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wheat",
+      "slug": "wheat",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wheelchair",
+      "slug": "wheelchair",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wheelchair-disability",
+      "slug": "wheelchair-disability",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi",
+      "slug": "wifi",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi-antenna",
+      "slug": "wifi-antenna",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi-disabled",
+      "slug": "wifi-disabled",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi-not-secure-connection",
+      "slug": "wifi-not-secure-connection",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi-secure-connection",
+      "slug": "wifi-secure-connection",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi-signal-low",
+      "slug": "wifi-signal-low",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi-signal-medium",
+      "slug": "wifi-signal-medium",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wifi-signal-none",
+      "slug": "wifi-signal-none",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wind",
+      "slug": "wind",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wind-flow",
+      "slug": "wind-flow",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "windmill-turbine",
+      "slug": "windmill-turbine",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "windows-logo",
+      "slug": "windows-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wine",
+      "slug": "wine",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wine-glass",
+      "slug": "wine-glass",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wireless-fast-charging",
+      "slug": "wireless-fast-charging",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wireless-keyboard",
+      "slug": "wireless-keyboard",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "woman-symbol",
+      "slug": "woman-symbol",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "workflow-project-arrow",
+      "slug": "workflow-project-arrow",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "workspace-desk",
+      "slug": "workspace-desk",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wrap-arc-upper",
+      "slug": "wrap-arc-upper",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wrap-arch",
+      "slug": "wrap-arch",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wrap-shell-upper",
+      "slug": "wrap-shell-upper",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "wrench",
+      "slug": "wrench",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "yin-yang-symbol",
+      "slug": "yin-yang-symbol",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "youtube-logo",
+      "slug": "youtube-logo",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "yuan-currency",
+      "slug": "yuan-currency",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "zoom-area",
+      "slug": "zoom-area",
+      "reason": "not_review_required",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "zoom-fit-screen",
+      "slug": "zoom-fit-screen",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "zoom-in",
+      "slug": "zoom-in",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "zoom-in-area",
+      "slug": "zoom-in-area",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "zoom-out",
+      "slug": "zoom-out",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    },
+    {
+      "itemId": "zoom-out-area",
+      "slug": "zoom-out-area",
+      "reason": "unsupported_prefix",
+      "promote": false,
+      "suggestedTags": []
+    }
+  ]
+}

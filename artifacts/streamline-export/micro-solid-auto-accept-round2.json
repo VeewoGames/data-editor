@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-06-24T04:41:52.530Z",
+  "suggestions": [
+    {
+      "itemId": "mail-reply",
+      "slug": "mail-reply",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "send",
+        "all",
+        "affection",
+        "arrow",
+        "bookmark",
+        "bubble"
+      ],
+      "confidence": 0.99,
+      "decision": "auto_accept"
+    },
+    {
+      "itemId": "mail-send",
+      "slug": "mail-send",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "send",
+        "all",
+        "arrow",
+        "button",
+        "forward",
+        "affection"
+      ],
+      "confidence": 0.99,
+      "decision": "auto_accept"
+    },
+    {
+      "itemId": "mail-send-reply",
+      "slug": "mail-send-reply",
+      "suggestedTags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "send",
+        "all",
+        "arrow",
+        "button",
+        "forward",
+        "affection"
+      ],
+      "confidence": 0.99,
+      "decision": "auto_accept"
+    },
+    {
+      "itemId": "send-email-square",
+      "slug": "send-email-square",
+      "suggestedTags": [
+        "email",
+        "envelope",
+        "message",
+        "communication",
+        "mail",
+        "all",
+        "inbox",
+        "send",
+        "arrow",
+        "forward",
+        "button",
+        "block"
+      ],
+      "confidence": 0.99,
+      "decision": "auto_accept"
+    },
+    {
+      "itemId": "smiley-emoticon-sad",
+      "slug": "smiley-emoticon-sad",
+      "suggestedTags": [
+        "chat",
+        "smiley",
+        "emoji",
+        "happy",
+        "message",
+        "face",
+        "bubble",
+        "smile",
+        "emotion",
+        "cheerful",
+        "crying",
+        "frown"
+      ],
+      "confidence": 0.99,
+      "decision": "auto_accept"
+    }
+  ]
+}

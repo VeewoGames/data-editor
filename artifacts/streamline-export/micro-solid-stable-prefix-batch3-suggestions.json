@@ -1,0 +1,599 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch3",
+  "suggestions": [
+    {
+      "itemId": "watch-circle-charging",
+      "slug": "watch-circle-charging",
+      "name": "Watch Circle Charging",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-circle-charging.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "circle",
+        "charging",
+        "energy",
+        "power",
+        "battery",
+        "charge"
+      ],
+      "searchTextPreview": "micro-solid watch-circle-charging watch circle charging watch-circle-charging 26620 charging energy power battery bolt charge device electricity lightning symbol charger mobile",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "battery-charging",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "charging"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "bolt-charging-power",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "charging"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "battery-charging",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "bolt-charging-power",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-circle-disable",
+      "slug": "watch-circle-disable",
+      "name": "Watch Circle Disable",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-circle-disable.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "circle",
+        "disable",
+        "off",
+        "inactive"
+      ],
+      "searchTextPreview": "micro-solid watch-circle-disable watch circle disable watch-circle-disable 26620 disable off blocked deactivate denied block bubble chat disabled forbidden inactive mute",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-circle-download",
+      "slug": "watch-circle-download",
+      "name": "Watch Circle Download",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-circle-download.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "circle",
+        "download",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "searchTextPreview": "micro-solid watch-circle-download watch circle download watch-circle-download 26620 download backup data save storage transfer arrow cloud abstract approve bottom check",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "check-download-done-offline",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "download"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cloud-download",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "download"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "check-download-done-offline",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cloud-download",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-circle-upload",
+      "slug": "watch-circle-upload",
+      "name": "Watch Circle Upload",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-circle-upload.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "circle",
+        "upload",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "searchTextPreview": "micro-solid watch-circle-upload watch circle upload watch-circle-upload 26620 backup data storage upload save cloud export network server transfer abstract adjustment",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cloud-upload",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "upload"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "database-upload",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "upload"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cloud-upload",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "database-upload",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-square-charging",
+      "slug": "watch-square-charging",
+      "name": "Watch Square Charging",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-square-charging.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "square",
+        "charging",
+        "energy",
+        "power",
+        "battery",
+        "charge"
+      ],
+      "searchTextPreview": "micro-solid watch-square-charging watch square charging watch-square-charging 26620 charging energy power battery bolt charge device electricity lightning symbol charger mobile",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "battery-charging",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "charging"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "bolt-charging-power",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "charging"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "battery-charging",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "bolt-charging-power",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-square-disable",
+      "slug": "watch-square-disable",
+      "name": "Watch Square Disable",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-square-disable.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "square",
+        "disable",
+        "off",
+        "inactive"
+      ],
+      "searchTextPreview": "micro-solid watch-square-disable watch square disable watch-square-disable 26620 disable off blocked deactivate denied block bubble chat disabled forbidden inactive mute",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "disable"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-disable-oval",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-disable-square",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-square-download",
+      "slug": "watch-square-download",
+      "name": "Watch Square Download",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-square-download.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "square",
+        "download",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "searchTextPreview": "micro-solid watch-square-download watch square download watch-square-download 26620 download backup data save storage transfer arrow cloud abstract approve bottom check",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "check-download-done-offline",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "download"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "cloud-download",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "download"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "check-download-done-offline",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "cloud-download",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-square-time",
+      "slug": "watch-square-time",
+      "name": "Watch Square Time",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-square-time.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "square",
+        "clock",
+        "time",
+        "schedule"
+      ],
+      "searchTextPreview": "micro-solid watch-square-time watch square time watch-square-time 26620 clock time flight schedule travel abstract design geometry half rating shape airplane",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "watch",
+              "time"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    },
+    {
+      "itemId": "watch-square-upload",
+      "slug": "watch-square-upload",
+      "name": "Watch Square Upload",
+      "outputPath": "vendor/streamline-svg/micro-solid/watch-square-upload.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "watch",
+        "square",
+        "upload",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "searchTextPreview": "micro-solid watch-square-upload watch square upload watch-square-upload 26620 backup data storage upload save cloud export network server transfer abstract adjustment",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "cloud-upload",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "upload"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "database-upload",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "upload"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "cloud-upload",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill"
+            ]
+          },
+          {
+            "itemId": "database-upload",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:2",
+              "node-count:2"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch3"
+    }
+  ]
+}

@@ -1,0 +1,508 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-wave4-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+  "appliedCount": 36,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "music-note-1",
+      "slug": "music-note-1",
+      "tags": [
+        "music",
+        "note",
+        "audio"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "music-note-2",
+      "slug": "music-note-2",
+      "tags": [
+        "music",
+        "note",
+        "audio"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "music-note-circle",
+      "slug": "music-note-circle",
+      "tags": [
+        "music",
+        "note",
+        "audio",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "music-note-circle-off",
+      "slug": "music-note-circle-off",
+      "tags": [
+        "music",
+        "note",
+        "audio",
+        "circle",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "music-note-off-1",
+      "slug": "music-note-off-1",
+      "tags": [
+        "music",
+        "note",
+        "audio",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "music-note-off-2",
+      "slug": "music-note-off-2",
+      "tags": [
+        "music",
+        "note",
+        "audio",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "pathfinder-circle-minus-back-1",
+      "slug": "pathfinder-circle-minus-back-1",
+      "tags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "back",
+        "layer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-1",
+      "slug": "pathfinder-circle-minus-front-1",
+      "tags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "pathfinder-circle-minus-front-2",
+      "slug": "pathfinder-circle-minus-front-2",
+      "tags": [
+        "pathfinder",
+        "circle",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "pathfinder-minus-back-1",
+      "slug": "pathfinder-minus-back-1",
+      "tags": [
+        "pathfinder",
+        "minus",
+        "back",
+        "layer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "pathfinder-minus-front",
+      "slug": "pathfinder-minus-front",
+      "tags": [
+        "pathfinder",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "pathfinder-square-minus-front-2",
+      "slug": "pathfinder-square-minus-front-2",
+      "tags": [
+        "pathfinder",
+        "square",
+        "minus",
+        "front",
+        "layer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "play-list-1",
+      "slug": "play-list-1",
+      "tags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "play-list-2",
+      "slug": "play-list-2",
+      "tags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "play-list-3",
+      "slug": "play-list-3",
+      "tags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "play-list-4",
+      "slug": "play-list-4",
+      "tags": [
+        "play",
+        "playlist",
+        "list"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "play-list-folder",
+      "slug": "play-list-folder",
+      "tags": [
+        "play",
+        "playlist",
+        "folder"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "play-list-phone",
+      "slug": "play-list-phone",
+      "tags": [
+        "play",
+        "playlist",
+        "phone"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "print-add-printer",
+      "slug": "print-add-printer",
+      "tags": [
+        "print",
+        "printer",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "print-error",
+      "slug": "print-error",
+      "tags": [
+        "print",
+        "printer",
+        "error",
+        "alert"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "print-off-disabled",
+      "slug": "print-off-disabled",
+      "tags": [
+        "print",
+        "printer",
+        "off",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "print-printer-connected",
+      "slug": "print-printer-connected",
+      "tags": [
+        "print",
+        "printer",
+        "connected"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "print-printer-disconnected",
+      "slug": "print-printer-disconnected",
+      "tags": [
+        "print",
+        "printer",
+        "disconnected"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "print-remove-printer",
+      "slug": "print-remove-printer",
+      "tags": [
+        "print",
+        "printer",
+        "remove",
+        "delete"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "screen-1",
+      "slug": "screen-1",
+      "tags": [
+        "screen",
+        "display"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "screen-2",
+      "slug": "screen-2",
+      "tags": [
+        "screen",
+        "display"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "screen-broadcast",
+      "slug": "screen-broadcast",
+      "tags": [
+        "screen",
+        "display",
+        "broadcast"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "screen-sharing",
+      "slug": "screen-sharing",
+      "tags": [
+        "screen",
+        "display",
+        "sharing"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "screen-sharing-tutorial",
+      "slug": "screen-sharing-tutorial",
+      "tags": [
+        "screen",
+        "display",
+        "sharing",
+        "tutorial"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "screen-tv",
+      "slug": "screen-tv",
+      "tags": [
+        "screen",
+        "display",
+        "tv"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "timer-10-seconds",
+      "slug": "timer-10-seconds",
+      "tags": [
+        "timer",
+        "time",
+        "10",
+        "seconds"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "timer-3-seconds",
+      "slug": "timer-3-seconds",
+      "tags": [
+        "timer",
+        "time",
+        "3",
+        "seconds"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.55
+    },
+    {
+      "itemId": "timer-5-seconds",
+      "slug": "timer-5-seconds",
+      "tags": [
+        "timer",
+        "time",
+        "5",
+        "seconds"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.55
+    },
+    {
+      "itemId": "timer-auto",
+      "slug": "timer-auto",
+      "tags": [
+        "timer",
+        "time",
+        "auto"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "timer-pace",
+      "slug": "timer-pace",
+      "tags": [
+        "timer",
+        "time",
+        "pace"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.55
+    },
+    {
+      "itemId": "timer-pace-average",
+      "slug": "timer-pace-average",
+      "tags": [
+        "timer",
+        "time",
+        "pace",
+        "average"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T06:06:25.919Z",
+      "confidence": 0.55
+    }
+  ],
+  "skipped": []
+}

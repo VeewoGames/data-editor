@@ -1,0 +1,321 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch8-suggestions.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+  "appliedCount": 23,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "user-add",
+      "slug": "user-add",
+      "tags": [
+        "user",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-block",
+      "slug": "user-block",
+      "tags": [
+        "user",
+        "block",
+        "disable",
+        "deny"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-check",
+      "slug": "user-check",
+      "tags": [
+        "user",
+        "check",
+        "verify",
+        "approve"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-circle",
+      "slug": "user-circle",
+      "tags": [
+        "user",
+        "circle",
+        "profile"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-delete",
+      "slug": "user-delete",
+      "tags": [
+        "user",
+        "delete",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-edit",
+      "slug": "user-edit",
+      "tags": [
+        "user",
+        "edit"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-following",
+      "slug": "user-following",
+      "tags": [
+        "user",
+        "following",
+        "account"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-identifier-card",
+      "slug": "user-identifier-card",
+      "tags": [
+        "user",
+        "identifier",
+        "card",
+        "id"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-multiple",
+      "slug": "user-multiple",
+      "tags": [
+        "user",
+        "multiple",
+        "group"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-multiple-circle",
+      "slug": "user-multiple-circle",
+      "tags": [
+        "user",
+        "circle",
+        "profile",
+        "multiple",
+        "group"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-off",
+      "slug": "user-off",
+      "tags": [
+        "user",
+        "off",
+        "disable",
+        "inactive"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-protection",
+      "slug": "user-protection",
+      "tags": [
+        "user",
+        "protection",
+        "security",
+        "shield"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-question-query",
+      "slug": "user-question-query",
+      "tags": [
+        "user",
+        "question",
+        "query",
+        "help"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-refresh-sync",
+      "slug": "user-refresh-sync",
+      "tags": [
+        "user",
+        "refresh",
+        "sync"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-remove-subtract",
+      "slug": "user-remove-subtract",
+      "tags": [
+        "user",
+        "remove",
+        "subtract",
+        "minus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "user-search-magnifier",
+      "slug": "user-search-magnifier",
+      "tags": [
+        "user",
+        "search",
+        "find",
+        "magnifier"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-share",
+      "slug": "user-share",
+      "tags": [
+        "user",
+        "share",
+        "account"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "user-single",
+      "slug": "user-single",
+      "tags": [
+        "user",
+        "single",
+        "profile"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "user-square",
+      "slug": "user-square",
+      "tags": [
+        "user",
+        "square",
+        "profile"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-story",
+      "slug": "user-story",
+      "tags": [
+        "user",
+        "story",
+        "profile"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-sync",
+      "slug": "user-sync",
+      "tags": [
+        "user",
+        "sync",
+        "account"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-team-community",
+      "slug": "user-team-community",
+      "tags": [
+        "user",
+        "team",
+        "community",
+        "group"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "user-warning",
+      "slug": "user-warning",
+      "tags": [
+        "user",
+        "warning",
+        "alert"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:55:16.102Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

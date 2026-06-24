@@ -1,0 +1,314 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-machine-wave2-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+  "appliedCount": 22,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "pathfinder-divide",
+      "slug": "pathfinder-divide",
+      "tags": [
+        "pathfinder",
+        "divide",
+        "split"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.96
+    },
+    {
+      "itemId": "pathfinder-exclude",
+      "slug": "pathfinder-exclude",
+      "tags": [
+        "pathfinder",
+        "exclude",
+        "subtract"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.96
+    },
+    {
+      "itemId": "pathfinder-intersect",
+      "slug": "pathfinder-intersect",
+      "tags": [
+        "pathfinder",
+        "intersect",
+        "overlap"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.96
+    },
+    {
+      "itemId": "pathfinder-merge",
+      "slug": "pathfinder-merge",
+      "tags": [
+        "pathfinder",
+        "merge",
+        "combine"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.96
+    },
+    {
+      "itemId": "pathfinder-outline",
+      "slug": "pathfinder-outline",
+      "tags": [
+        "pathfinder",
+        "outline"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.96
+    },
+    {
+      "itemId": "pathfinder-trim",
+      "slug": "pathfinder-trim",
+      "tags": [
+        "pathfinder",
+        "trim"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.96
+    },
+    {
+      "itemId": "pathfinder-union",
+      "slug": "pathfinder-union",
+      "tags": [
+        "pathfinder",
+        "union",
+        "combine"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.96
+    },
+    {
+      "itemId": "shopping-store-1",
+      "slug": "shopping-store-1",
+      "tags": [
+        "shopping",
+        "store",
+        "commerce"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shopping-store-2",
+      "slug": "shopping-store-2",
+      "tags": [
+        "shopping",
+        "store",
+        "commerce"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shopping-store-signage-1",
+      "slug": "shopping-store-signage-1",
+      "tags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shopping-store-signage-2",
+      "slug": "shopping-store-signage-2",
+      "tags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shopping-store-signage-3",
+      "slug": "shopping-store-signage-3",
+      "tags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "scroll-top",
+      "slug": "scroll-top",
+      "tags": [
+        "scroll",
+        "top"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "scroll-up",
+      "slug": "scroll-up",
+      "tags": [
+        "scroll",
+        "up",
+        "arrow"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "scroll-up-down",
+      "slug": "scroll-up-down",
+      "tags": [
+        "scroll",
+        "up",
+        "arrow",
+        "down",
+        "arrows"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shield-check",
+      "slug": "shield-check",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "check",
+        "confirm"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shield-cross",
+      "slug": "shield-cross",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "cross",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shield-protection-moderator-add",
+      "slug": "shield-protection-moderator-add",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "moderation",
+        "moderator",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "shield-star-police-badge",
+      "slug": "shield-star-police-badge",
+      "tags": [
+        "shield",
+        "protection",
+        "security",
+        "star",
+        "police",
+        "badge"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "sign-cross-circle",
+      "slug": "sign-cross-circle",
+      "tags": [
+        "sign",
+        "symbol",
+        "cross",
+        "circle"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "sign-cross-shield",
+      "slug": "sign-cross-shield",
+      "tags": [
+        "sign",
+        "symbol",
+        "cross",
+        "shield"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "sign-cross-square",
+      "slug": "sign-cross-square",
+      "tags": [
+        "sign",
+        "symbol",
+        "cross",
+        "square"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T16:46:27.778Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": []
+}

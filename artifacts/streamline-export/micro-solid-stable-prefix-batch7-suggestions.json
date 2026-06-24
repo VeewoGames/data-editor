@@ -1,0 +1,863 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch7",
+  "suggestions": [
+    {
+      "itemId": "time-alarm",
+      "slug": "time-alarm",
+      "name": "Time Alarm",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-alarm.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "alarm",
+        "alert",
+        "reminder"
+      ],
+      "searchTextPreview": "micro-solid time-alarm time alarm time-alarm 26566 alarm alert bell notification reminder ring sound chime emergency signal siren warning",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-clock-circle",
+      "slug": "time-clock-circle",
+      "name": "Time Clock Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-clock-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "clock",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid time-clock-circle time clock circle time-clock-circle 26566 clock time schedule flight timer travel abstract design geometry half rating shape",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-clock-hand",
+      "slug": "time-clock-hand",
+      "name": "Time Clock Hand",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-clock-hand.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "clock",
+        "hand"
+      ],
+      "searchTextPreview": "micro-solid time-clock-hand time clock hand time-clock-hand 26566 clock time hand schedule rating favorite flight timer travel abstract design geometry",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-clock-square",
+      "slug": "time-clock-square",
+      "name": "Time Clock Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-clock-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "clock",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid time-clock-square time clock square time-clock-square 26566 clock time schedule flight timer travel abstract design geometry half rating shape",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-history-off",
+      "slug": "time-history-off",
+      "name": "Time History Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-history-off.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "history",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid time-history-off time history off time-history-off 26566 off disable clock time inactive disabled forbidden mute offline shutdown silent abstract",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-hour-glass",
+      "slug": "time-hour-glass",
+      "name": "Time Hour Glass",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-hour-glass.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "hourglass"
+      ],
+      "searchTextPreview": "micro-solid time-hour-glass time hour glass time-hour-glass 26566 clock time schedule flight travel abstract design geometry half rating shape airplane",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-lapse",
+      "slug": "time-lapse",
+      "name": "Time Lapse",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-lapse.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "lapse"
+      ],
+      "searchTextPreview": "micro-solid time-lapse time lapse time-lapse 26585 clock time schedule flight travel abstract design geometry half rating shape airplane",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-midnight",
+      "slug": "time-midnight",
+      "name": "Time Midnight",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-midnight.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "midnight"
+      ],
+      "searchTextPreview": "micro-solid time-midnight time midnight time-midnight 26566 clock time schedule flight travel abstract design geometry half rating shape airplane",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-nine",
+      "slug": "time-nine",
+      "name": "Time Nine",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-nine.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "nine",
+        "digit"
+      ],
+      "searchTextPreview": "micro-solid time-nine time nine time-nine 26566 clock time digit nine number schedule symbol flight square travel abstract design",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-reset",
+      "slug": "time-reset",
+      "name": "Time Reset",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-reset.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "reset"
+      ],
+      "searchTextPreview": "micro-solid time-reset time reset time-reset 26566 clock time schedule flight travel abstract design geometry half rating shape airplane",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-six",
+      "slug": "time-six",
+      "name": "Time Six",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-six.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "six",
+        "digit"
+      ],
+      "searchTextPreview": "micro-solid time-six time six time-six 26566 clock time digit number schedule six symbol flight square travel abstract design",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-three",
+      "slug": "time-three",
+      "name": "Time Three",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-three.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "three",
+        "digit"
+      ],
+      "searchTextPreview": "micro-solid time-three time three time-three 26566 clock time three rating digit flight number schedule symbol travel abstract design",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    },
+    {
+      "itemId": "time-timer",
+      "slug": "time-timer",
+      "name": "Time Timer",
+      "outputPath": "vendor/streamline-svg/micro-solid/time-timer.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "time",
+        "timer"
+      ],
+      "searchTextPreview": "micro-solid time-timer time timer time-timer 26566 clock time schedule flight travel abstract design geometry half rating shape airplane",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": [
+              "time"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "time"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "time-stop-watch-half-quarter",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airport-arrival-time",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch7"
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-template-proof-wave-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+  "appliedCount": 11,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "zoom-area",
+      "slug": "zoom-area",
+      "tags": [
+        "zoom",
+        "area"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "zoom-fit-screen",
+      "slug": "zoom-fit-screen",
+      "tags": [
+        "zoom",
+        "fit",
+        "screen"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "zoom-in",
+      "slug": "zoom-in",
+      "tags": [
+        "zoom",
+        "in"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "zoom-in-area",
+      "slug": "zoom-in-area",
+      "tags": [
+        "zoom",
+        "area",
+        "in"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "zoom-out",
+      "slug": "zoom-out",
+      "tags": [
+        "zoom",
+        "out"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.62
+    },
+    {
+      "itemId": "zoom-out-area",
+      "slug": "zoom-out-area",
+      "tags": [
+        "zoom",
+        "area",
+        "out"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "light-bulb-on",
+      "slug": "light-bulb-on",
+      "tags": [
+        "light",
+        "bulb",
+        "on"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "light-dark-mode",
+      "slug": "light-dark-mode",
+      "tags": [
+        "light",
+        "dark",
+        "mode"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.93
+    },
+    {
+      "itemId": "light-display-mode",
+      "slug": "light-display-mode",
+      "tags": [
+        "light",
+        "display",
+        "mode"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.93
+    },
+    {
+      "itemId": "light-home-ceiling-on",
+      "slug": "light-home-ceiling-on",
+      "tags": [
+        "light",
+        "home",
+        "ceiling",
+        "on"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "light-off",
+      "slug": "light-off",
+      "tags": [
+        "light",
+        "off",
+        "disable"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T14:56:38.935Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

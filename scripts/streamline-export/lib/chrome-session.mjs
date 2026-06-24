@@ -2,30 +2,78 @@ import { runManifestExtraction as defaultRunManifestExtraction } from "../extrac
 
 export function findPreferredStreamlineTab(openTabs) {
   const tabs = Array.isArray(openTabs) ? openTabs : [];
-  return (
-    tabs.find((tab) => String(tab?.url ?? "").includes("streamlinehq.com/icons/download/")) ??
-    tabs.find((tab) => String(tab?.url ?? "").includes("streamlinehq.com")) ??
-    null
-  );
+  return tabs.find((tab) => String(tab?.url ?? "").includes("streamlinehq.com/icons/download/")) ?? null;
+}
+
+export function findReusableStreamlineAgentTab(openTabs, sessionName = "🔎 Streamline") {
+  const tabs = Array.isArray(openTabs) ? openTabs : [];
+  return tabs.find((tab) => {
+    const tabGroup = String(tab?.tabGroup ?? "");
+    const url = String(tab?.url ?? "");
+    return tabGroup === sessionName && url.includes("streamlinehq.com/icons/download/");
+  }) ?? null;
+}
+
+function isResidualStreamlineAgentTab(tab) {
+  const url = String(tab?.url ?? "");
+  const tabGroup = String(tab?.tabGroup ?? "");
+  const isAgentStreamlineGroup = tabGroup.startsWith("🔎 Streamline");
+  const isResidualUrl =
+    url.includes("home.streamlinehq.com/pricing") ||
+    url.includes("www.streamlinehq.com/profile");
+  return isAgentStreamlineGroup && isResidualUrl;
+}
+
+export async function cleanupResidualStreamlineAgentTabs(browser) {
+  const openTabs = await browser.user.openTabs();
+  const residualTabs = openTabs.filter(isResidualStreamlineAgentTab);
+  const closed = [];
+
+  for (const residualTab of residualTabs) {
+    try {
+      const claimedTab = await browser.user.claimTab(residualTab);
+      await claimedTab.close().catch(() => {});
+      closed.push({
+        id: residualTab.id,
+        url: residualTab.url ?? null,
+        tabGroup: residualTab.tabGroup ?? null,
+      });
+    } catch {
+      // Ignore cleanup races from tabs already closed by the user or another session.
+    }
+  }
+
+  return closed;
 }
 
 export async function claimStreamlineTab(browser) {
   const openTabs = await browser.user.openTabs();
   const preferredTab = findPreferredStreamlineTab(openTabs);
   if (!preferredTab) {
-    throw new Error("No Streamline tab found");
+    throw new Error("No Streamline download tab found");
   }
   return browser.user.claimTab(preferredTab);
 }
 
 export async function openStreamlineTab(browser, {
-  url = "https://www.streamlinehq.com/icons/micro-solid",
+  url = null,
 } = {}) {
   const tab = await browser.tabs.new();
   if (url) {
     await tab.goto(url);
   }
   return tab;
+}
+
+export async function acquireReusableStreamlineTab(browser, {
+  sessionName = "🔎 Streamline SVG runner",
+} = {}) {
+  const openTabs = await browser.user.openTabs();
+  const reusableTab = findReusableStreamlineAgentTab(openTabs, sessionName);
+  if (reusableTab) {
+    return browser.user.claimTab(reusableTab);
+  }
+  return openStreamlineTab(browser);
 }
 
 export async function runStreamlineSvgExtractionWithBrowser({
@@ -36,14 +84,15 @@ export async function runStreamlineSvgExtractionWithBrowser({
   waitMs = 500,
   maxItems,
   runManifestExtraction = defaultRunManifestExtraction,
-  acquireTab = claimStreamlineTab,
+  acquireTab = acquireReusableStreamlineTab,
 } = {}) {
   if (!browser || !manifestPath) {
     throw new Error("runStreamlineSvgExtractionWithBrowser requires browser and manifestPath");
   }
 
   await browser.nameSession(sessionName);
-  const tab = await acquireTab(browser);
+  await cleanupResidualStreamlineAgentTabs(browser);
+  const tab = await acquireTab(browser, { sessionName });
 
   try {
     return await runManifestExtraction({
@@ -52,9 +101,10 @@ export async function runStreamlineSvgExtractionWithBrowser({
       attempts,
       waitMs,
       maxItems,
+      cleanupAfterItem: async () => cleanupResidualStreamlineAgentTabs(browser),
     });
   } finally {
-    await tab.close().catch(() => {});
-    await browser.tabs.finalize({ keep: [] });
+    await cleanupResidualStreamlineAgentTabs(browser).catch(() => []);
+    await browser.tabs.finalize({ keep: [{ tab, status: "handoff" }] });
   }
 }

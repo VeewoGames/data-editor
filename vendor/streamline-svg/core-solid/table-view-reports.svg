@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" height="14" width="14">
+  <g id="table-view-reports--table-view-reports-information-sheets">
+    <path id="Union" fill="#000000" fill-rule="evenodd" d="M1.5 10.5h0.75l0 -6c0 -1.24264 1.00736 -2.25 2.25 -2.25l6 0V1.5c0 -0.552284 -0.4477 -1 -1 -1h-8c-0.552285 0 -1 0.447715 -1 1v8c0 0.5523 0.447714 1 1 1Zm12 -3.375v2.5625H11V7.125h2.5Zm-3.75 0v2.5625h-2.5V7.125h2.5ZM3.5 9.6875H6V7.125H3.5v2.5625Zm6.875 -3.8125H3.5V4.5c0 -0.55228 0.44772 -1 1 -1h8c0.5523 0 1 0.44772 1 1v1.375h-3.125ZM6 13.5v-2.5625H3.5V12.5c0 0.5523 0.44771 1 1 1H6Zm1.25 -2.5625V13.5h2.5v-2.5625h-2.5ZM11 13.5h1.5c0.5523 0 1 -0.4477 1 -1v-1.5625H11V13.5Z" clip-rule="evenodd" stroke-width="1"></path>
+  </g>
+</svg>

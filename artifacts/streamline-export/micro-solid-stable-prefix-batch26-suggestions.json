@@ -1,0 +1,327 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch26",
+  "suggestions": [
+    {
+      "itemId": "move-circle",
+      "slug": "move-circle",
+      "name": "Move Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid move-circle move circle move-circle 26662 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-down",
+      "slug": "move-object-down",
+      "name": "Move Object Down",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-down.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "down"
+      ],
+      "searchTextPreview": "micro-solid move-object-down move object down move-object-down 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-left",
+      "slug": "move-object-left",
+      "name": "Move Object Left",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-left.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "left"
+      ],
+      "searchTextPreview": "micro-solid move-object-left move object left move-object-left 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-right",
+      "slug": "move-object-right",
+      "name": "Move Object Right",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-right.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "right"
+      ],
+      "searchTextPreview": "micro-solid move-object-right move object right move-object-right 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    },
+    {
+      "itemId": "move-object-up",
+      "slug": "move-object-up",
+      "name": "Move Object Up",
+      "outputPath": "vendor/streamline-svg/micro-solid/move-object-up.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "move",
+        "object",
+        "up"
+      ],
+      "searchTextPreview": "micro-solid move-object-up move object up move-object-up 26561 move arrows bigger corner direction expand resize size smaller big loop rotate",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "move"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-move-horizontal-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "arrows-move-left-down",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch26"
+    }
+  ]
+}

@@ -1,0 +1,692 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "template_proof_wave",
+  "suggestions": [
+    {
+      "itemId": "zoom-area",
+      "slug": "zoom-area",
+      "name": "Zoom Area",
+      "outputPath": "vendor/streamline-svg/micro-solid/zoom-area.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "zoom",
+        "area"
+      ],
+      "searchTextPreview": "micro-solid zoom-area zoom area zoom-area 26542 area select square circle",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "select-circle-area-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "area"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "select-square-area-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "area"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "select-circle-area-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "select-square-area-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch23"
+    },
+    {
+      "itemId": "zoom-fit-screen",
+      "slug": "zoom-fit-screen",
+      "name": "Zoom Fit Screen",
+      "outputPath": "vendor/streamline-svg/micro-solid/zoom-fit-screen.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "zoom",
+        "fit",
+        "screen"
+      ],
+      "searchTextPreview": "micro-solid zoom-fit-screen zoom fit screen zoom-fit-screen 26573 screen display fullscreen ar curve digital immersive interface adjustment aspect ratio brackets camera",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "fit-screen",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "fit",
+              "screen"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "screen"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "fit-screen",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "ar-curve-screen",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch23"
+    },
+    {
+      "itemId": "zoom-in",
+      "slug": "zoom-in",
+      "name": "Zoom In",
+      "outputPath": "vendor/streamline-svg/micro-solid/zoom-in.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "zoom",
+        "in"
+      ],
+      "searchTextPreview": "micro-solid zoom-in zoom in zoom-in 26582 adorable affection call chat circle communication contact design emoji expression face graphic",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "image-in-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "in"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "in-love-face-smiley",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "in"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "image-in-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "in-love-face-smiley",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch23"
+    },
+    {
+      "itemId": "zoom-in-area",
+      "slug": "zoom-in-area",
+      "name": "Zoom In Area",
+      "outputPath": "vendor/streamline-svg/micro-solid/zoom-in-area.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "zoom",
+        "area",
+        "in"
+      ],
+      "searchTextPreview": "micro-solid zoom-in-area zoom in area zoom-in-area 26542 area select circle square adorable affection call chat communication contact design emoji",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "image-in-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "in"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "in-love-face-smiley",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "in"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "image-in-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "in-love-face-smiley",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch23"
+    },
+    {
+      "itemId": "zoom-out",
+      "slug": "zoom-out",
+      "name": "Zoom Out",
+      "outputPath": "vendor/streamline-svg/micro-solid/zoom-out.svg",
+      "confidence": 0.62,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "zoom",
+        "out"
+      ],
+      "searchTextPreview": "micro-solid zoom-out zoom out zoom-out 26582 arrows direction exit forward guidance logout navigation out pathway step",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-step-out",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "out"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-step-out",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch23"
+    },
+    {
+      "itemId": "zoom-out-area",
+      "slug": "zoom-out-area",
+      "name": "Zoom Out Area",
+      "outputPath": "vendor/streamline-svg/micro-solid/zoom-out-area.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "zoom",
+        "area",
+        "out"
+      ],
+      "searchTextPreview": "micro-solid zoom-out-area zoom out area zoom-out-area 26542 area select square arrows circle direction exit forward guidance logout navigation out",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "arrows-step-out",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "out"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "select-circle-area-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "area"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "arrows-step-out",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "select-circle-area-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch23"
+    },
+    {
+      "itemId": "light-bulb-on",
+      "slug": "light-bulb-on",
+      "name": "Light Bulb On",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-bulb-on.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "bulb",
+        "on"
+      ],
+      "searchTextPreview": "micro-solid light-bulb-on light bulb on light-bulb-on 26560 always approval bag bright carry check confirm electricity energy flash illuminate lightning",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-dark-mode",
+      "slug": "light-dark-mode",
+      "name": "Light Dark Mode",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-dark-mode.svg",
+      "confidence": 0.93,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "dark",
+        "mode"
+      ],
+      "searchTextPreview": "micro-solid light-dark-mode light dark mode light-dark-mode 26583 astronomy backlight brightness celestial contrast crescent dark dimming display dream evening lunar",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "dark",
+              "mode"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "mode"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-display-mode",
+      "slug": "light-display-mode",
+      "name": "Light Display Mode",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-display-mode.svg",
+      "confidence": 0.93,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "display",
+        "mode"
+      ],
+      "searchTextPreview": "micro-solid light-display-mode light display mode light-display-mode 26560 astronomy backlight brightness celestial contrast crescent dark dimming display dream evening lunar",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "display",
+              "mode"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "mode"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-home-ceiling-on",
+      "slug": "light-home-ceiling-on",
+      "name": "Light Home Ceiling On",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-home-ceiling-on.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "home",
+        "ceiling",
+        "on"
+      ],
+      "searchTextPreview": "micro-solid light-home-ceiling-on light home ceiling on light-home-ceiling-on 26560 home building house residence roof shelter architecture entrance outline structure abode access",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-off",
+      "slug": "light-off",
+      "name": "Light Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-off.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid light-off light off light-off 26560 off disable disabled inactive mute block forbidden offline privacy shutdown silence silent",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "requirements": {
+    "summary": "本轮先完成 Streamline 图标 tags 接入的第一阶段：扩展 manifest 数据结构与归一化逻辑，补充对应测试，并保持现有 SVG 提取链路不受影响。真实 family 入口发现、列表页 metadata 采集脚本和 generator 扩展属于后续任务，不在本轮直接实现。",
+    "openQuestions": [],
+    "acceptanceCriteria": [
+      "createManifest 生成的 manifest item 默认包含 tags、metadataStatus、metadataError、metadataUpdatedAt 字段",
+      "loadManifest 会为历史 manifest 缺失的 metadata 字段补齐缺省值",
+      "新增 updateManifestItemMetadata 接口，可按 itemId 或 slug 回写 tags 与 metadata 状态",
+      "tests/streamline-export/manifest-store.test.mjs 针对上述行为新增测试并通过",
+      "现有 markManifestItemSuccess 和 markManifestItemFailed 行为不回退"
+    ]
+  },
+  "tasks": [
+    {
+      "title": "扩展 manifest 元数据字段",
+      "status": "pending",
+      "description": "在 manifest-store 中加入 tags 与 metadata 状态字段，并确保 create/load/update 链路一致。"
+    },
+    {
+      "title": "补齐 manifest-store 测试",
+      "status": "pending",
+      "description": "为 createManifest、loadManifest 和 updateManifestItemMetadata 新增测试，先看失败，再实现到通过。"
+    },
+    {
+      "title": "验证并收敛当前 round",
+      "status": "pending",
+      "description": "运行 manifest-store 定向测试，确认本轮只修改计划涉及文件并记录结果。"
+    }
+  ],
+  "rules": [
+    "本轮不实现列表页入口配置、metadata 采集脚本或 generator tags 输出",
+    "不得破坏现有 SVG 提取状态字段 status、attempts、error、extractedAt 的语义",
+    "历史 manifest 缺字段时统一通过 loadManifest 归一化，不在调用方散落兼容分支",
+    "仅对本轮计划涉及文件做 scoped 修改，不碰当前工作树里的其他 Streamline 改动"
+  ],
+  "references": [
+    {
+      "path": "docs/plans/2026-06-24-Streamline图标Tags采集实施计划.md",
+      "why": "本轮执行依据的 claw 外实施计划，当前先落 Task 1。"
+    },
+    {
+      "path": "scripts/streamline-export/lib/manifest-store.mjs",
+      "why": "当前 manifest 创建、加载和状态回写实现。"
+    },
+    {
+      "path": "tests/streamline-export/manifest-store.test.mjs",
+      "why": "当前 manifest-store 测试基线，需按 TDD 扩展。"
+    }
+  ],
+  "keyDecisions": [
+    "当前 round 先做 manifest 元数据层，不跨到列表页采集和 generator 集成。",
+    "metadata 字段通过 loadManifest 归一化进入现有链路，而不是为历史 manifest 加额外迁移脚本。"
+  ]
+}

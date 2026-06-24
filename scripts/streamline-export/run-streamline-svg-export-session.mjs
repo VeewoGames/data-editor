@@ -55,6 +55,7 @@ export async function runStreamlineSvgExtractionLoopFromNodeRepl({
   batchSize = 25,
   maxBatches = Number.POSITIVE_INFINITY,
   stopOnFailure = true,
+  reuseBrowser = false,
   connectBrowser,
   runWithBrowser = runStreamlineSvgExtractionWithBrowser,
   acquireTab,
@@ -72,7 +73,7 @@ export async function runStreamlineSvgExtractionLoopFromNodeRepl({
     throw new Error("runStreamlineSvgExtractionLoopFromNodeRepl requires maxBatches > 0");
   }
 
-  const browser = await connectBrowser();
+  let browser = null;
   const batches = [];
 
   for (let batchIndex = 0; batchIndex < maxBatches; batchIndex += 1) {
@@ -84,6 +85,10 @@ export async function runStreamlineSvgExtractionLoopFromNodeRepl({
         before,
         after: before,
       };
+    }
+
+    if (!browser || !reuseBrowser) {
+      browser = await connectBrowser();
     }
 
     const result = await runWithBrowser({

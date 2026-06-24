@@ -1,0 +1,327 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch29",
+  "suggestions": [
+    {
+      "itemId": "signal-disconnected",
+      "slug": "signal-disconnected",
+      "name": "Signal Disconnected",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-disconnected.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "disconnected",
+        "network"
+      ],
+      "searchTextPreview": "micro-solid signal-disconnected signal disconnected signal-disconnected 26619 signal call communication contact phone telephone network wifi low medium disable disconnected",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-graph",
+      "slug": "signal-graph",
+      "name": "Signal Graph",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-graph.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "graph",
+        "bars"
+      ],
+      "searchTextPreview": "micro-solid signal-graph signal graph signal-graph 26553 graph chart statistics analytics arrow data bars business decrease metrics product trend",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-graph-circle",
+      "slug": "signal-graph-circle",
+      "name": "Signal Graph Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-graph-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "graph",
+        "bars",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid signal-graph-circle signal graph circle signal-graph-circle 26553 graph chart statistics analytics arrow data bars business decrease metrics product trend",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "graph"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "browser-graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "graph",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-loading",
+      "slug": "signal-loading",
+      "name": "Signal Loading",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-loading.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "loading"
+      ],
+      "searchTextPreview": "micro-solid signal-loading signal loading signal-loading 26619 signal communication call contact phone telephone network wifi low medium disable email",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "mail-loading",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "loading"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "mail-loading",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    },
+    {
+      "itemId": "signal-square",
+      "slug": "signal-square",
+      "name": "Signal Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/signal-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "signal",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid signal-square signal square signal-square 26553 signal call communication contact phone telephone network wifi low medium disable full",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "signal"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "phone-signal-full",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "phone-signal-low",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch29"
+    }
+  ]
+}

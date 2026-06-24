@@ -1,0 +1,155 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch3-suggestions.json",
+  "dryRun": false,
+  "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+  "appliedCount": 9,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "watch-circle-charging",
+      "slug": "watch-circle-charging",
+      "tags": [
+        "watch",
+        "circle",
+        "charging",
+        "energy",
+        "power",
+        "battery",
+        "charge"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "watch-circle-disable",
+      "slug": "watch-circle-disable",
+      "tags": [
+        "watch",
+        "circle",
+        "disable",
+        "off",
+        "inactive"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "watch-circle-download",
+      "slug": "watch-circle-download",
+      "tags": [
+        "watch",
+        "circle",
+        "download",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "watch-circle-upload",
+      "slug": "watch-circle-upload",
+      "tags": [
+        "watch",
+        "circle",
+        "upload",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "watch-square-charging",
+      "slug": "watch-square-charging",
+      "tags": [
+        "watch",
+        "square",
+        "charging",
+        "energy",
+        "power",
+        "battery",
+        "charge"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "watch-square-disable",
+      "slug": "watch-square-disable",
+      "tags": [
+        "watch",
+        "square",
+        "disable",
+        "off",
+        "inactive"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "watch-square-download",
+      "slug": "watch-square-download",
+      "tags": [
+        "watch",
+        "square",
+        "download",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "watch-square-time",
+      "slug": "watch-square-time",
+      "tags": [
+        "watch",
+        "square",
+        "clock",
+        "time",
+        "schedule"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "watch-square-upload",
+      "slug": "watch-square-upload",
+      "tags": [
+        "watch",
+        "square",
+        "upload",
+        "data",
+        "storage",
+        "transfer"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:23:39.991Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

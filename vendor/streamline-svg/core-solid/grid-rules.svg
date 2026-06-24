@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" id="Grid-Rules--Streamline-Core" height="14" width="14">
+  <desc>
+    Grid Rules Streamline Icon: https://streamlinehq.com
+  </desc>
+  <g id="grid-rules--grid-layout-layouts-module-artboard-note-rules-ruled-lines">
+    <path id="Subtract" fill="#000000" fill-rule="evenodd" d="M0.5 2C0.5 1.17157 1.17157 0.5 2 0.5h10c0.8284 0 1.5 0.67157 1.5 1.5v10c0 0.8284 -0.6716 1.5 -1.5 1.5H2c-0.82843 0 -1.5 -0.6716 -1.5 -1.5V2Zm10 2.625c0.3452 0 0.625 -0.27982 0.625 -0.625s-0.2798 -0.625 -0.625 -0.625h-7c-0.34518 0 -0.625 0.27982 -0.625 0.625s0.27982 0.625 0.625 0.625h7Zm0 3c0.3452 0 0.625 -0.27982 0.625 -0.625s-0.2798 -0.625 -0.625 -0.625h-7c-0.34518 0 -0.625 0.27982 -0.625 0.625s0.27982 0.625 0.625 0.625h7ZM11.125 10c0 -0.34518 -0.2798 -0.625 -0.625 -0.625h-7c-0.34518 0 -0.625 0.27982 -0.625 0.625 0 0.3452 0.27982 0.625 0.625 0.625h7c0.3452 0 0.625 -0.2798 0.625 -0.625Z" clip-rule="evenodd" stroke-width="1"></path>
+  </g>
+</svg>

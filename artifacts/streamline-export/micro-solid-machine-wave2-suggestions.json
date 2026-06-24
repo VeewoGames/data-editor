@@ -1,0 +1,1507 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "machine-wave2",
+  "count": 22,
+  "suggestions": [
+    {
+      "itemId": "pathfinder-divide",
+      "slug": "pathfinder-divide",
+      "name": "Pathfinder Divide",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-divide.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "divide",
+        "split"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-divide pathfinder divide pathfinder-divide 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-exclude",
+      "slug": "pathfinder-exclude",
+      "name": "Pathfinder Exclude",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-exclude.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "exclude",
+        "subtract"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-exclude pathfinder exclude pathfinder-exclude 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-intersect",
+      "slug": "pathfinder-intersect",
+      "name": "Pathfinder Intersect",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-intersect.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "intersect",
+        "overlap"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-intersect pathfinder intersect pathfinder-intersect 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-merge",
+      "slug": "pathfinder-merge",
+      "name": "Pathfinder Merge",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-merge.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "merge",
+        "combine"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-merge pathfinder merge pathfinder-merge 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-outline",
+      "slug": "pathfinder-outline",
+      "name": "Pathfinder Outline",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-outline.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "outline"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-outline pathfinder outline pathfinder-outline 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-trim",
+      "slug": "pathfinder-trim",
+      "name": "Pathfinder Trim",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-trim.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "trim"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-trim pathfinder trim pathfinder-trim 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "pathfinder-union",
+      "slug": "pathfinder-union",
+      "name": "Pathfinder Union",
+      "outputPath": "vendor/streamline-svg/micro-solid/pathfinder-union.svg",
+      "confidence": 0.96,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "pathfinder",
+        "union",
+        "combine"
+      ],
+      "searchTextPreview": "micro-solid pathfinder-union pathfinder union pathfinder-union 26546 layer minus pathfinder front circle back square",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "pathfinder"
+            ],
+            "prefixMatches": [
+              "pathfinder"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "pathfinder-circle-minus-back-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "pathfinder-circle-minus-front-1",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch18"
+    },
+    {
+      "itemId": "shopping-store-1",
+      "slug": "shopping-store-1",
+      "name": "Shopping Store 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-1 shopping store 1 shopping-store-1 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-2",
+      "slug": "shopping-store-2",
+      "name": "Shopping Store 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-2 shopping store 2 shopping-store-2 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-signage-1",
+      "slug": "shopping-store-signage-1",
+      "name": "Shopping Store Signage 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-signage-1.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-signage-1 shopping store signage 1 shopping-store-signage-1 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-signage-2",
+      "slug": "shopping-store-signage-2",
+      "name": "Shopping Store Signage 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-signage-2.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-signage-2 shopping store signage 2 shopping-store-signage-2 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "shopping-store-signage-3",
+      "slug": "shopping-store-signage-3",
+      "name": "Shopping Store Signage 3",
+      "outputPath": "vendor/streamline-svg/micro-solid/shopping-store-signage-3.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shopping",
+        "store",
+        "commerce",
+        "signage"
+      ],
+      "searchTextPreview": "micro-solid shopping-store-signage-3 shopping store signage 3 shopping-store-signage-3 26596 commerce shopping cart checkout add basket plus remove approve bag check cross",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shopping"
+            ],
+            "prefixMatches": [
+              "shopping"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shopping-bag",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "shopping-basket-add",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch9"
+    },
+    {
+      "itemId": "scroll-top",
+      "slug": "scroll-top",
+      "name": "Scroll Top",
+      "outputPath": "vendor/streamline-svg/micro-solid/scroll-top.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "scroll",
+        "top"
+      ],
+      "searchTextPreview": "micro-solid scroll-top scroll top scroll-top 26564 arrow scroll camera focus button direction navigation center diagonal frame horizontal lens",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": [
+              "scroll"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch30"
+    },
+    {
+      "itemId": "scroll-up",
+      "slug": "scroll-up",
+      "name": "Scroll Up",
+      "outputPath": "vendor/streamline-svg/micro-solid/scroll-up.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "scroll",
+        "up",
+        "arrow"
+      ],
+      "searchTextPreview": "micro-solid scroll-up scroll up scroll-up 26564 arrow scroll camera button direction focus navigation arrows center diagonal double frame",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "lexicalScore": 13,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": [
+              "scroll",
+              "scroll-up"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch30"
+    },
+    {
+      "itemId": "scroll-up-down",
+      "slug": "scroll-up-down",
+      "name": "Scroll Up Down",
+      "outputPath": "vendor/streamline-svg/micro-solid/scroll-up-down.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "scroll",
+        "up",
+        "arrow",
+        "down",
+        "arrows"
+      ],
+      "searchTextPreview": "micro-solid scroll-up-down scroll up down scroll-up-down 26564 arrow scroll camera button direction focus navigation arrows center diagonal double frame",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "lexicalScore": 13,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": [
+              "scroll",
+              "scroll-up"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch30"
+    },
+    {
+      "itemId": "shield-check",
+      "slug": "shield-check",
+      "name": "Shield Check",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-check.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "check",
+        "confirm"
+      ],
+      "searchTextPreview": "micro-solid shield-check shield check shield-check 26558 check confirm security alert privacy protection shield approval approved bubble chat checkmark",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    },
+    {
+      "itemId": "shield-cross",
+      "slug": "shield-cross",
+      "name": "Shield Cross",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-cross.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "cross",
+        "remove"
+      ],
+      "searchTextPreview": "micro-solid shield-cross shield cross shield-cross 26558 cross protection security shield alert guard privacy catholicism christianity emergency firstaid healthcare",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    },
+    {
+      "itemId": "shield-protection-moderator-add",
+      "slug": "shield-protection-moderator-add",
+      "name": "Shield Protection Moderator Add",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-protection-moderator-add.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "moderation",
+        "moderator",
+        "add",
+        "plus"
+      ],
+      "searchTextPreview": "micro-solid shield-protection-moderator-add shield protection moderator add shield-protection-moderator-add 26558 add alert cross plus privacy protection security shield button buttons insert mathematics",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 17,
+            "lexicalScore": 14,
+            "nameMatches": [
+              "shield",
+              "protection"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "add"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 17,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "add-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    },
+    {
+      "itemId": "shield-star-police-badge",
+      "slug": "shield-star-police-badge",
+      "name": "Shield Star Police Badge",
+      "outputPath": "vendor/streamline-svg/micro-solid/shield-star-police-badge.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "shield",
+        "protection",
+        "security",
+        "star",
+        "police",
+        "badge"
+      ],
+      "searchTextPreview": "micro-solid shield-star-police-badge shield star police badge shield-star-police-badge 26558 favorite star bookmark like rating protection security shield important alert guard privacy",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": [
+              "shield"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "shield-security-protection",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch31"
+    },
+    {
+      "itemId": "sign-cross-circle",
+      "slug": "sign-cross-circle",
+      "name": "Sign Cross Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-circle sign cross circle sign-cross-circle 26676 sign symbol cross direction navigation network catholicism christianity pointer religion dangerous octagon",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch32"
+    },
+    {
+      "itemId": "sign-cross-shield",
+      "slug": "sign-cross-shield",
+      "name": "Sign Cross Shield",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-shield.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "shield"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-shield sign cross shield sign-cross-shield 26676 sign cross direction symbol network catholicism christianity pointer religion dangerous octagon hashtag",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch32"
+    },
+    {
+      "itemId": "sign-cross-square",
+      "slug": "sign-cross-square",
+      "name": "Sign Cross Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/sign-cross-square.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "sign",
+        "symbol",
+        "cross",
+        "square"
+      ],
+      "searchTextPreview": "micro-solid sign-cross-square sign cross square sign-cross-square 26676 sign symbol cross direction navigation network catholicism christianity pointer religion dangerous octagon",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "sign",
+              "cross"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "sign"
+            ],
+            "prefixMatches": [
+              "sign"
+            ]
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dangerous-sign-octagon-cross",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "sign-hashtag-straight",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch32"
+    }
+  ]
+}

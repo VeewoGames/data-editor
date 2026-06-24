@@ -1,0 +1,452 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch4-suggestions.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+  "appliedCount": 30,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "number-eight",
+      "slug": "number-eight",
+      "tags": [
+        "number",
+        "eight",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-eight-circle",
+      "slug": "number-eight-circle",
+      "tags": [
+        "number",
+        "eight",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-eight-square",
+      "slug": "number-eight-square",
+      "tags": [
+        "number",
+        "eight",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-five",
+      "slug": "number-five",
+      "tags": [
+        "number",
+        "five",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-five-circle",
+      "slug": "number-five-circle",
+      "tags": [
+        "number",
+        "five",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-five-square",
+      "slug": "number-five-square",
+      "tags": [
+        "number",
+        "five",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-four",
+      "slug": "number-four",
+      "tags": [
+        "number",
+        "four",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-four-circle",
+      "slug": "number-four-circle",
+      "tags": [
+        "number",
+        "four",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-four-square",
+      "slug": "number-four-square",
+      "tags": [
+        "number",
+        "four",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-nine",
+      "slug": "number-nine",
+      "tags": [
+        "number",
+        "nine",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-nine-circle",
+      "slug": "number-nine-circle",
+      "tags": [
+        "number",
+        "nine",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-nine-square",
+      "slug": "number-nine-square",
+      "tags": [
+        "number",
+        "nine",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-one",
+      "slug": "number-one",
+      "tags": [
+        "number",
+        "one",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-one-circle",
+      "slug": "number-one-circle",
+      "tags": [
+        "number",
+        "one",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-one-square",
+      "slug": "number-one-square",
+      "tags": [
+        "number",
+        "one",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-seven",
+      "slug": "number-seven",
+      "tags": [
+        "number",
+        "seven",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-seven-circle",
+      "slug": "number-seven-circle",
+      "tags": [
+        "number",
+        "seven",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-seven-square",
+      "slug": "number-seven-square",
+      "tags": [
+        "number",
+        "seven",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-six",
+      "slug": "number-six",
+      "tags": [
+        "number",
+        "six",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-six-circle",
+      "slug": "number-six-circle",
+      "tags": [
+        "number",
+        "six",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-six-square",
+      "slug": "number-six-square",
+      "tags": [
+        "number",
+        "six",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-three",
+      "slug": "number-three",
+      "tags": [
+        "number",
+        "three",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-three-circle",
+      "slug": "number-three-circle",
+      "tags": [
+        "number",
+        "three",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-three-square",
+      "slug": "number-three-square",
+      "tags": [
+        "number",
+        "three",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-two",
+      "slug": "number-two",
+      "tags": [
+        "number",
+        "two",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-two-circle",
+      "slug": "number-two-circle",
+      "tags": [
+        "number",
+        "two",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-two-square",
+      "slug": "number-two-square",
+      "tags": [
+        "number",
+        "two",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-zero",
+      "slug": "number-zero",
+      "tags": [
+        "number",
+        "zero",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-zero-circle",
+      "slug": "number-zero-circle",
+      "tags": [
+        "number",
+        "zero",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "number-zero-square",
+      "slug": "number-zero-square",
+      "tags": [
+        "number",
+        "zero",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:29:00.376Z",
+      "confidence": 0.77
+    }
+  ],
+  "skipped": []
+}

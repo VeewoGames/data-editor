@@ -54,7 +54,7 @@ import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editin
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { DocumentFieldConfigDialog } from "./components/DocumentFieldConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
-import { icons } from "./components/icons";
+import { icons, resolveSharedViewIconPackId } from "./components/icons";
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
 import { DataTable, type FieldConfig, type TableFieldConfig, type TableSnapshot } from "./table/DataTable";
 import { DetailPanel, type DetailSnapshot } from "./detail/DetailPanel";
@@ -196,6 +196,21 @@ type ResolvedCollectionViewsState = {
   parentGroupIdByViewId: Record<string, string | null>;
   lastActiveViewIdByGroupId: Record<string, string>;
 };
+
+function collectProtectedSharedViewIconPackIds(topLevelItems: Array<SharedViewLeafItem | SharedViewGroupItem>) {
+  const protectedPackIds = new Set<string>();
+  for (const item of topLevelItems) {
+    if (item.kind === "view") {
+      if (item.icon) protectedPackIds.add(resolveSharedViewIconPackId(item.icon));
+      continue;
+    }
+    for (const viewItem of item.views) {
+      if (viewItem.icon) protectedPackIds.add(resolveSharedViewIconPackId(viewItem.icon));
+    }
+  }
+  protectedPackIds.delete("base");
+  return [...protectedPackIds];
+}
 type SidebarTreeNodeLike = {
   id: string;
   kind: string;
@@ -2324,6 +2339,10 @@ export function App() {
     commandSaving,
     pendingOpenFilterRuleId,
   ]);
+  const protectedSharedViewIconPackIds = useMemo(
+    () => collectProtectedSharedViewIconPackIds(resolvedCollectionViews.topLevelItems),
+    [resolvedCollectionViews.topLevelItems],
+  );
   const appFrameStyle = useMemo(() => ({ "--sidebar-width": `${sidebarWidth}px` }) as CSSProperties, [sidebarWidth]);
 
   useEffect(() => {
@@ -2421,6 +2440,7 @@ export function App() {
       detailPanelWidth: current.detailPanelWidth,
       detailDocumentPanelOpen: current.detailDocumentPanelOpen,
       detailDocumentPanelWidth: current.detailDocumentPanelWidth,
+      favoriteSharedViewIconIds: [...current.favoriteSharedViewIconIds],
       fileOrder: [...current.fileOrder],
       sidebarTree: cloneStoredSidebarTreeState(current.sidebarTree),
       lastActiveViews: { ...current.lastActiveViews },
@@ -3752,6 +3772,22 @@ export function App() {
     }
   }
 
+  function handleToggleFavoriteSharedViewIcon(icon: SharedViewIconId) {
+    if (!selectedViewProfileName) return;
+    const nextProfile = mutateSelectedViewProfile((draft) => {
+      const current = new Set(draft.favoriteSharedViewIconIds ?? []);
+      if (current.has(icon)) {
+        current.delete(icon);
+      } else {
+        current.add(icon);
+      }
+      draft.favoriteSharedViewIconIds = [...current];
+    });
+    if (nextProfile) {
+      void commitProfileSave(selectedViewProfileNameRef.current!, nextProfile);
+    }
+  }
+
   async function handleDeleteSharedView(viewId: string) {
     if (commandSaving || !activeCollectionKey || !selectedPath) return;
     const current = currentSharedViewDraftState();
@@ -4511,6 +4547,9 @@ export function App() {
                   onDeleteView={handleDeleteSharedView}
                   onDuplicateView={handleDuplicateSharedView}
                   onUpdateViewIcon={handleUpdateSharedViewIcon}
+                  favoriteIconIds={selectedViewProfile.favoriteSharedViewIconIds ?? []}
+                  favoritesEnabled={!!selectedViewProfileName}
+                  onToggleFavoriteIcon={handleToggleFavoriteSharedViewIcon}
                   onReorderViews={handleReorderSharedViews}
                   onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
                   onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
@@ -4518,6 +4557,7 @@ export function App() {
                   onSetDocumentFieldEnabled={setDocumentFieldEnabled}
                   onSaveDocumentRoot={handleSaveDocumentRoot}
                   onRefreshDocumentIndex={handleRefreshDocumentIndex}
+                  protectedIconPackIds={protectedSharedViewIconPackIds}
                 />
               </Profiler>
               {filterBarVisible ? (
@@ -4617,6 +4657,9 @@ export function App() {
               onDeleteView={handleDeleteSharedView}
               onDuplicateView={handleDuplicateSharedView}
               onUpdateViewIcon={handleUpdateSharedViewIcon}
+              favoriteIconIds={selectedViewProfile.favoriteSharedViewIconIds ?? []}
+              favoritesEnabled={!!selectedViewProfileName}
+              onToggleFavoriteIcon={handleToggleFavoriteSharedViewIcon}
               onReorderViews={handleReorderSharedViews}
               onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
               onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
@@ -4624,6 +4667,7 @@ export function App() {
               onSetDocumentFieldEnabled={setDocumentFieldEnabled}
               onSaveDocumentRoot={handleSaveDocumentRoot}
               onRefreshDocumentIndex={handleRefreshDocumentIndex}
+              protectedIconPackIds={protectedSharedViewIconPackIds}
             />
             {filterBarVisible ? (
               <ViewFilterBar
@@ -5548,6 +5592,7 @@ function emptyUserViewProfile(): UserViewProfile {
     detailPanelWidth: null,
     detailDocumentPanelOpen: null,
     detailDocumentPanelWidth: null,
+    favoriteSharedViewIconIds: [],
     fileOrder: [],
     sidebarTree: serializeSidebarTreeState(cloneSidebarTreePreferences(), false),
     lastActiveViews: {},
@@ -5565,6 +5610,9 @@ function normalizeUserViewProfile(profile: Partial<UserViewProfile> | null | und
     detailPanelWidth: Number.isFinite(profile.detailPanelWidth) ? Number(profile.detailPanelWidth) : null,
     detailDocumentPanelOpen: typeof profile.detailDocumentPanelOpen === "boolean" ? profile.detailDocumentPanelOpen : null,
     detailDocumentPanelWidth: Number.isFinite(profile.detailDocumentPanelWidth) ? Number(profile.detailDocumentPanelWidth) : null,
+    favoriteSharedViewIconIds: Array.isArray(profile.favoriteSharedViewIconIds)
+      ? profile.favoriteSharedViewIconIds.filter((value): value is SharedViewIconId => typeof value === "string")
+      : [],
     fileOrder: Array.isArray(profile.fileOrder) ? [...profile.fileOrder] : [],
     sidebarTree: cloneStoredSidebarTreeState(profile.sidebarTree),
     lastActiveViews: { ...(profile.lastActiveViews ?? {}) },

@@ -1,0 +1,273 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch25",
+  "suggestions": [
+    {
+      "itemId": "lock-circle",
+      "slug": "lock-circle",
+      "name": "Lock Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid lock-circle lock circle lock-circle 26577 lock privacy secure security encryption cybersecurity access encrypted computer locked login network",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    },
+    {
+      "itemId": "lock-key",
+      "slug": "lock-key",
+      "name": "Lock Key",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-key.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "key"
+      ],
+      "searchTextPreview": "micro-solid lock-key lock key lock-key 26577 lock privacy secure security encryption cybersecurity access encrypted browser data key locked",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    },
+    {
+      "itemId": "lock-rotation",
+      "slug": "lock-rotation",
+      "name": "Lock Rotation",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-rotation.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "rotation"
+      ],
+      "searchTextPreview": "micro-solid lock-rotation lock rotation lock-rotation 26577 lock privacy secure security encryption cybersecurity access encrypted computer locked login network",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    },
+    {
+      "itemId": "lock-shield",
+      "slug": "lock-shield",
+      "name": "Lock Shield",
+      "outputPath": "vendor/streamline-svg/micro-solid/lock-shield.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "lock",
+        "secure",
+        "shield",
+        "protection"
+      ],
+      "searchTextPreview": "micro-solid lock-shield lock shield lock-shield 26577 privacy secure security lock cybersecurity encryption protection encrypted password access data database",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": [
+              "lock"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "shield"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "lock-encryption",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "alert-shield-privacy-info",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch25"
+    }
+  ]
+}

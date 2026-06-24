@@ -1,0 +1,548 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch6",
+  "suggestions": [
+    {
+      "itemId": "share-code",
+      "slug": "share-code",
+      "name": "Share Code",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-code.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "code",
+        "programming",
+        "software"
+      ],
+      "searchTextPreview": "micro-solid share-code share code share-code 26611 code programming script software browser data developer html markup syntax internet network",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": [
+              "share"
+            ]
+          },
+          {
+            "itemId": "bar-code",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "code"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "bar-code",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    },
+    {
+      "itemId": "share-hand-lock",
+      "slug": "share-hand-lock",
+      "name": "Share Hand Lock",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-hand-lock.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "lock",
+        "privacy",
+        "secure"
+      ],
+      "searchTextPreview": "micro-solid share-hand-lock share hand lock share-hand-lock 26574 network lock privacy secure server share cybersecurity security internet cloud data encrypted",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": [
+              "share"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    },
+    {
+      "itemId": "share-heart",
+      "slug": "share-heart",
+      "name": "Share Heart",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-heart.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "heart",
+        "favorite",
+        "like"
+      ],
+      "searchTextPreview": "micro-solid share-heart share heart share-heart 26565 favorite heart like love share affection bookmark communication internet network server bubble",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": [
+              "share"
+            ]
+          },
+          {
+            "itemId": "browser-favorite-heart",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "heart"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "browser-favorite-heart",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    },
+    {
+      "itemId": "share-link-approved",
+      "slug": "share-link-approved",
+      "name": "Share Link Approved",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-link-approved.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "link",
+        "approved",
+        "network"
+      ],
+      "searchTextPreview": "micro-solid share-link-approved share link approved share-link-approved 26574 share internet network server disabled off prohibited restricted finance payment approved card",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "share",
+              "link"
+            ],
+            "prefixMatches": [
+              "share",
+              "share-link"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    },
+    {
+      "itemId": "share-link-circle",
+      "slug": "share-link-circle",
+      "name": "Share Link Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-link-circle.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "link",
+        "circle",
+        "network"
+      ],
+      "searchTextPreview": "micro-solid share-link-circle share link circle share-link-circle 26574 share internet network server disabled off prohibited restricted care cash charity cloud",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "share",
+              "link"
+            ],
+            "prefixMatches": [
+              "share",
+              "share-link"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    },
+    {
+      "itemId": "share-link-lock",
+      "slug": "share-link-lock",
+      "name": "Share Link Lock",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-link-lock.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "link",
+        "lock",
+        "privacy",
+        "secure"
+      ],
+      "searchTextPreview": "micro-solid share-link-lock share link lock share-link-lock 26574 network lock privacy secure server share security internet cybersecurity encryption disabled off",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "lexicalScore": 18,
+            "nameMatches": [
+              "share",
+              "link"
+            ],
+            "prefixMatches": [
+              "share",
+              "share-link"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "lock"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 21,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "brightness-lock",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    },
+    {
+      "itemId": "share-symbol",
+      "slug": "share-symbol",
+      "name": "Share Symbol",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-symbol.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid share-symbol share symbol share-symbol 26574 share card entertainment gaming symbol internet network server outline shape disabled off",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": [
+              "share"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    },
+    {
+      "itemId": "share-user",
+      "slug": "share-user",
+      "name": "Share User",
+      "outputPath": "vendor/streamline-svg/micro-solid/share-user.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "share",
+        "user",
+        "account"
+      ],
+      "searchTextPreview": "micro-solid share-user share user share-user 26574 share internet network server disabled off prohibited restricted account avatar care cash",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": [
+              "share"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "share"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "share-link-disabled",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "cloud-share",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch6"
+    }
+  ]
+}

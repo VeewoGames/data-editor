@@ -1,0 +1,122 @@
+{
+  "family": null,
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-auto-accept-round2.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T04:42:02.103Z",
+  "appliedCount": 5,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "mail-reply",
+      "slug": "mail-reply",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "send",
+        "all",
+        "affection",
+        "arrow",
+        "bookmark",
+        "bubble"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:42:02.103Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-send",
+      "slug": "mail-send",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "send",
+        "all",
+        "arrow",
+        "button",
+        "forward",
+        "affection"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:42:02.103Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "mail-send-reply",
+      "slug": "mail-send-reply",
+      "tags": [
+        "message",
+        "communication",
+        "email",
+        "envelope",
+        "mail",
+        "inbox",
+        "send",
+        "all",
+        "arrow",
+        "button",
+        "forward",
+        "affection"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:42:02.103Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "send-email-square",
+      "slug": "send-email-square",
+      "tags": [
+        "email",
+        "envelope",
+        "message",
+        "communication",
+        "mail",
+        "all",
+        "inbox",
+        "send",
+        "arrow",
+        "forward",
+        "button",
+        "block"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:42:02.103Z",
+      "confidence": 0.99
+    },
+    {
+      "itemId": "smiley-emoticon-sad",
+      "slug": "smiley-emoticon-sad",
+      "tags": [
+        "chat",
+        "smiley",
+        "emoji",
+        "happy",
+        "message",
+        "face",
+        "bubble",
+        "smile",
+        "emotion",
+        "cheerful",
+        "crying",
+        "frown"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T04:42:02.103Z",
+      "confidence": 0.99
+    }
+  ],
+  "skipped": []
+}

@@ -1,7 +1,6 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
 import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
-import type { StreamlineSharedViewIconId } from "../generated/streamline-shared-view-icons.mjs";
 
 export const recoverableRequestEventName = "data-editor:recoverable-request";
 const defaultRecoveryBridgePort = 8791;
@@ -115,6 +114,7 @@ export type UserViewProfile = {
   detailPanelWidth: number | null;
   detailDocumentPanelOpen: boolean | null;
   detailDocumentPanelWidth: number | null;
+  favoriteSharedViewIconIds?: SharedViewIconId[];
   fileOrder: string[];
   sidebarTree: SidebarTreePreferences;
   lastActiveViews: Record<string, string>;
@@ -151,8 +151,11 @@ export type SharedViewStructureDraft = {
     | { kind: "group"; groupId: string; name?: string; viewIds: string[] }
   >;
 };
+type TablerSharedViewIconId = (typeof import("../generated/tabler-shared-view-icons.mjs").tablerSharedViewIconIds)[number];
+type StreamlineSharedViewIconId = (typeof import("../generated/streamline-shared-view-icons.mjs").streamlineSharedViewIconIds)[number];
 export type SharedViewIconId =
   | "borderAll"
+  | TablerSharedViewIconId
   | StreamlineSharedViewIconId
   | "folder"
   | "folders"
@@ -437,10 +440,15 @@ export async function loadViewProfile(name: string, projectId?: string | null): 
 }
 
 export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null) {
+  const body = JSON.stringify({ projectId, name, profile });
+  const keepalive = typeof TextEncoder !== "undefined"
+    ? new TextEncoder().encode(body).byteLength <= 60_000
+    : body.length <= 60_000;
   return fetchJson("/api/view-profile", {
     method: "POST",
+    keepalive,
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, name, profile }),
+    body,
   });
 }
 

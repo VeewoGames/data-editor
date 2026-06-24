@@ -12,3 +12,9 @@ playwright-report/
 tests/.scratch/
 *.log
 .tmp-*
+
+# claw-kit
+.claw/*
+!.claw/project.json
+!.claw/truth/
+!.claw/truth/**

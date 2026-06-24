@@ -1014,8 +1014,11 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /settingsOpen \? "active" : ""/);
   assert.match(viewTabsSource, /table-settings-popover-shell/);
   assert.match(viewTabsSource, /<TableSettingsPopover/);
-  assert.match(viewTabsSource, /sharedViewIconRegistry/);
+  assert.match(viewTabsSource, /readSharedViewIconComponent/);
   assert.match(viewTabsSource, /sharedViewIconGroups/);
+  assert.match(viewTabsSource, /favoriteIconIds: SharedViewIconId\[\];/);
+  assert.match(viewTabsSource, /favoritesEnabled: boolean;/);
+  assert.match(viewTabsSource, /onToggleFavoriteIcon/);
   assert.match(viewTabsSource, /sharedViewRecentIconStorageKey/);
   assert.match(viewTabsSource, /view-tab-menu-header/);
   assert.match(viewTabsSource, /view-tab-menu-icon-trigger/);
@@ -1027,7 +1030,17 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /view-tab-icon-picker-tabs/);
   assert.match(viewTabsSource, /view-tab-icon-picker-empty/);
   assert.match(viewTabsSource, /iconPickerSearchQuery/);
+  assert.match(viewTabsSource, /iconPickerGlobalSearchEnabled/);
+  assert.match(viewTabsSource, /iconPackOptionsOpen/);
+  assert.match(viewTabsSource, /view-tab-icon-pack-options/);
+  assert.match(viewTabsSource, /view-tab-icon-picker-options-trigger/);
+  assert.match(viewTabsSource, /需先加载/);
+  assert.match(viewTabsSource, /readSharedViewIconComponent\(iconId\) \?\? sharedViewFallbackIcon/);
+  assert.match(viewTabsSource, /renderSharedViewIcon\(dragGhost\.icon \?\? sharedViewDefaultIconId, 17\)/);
+  assert.match(viewTabsSource, /setIconPickerGlobalSearchEnabled\(false\)/);
+  assert.match(viewTabsSource, /view-tab-icon-picker-search-scope/);
   assert.match(viewTabsSource, /recentIconIds/);
+  assert.match(viewTabsSource, /favorites/);
   assert.match(viewTabsSource, /onInteractOutside/);
   assert.match(viewTabsSource, /data-view-icon=/);
   assert.match(viewTabsSource, /onUpdateViewIcon/);
@@ -1113,35 +1126,75 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(filterBarSource, /重置/);
 });
 
-test("shared view icon metadata exposes default icon, filled whitelist groups, and picker storage constants", async () => {
+test("shared view icon metadata exposes pack groups, base pack, and picker storage constants", async () => {
   const iconsSource = await readFile(new URL("../src/components/icons.ts", import.meta.url), "utf8");
+  const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
   const clientSource = await readFile(new URL("../src/api/client.ts", import.meta.url), "utf8");
 
   assert.match(iconsSource, /sharedViewIconRegistry/);
   assert.match(iconsSource, /sharedViewIconGroups/);
   assert.match(iconsSource, /sharedViewIconSearchAliases/);
+  assert.match(iconsSource, /sharedViewBaseIconIds/);
+  assert.match(iconsSource, /loadSharedViewIconPack/);
+  assert.match(iconsSource, /loadSharedViewIconManifest/);
+  assert.match(iconsSource, /unloadSharedViewIconPack/);
+  assert.match(iconsSource, /sharedViewLoadedIconPacksStorageKey/);
+  assert.match(iconsSource, /hydratePersistedSharedViewIconPacks/);
+  assert.match(iconsSource, /persistLoadedSharedViewIconPackIds/);
+  assert.match(iconsSource, /resolveGeneratedPackIdFromIconId/);
+  assert.match(iconsSource, /readSharedViewIconIdsForPack/);
+  assert.match(iconsSource, /isSharedViewIconPackLoaded/);
+  assert.match(iconsSource, /new Set<SharedViewIconPackId>\(\["base"\]\)/);
+  assert.match(iconsSource, /sharedViewFavoriteOutlineIcon/);
+  assert.match(iconsSource, /sharedViewFavoriteFilledIcon/);
   assert.match(iconsSource, /sharedViewRecentIconStorageKey/);
   assert.match(iconsSource, /sharedViewDefaultIconId/);
-  assert.match(iconsSource, /label:\s*"常用"/);
-  assert.match(iconsSource, /label:\s*"生活"/);
-  assert.match(iconsSource, /label:\s*"战斗"/);
-  assert.match(iconsSource, /label:\s*"装备"/);
-  assert.match(iconsSource, /label:\s*"测试"/);
-  assert.match(iconsSource, /label:\s*"其他"/);
-  assert.match(iconsSource, /id:\s*"common"[\s\S]*iconIds:\s*\[[\s\S]*"borderAll"/);
-  assert.match(iconsSource, /id:\s*"test"[\s\S]*iconIds:\s*\[[\s\S]*"streamlineMicroSolidAccessibility"/);
-  assert.match(iconsSource, /streamlineSharedViewIcons/);
-  assert.match(iconsSource, /streamlineSharedViewIconGroups/);
-  assert.match(iconsSource, /streamlineMicroSolidSecurityShield/);
-  assert.match(iconsSource, /streamlineMicroSolidKnife2/);
-  assert.match(iconsSource, /Object\.keys\(sharedViewIconRegistry\)/);
+  assert.match(iconsSource, /label:\s*"收藏"/);
+  assert.match(iconsSource, /label:\s*"Micro S"/);
+  assert.match(iconsSource, /label:\s*"Core S"/);
+  assert.match(iconsSource, /label:\s*"Tabler S"/);
+  assert.match(iconsSource, /label:\s*"Micro L"/);
+  assert.match(iconsSource, /label:\s*"Tabler L"/);
+  assert.match(iconsSource, /label:\s*"Legacy"/);
+  assert.match(iconsSource, /id:\s*"favorites"/);
+  assert.match(iconsSource, /id:\s*"micro-solid"/);
+  assert.match(iconsSource, /id:\s*"core-solid"/);
+  assert.match(iconsSource, /id:\s*"tabler-filled"/);
+  assert.match(iconsSource, /id:\s*"micro-line"/);
+  assert.match(iconsSource, /id:\s*"tabler-outline"/);
+  assert.match(iconsSource, /id:\s*"legacy"/);
+  assert.match(iconsSource, /tabler-svg/);
+  assert.match(iconsSource, /loadSharedViewIconPackSvgTextMap/);
+  assert.match(iconsSource, /\/api\/shared-view-icon-pack\?packId=/);
+  assert.match(iconsSource, /\/api\/shared-view-icon-pack-manifest\?packId=/);
+  assert.match(iconsSource, /tabler s/);
+  assert.match(iconsSource, /tabler l/);
+  assert.match(iconsSource, /core-solid/);
+  assert.match(iconsSource, /core s/);
+  assert.match(viewTabsSource, /resolveManagedPackSummary/);
+  assert.match(viewTabsSource, /当前共享视图正在使用，暂不可卸载/);
+  assert.match(viewTabsSource, /未加载，加载后才会浏览和搜索该图标包/);
+  assert.match(viewTabsSource, /activePackLabel\} 未加载/);
+  assert.match(viewTabsSource, /加载 \{activePackLabel\}/);
+  assert.doesNotMatch(viewTabsSource, /兼容池已加载，可继续浏览旧图标/);
+  assert.match(viewTabsSource, /view-tab-icon-pack-detail/);
 
   assert.match(clientSource, /export type SharedViewIconId =/);
+  assert.match(clientSource, /favoriteSharedViewIconIds\?: SharedViewIconId\[\];/);
+  assert.match(clientSource, /const keepalive =/);
+  assert.match(clientSource, /TextEncoder/);
+  assert.match(clientSource, /byteLength <= 60_000/);
   assert.match(clientSource, /"borderAll"/);
   assert.match(clientSource, /"home"/);
   assert.match(clientSource, /"gamepad"/);
   assert.match(clientSource, /"shield"/);
   assert.match(clientSource, /"trophy"/);
+  assert.match(clientSource, /TablerSharedViewIconId/);
+  assert.match(clientSource, /generated\/tabler-shared-view-icons/);
+  const normalizeSource = await readFile(new URL("../src/view/shared-view-normalize.mjs", import.meta.url), "utf8");
+  assert.match(normalizeSource, /isGeneratedSharedViewIconId/);
+  assert.match(normalizeSource, /iconId\.startsWith\("tablerFilled"\)/);
+  assert.match(normalizeSource, /iconId\.startsWith\("streamlineCoreSolid"\)/);
   assert.match(clientSource, /StreamlineSharedViewIconId/);
   assert.match(clientSource, /generated\/streamline-shared-view-icons/);
 });
@@ -1191,10 +1244,23 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(appSource, /onDuplicateGroup=\{handleDuplicateSharedViewGroup\}/);
   assert.match(appSource, /onDeleteGroup=\{handleDeleteSharedViewGroup\}/);
   assert.match(appSource, /onUpdateViewIcon=\{handleUpdateSharedViewIcon\}/);
+  assert.match(appSource, /collectProtectedSharedViewIconPackIds/);
+  assert.match(appSource, /protectedIconPackIds=\{protectedSharedViewIconPackIds\}/);
 
   assert.match(viewTabsSource, /topLevelItems:/);
   assert.match(viewTabsSource, /expandedGroupId:/);
   assert.match(viewTabsSource, /activeGroupId:/);
+  assert.match(viewTabsSource, /missingProtectedPackIds/);
+  assert.match(viewTabsSource, /loadSharedViewIconPack\(packId as keyof typeof sharedViewIconPackLabels\)/);
+  assert.match(viewTabsSource, /await hydratePersistedSharedViewIconPacks\(\)/);
+});
+
+test("favorite icon profile updates retain the favorites array and save immediately", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /favoriteSharedViewIconIds:\s*\[\.\.\.current\.favoriteSharedViewIconIds\]/);
+  assert.match(appSource, /const nextProfile = mutateSelectedViewProfile\(\(draft\) => \{/);
+  assert.match(appSource, /void commitProfileSave\(selectedViewProfileNameRef\.current!, nextProfile\);/);
 });
 
 test("row delete controls stay hidden until the temporary toolbar mode is enabled", async () => {

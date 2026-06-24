@@ -1,0 +1,331 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch24",
+  "suggestions": [
+    {
+      "itemId": "light-bulb-on",
+      "slug": "light-bulb-on",
+      "name": "Light Bulb On",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-bulb-on.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "bulb",
+        "on"
+      ],
+      "searchTextPreview": "micro-solid light-bulb-on light bulb on light-bulb-on 26560 always approval bag bright carry check confirm electricity energy flash illuminate lightning",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-dark-mode",
+      "slug": "light-dark-mode",
+      "name": "Light Dark Mode",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-dark-mode.svg",
+      "confidence": 0.93,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "dark",
+        "mode"
+      ],
+      "searchTextPreview": "micro-solid light-dark-mode light dark mode light-dark-mode 26583 astronomy backlight brightness celestial contrast crescent dark dimming display dream evening lunar",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "dark",
+              "mode"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "mode"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-display-mode",
+      "slug": "light-display-mode",
+      "name": "Light Display Mode",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-display-mode.svg",
+      "confidence": 0.93,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "display",
+        "mode"
+      ],
+      "searchTextPreview": "micro-solid light-display-mode light display mode light-display-mode 26560 astronomy backlight brightness celestial contrast crescent dark dimming display dream evening lunar",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "lexicalScore": 10,
+            "nameMatches": [
+              "display",
+              "mode"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "mode"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "dark-display-mode",
+            "score": 13,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "airplane-mode",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-home-ceiling-on",
+      "slug": "light-home-ceiling-on",
+      "name": "Light Home Ceiling On",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-home-ceiling-on.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "home",
+        "ceiling",
+        "on"
+      ],
+      "searchTextPreview": "micro-solid light-home-ceiling-on light home ceiling on light-home-ceiling-on 26560 home building house residence roof shelter architecture entrance outline structure abode access",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "on"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "carry-on-bag-check",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "flash-always-on",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    },
+    {
+      "itemId": "light-off",
+      "slug": "light-off",
+      "name": "Light Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/light-off.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "light",
+        "off",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid light-off light off light-off 26560 off disable disabled inactive mute block forbidden offline privacy shutdown silence silent",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch24"
+    }
+  ]
+}

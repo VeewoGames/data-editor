@@ -86,7 +86,6 @@ test("runStreamlineSvgExtractionLoopFromNodeRepl batches until manifest is compl
     outputDir: "vendor/streamline-svg/micro-line",
   });
 
-  const browser = { id: "browser-loop" };
   const connectCalls = [];
   const runCalls = [];
   const slugBatches = [
@@ -99,7 +98,8 @@ test("runStreamlineSvgExtractionLoopFromNodeRepl batches until manifest is compl
     batchSize: 2,
     maxBatches: 3,
     connectBrowser: async () => {
-      connectCalls.push("connect");
+      const browser = { id: `browser-loop-${connectCalls.length + 1}` };
+      connectCalls.push(browser.id);
       return browser;
     },
     runWithBrowser: async (options) => {
@@ -111,9 +111,10 @@ test("runStreamlineSvgExtractionLoopFromNodeRepl batches until manifest is compl
     },
   });
 
-  assert.deepEqual(connectCalls, ["connect"]);
+  assert.deepEqual(connectCalls, ["browser-loop-1", "browser-loop-2"]);
   assert.equal(runCalls.length, 2);
-  assert.equal(runCalls[0].browser, browser);
+  assert.equal(runCalls[0].browser.id, "browser-loop-1");
+  assert.equal(runCalls[1].browser.id, "browser-loop-2");
   assert.equal(runCalls[0].maxItems, 2);
   assert.equal(runCalls[1].maxItems, 1);
   assert.equal(result.complete, true);
@@ -123,4 +124,49 @@ test("runStreamlineSvgExtractionLoopFromNodeRepl batches until manifest is compl
     success: 3,
     failed: 0,
   });
+});
+
+test("runStreamlineSvgExtractionLoopFromNodeRepl can reuse one browser across batches when requested", async () => {
+  const root = await mkdtemp(join(tmpdir(), "streamline-loop-"));
+  const manifestPath = join(root, "micro-line.manifest.json");
+  await createManifest({
+    manifestPath,
+    family: "micro-line",
+    items: [
+      { slug: "align-top", name: "Align Top", iconUrl: "https://example.test/align-top" },
+      { slug: "atom", name: "Atom", iconUrl: "https://example.test/atom" },
+      { slug: "beach", name: "Beach", iconUrl: "https://example.test/beach" },
+    ],
+    outputDir: "vendor/streamline-svg/micro-line",
+  });
+
+  const sharedBrowser = { id: "browser-shared" };
+  const connectCalls = [];
+  const runCalls = [];
+  const slugBatches = [
+    ["align-top", "atom"],
+    ["beach"],
+  ];
+
+  const result = await runStreamlineSvgExtractionLoopFromNodeRepl({
+    manifestPath,
+    batchSize: 2,
+    maxBatches: 3,
+    reuseBrowser: true,
+    connectBrowser: async () => {
+      connectCalls.push("connect");
+      return sharedBrowser;
+    },
+    runWithBrowser: async (options) => {
+      runCalls.push(options.browser);
+      for (const slug of slugBatches.shift() ?? []) {
+        await markManifestItemSuccess({ manifestPath, slug, extractedAt: "2026-06-23T10:00:00.000Z" });
+      }
+      return { success: options.maxItems, failed: 0 };
+    },
+  });
+
+  assert.deepEqual(connectCalls, ["connect"]);
+  assert.deepEqual(runCalls, [sharedBrowser, sharedBrowser]);
+  assert.equal(result.complete, true);
 });

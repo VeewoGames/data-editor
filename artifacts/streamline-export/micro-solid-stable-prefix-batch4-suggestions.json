@@ -1,0 +1,1978 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch4",
+  "suggestions": [
+    {
+      "itemId": "number-eight",
+      "slug": "number-eight",
+      "name": "Number Eight",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-eight.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "eight",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-eight number eight number-eight 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-eight-circle",
+      "slug": "number-eight-circle",
+      "name": "Number Eight Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-eight-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "eight",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-eight-circle number eight circle number-eight-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-eight-square",
+      "slug": "number-eight-square",
+      "name": "Number Eight Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-eight-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "eight",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-eight-square number eight square number-eight-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-five",
+      "slug": "number-five",
+      "name": "Number Five",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-five.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "five",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-five number five number-five 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-five-circle",
+      "slug": "number-five-circle",
+      "name": "Number Five Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-five-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "five",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-five-circle number five circle number-five-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-five-square",
+      "slug": "number-five-square",
+      "name": "Number Five Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-five-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "five",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-five-square number five square number-five-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-four",
+      "slug": "number-four",
+      "name": "Number Four",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-four.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "four",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-four number four number-four 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-four-circle",
+      "slug": "number-four-circle",
+      "name": "Number Four Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-four-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "four",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-four-circle number four circle number-four-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-four-square",
+      "slug": "number-four-square",
+      "name": "Number Four Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-four-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "four",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-four-square number four square number-four-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-nine",
+      "slug": "number-nine",
+      "name": "Number Nine",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-nine.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "nine",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-nine number nine number-nine 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-nine-circle",
+      "slug": "number-nine-circle",
+      "name": "Number Nine Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-nine-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "nine",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-nine-circle number nine circle number-nine-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-nine-square",
+      "slug": "number-nine-square",
+      "name": "Number Nine Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-nine-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "nine",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-nine-square number nine square number-nine-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-one",
+      "slug": "number-one",
+      "name": "Number One",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-one.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "one",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-one number one number-one 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-one-circle",
+      "slug": "number-one-circle",
+      "name": "Number One Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-one-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "one",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-one-circle number one circle number-one-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-one-square",
+      "slug": "number-one-square",
+      "name": "Number One Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-one-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "one",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-one-square number one square number-one-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract accommodation",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-seven",
+      "slug": "number-seven",
+      "name": "Number Seven",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-seven.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "seven",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-seven number seven number-seven 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-seven-circle",
+      "slug": "number-seven-circle",
+      "name": "Number Seven Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-seven-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "seven",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-seven-circle number seven circle number-seven-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-seven-square",
+      "slug": "number-seven-square",
+      "name": "Number Seven Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-seven-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "seven",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-seven-square number seven square number-seven-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-six",
+      "slug": "number-six",
+      "name": "Number Six",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-six.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "six",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-six number six number-six 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-six-circle",
+      "slug": "number-six-circle",
+      "name": "Number Six Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-six-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "six",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-six-circle number six circle number-six-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-six-square",
+      "slug": "number-six-square",
+      "name": "Number Six Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-six-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "six",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-six-square number six square number-six-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-three",
+      "slug": "number-three",
+      "name": "Number Three",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-three.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "three",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-three number three number-three 26545 number symbol arrow ascending direction download downward graphic interface order subscript abstract",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-three-circle",
+      "slug": "number-three-circle",
+      "name": "Number Three Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-three-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "three",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-three-circle number three circle number-three-circle 26545 number symbol arrow ascending direction download downward graphic interface order subscript abstract",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-three-square",
+      "slug": "number-three-square",
+      "name": "Number Three Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-three-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "three",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-three-square number three square number-three-square 26545 number symbol arrow ascending direction download downward graphic interface order subscript abstract",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-two",
+      "slug": "number-two",
+      "name": "Number Two",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-two.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "two",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-two number two number-two 26545 interface number symbol arrangement arrow ascending dashboard direction download downward frame graphic",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-two-circle",
+      "slug": "number-two-circle",
+      "name": "Number Two Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-two-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "two",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-two-circle number two circle number-two-circle 26545 interface number symbol arrangement arrow ascending dashboard direction download downward frame graphic",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-two-square",
+      "slug": "number-two-square",
+      "name": "Number Two Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-two-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "two",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-two-square number two square number-two-square 26545 interface number symbol arrangement arrow ascending dashboard direction download downward frame graphic",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-zero",
+      "slug": "number-zero",
+      "name": "Number Zero",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-zero.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "zero",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-zero number zero number-zero 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-zero-circle",
+      "slug": "number-zero-circle",
+      "name": "Number Zero Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-zero-circle.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "zero",
+        "circle",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-zero-circle number zero circle number-zero-circle 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    },
+    {
+      "itemId": "number-zero-square",
+      "slug": "number-zero-square",
+      "name": "Number Zero Square",
+      "outputPath": "vendor/streamline-svg/micro-solid/number-zero-square.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "number",
+        "zero",
+        "square",
+        "digit",
+        "symbol"
+      ],
+      "searchTextPreview": "micro-solid number-zero-square number zero square number-zero-square 26545 number symbol arrow ascending direction download downward graphic order subscript abstract align",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "number"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "ascending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "descending-number-order",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch4"
+    }
+  ]
+}

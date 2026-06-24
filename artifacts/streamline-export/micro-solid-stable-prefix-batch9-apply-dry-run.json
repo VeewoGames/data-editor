@@ -1,0 +1,178 @@
+{
+  "family": "micro-solid",
+  "manifestPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-full.manifest.json",
+  "suggestionsPath": "C:\\Code\\data-editor\\artifacts\\streamline-export\\micro-solid-stable-prefix-batch9-suggestions.json",
+  "dryRun": true,
+  "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+  "appliedCount": 11,
+  "skippedCount": 0,
+  "applied": [
+    {
+      "itemId": "shopping-bag",
+      "slug": "shopping-bag",
+      "tags": [
+        "shopping",
+        "bag",
+        "commerce"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "shopping-basket-add",
+      "slug": "shopping-basket-add",
+      "tags": [
+        "shopping",
+        "basket",
+        "commerce",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shopping-basket-remove",
+      "slug": "shopping-basket-remove",
+      "tags": [
+        "shopping",
+        "basket",
+        "commerce",
+        "remove",
+        "delete"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shopping-cart",
+      "slug": "shopping-cart",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "shopping-cart-add",
+      "slug": "shopping-cart-add",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "add",
+        "plus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shopping-cart-check",
+      "slug": "shopping-cart-check",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "check",
+        "approve"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shopping-cart-cross",
+      "slug": "shopping-cart-cross",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "cross",
+        "remove"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shopping-cart-heavy",
+      "slug": "shopping-cart-heavy",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "heavy"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "shopping-cart-load",
+      "slug": "shopping-cart-load",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "load"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.7
+    },
+    {
+      "itemId": "shopping-cart-subtract",
+      "slug": "shopping-cart-subtract",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "subtract",
+        "minus"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.77
+    },
+    {
+      "itemId": "shopping-cart-unload",
+      "slug": "shopping-cart-unload",
+      "tags": [
+        "shopping",
+        "cart",
+        "checkout",
+        "commerce",
+        "unload"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-24T05:57:22.603Z",
+      "confidence": 0.7
+    }
+  ],
+  "skipped": []
+}

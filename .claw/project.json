@@ -1,0 +1,20 @@
+{
+  "id": "data-editor",
+  "name": "data-editor",
+  "maxTasksToKeep": 99,
+  "externalTruthSkill": null,
+  "externalAdrSkill": null,
+  "contextPaths": [],
+  "memory": {
+    "externalDocPaths": [],
+    "embedding": {
+      "provider": "local",
+      "model": "Snowflake/snowflake-arctic-embed-m-v2.0"
+    }
+  },
+  "planning": true,
+  "externalPlanningSkill": null,
+  "goalMode": true,
+  "truthDispatch": "per_task",
+  "gitnexus": false
+}

@@ -1,0 +1,403 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch17",
+  "suggestions": [
+    {
+      "itemId": "music-note-1",
+      "slug": "music-note-1",
+      "name": "Music Note 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-1.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid music-note-1 music note 1 music-note-1 26668 bubble chat communication message note video voice audio circle media play playback",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-2",
+      "slug": "music-note-2",
+      "name": "Music Note 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-2.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio"
+      ],
+      "searchTextPreview": "micro-solid music-note-2 music note 2 music-note-2 26668 bubble chat communication message note video voice audio circle media play playback",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-circle",
+      "slug": "music-note-circle",
+      "name": "Music Note Circle",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-circle.svg",
+      "confidence": 0.7,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "circle"
+      ],
+      "searchTextPreview": "micro-solid music-note-circle music note circle music-note-circle 26668 bubble chat communication message note video voice audio circle media play playback",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "note"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "chat-bubble-video-voice-note",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "chat-bubble-video-voice-note-circle",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-circle-off",
+      "slug": "music-note-circle-off",
+      "name": "Music Note Circle Off",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-circle-off.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "circle",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid music-note-circle-off music note circle off music-note-circle-off 26668 off disable disabled inactive message mute block bubble chat communication forbidden note",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-off-1",
+      "slug": "music-note-off-1",
+      "name": "Music Note Off 1",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-off-1.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid music-note-off-1 music note off 1 music-note-off-1 26668 off disable disabled inactive message mute block bubble chat communication forbidden note",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    },
+    {
+      "itemId": "music-note-off-2",
+      "slug": "music-note-off-2",
+      "name": "Music Note Off 2",
+      "outputPath": "vendor/streamline-svg/micro-solid/music-note-off-2.svg",
+      "confidence": 0.77,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "music",
+        "note",
+        "audio",
+        "off",
+        "mute",
+        "disable"
+      ],
+      "searchTextPreview": "micro-solid music-note-off-2 music note off 2 music-note-off-2 26668 off disable disabled inactive message mute block bubble chat communication forbidden note",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "off"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "alarm-bell-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "business-enterprise-off",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch17"
+    }
+  ]
+}

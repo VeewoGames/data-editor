@@ -1,0 +1,43 @@
+{
+  "family": "micro-solid",
+  "generatedAt": "2026-06-23T17:14:46.273Z",
+  "items": [
+    {
+      "itemId": "attachment-1",
+      "slug": "attachment-1",
+      "sourceId": "26582",
+      "name": "Attachment 1",
+      "iconUrl": "https://www.streamlinehq.com/icons/download/attachment-1--26582",
+      "status": "success",
+      "attempts": 0,
+      "outputPath": "vendor/streamline-svg/micro-solid/attachment-1.svg",
+      "error": null,
+      "extractedAt": "2026-06-24T17:15:00.000Z",
+      "tags": [
+        "attachment",
+        "paperclip",
+        "clip",
+        "affix",
+        "attach",
+        "fastener",
+        "link",
+        "hyperlink",
+        "office",
+        "stationery",
+        "tool",
+        "binder",
+        "pin",
+        "affixation",
+        "hook",
+        "curve",
+        "unlink",
+        "level",
+        "medium",
+        "low"
+      ],
+      "metadataStatus": "success",
+      "metadataError": null,
+      "metadataUpdatedAt": "2026-06-23T17:14:48.547Z"
+    }
+  ]
+}

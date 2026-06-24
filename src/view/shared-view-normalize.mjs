@@ -1,10 +1,18 @@
-import { streamlineSharedViewIconIds } from "../generated/streamline-shared-view-icons.mjs";
-
 const filterOperators = new Set(["is", "is_not", "contains", "does_not_contain", "is_empty", "is_not_empty"]);
 const sortDirections = new Set(["asc", "desc"]);
+
+function isGeneratedSharedViewIconId(iconId) {
+  return typeof iconId === "string" && (
+    iconId.startsWith("streamlineCoreSolid")
+    || iconId.startsWith("streamlineMicroSolid")
+    || iconId.startsWith("streamlineMicroLine")
+    || iconId.startsWith("tablerFilled")
+    || iconId.startsWith("tablerLine")
+  );
+}
+
 export const sharedViewIconIds = new Set([
   "borderAll",
-  ...streamlineSharedViewIconIds,
   "folder",
   "folders",
   "folderOpen",
@@ -305,7 +313,7 @@ function normalizeSharedViewItem(value, usedGroupIds, usedViewIds) {
 
 export function normalizeSharedViewIcon(value) {
   const icon = normalizeString(value);
-  return sharedViewIconIds.has(icon) ? icon : defaultSharedViewIconId;
+  return sharedViewIconIds.has(icon) || isGeneratedSharedViewIconId(icon) ? icon : defaultSharedViewIconId;
 }
 
 export function normalizeSharedViewLeaf(value, usedViewIds = new Set()) {

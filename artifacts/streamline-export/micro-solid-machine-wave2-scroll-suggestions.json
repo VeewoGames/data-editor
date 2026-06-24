@@ -1,0 +1,209 @@
+{
+  "kind": "streamline-tag-suggestions",
+  "version": 1,
+  "family": "micro-solid",
+  "source": "stable_prefix_batch30",
+  "suggestions": [
+    {
+      "itemId": "scroll-top",
+      "slug": "scroll-top",
+      "name": "Scroll Top",
+      "outputPath": "vendor/streamline-svg/micro-solid/scroll-top.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "scroll",
+        "top"
+      ],
+      "searchTextPreview": "micro-solid scroll-top scroll top scroll-top 26564 arrow scroll camera focus button direction navigation center diagonal frame horizontal lens",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 12,
+            "lexicalScore": 9,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": [
+              "scroll"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 12,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch30"
+    },
+    {
+      "itemId": "scroll-up",
+      "slug": "scroll-up",
+      "name": "Scroll Up",
+      "outputPath": "vendor/streamline-svg/micro-solid/scroll-up.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "scroll",
+        "up",
+        "arrow"
+      ],
+      "searchTextPreview": "micro-solid scroll-up scroll up scroll-up 26564 arrow scroll camera button direction focus navigation arrows center diagonal double frame",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "lexicalScore": 13,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": [
+              "scroll",
+              "scroll-up"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch30"
+    },
+    {
+      "itemId": "scroll-up-down",
+      "slug": "scroll-up-down",
+      "name": "Scroll Up Down",
+      "outputPath": "vendor/streamline-svg/micro-solid/scroll-up-down.svg",
+      "confidence": 0.99,
+      "decision": "auto_accept",
+      "suggestedTags": [
+        "scroll",
+        "up",
+        "arrow",
+        "down",
+        "arrows"
+      ],
+      "searchTextPreview": "micro-solid scroll-up-down scroll up down scroll-up-down 26564 arrow scroll camera button direction focus navigation arrows center diagonal double frame",
+      "evidence": {
+        "nameNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "lexicalScore": 13,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": [
+              "scroll",
+              "scroll-up"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "lexicalScore": 5,
+            "nameMatches": [
+              "scroll"
+            ],
+            "prefixMatches": []
+          }
+        ],
+        "imageNeighbors": [
+          {
+            "itemId": "scroll-up-double",
+            "score": 16,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          },
+          {
+            "itemId": "diagonal-scroll-1",
+            "score": 8,
+            "svgScore": 3,
+            "svgMatches": [
+              "viewbox:square",
+              "element:path",
+              "paint:fill",
+              "path-count:1",
+              "node-count:1"
+            ]
+          }
+        ]
+      },
+      "sourceDecision": "review_required",
+      "promotedBy": "stable_prefix_batch30"
+    }
+  ]
+}
