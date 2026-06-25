@@ -466,6 +466,25 @@ test("saveSharedViewDraftsToConfig keeps top-level icons when applying a flat or
   ]);
 });
 
+test("renameSharedViewConfig keeps top-level view icons", () => {
+  const result = viewState.renameSharedViewConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        items: [
+          { kind: "view", icon: "json", view: { ...allView, id: "all", name: "All" } },
+          { kind: "view", icon: "shield", view: { ...allView, id: "damage", name: "Damage" } },
+        ],
+      },
+    },
+  }, "data/runes.json:$", "damage", "Damage renamed");
+
+  assert.equal(result.collections["data/runes.json:$"].items[0].icon, "json");
+  assert.equal(result.collections["data/runes.json:$"].items[1].icon, "shield");
+  assert.equal(result.collections["data/runes.json:$"].items[1].view.name, "Damage renamed");
+});
+
 test("deleteSharedViewConfig refuses last view and selects adjacent replacement", () => {
   assert.equal(typeof viewState.deleteSharedViewConfig, "function");
   const config = {

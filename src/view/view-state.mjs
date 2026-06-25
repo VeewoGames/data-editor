@@ -371,6 +371,7 @@ function renameViewInItems(items, viewId, name) {
     const rawView = item?.kind === "view" ? item.view : item;
     return {
       kind: "view",
+      icon: item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll",
       view: rawView?.id === viewId ? { ...rawView, name } : { ...rawView },
     };
   });

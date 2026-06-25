@@ -1476,8 +1476,9 @@ test("shared view filter and sort drafts persist through save and reload", async
 
     const sharedViews = await loadSharedViewsConfig(page);
     const createdView = listSharedViews(sharedViews, collectionKey).find((view) => view.name === createdViewName)!;
-    let activeViewName = "E2E attack";
-    createdView.name = activeViewName;
+    let activeViewName = createdViewName;
+    const createdLeaf = findSharedViewLeaf(sharedViews, collectionKey, createdView.id);
+    if (createdLeaf) createdLeaf.icon = "json";
     createdView.filters = {
       op: "and",
       rules: [],
@@ -1495,12 +1496,8 @@ test("shared view filter and sort drafts persist through save and reload", async
     await page.reload();
     await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
     await selectViewTab(page, activeViewName);
-    await openActiveViewMenu(page, activeViewName);
-    await page.getByLabel("视图名称").fill("E2E renamed");
-    await page.getByLabel("视图名称").press("Enter");
-    activeViewName = "E2E renamed";
-    await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText(activeViewName);
-    await expect.poll(async () => getSharedView(await loadSharedViewsConfig(page), collectionKey, createdView.id)?.name).toBe(activeViewName);
+    await expect(topLevelViewTab(page, activeViewName).locator("[data-view-icon='json']")).toBeVisible();
+    await expect.poll(async () => findSharedViewLeaf(await loadSharedViewsConfig(page), collectionKey, createdView.id)?.icon ?? null).toBe("json");
 
     await page.getByRole("button", { name: "+ 筛选" }).click();
     await expect(page.locator(".add-filter-popover-content")).toBeVisible();
@@ -1537,10 +1534,12 @@ test("shared view filter and sort drafts persist through save and reload", async
       return values.includes("attack") && idValues.includes("multi_2") && hasSort(savedView, "name", "desc");
     });
     await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(0);
+    await expect.poll(async () => findSharedViewLeaf(await loadSharedViewsConfig(page), collectionKey, createdView.id)?.icon ?? null).toBe("json");
 
     await page.reload();
     await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
     await selectViewTab(page, activeViewName);
+    await expect(topLevelViewTab(page, activeViewName).locator("[data-view-icon='json']")).toBeVisible();
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" })).toBeVisible();
     await expect(page.locator('.view-filter-chip.sort-chip[title="name desc"]')).toBeVisible();
     await expect(tableRows(page)).toHaveCount(1);
@@ -1573,10 +1572,12 @@ test("shared view filter and sort drafts persist through save and reload", async
       const savedView = getSharedView(config, collectionKey, createdView.id);
       return Boolean(savedView && filterValues(savedView, "features").length === 0 && filterValues(savedView, "id").includes("multi_2") && hasSort(savedView, "name", "desc"));
     });
+    await expect.poll(async () => findSharedViewLeaf(await loadSharedViewsConfig(page), collectionKey, createdView.id)?.icon ?? null).toBe("json");
 
     await page.reload();
     await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
     await selectViewTab(page, activeViewName);
+    await expect(topLevelViewTab(page, activeViewName).locator("[data-view-icon='json']")).toBeVisible();
     await expect(page.locator(".view-filter-chip:not(.sort-chip)")).toHaveCount(1);
     await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "multi_2" })).toBeVisible();
 
@@ -1584,9 +1585,11 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect.poll(async () => (await getViewTabNames(page))[0]).toBe(activeViewName);
     await expect(page.locator(".view-order-dirty")).toBeVisible();
     await saveSharedViewForEveryone(page, (config) => listSharedViews(config, collectionKey)[0]?.id === createdView.id);
+    await expect.poll(async () => findSharedViewLeaf(await loadSharedViewsConfig(page), collectionKey, createdView.id)?.icon ?? null).toBe("json");
     await page.reload();
     await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
     await expect.poll(async () => (await getViewTabNames(page))[0]).toBe(activeViewName);
+    await expect(topLevelViewTab(page, activeViewName).locator("[data-view-icon='json']")).toBeVisible();
   } finally {
     await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
