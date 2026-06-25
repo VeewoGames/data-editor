@@ -18,3 +18,5 @@
 - [共享视图图标 Playwright e2e：隔离静态 webServer 链路](./adr/shared-view-icon-playwright-static-webserver.md)
 - [共享视图 generated 图标供应链：运行时按包拉取 raw SVG](./adr/shared-view-generated-icon-runtime-pack-delivery.md)
 - [共享视图 Tabler 图标接入：tagged snapshot、generated registry 与受保护 pack 合同](./adr/shared-view-tabler-icon-supply-chain.md)
+- [shared view 个人模式 / 团队模式切换：自动保存与显式发布边界](./adr/shared-view-collaboration-mode-autosave-and-publish-boundary.md)
+- [shared view 个人模式 / 团队模式切换：现状、保存链路与复核结论](./shared-view-collaboration-mode-routing-and-save-contract.md)

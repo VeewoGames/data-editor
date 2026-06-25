@@ -183,6 +183,7 @@ export const sharedViewIconIds = new Set([
   "refresh",
 ]);
 export const defaultSharedViewIconId = "borderAll";
+export const defaultSharedViewGroupIconId = "folder";
 
 export function emptySharedViewsConfig() {
   return {
@@ -306,7 +307,7 @@ function normalizeSharedViewItem(value, usedGroupIds, usedViewIds) {
       : [];
     if (!id || usedGroupIds.has(id) || !name || views.length === 0) return null;
     usedGroupIds.add(id);
-    return { kind: "group", id, name, views };
+    return { kind: "group", id, name, icon: normalizeSharedViewGroupIcon(value.icon), views };
   }
   return normalizeSharedViewLeaf(value, usedViewIds);
 }
@@ -314,6 +315,11 @@ function normalizeSharedViewItem(value, usedGroupIds, usedViewIds) {
 export function normalizeSharedViewIcon(value) {
   const icon = normalizeString(value);
   return sharedViewIconIds.has(icon) || isGeneratedSharedViewIconId(icon) ? icon : defaultSharedViewIconId;
+}
+
+export function normalizeSharedViewGroupIcon(value) {
+  const icon = normalizeString(value);
+  return sharedViewIconIds.has(icon) || isGeneratedSharedViewIconId(icon) ? icon : defaultSharedViewGroupIconId;
 }
 
 export function normalizeSharedViewLeaf(value, usedViewIds = new Set()) {
@@ -511,6 +517,7 @@ function normalizeStructureDraftItems(value) {
       const normalized = { kind: "group", groupId, viewIds };
       const name = normalizeString(item.name);
       if (name) normalized.name = name;
+      if (Object.hasOwn(item, "icon")) normalized.icon = normalizeSharedViewGroupIcon(item.icon);
       items.push(normalized);
     }
   }

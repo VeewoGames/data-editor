@@ -1,7 +1,9 @@
 import {
+  defaultSharedViewGroupIconId,
   normalizeCollectionView,
   normalizeSharedViewLeaf,
   normalizeSharedViewDraftState,
+  normalizeSharedViewGroupIcon,
   normalizeSharedViewsConfig,
 } from "./shared-view-normalize.mjs";
 
@@ -25,6 +27,7 @@ export function createViewGroupConfig({
     kind: "group",
     id: uniqueGroupId(collection.items, "group"),
     name: uniqueGroupName(collection.items, "新分组"),
+    icon: defaultSharedViewGroupIconId,
     views: [{ kind: "view", icon: "borderAll", view: nextView }],
   };
   collection.items = insertGroupAfter(collection.items, activeViewId, nextGroup);
@@ -68,6 +71,7 @@ export function duplicateViewGroupConfig({
       kind: "group",
       id: resolvedGroupSnapshot.id,
       name: resolvedGroupSnapshot.name,
+      icon: resolvedGroupSnapshot.icon ?? defaultSharedViewGroupIconId,
       views: resolvedGroupSnapshot.views.map((leaf) => cloneLeaf(leaf)),
     }
     : topLevelItems.find((item) => item.kind === "group" && item.id === groupId);
@@ -99,6 +103,7 @@ export function duplicateViewGroupConfig({
     kind: "group",
     id: uniqueGroupId(collection.items, targetGroup.id || "group"),
     name: uniqueCopyGroupName(collection.items, targetGroup.name || "新分组"),
+    icon: targetGroup.icon ?? defaultSharedViewGroupIconId,
     views: duplicatedViews,
   };
   collection.items = insertGroupAfterGroup(topLevelItems.length ? topLevelItems : collection.items, groupId, duplicatedGroup);
@@ -133,9 +138,9 @@ export function renameViewGroupConfig({
   const trimmed = typeof name === "string" ? name.trim() : "";
   if (!trimmed) return config;
   collection.items = collection.items.map((item) => item.kind === "group" && item.id === groupId
-      ? { ...item, name: trimmed, views: item.views.map((view) => cloneLeaf(view)) }
+      ? { ...item, name: trimmed, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) }
       : item.kind === "group"
-        ? { ...item, views: item.views.map((view) => cloneLeaf(view)) }
+        ? { ...item, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) }
         : cloneLeaf(item));
   return config;
 }
@@ -294,7 +299,7 @@ function applyStructureDraft(baseItems, draftItems) {
   const groupById = new Map();
   for (const item of baseItems) {
     if (item.kind === "group") {
-      groupById.set(item.id, { id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) });
+      groupById.set(item.id, { id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) });
       for (const view of item.views) viewById.set(view.view.id, cloneLeaf(view));
       continue;
     }
@@ -325,6 +330,7 @@ function applyStructureDraft(baseItems, draftItems) {
       kind: "group",
       id: item.groupId,
       name: typeof item.name === "string" && item.name.trim() ? item.name.trim() : existingGroup?.name ?? "未命名分组",
+      icon: normalizeSharedViewGroupIcon(item.icon ?? existingGroup?.icon),
       views,
     });
   }
@@ -334,7 +340,7 @@ function applyStructureDraft(baseItems, draftItems) {
       if (!remainingViews.length || usedGroupIds.has(item.id)) continue;
       usedGroupIds.add(item.id);
       for (const view of remainingViews) usedViewIds.add(view.view.id);
-      nextItems.push({ kind: "group", id: item.id, name: item.name, views: remainingViews });
+      nextItems.push({ kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: remainingViews });
       continue;
     }
     if (usedViewIds.has(item.view.id)) continue;
@@ -389,6 +395,7 @@ function cloneItems(items) {
         kind: "group",
         id: item.id,
         name: item.name,
+        icon: item.icon ?? defaultSharedViewGroupIconId,
         views: item.views.map((view) => cloneLeaf(view)),
       };
     }
@@ -404,6 +411,7 @@ function cloneResolvedTopLevelItems(items) {
         kind: "group",
         id: item.id,
         name: item.name,
+        icon: item.icon ?? defaultSharedViewGroupIconId,
         views: Array.isArray(item.views) ? item.views.map((view) => cloneLeaf(view)) : [],
       };
     }
@@ -425,7 +433,7 @@ function extractViewFromResolvedItems(items, sourceViewId) {
         remainingViews.push(cloneLeaf(view));
       }
       if (remainingViews.length) {
-        nextItems.push({ kind: "group", id: item.id, name: item.name, views: remainingViews });
+        nextItems.push({ kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: remainingViews });
       }
       continue;
     }
@@ -448,7 +456,7 @@ function insertResolvedViewAtTopLevel(items, view, targetItemId, placement) {
       inserted = true;
     }
     nextItems.push(item.kind === "group"
-      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((candidate) => cloneLeaf(candidate)) }
+      ? { kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((candidate) => cloneLeaf(candidate)) }
       : cloneLeaf(item));
     if (itemId === targetItemId && placement === "after" && !inserted) {
       nextItems.push(cloneLeaf(view));
@@ -465,7 +473,7 @@ function insertResolvedViewIntoGroup(items, view, groupId, placement, targetView
   for (const item of items) {
     if (item.kind !== "group" || item.id !== groupId) {
       nextItems.push(item.kind === "group"
-        ? { kind: "group", id: item.id, name: item.name, views: item.views.map((candidate) => cloneLeaf(candidate)) }
+        ? { kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((candidate) => cloneLeaf(candidate)) }
         : cloneLeaf(item));
       continue;
     }
@@ -486,7 +494,7 @@ function insertResolvedViewIntoGroup(items, view, groupId, placement, targetView
         }
       }
     }
-    nextItems.push({ kind: "group", id: item.id, name: item.name, views: nextViews });
+    nextItems.push({ kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: nextViews });
   }
   if (!inserted) return null;
   return nextItems;
@@ -497,11 +505,11 @@ function extractGroupFromResolvedItems(items, sourceGroupId) {
   let sourceGroup = null;
   for (const item of items) {
     if (item.kind === "group" && item.id === sourceGroupId && !sourceGroup) {
-      sourceGroup = { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) };
+      sourceGroup = { kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) };
       continue;
     }
     nextItems.push(item.kind === "group"
-      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) }
+      ? { kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) }
       : cloneLeaf(item));
   }
   return sourceGroup ? { items: nextItems, group: sourceGroup } : null;
@@ -513,14 +521,14 @@ function insertResolvedGroupAtTopLevel(items, group, targetItemId, placement) {
   for (const item of items) {
     const itemId = item.kind === "group" ? item.id : item.view.id;
     if (itemId === targetItemId && placement === "before" && !inserted) {
-      nextItems.push({ kind: "group", id: group.id, name: group.name, views: group.views.map((view) => cloneLeaf(view)) });
+      nextItems.push({ kind: "group", id: group.id, name: group.name, icon: group.icon ?? defaultSharedViewGroupIconId, views: group.views.map((view) => cloneLeaf(view)) });
       inserted = true;
     }
     nextItems.push(item.kind === "group"
-      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) }
+      ? { kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) }
       : cloneLeaf(item));
     if (itemId === targetItemId && placement === "after" && !inserted) {
-      nextItems.push({ kind: "group", id: group.id, name: group.name, views: group.views.map((view) => cloneLeaf(view)) });
+      nextItems.push({ kind: "group", id: group.id, name: group.name, icon: group.icon ?? defaultSharedViewGroupIconId, views: group.views.map((view) => cloneLeaf(view)) });
       inserted = true;
     }
   }
@@ -535,6 +543,7 @@ function serializeStructureDraftItems(items) {
         kind: "group",
         groupId: item.id,
         name: item.name,
+        icon: item.icon ?? defaultSharedViewGroupIconId,
         viewIds: item.views.map((view) => view.view.id),
       };
     }
@@ -583,7 +592,7 @@ function insertGroupAfter(items, activeViewId, group) {
   let inserted = false;
   for (const item of items) {
     nextItems.push(item.kind === "group"
-      ? { ...item, views: item.views.map((view) => cloneLeaf(view)) }
+      ? { ...item, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) }
       : cloneLeaf(item));
     const containsActive = item.kind === "group"
       ? item.views.some((view) => view.view.id === activeViewId)
@@ -593,6 +602,7 @@ function insertGroupAfter(items, activeViewId, group) {
         kind: "group",
         id: group.id,
         name: group.name,
+        icon: group.icon ?? defaultSharedViewGroupIconId,
         views: group.views.map((view) => cloneLeaf(view)),
       });
       inserted = true;
@@ -603,6 +613,7 @@ function insertGroupAfter(items, activeViewId, group) {
         kind: "group",
         id: group.id,
         name: group.name,
+        icon: group.icon ?? defaultSharedViewGroupIconId,
         views: group.views.map((view) => cloneLeaf(view)),
       });
   }
@@ -614,13 +625,14 @@ function insertGroupAfterGroup(items, groupId, nextGroup) {
   let inserted = false;
   for (const item of items) {
     nextItems.push(item.kind === "group"
-      ? { kind: "group", id: item.id, name: item.name, views: item.views.map((view) => cloneLeaf(view)) }
+      ? { kind: "group", id: item.id, name: item.name, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) }
       : cloneLeaf(item));
     if (item.kind === "group" && item.id === groupId) {
       nextItems.push({
         kind: "group",
         id: nextGroup.id,
         name: nextGroup.name,
+        icon: nextGroup.icon ?? defaultSharedViewGroupIconId,
         views: nextGroup.views.map((view) => cloneLeaf(view)),
       });
       inserted = true;
@@ -631,6 +643,7 @@ function insertGroupAfterGroup(items, groupId, nextGroup) {
         kind: "group",
         id: nextGroup.id,
         name: nextGroup.name,
+        icon: nextGroup.icon ?? defaultSharedViewGroupIconId,
         views: nextGroup.views.map((view) => cloneLeaf(view)),
       });
   }
@@ -641,7 +654,7 @@ function appendViewToGroup(items, groupId, nextView) {
   return items.map((item) => {
     if (item.kind !== "group" || item.id !== groupId) {
       return item.kind === "group"
-        ? { ...item, views: item.views.map((view) => cloneLeaf(view)) }
+        ? { ...item, icon: item.icon ?? defaultSharedViewGroupIconId, views: item.views.map((view) => cloneLeaf(view)) }
         : cloneLeaf(item);
     }
     return {

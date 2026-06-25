@@ -1113,17 +1113,74 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(expandableSearchSource, /<icons\.close size=\{16\} \/>/);
   assert.match(toolbarSource, /toolbar-profile-picker/);
   assert.match(toolbarSource, /toolbar-hidden-fields/);
+  assert.match(toolbarSource, /sharedViewPublishVisible: boolean/);
+  assert.match(toolbarSource, /sharedViewPublishEnabled: boolean/);
+  assert.match(toolbarSource, /sharedViewPublishTooltip: string/);
+  assert.match(toolbarSource, /toolbar-search-actions/);
+  assert.match(toolbarSource, /onSaveSharedViewPublish: \(\) => void;/);
+  assert.match(toolbarSource, /保存团队共享视图/);
   assert.match(toolbarSource, /const showHourglassIcon = snapshot\.autosaveState === "pending" \|\| snapshot\.autosaveState === "saving";/);
   assert.match(toolbarSource, /const AutosaveIcon = showHourglassIcon \? icons\.hourglassEmpty : icons\.dirty;/);
   assert.match(toolbarSource, /const autosaveIconClassName = snapshot\.autosaveState === "saving" \? "toolbar-status-icon spinning" : "toolbar-status-icon";/);
   assert.match(toolbarSource, /<AutosaveIcon size=\{14\} className=\{autosaveIconClassName\} \/>/);
+  assert.match(toolbarSource, /<div className="toolbar-search-actions">/);
 
-  assert.match(filterBarSource, /onSaveForEveryone/);
   assert.match(filterBarSource, /onResetView/);
   assert.match(filterBarSource, /const showSharedViewActions = !commandSaving && \(dirty \|\| viewOrderDirty\);/);
   assert.match(filterBarSource, /view-filter-actions/);
-  assert.match(filterBarSource, /为所有人保存/);
+  assert.doesNotMatch(filterBarSource, /onSaveForEveryone/);
+  assert.doesNotMatch(filterBarSource, /为所有人保存/);
   assert.match(filterBarSource, /重置/);
+  assert.match(appSource, /onSaveSharedViewPublish=\{\(\) => void handleSaveViewForEveryone\(\)\}/);
+  assert.match(stylesSource, /\.toolbar-search-actions\s*\{[\s\S]*min-width:/);
+  assert.match(stylesSource, /\.toolbar-search-actions\s*\{[\s\S]*display:\s*flex;/);
+  assert.match(stylesSource, /\.toolbar-search-actions\s*\{[\s\S]*width:/);
+});
+
+test("shared draft persistence uses dedicated helpers and visible error handling", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /function updateSharedViewDraftAndPersist\(/);
+  assert.match(appSource, /function replaceSharedViewDraftStateAndPersist\(/);
+  assert.match(appSource, /void commitProfileSave\(selectedViewProfileNameRef\.current!, selectedViewProfileRef\.current\)\.catch/);
+  assert.match(appSource, /structureDrafts:\s*Object\.fromEntries/);
+});
+
+test("Toolbar settings expose shared view collaboration mode controls", async () => {
+  const toolbarSource = await readFile(new URL("../src/components/Toolbar.tsx", import.meta.url), "utf8");
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(toolbarSource, /协作模式/);
+  assert.match(toolbarSource, /个人模式/);
+  assert.match(toolbarSource, /团队模式/);
+  assert.match(toolbarSource, /onChangeSharedViewCollaborationMode/);
+  assert.match(appSource, /sharedViewCollaborationMode/);
+});
+
+test("App gates personal mode behind named profiles and publishes drafts before mode switch", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /publishCurrentSharedDraftsForModeSwitch/);
+  assert.match(appSource, /selectedViewProfileName \? .* : "team"/s);
+  assert.match(appSource, /需先选择或创建命名视图配置/);
+});
+
+test("personal mode routes shared view content edits through serialized direct save helpers", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /enqueueSharedViewDirectSave/);
+  assert.match(appSource, /if \(isPersonalSharedViewMode\)[\s\S]*enqueueSharedViewDirectSave/);
+});
+
+test("personal mode reset clears pending direct-save retry state instead of leaving retry affordances behind", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const resetSharedViewSection = appSource.slice(
+    appSource.indexOf("function handleResetSharedViewDraft()"),
+    appSource.indexOf("async function handleCreateTopLevelSharedView()"),
+  );
+
+  assert.match(resetSharedViewSection, /setSharedViewDirectSavePending\(false\)/);
+  assert.match(resetSharedViewSection, /sharedViewDirectSaveRetryRef\.current = null/);
 });
 
 test("shared view icon metadata exposes pack groups, base pack, and picker storage constants", async () => {
@@ -1184,6 +1241,8 @@ test("shared view icon metadata exposes pack groups, base pack, and picker stora
   assert.match(clientSource, /const keepalive =/);
   assert.match(clientSource, /TextEncoder/);
   assert.match(clientSource, /byteLength <= 60_000/);
+  assert.match(clientSource, /export async function saveSharedViews[\s\S]*keepalive/);
+  assert.match(clientSource, /export async function saveViewProfile[\s\S]*keepalive/);
   assert.match(clientSource, /"borderAll"/);
   assert.match(clientSource, /"home"/);
   assert.match(clientSource, /"gamepad"/);
@@ -1210,6 +1269,16 @@ test("ViewTabs header editing no longer depends on renaming mode toggles", async
   assert.match(viewTabsSource, /onBlur=/);
   assert.doesNotMatch(viewTabsSource, /renamingViewId/);
   assert.doesNotMatch(viewTabsSource, /renamingGroupId/);
+});
+
+test("ViewTabs clears drag click suppression on the next pointerdown instead of using a timeout window", async () => {
+  const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+
+  assert.match(viewTabsSource, /if \(suppressClickRef\.current && !pointerDragRef\.current\) \{\s*suppressClickRef\.current = false;\s*\}/);
+  assert.match(viewTabsSource, /function clearDragState\(didDrag = false\)/);
+  assert.match(viewTabsSource, /if \(!didDrag\) suppressClickRef\.current = false;/);
+  assert.doesNotMatch(viewTabsSource, /suppressClickResetTimerRef/);
+  assert.doesNotMatch(viewTabsSource, /setTimeout\(\(\) => \{\s*suppressClickRef\.current = false;/);
 });
 
 test("DataTable no longer renders the bottom New row button", async () => {
@@ -1258,7 +1327,7 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
 test("favorite icon profile updates retain the favorites array and save immediately", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 
-  assert.match(appSource, /favoriteSharedViewIconIds:\s*\[\.\.\.current\.favoriteSharedViewIconIds\]/);
+  assert.match(appSource, /favoriteSharedViewIconIds:\s*\[\.\.\.\(current\.favoriteSharedViewIconIds \?\? \[\]\)\]/);
   assert.match(appSource, /const nextProfile = mutateSelectedViewProfile\(\(draft\) => \{/);
   assert.match(appSource, /void commitProfileSave\(selectedViewProfileNameRef\.current!, nextProfile\);/);
 });

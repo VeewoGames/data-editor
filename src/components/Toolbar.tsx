@@ -9,6 +9,9 @@ import { ExpandableSearch } from "./ExpandableSearch";
 type ToolbarProps = {
   snapshot: ToolbarSnapshot;
   onQueryChange: (value: string) => void;
+  onSaveSharedViewPublish: () => void;
+  onChangeSharedViewCollaborationMode: (mode: "team" | "personal") => void;
+  onRetrySharedViewDirectSave: () => void;
   onRefreshBuild: () => void;
   onRestartServer: () => void;
   onCloseServer: () => void;
@@ -38,6 +41,13 @@ export type ToolbarSnapshot = {
   restarting: boolean;
   status: string;
   hiddenFields: string[];
+  sharedViewPublishVisible: boolean;
+  sharedViewPublishEnabled: boolean;
+  sharedViewPublishTooltip: string;
+  sharedViewCollaborationMode: "team" | "personal";
+  canUsePersonalSharedViewMode: boolean;
+  sharedViewModeHelpText: string;
+  sharedViewDirectSaveRetryVisible: boolean;
 };
 
 const fontSizeOptions: UiPreferences["baseFontSize"][] = [14, 14.5, 15, 16];
@@ -85,6 +95,22 @@ export function Toolbar(props: ToolbarProps) {
         <span>{snapshot.collectionPath}</span>
       </div>
       <ExpandableSearch className="search-box" value={snapshot.query} alwaysExpanded onChange={props.onQueryChange} placeholder="搜索当前表格" />
+      <div className="toolbar-search-actions">
+        {snapshot.sharedViewPublishVisible ? (
+          <button
+            aria-label="保存团队共享视图"
+            className={snapshot.sharedViewPublishEnabled
+              ? "ghost-button icon-button toolbar-action-button toolbar-shared-publish-button is-dirty"
+              : "ghost-button icon-button toolbar-action-button toolbar-shared-publish-button"}
+            disabled={!snapshot.sharedViewPublishEnabled}
+            onClick={props.onSaveSharedViewPublish}
+            title={snapshot.sharedViewPublishTooltip}
+            type="button"
+          >
+            <icons.save size={16} />
+          </button>
+        ) : null}
+      </div>
       <div className="toolbar-spacer" />
       <span className="row-count">Visible {snapshot.visibleCount} / Total {snapshot.rowCount}</span>
       {autosaveLabel ? (
@@ -216,6 +242,38 @@ export function Toolbar(props: ToolbarProps) {
                     </button>
                   ))}
                 </div>
+              </section>
+              <section className="appearance-section" aria-label="Shared view collaboration mode settings">
+                <div className="appearance-section-header">
+                  <strong>协作模式</strong>
+                  <span>{snapshot.sharedViewCollaborationMode === "personal" ? "个人模式" : "团队模式"}</span>
+                </div>
+                <div className="appearance-segmented-control" role="group" aria-label="Shared view collaboration mode">
+                  <button
+                    aria-pressed={snapshot.sharedViewCollaborationMode === "team"}
+                    className={snapshot.sharedViewCollaborationMode === "team" ? "appearance-segment is-active" : "appearance-segment"}
+                    onClick={() => props.onChangeSharedViewCollaborationMode("team")}
+                    type="button"
+                  >
+                    团队模式
+                  </button>
+                  <button
+                    aria-pressed={snapshot.sharedViewCollaborationMode === "personal"}
+                    className={snapshot.sharedViewCollaborationMode === "personal" ? "appearance-segment is-active" : "appearance-segment"}
+                    disabled={!snapshot.canUsePersonalSharedViewMode}
+                    onClick={() => props.onChangeSharedViewCollaborationMode("personal")}
+                    title={!snapshot.canUsePersonalSharedViewMode ? "需先选择或创建命名视图配置" : "共享视图改动将直接保存到项目"}
+                    type="button"
+                  >
+                    个人模式
+                  </button>
+                </div>
+                <p className="appearance-section-help">{snapshot.sharedViewModeHelpText}</p>
+                {snapshot.sharedViewDirectSaveRetryVisible ? (
+                  <button className="ghost-button compact" onClick={props.onRetrySharedViewDirectSave} type="button">
+                    重试共享视图保存
+                  </button>
+                ) : null}
               </section>
             </div>
           </Popover.Content>

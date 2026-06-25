@@ -264,10 +264,7 @@ export function ViewTabs({
   useEffect(() => {
     if (!draggingViewId) return;
     function cancelPointerDrag() {
-      pointerDragRef.current = null;
-      setDraggingViewId(null);
-      setDropTarget(null);
-      setDragGhost(null);
+      clearDragState();
     }
     window.addEventListener("pointercancel", cancelPointerDrag);
     return () => window.removeEventListener("pointercancel", cancelPointerDrag);
@@ -596,6 +593,9 @@ export function ViewTabs({
     event: ReactPointerEvent<HTMLButtonElement>,
     source: { kind: "view"; item: SharedViewLeafItem } | { kind: "group"; item: SharedViewGroupItem },
   ) {
+    if (suppressClickRef.current && !pointerDragRef.current) {
+      suppressClickRef.current = false;
+    }
     if (viewTabsDisabled) return;
     if (event.button !== 0) return;
     const sourceId = source.kind === "view" ? source.item.view.id : source.item.id;
@@ -615,7 +615,7 @@ export function ViewTabs({
       shellHeight: bounds.height,
       label: source.kind === "view" ? source.item.view.name : source.item.name,
       iconKind: source.kind,
-      icon: source.kind === "view" ? (source.item.icon ?? "borderAll") : null,
+      icon: source.kind === "view" ? (source.item.icon ?? "borderAll") : (source.item.icon ?? "folder"),
       dragging: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -664,6 +664,7 @@ export function ViewTabs({
   function handlePointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
     const state = pointerDragRef.current;
     if (!state || state.pointerId !== event.pointerId) return;
+    const didDrag = state.dragging;
     if (state.dragging) {
       const target = resolveDropTarget({
         topLevelItems,
@@ -680,14 +681,15 @@ export function ViewTabs({
       });
       if (target) onReorderViews(target);
     }
-    clearDragState();
+    clearDragState(didDrag);
   }
 
-  function clearDragState() {
+  function clearDragState(didDrag = false) {
     pointerDragRef.current = null;
     setDraggingViewId(null);
     setDropTarget(null);
     setDragGhost(null);
+    if (!didDrag) suppressClickRef.current = false;
   }
 
   function handleSelectGroup(groupId: string, groupViews: SharedViewLeafItem[]) {
@@ -1043,7 +1045,9 @@ export function ViewTabs({
                             handleSelectGroup(item.id, item.views);
                           }}
                         >
-                          <icons.folder size={17} />
+                          <span className="view-tab-icon" data-view-icon={item.icon ?? "folder"}>
+                            {renderSharedViewIcon(item.icon ?? "folder", 17)}
+                          </span>
                           <span className="view-tab-name">{item.name}</span>
                         </button>
                       </div>
@@ -1059,7 +1063,7 @@ export function ViewTabs({
                               disabled
                             >
                               <span className="view-tab-icon">
-                                <icons.folder size={18} />
+                                {renderSharedViewIcon(item.icon ?? "folder", 18)}
                               </span>
                             </button>
                             <input
@@ -1301,7 +1305,7 @@ export function ViewTabs({
         >
           <span className="view-tab-icon" data-view-icon={dragGhost.icon}>
             {(() => {
-              if (dragGhost.kind === "group") return <icons.folder size={17} />;
+              if (dragGhost.kind === "group") return renderSharedViewIcon(dragGhost.icon ?? "folder", 17);
               return renderSharedViewIcon(dragGhost.icon ?? sharedViewDefaultIconId, 17);
             })()}
           </span>

@@ -108,7 +108,7 @@ export function MultiSelectFilterPopover({
       confirmValue(action.value);
       return;
     }
-    if (action.type === "create" && onCreateFormalOption) {
+    if (action.type === "create" && onCreateFormalOption && (fieldType === "Select" || fieldType === "Multi-select")) {
       const nextOptions = await onCreateFormalOption({
         field: rule.field,
         fieldType,

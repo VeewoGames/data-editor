@@ -290,6 +290,54 @@ test("resolveSharedViewStructure keeps top-level view icons when applying legacy
   assert.deepEqual(resolved.topLevelItems.map((item) => item.icon), ["json", "streamlineMicroLineLeaf26423", "streamlineMicroSolidBell"]);
 });
 
+test("resolveSharedViewStructure keeps group icons when applying structure drafts", () => {
+  const resolved = resolveSharedViewStructure({
+    sharedViewsConfig: {
+      version: 1,
+      collections: {
+        "data/runes.json:$": {
+          defaultViewId: "utility",
+          items: [
+            {
+              kind: "group",
+              id: "combat",
+              name: "战斗",
+              icon: "shield",
+              views: [makeLeaf("damage", "伤害", "flame"), makeLeaf("utility", "功能", "filter")],
+            },
+            { kind: "view", icon: "json", view: makeView("all", "全部") },
+          ],
+        },
+      },
+    },
+    collectionKey: "data/runes.json:$",
+    draftState: {
+      lastActiveViews: { "data/runes.json:$": "utility" },
+      viewDrafts: {},
+      viewOrderDrafts: {},
+      structureDrafts: {
+        "data/runes.json:$": {
+          items: [
+            { kind: "view", viewId: "all" },
+            { kind: "group", groupId: "combat", name: "战斗", viewIds: ["utility", "damage"] },
+          ],
+        },
+      },
+    },
+    pageContext: {
+      selectedPath: "data/runes.json",
+      collectionPath: "$",
+      scrollByView: {},
+      expandedGroupId: "combat",
+      lastActiveViewIdByGroupId: { combat: "utility" },
+    },
+  });
+
+  assert.equal(resolved.topLevelItems[1].kind, "group");
+  assert.equal(resolved.topLevelItems[1].icon, "shield");
+  assert.deepEqual(resolved.topLevelItems[1].views.map((view) => view.icon), ["filter", "flame"]);
+});
+
 test("createViewGroupConfig inserts a new non-empty group after the active top-level item", () => {
   const result = createViewGroupConfig({
     sharedViewsConfig: {
@@ -591,7 +639,7 @@ test("draftSharedViewStructure moves a top-level view into a group and clears le
   assert.deepEqual(result.structureDrafts["data/runes.json:$"], {
     items: [
       { kind: "view", viewId: "all" },
-      { kind: "group", groupId: "combat", name: "战斗", viewIds: ["utility", "damage"] },
+      { kind: "group", groupId: "combat", name: "战斗", icon: "folder", viewIds: ["utility", "damage"] },
     ],
   });
 });
@@ -657,7 +705,7 @@ test("draftSharedViewStructure reorders within the same group", () => {
 
   assert.deepEqual(result.structureDrafts["data/runes.json:$"], {
     items: [
-      { kind: "group", groupId: "combat", name: "战斗", viewIds: ["speed", "damage", "utility"] },
+      { kind: "group", groupId: "combat", name: "战斗", icon: "folder", viewIds: ["speed", "damage", "utility"] },
     ],
   });
 });
@@ -695,7 +743,7 @@ test("draftSharedViewStructure reorders a top-level group before another top-lev
   assert.deepEqual(result.structureDrafts["data/runes.json:$"], {
     items: [
       { kind: "view", viewId: "all" },
-      { kind: "group", groupId: "combat", name: "战斗", viewIds: ["damage", "utility"] },
+      { kind: "group", groupId: "combat", name: "战斗", icon: "folder", viewIds: ["damage", "utility"] },
       { kind: "view", viewId: "support" },
     ],
   });

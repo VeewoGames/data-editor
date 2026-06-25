@@ -150,6 +150,7 @@ test("normalizeSharedViewsConfig keeps group items and removes empty groups", ()
     kind: "group",
     id: "combat",
     name: "Combat",
+    icon: "folder",
     views: [{
       kind: "view",
       icon: "borderAll",
@@ -168,6 +169,60 @@ test("normalizeSharedViewsConfig keeps group items and removes empty groups", ()
       },
     }],
   }]);
+});
+
+test("normalizeSharedViewsConfig keeps valid group icon and falls back on invalid group icon", () => {
+  const config = normalizeSharedViewsConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "damage",
+        items: [
+          {
+            kind: "group",
+            id: "combat",
+            name: "战斗",
+            icon: "shield",
+            views: [{
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            }],
+          },
+          {
+            kind: "group",
+            id: "support",
+            name: "辅助",
+            icon: "not-real",
+            views: [{
+              id: "utility",
+              name: "功能",
+              type: "table",
+              query: "",
+              filters: { topLevelRules: [], advancedRoot: null },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            }],
+          },
+        ],
+      },
+    },
+  });
+
+  assert.equal(config.collections["data/runes.json:$"].items[0].icon, "shield");
+  assert.equal(config.collections["data/runes.json:$"].items[1].icon, "folder");
 });
 
 test("normalizeSharedViewsConfig keeps valid icon and falls back on invalid icon", () => {

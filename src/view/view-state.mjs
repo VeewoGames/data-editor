@@ -321,6 +321,7 @@ function cloneCollectionItems(items) {
         kind: "group",
         id: item.id,
         name: item.name,
+        icon: item.icon,
         views: Array.isArray(item.views) ? item.views.map((view) => normalizeSharedViewLeaf(view)) : [],
       };
     }

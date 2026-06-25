@@ -1637,6 +1637,15 @@ select {
   flex: 1;
 }
 
+.toolbar-search-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 32px;
+  width: 32px;
+  margin-left: 8px;
+}
+
 .toolbar-profile-picker {
   align-items: center;
   display: flex;
@@ -1658,6 +1667,21 @@ select {
 
 .toolbar-action-button {
   flex: 0 0 auto;
+}
+
+.toolbar-shared-publish-button {
+  width: 32px;
+  height: 32px;
+}
+
+.toolbar-shared-publish-button.is-dirty {
+  color: #d9730d;
+  border-color: rgba(217, 115, 13, 0.28);
+  background: rgba(217, 115, 13, 0.1);
+}
+
+.toolbar-shared-publish-button:disabled {
+  opacity: 0.52;
 }
 
 .toolbar-settings-button[data-state="open"] {

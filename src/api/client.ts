@@ -109,6 +109,7 @@ export type SidebarTreePreferences = {
   childOrderByParent: Record<string, string[]>;
   expandedNodeIds: string[];
 };
+export type SharedViewCollaborationMode = "team" | "personal";
 export type UserViewProfile = {
   sidebarWidth: number | null;
   detailPanelWidth: number | null;
@@ -121,6 +122,7 @@ export type UserViewProfile = {
   viewDrafts: Record<string, Record<string, Partial<CollectionView>>>;
   viewOrderDrafts: Record<string, string[]>;
   structureDrafts?: Record<string, SharedViewStructureDraft>;
+  sharedViewCollaborationMode?: SharedViewCollaborationMode;
   appearance?: UserAppearancePreferences;
   viewLayouts: Record<string, Record<string, UserViewLayoutState>>;
   collections?: Record<string, UserViewLayoutState>;
@@ -148,7 +150,7 @@ export type CollectionView = {
 export type SharedViewStructureDraft = {
   items: Array<
     | { kind: "view"; viewId: string }
-    | { kind: "group"; groupId: string; name?: string; viewIds: string[] }
+    | { kind: "group"; groupId: string; name?: string; icon?: SharedViewIconId; viewIds: string[] }
   >;
 };
 type TablerSharedViewIconId = (typeof import("../generated/tabler-shared-view-icons.mjs").tablerSharedViewIconIds)[number];
@@ -335,6 +337,7 @@ export type SharedViewGroupItem = {
   kind: "group";
   id: string;
   name: string;
+  icon?: SharedViewIconId;
   views: SharedViewLeafItem[];
 };
 export type SharedViewItem = SharedViewLeafItem | SharedViewGroupItem;
@@ -342,6 +345,14 @@ export type SharedViewsConfig = {
   version: 1;
   collections: Record<string, { items: SharedViewItem[]; defaultViewId: string | null }>;
 };
+
+function createKeepaliveJsonRequest(payload: unknown) {
+  const body = JSON.stringify(payload);
+  const keepalive = typeof TextEncoder !== "undefined"
+    ? new TextEncoder().encode(body).byteLength <= 60_000
+    : body.length <= 60_000;
+  return { body, keepalive };
+}
 
 export async function listProjects(): Promise<ProjectRegistry> {
   return fetchJson("/api/projects");
@@ -424,10 +435,12 @@ export async function loadSharedViews(projectId?: string | null): Promise<Shared
 }
 
 export async function saveSharedViews(config: SharedViewsConfig, projectId?: string | null) {
+  const { body, keepalive } = createKeepaliveJsonRequest({ projectId, config });
   return fetchJson("/api/shared-views", {
     method: "POST",
+    keepalive,
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, config }),
+    body,
   });
 }
 
@@ -440,10 +453,7 @@ export async function loadViewProfile(name: string, projectId?: string | null): 
 }
 
 export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null) {
-  const body = JSON.stringify({ projectId, name, profile });
-  const keepalive = typeof TextEncoder !== "undefined"
-    ? new TextEncoder().encode(body).byteLength <= 60_000
-    : body.length <= 60_000;
+  const { body, keepalive } = createKeepaliveJsonRequest({ projectId, name, profile });
   return fetchJson("/api/view-profile", {
     method: "POST",
     keepalive,

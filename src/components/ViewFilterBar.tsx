@@ -22,7 +22,6 @@ export type ViewFilterBarProps = {
   onAddFilter: (field: string, fieldType: FieldDisplayType) => void;
   onAutoOpenRuleHandled: () => void;
   onResetView: () => void;
-  onSaveForEveryone: () => void;
   onCreateFormalOption?: (input: CreateFilterOptionInput) => Promise<MultiSelectOptionView[]>;
 };
 
@@ -47,7 +46,6 @@ export function ViewFilterBar({
   onAddFilter,
   onAutoOpenRuleHandled,
   onResetView,
-  onSaveForEveryone,
   onCreateFormalOption,
 }: ViewFilterBarProps) {
   const {
@@ -274,9 +272,6 @@ export function ViewFilterBar({
         <div className="view-filter-actions">
           <button type="button" className="view-tab-action" onClick={onResetView}>
             重置
-          </button>
-          <button type="button" className="view-tab-action primary save-shared" onClick={onSaveForEveryone}>
-            为所有人保存
           </button>
         </div>
       ) : null}

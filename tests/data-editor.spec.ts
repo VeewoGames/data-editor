@@ -31,7 +31,7 @@ type SharedViewLeafConfig = {
 
 type SharedViewItemConfig =
   | SharedViewLeafConfig
-  | { kind: "group"; id: string; name: string; views: Array<SharedViewLeafConfig | SharedViewConfig> };
+  | { kind: "group"; id: string; name: string; icon?: SharedViewConfig["icon"]; views: Array<SharedViewLeafConfig | SharedViewConfig> };
 
 type SharedViewsConfig = {
   collections: Record<string, { items?: SharedViewItemConfig[]; views?: SharedViewConfig[]; defaultViewId: string | null }>;
@@ -712,6 +712,84 @@ async function dragViewTab(page: Page, sourceName: string, targetName: string, p
   await page.mouse.up();
 }
 
+async function dragViewTabWithoutGhostExpectation(page: Page, sourceName: string, targetName: string, placement: "before" | "after" = "before") {
+  const sourceLocator = page.locator(".view-tab").filter({ hasText: sourceName }).first();
+  const targetLocator = page.locator(".view-tab").filter({ hasText: targetName }).first();
+  const targetShell = page.locator(".view-tab-shell").filter({ has: targetLocator }).first();
+  const source = await sourceLocator.boundingBox();
+  const target = await targetShell.boundingBox();
+  expect(source).not.toBeNull();
+  expect(target).not.toBeNull();
+  const startX = source!.x + source!.width / 2;
+  const startY = source!.y + source!.height / 2;
+  const targetX = placement === "before" ? target!.x + target!.width * 0.08 : target!.x + target!.width * 0.92;
+  const targetY = target!.y + target!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 12, startY, { steps: 3 });
+  await page.mouse.move(targetX, targetY, { steps: 10 });
+  await expect(targetShell).toHaveClass(new RegExp(`drop-${placement}`));
+  await page.mouse.up();
+}
+
+async function dragTopLevelViewTabByPointerEvents(page: Page, sourceName: string, targetName: string, placement: "before" | "after" = "before") {
+  const sourceLocator = topLevelViewTab(page, sourceName);
+  const targetShell = page.locator(".view-tabs-top-level .view-tab-shell").filter({ hasText: targetName }).first();
+  const source = await sourceLocator.boundingBox();
+  const target = await targetShell.boundingBox();
+  expect(source).not.toBeNull();
+  expect(target).not.toBeNull();
+  const targetX = placement === "before" ? target!.x + target!.width * 0.08 : target!.x + target!.width * 0.92;
+  await sourceLocator.evaluate(async (element, payload) => {
+    const node = element as HTMLElement;
+    const shared = {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+    };
+    node.dispatchEvent(new PointerEvent("pointerdown", {
+      ...shared,
+      button: 0,
+      buttons: 1,
+      clientX: payload.startX,
+      clientY: payload.startY,
+    }));
+    node.dispatchEvent(new PointerEvent("pointermove", {
+      ...shared,
+      button: 0,
+      buttons: 1,
+      clientX: payload.startX - 12,
+      clientY: payload.startY,
+    }));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    node.dispatchEvent(new PointerEvent("pointermove", {
+      ...shared,
+      button: 0,
+      buttons: 1,
+      clientX: payload.targetX,
+      clientY: payload.targetY,
+    }));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    const pointerUp = new PointerEvent("pointerup", {
+      ...shared,
+      button: 0,
+      buttons: 0,
+      clientX: payload.targetX,
+      clientY: payload.targetY,
+    });
+    node.dispatchEvent(pointerUp);
+    window.dispatchEvent(pointerUp);
+  }, {
+    startX: source!.x + source!.width / 2,
+    startY: source!.y + source!.height / 2,
+    targetX,
+    targetY: target!.y + target!.height / 2,
+  });
+}
+
 async function dragTopLevelGroupTab(page: Page, sourceName: string, targetName: string, placement: "before" | "after" = "before") {
   const sourceLocator = topLevelGroupTab(page, sourceName);
   const targetShell = page.locator(".view-tabs-top-level .view-tab-shell").filter({ hasText: targetName }).first();
@@ -776,6 +854,14 @@ function toolbarSearch(page: Page) {
 
 function toolbarSearchInput(page: Page) {
   return page.locator(".search-box input");
+}
+
+function toolbarSearchActions(page: Page) {
+  return page.locator(".toolbar-search-actions");
+}
+
+function toolbarSharedPublishButton(page: Page) {
+  return page.getByRole("button", { name: "保存团队共享视图", exact: true });
 }
 
 async function getTopLevelTabNames(page: Page) {
@@ -890,11 +976,7 @@ async function dragGroupedViewToTopLevel(page: Page, sourceName: string, targetN
 }
 
 async function saveSharedViewForEveryone(page: Page, persisted: (config: SharedViewsConfig) => boolean | Promise<boolean>) {
-  if (await page.locator(".view-filter-actions").count() === 0) {
-    await page.locator(".view-tabs-filter-toggle").click();
-    await expect(page.locator(".view-filter-actions")).toBeVisible();
-  }
-  const enabledSaveButtons = page.locator(".view-filter-actions .save-shared:not([disabled])");
+  const enabledSaveButtons = page.locator(".toolbar-search-actions .toolbar-shared-publish-button:not([disabled])");
   await expect(enabledSaveButtons.first()).toBeVisible();
   await enabledSaveButtons.first().click();
   await expect.poll(async () => persisted(await loadSharedViewsConfig(page))).toBe(true);
@@ -1413,11 +1495,9 @@ test("shared view filter and sort drafts persist through save and reload", async
     await page.reload();
     await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
     await selectViewTab(page, activeViewName);
-    await page.locator(".view-tab-shell.active .view-tab").click();
-    await expect(page.locator(".view-tab-menu-content")).toBeVisible();
-    await page.locator(".view-tab-menu-item").filter({ hasText: "重命名" }).click();
+    await openActiveViewMenu(page, activeViewName);
     await page.getByLabel("视图名称").fill("E2E renamed");
-    await page.locator(".view-tab-rename-form button[type='submit']").click();
+    await page.getByLabel("视图名称").press("Enter");
     activeViewName = "E2E renamed";
     await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText(activeViewName);
     await expect.poll(async () => getSharedView(await loadSharedViewsConfig(page), collectionKey, createdView.id)?.name).toBe(activeViewName);
@@ -1432,7 +1512,7 @@ test("shared view filter and sort drafts persist through save and reload", async
     await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
     await expect(page.locator(".view-tab-shell.dirty .view-tab")).toContainText(activeViewName);
     await expect(page.locator(".dirty-pill")).toHaveCount(0);
-    await expect(page.locator(".view-filter-actions .save-shared")).toBeEnabled();
+    await expect(toolbarSharedPublishButton(page)).toBeEnabled();
     await expect(tableRows(page)).toHaveCount(1);
     await expect(tableRow(page, 0)).toContainText("multi_2");
 
@@ -2080,6 +2160,86 @@ test("top-level view groups can be reordered by drag and persist after shared sa
   }
 });
 
+test("dragging a shared view tab does not require a second click to switch tabs afterward", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "view",
+          view: {
+            id: "damage",
+            name: "伤害",
+            type: "table",
+            query: "fire",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "view",
+          view: {
+            id: "support",
+            name: "支援",
+            type: "table",
+            query: "heal",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await dragViewTab(page, "全部", "支援", "after");
+    await expect.poll(() => getTopLevelTabNames(page)).toEqual(["伤害", "支援", "全部"]);
+
+    await topLevelViewTab(page, "支援").click();
+    await expect(page.locator(".view-tab-shell.active .view-tab")).toContainText("支援");
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
 test("duplicating a shared view copies the current filter snapshot and current user's local view layout without creating a dirty target draft", async ({ page }) => {
   const collectionKey = "data/runes.json:$";
   let originalSharedViews: SharedViewsConfig | null = null;
@@ -2383,6 +2543,54 @@ test("group menu also uses header shell and keeps icon button disabled", async (
     await openActiveGroupMenu(page, "战斗");
     await expect(page.locator(".view-group-menu-header")).toBeVisible();
     await expect(page.locator(".view-group-menu-header .view-tab-menu-icon-trigger")).toBeDisabled();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("top-level group keeps configured icon after reload", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "support",
+      items: [
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          icon: "shield",
+          views: [
+            {
+              kind: "view",
+              icon: "settings",
+              view: {
+                id: "support",
+                name: "辅助",
+                type: "table",
+                query: "shield",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
   }
@@ -2877,23 +3085,25 @@ test("advanced filter survives save for everyone and reload", async ({ page }) =
   await page.locator(".advanced-filter-value-popover .advanced-filter-option-list .filter-option-row").filter({ hasText: "attack" }).click();
   await page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-logic').click();
   await page.locator(".advanced-filter-logic-content .menu-item").filter({ hasText: "或" }).click();
+  await expect(page.locator('.advanced-filter-group[data-advanced-depth="1"] .advanced-filter-logic')).toContainText("或");
+  await expect.poll(() => page.evaluate((key) => {
+    const drafts = JSON.parse(localStorage.getItem("data-editor:shared-view-drafts") ?? "{}");
+    return drafts.viewDrafts?.[key]?.all?.filters?.advancedRoot?.children?.length ?? 0;
+  }, collectionKey)).toBe(2);
 
-  await page.locator(".view-filter-actions .save-shared").click();
-  await expect(page.locator(".view-filter-actions .save-shared")).toHaveCount(0);
+  await expect(toolbarSharedPublishButton(page)).toBeVisible();
+  await toolbarSharedPublishButton(page).click();
+  await expect(toolbarSharedPublishButton(page)).toHaveCount(0);
 
   await expect.poll(async () => {
     const savedView = getSharedView(await loadSharedViewsConfig(page), collectionKey, "all");
     return {
       advancedRuleCount: countAdvancedRules((savedView?.filters?.advancedRoot ?? null) as Record<string, unknown> | null),
       topLevelRuleCount: Array.isArray(savedView?.filters?.topLevelRules) ? savedView.filters.topLevelRules.length : 0,
-      rootOp: typeof savedView?.filters?.advancedRoot === "object" && savedView?.filters?.advancedRoot
-        ? String((savedView.filters.advancedRoot as Record<string, unknown>).op ?? "")
-        : "",
     };
   }).toEqual({
     advancedRuleCount: 2,
     topLevelRuleCount: 0,
-    rootOp: "or",
   });
 
   await page.reload();
@@ -3455,8 +3665,8 @@ test("duplicate field rules survive save for everyone and reload", async ({ page
   await page.locator(".filter-option-row").filter({ hasText: "attack" }).click();
   await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(2);
 
-  await page.locator(".view-filter-actions .save-shared").click();
-  await expect(page.locator(".view-filter-actions .save-shared")).toHaveCount(0);
+  await toolbarSharedPublishButton(page).click();
+  await expect(toolbarSharedPublishButton(page)).toHaveCount(0);
 
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
@@ -8182,8 +8392,133 @@ test("toolbar search stays local and does not surface shared view save actions",
 
   await expect(page.getByText("Visible 1 / Total 3", { exact: true })).toBeVisible();
   await expect.poll(() => getVisibleTableIds(page)).toEqual(["select_2"]);
-  await expect(page.getByRole("button", { name: "为所有人保存", exact: true })).toHaveCount(0);
+  await expect(toolbarSharedPublishButton(page)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "重置", exact: true })).toHaveCount(0);
+});
+
+test("toolbar shared publish anchor stays stable and only shows the button for dirty shared drafts", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  const originalSharedViews = await (async () => {
+    await page.goto("/");
+    return loadSharedViewsConfig(page);
+  })();
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      views: [
+        { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await selectViewTab(page, "伤害");
+
+    const beforeLayout = await page.locator(".toolbar").evaluate(() => {
+      const search = document.querySelector(".search-box") as HTMLElement | null;
+      const anchor = document.querySelector(".toolbar-search-actions") as HTMLElement | null;
+      if (!search || !anchor) return null;
+      return {
+        searchWidth: search.getBoundingClientRect().width,
+        anchorWidth: anchor.getBoundingClientRect().width,
+      };
+    });
+    expect(beforeLayout).not.toBeNull();
+    expect(beforeLayout!.anchorWidth).toBeGreaterThan(0);
+    await expect(toolbarSharedPublishButton(page)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "+ 筛选" }).click();
+    await page.locator(".add-filter-field-option").filter({ hasText: "rune_id" }).click();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-text-input").fill("fire");
+    await expect(toolbarSharedPublishButton(page)).toBeVisible();
+    await expect(toolbarSharedPublishButton(page)).toBeEnabled();
+
+    const afterLayout = await page.locator(".toolbar").evaluate(() => {
+      const search = document.querySelector(".search-box") as HTMLElement | null;
+      const anchor = document.querySelector(".toolbar-search-actions") as HTMLElement | null;
+      if (!search || !anchor) return null;
+      return {
+        searchWidth: search.getBoundingClientRect().width,
+        anchorWidth: anchor.getBoundingClientRect().width,
+      };
+    });
+    expect(afterLayout).not.toBeNull();
+    expect(Math.abs(afterLayout!.searchWidth - beforeLayout!.searchWidth)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterLayout!.anchorWidth - beforeLayout!.anchorWidth)).toBeLessThanOrEqual(1);
+  } finally {
+    await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("selected profile keeps shared view structure drafts after reload without team publish", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  const profileName = "lans_shared_structure";
+  const originalSharedViews = await (async () => {
+    await page.goto("/");
+    return loadSharedViewsConfig(page);
+  })();
+
+  try {
+    await page.evaluate(async (nextProfileName) => {
+      localStorage.clear();
+      await fetch("/api/view-profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: nextProfileName,
+          profile: {
+            sidebarWidth: null,
+            collections: {},
+          },
+        }),
+      });
+      localStorage.setItem("data-editor:selected-view-profile", nextProfileName);
+    }, profileName);
+
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".toolbar-profile-select-trigger")).toContainText(profileName);
+    await dragViewTabToGroup(page, "全部", "战斗");
+    await expect(groupRowViewTab(page, "全部")).toBeVisible();
+    await expect(topLevelViewTab(page, "全部")).toHaveCount(0);
+    await expect(toolbarSharedPublishButton(page)).toBeVisible();
+
+    await page.waitForTimeout(400);
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(groupRowViewTab(page, "全部")).toBeVisible();
+    await expect(topLevelViewTab(page, "全部")).toHaveCount(0);
+  } finally {
+    await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
 });
 
 test("detail keeps the selected record when search hides it from the current view", async ({ page }) => {
@@ -8519,6 +8854,211 @@ test("toolbar appearance settings persist to selected profile", async ({ page })
     activeThemeId: "dark",
     baseFontSize: 14.5,
   }));
+});
+
+test("shared view personal mode is disabled until a named profile is selected", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await expect(page.getByRole("button", { name: "个人模式", exact: true })).toBeDisabled();
+  await expect(page.getByText("需先选择或创建命名视图配置", { exact: true })).toBeVisible();
+});
+
+test("switching from team mode to personal mode publishes current shared drafts before flipping mode", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "lans_mode_switch", profile: { collections: {} } }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "lans_mode_switch");
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
+  await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toBeVisible();
+
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await page.getByRole("button", { name: "个人模式", exact: true }).click();
+
+  await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
+  await expect.poll(async () => {
+    const response = await page.evaluate(async () => fetch("/api/shared-views").then((res) => res.json()));
+    return JSON.stringify(response);
+  }).toContain("spell");
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/lans_mode_switch.json"), "utf8");
+    return JSON.parse(text).sharedViewCollaborationMode ?? "team";
+  }).toBe("personal");
+
+  await page.reload();
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await expect(page.getByRole("button", { name: "个人模式", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("refresh keeps personal mode hydrated before profile request resolves", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "lans_mode_hydration", profile: { collections: {} } }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "lans_mode_hydration");
+  });
+
+  await page.reload();
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await page.getByRole("button", { name: "个人模式", exact: true }).click();
+  await expect.poll(async () => {
+    const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/lans_mode_hydration.json"), "utf8");
+    return JSON.parse(text).sharedViewCollaborationMode ?? "team";
+  }).toBe("personal");
+
+  await page.route("**/api/view-profile?name=lans_mode_hydration*", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    await route.fallback();
+  });
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await expect(page.getByRole("button", { name: "个人模式", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("personal mode saves shared view structure reorders directly without surfacing publish buttons", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    await page.evaluate(async () => {
+      localStorage.clear();
+      await fetch("/api/view-profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "personal_structure_profile", profile: { collections: {} } }),
+      });
+      localStorage.setItem("data-editor:selected-view-profile", "personal_structure_profile");
+    });
+
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "view",
+          view: { id: "support", name: "支援", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          views: [
+            { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await page.locator(".toolbar .toolbar-settings-button").click();
+    await page.getByRole("button", { name: "个人模式", exact: true }).click();
+    await expect.poll(async () => {
+      const text = await readFile(path.resolve("tests/.scratch/.data-editor/view-configs/personal_structure_profile.json"), "utf8");
+      return JSON.parse(text).sharedViewCollaborationMode ?? "team";
+    }).toBe("personal");
+    await page.keyboard.press("Escape");
+
+    await dragTopLevelViewTabByPointerEvents(page, "全部", "支援", "after");
+    await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
+    await expect.poll(async () => {
+      const sharedViews = await loadSharedViewsConfig(page);
+      return listTopLevelSharedItemLabels(sharedViews, collectionKey).join("|");
+    }).toBe("支援|全部|战斗");
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["支援", "全部", "战斗"]);
+    await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("personal mode direct save failure keeps publish hidden and reset clears pending retry state", async ({ page }) => {
+  await page.route("**/api/shared-views", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({
+        status: 500,
+        contentType: "text/plain",
+        body: "synthetic shared view save failure",
+      });
+      return;
+    }
+    await route.fallback();
+  });
+
+  await page.goto("/");
+  await page.evaluate(async () => {
+    localStorage.clear();
+    await fetch("/api/view-profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "personal_failure_profile", profile: { collections: {} } }),
+    });
+    localStorage.setItem("data-editor:selected-view-profile", "personal_failure_profile");
+  });
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await page.getByRole("button", { name: "个人模式", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await page.locator(".view-filter-sort-button").click();
+  const sortPopover = page.locator(".sort-popover-content");
+  await expect(sortPopover).toBeVisible();
+  await sortPopover.locator('[data-sort-action="add"]').click();
+  await sortPopover.locator(".sort-field-trigger").first().click();
+  await page.locator(".sort-select-content").getByRole("option", { name: "name", exact: true }).click();
+  await closePopoverByClickingOutside(page);
+
+  await expect(page.getByText("共享视图自动保存失败", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "重置", exact: true })).toBeVisible();
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await expect(page.getByRole("button", { name: "重试共享视图保存", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "重置", exact: true }).click();
+  await expect(page.getByRole("button", { name: "重置", exact: true })).toHaveCount(0);
+  await expect(page.locator(".view-filter-chip.sort-chip")).toHaveCount(0);
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await expect(page.getByRole("button", { name: "重试共享视图保存", exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await page.reload();
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".view-filter-chip.sort-chip")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
+  await page.locator(".toolbar .toolbar-settings-button").click();
+  await expect(page.getByRole("button", { name: "重试共享视图保存", exact: true })).toHaveCount(0);
 });
 
 test("legacy selected profile without viewLayouts still allows switching shared view tabs", async ({ page }) => {

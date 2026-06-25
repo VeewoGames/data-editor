@@ -144,6 +144,7 @@ test("saveViewProfile writes normalized profile file", async () => {
         "data/runes.json::$": ["view-2", "view-1"],
       },
       structureDrafts: {},
+      sharedViewCollaborationMode: "team",
       appearance: {
         activeThemeId: "dark",
         baseFontSize: 16,
@@ -297,6 +298,22 @@ test("loadViewProfile de-duplicates repeated order fields", async () => {
     assert.deepEqual(profile.fileOrder, ["data/status_effects.json", "data/runes.json"]);
     assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.order, ["effects", "dot", "buildup"]);
     assert.deepEqual(profile.viewLayouts["data/status_effects.json:$"].all.detailOrder, ["effect_name", "description"]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile preserves sharedViewCollaborationMode", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      sharedViewCollaborationMode: "personal",
+    }), "utf8");
+
+    const profile = await loadViewProfile(root, "lans");
+    assert.equal(profile.sharedViewCollaborationMode, "personal");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

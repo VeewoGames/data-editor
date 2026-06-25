@@ -22,7 +22,8 @@ export function resolveClearValueByDisplayType(displayType) {
   return undefined;
 }
 
-export function buildOptionFieldClearPatch({ options, selectedValues }) {
+export function buildOptionFieldClearPatch({ mode, options, selectedValues }) {
+  void mode;
   return {
     createdOptionValues: [],
     deletedOptionValues: [],

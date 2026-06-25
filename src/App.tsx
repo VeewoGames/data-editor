@@ -171,6 +171,7 @@ import {
   updateSharedViewIconConfig,
 } from "./view/view-state.mjs";
 import {
+  applyStructureDraftToConfig,
   createViewGroupConfig,
   createViewInGroupConfig,
   draftSharedViewStructure,
@@ -204,6 +205,7 @@ function collectProtectedSharedViewIconPackIds(topLevelItems: Array<SharedViewLe
       if (item.icon) protectedPackIds.add(resolveSharedViewIconPackId(item.icon));
       continue;
     }
+    if (item.icon) protectedPackIds.add(resolveSharedViewIconPackId(item.icon));
     for (const viewItem of item.views) {
       if (viewItem.icon) protectedPackIds.add(resolveSharedViewIconPackId(viewItem.icon));
     }
@@ -557,6 +559,7 @@ export function App() {
   const [scrollRestoreKey, setScrollRestoreKey] = useState<string | null>(null);
   const [initialScrollPosition, setInitialScrollPosition] = useState<{ scrollTop: number; scrollLeft: number } | null>(null);
   const [bridgePort, setBridgePort] = useState(defaultRecoveryBridgePort);
+  const [sharedViewDirectSavePending, setSharedViewDirectSavePending] = useState(false);
   const [newProfileOpen, setNewProfileOpen] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
   const [relationConfigField, setRelationConfigField] = useState<string | null>(null);
@@ -577,6 +580,7 @@ export function App() {
   const titleFieldRef = useRef<string | null>(null);
   const dataDirtyRef = useRef(false);
   const viewConfigRef = useRef<ViewConfig>(emptyProjectViewConfig());
+  const sharedViewDirectSaveRetryRef = useRef<null | (() => Promise<void>)>(null);
   const viewConfigDirtyRef = useRef(false);
   const profileDirtyRef = useRef(false);
   const relationIndexRequestRef = useRef(0);
@@ -588,6 +592,8 @@ export function App() {
   const selectedViewProfileNameRef = useRef<string | null>(null);
   const selectedViewProfileRef = useRef<UserViewProfile>(emptyUserViewProfile());
   const bridgePortRef = useRef(defaultRecoveryBridgePort);
+  const sharedViewsConfigRef = useRef<SharedViewsConfig>(emptySharedViewsConfig());
+  const sharedViewDirectSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const serviceLifecycleStateRef = useRef<ServiceLifecycleState>("running");
   const detailOpenRef = useRef(false);
   const documentStoreRef = useRef<DocumentStore | null>(null);
@@ -647,6 +653,9 @@ export function App() {
   const statusText = status || flashStatus;
   const detailReorderReactProfilingEnabled = typeof window !== "undefined"
     && window.localStorage.getItem(detailReorderReactProfilingStorageKey) === "1";
+  useEffect(() => {
+    sharedViewsConfigRef.current = sharedViewsConfig;
+  }, [sharedViewsConfig]);
   const saveCoordinator = useMemo(
     () => createSaveCoordinator({
       delayMs: 800,
@@ -2239,6 +2248,10 @@ export function App() {
     primaryKeySyncResult,
     commandSaving,
   ]);
+  const sharedViewCollaborationMode = selectedViewProfileName
+    ? (selectedViewProfile?.sharedViewCollaborationMode === "personal" ? "personal" : "team")
+    : "team";
+  const isPersonalSharedViewMode = sharedViewCollaborationMode === "personal";
   const toolbarSnapshot = useMemo<ToolbarSnapshot>(() => ({
     currentPath: selectedPath,
     collectionPath,
@@ -2256,6 +2269,26 @@ export function App() {
     restarting,
     status: statusText,
     hiddenFields,
+    sharedViewPublishVisible: !isPersonalSharedViewMode && Boolean(
+      activeCollectionKey
+      && activeSharedView
+      && hasViewDraft(currentSharedViewDraftState(), activeCollectionKey, activeSharedView.id),
+    ),
+    sharedViewPublishEnabled: !isPersonalSharedViewMode && Boolean(
+      activeCollectionKey
+      && activeSharedView
+      && !commandSaving
+      && hasViewDraft(currentSharedViewDraftState(), activeCollectionKey, activeSharedView.id),
+    ),
+    sharedViewPublishTooltip: "保存团队共享视图",
+    sharedViewCollaborationMode,
+    canUsePersonalSharedViewMode: Boolean(selectedViewProfileName),
+    sharedViewModeHelpText: selectedViewProfileName
+      ? sharedViewCollaborationMode === "personal"
+        ? "共享视图改动将直接保存到项目，不再需要团队保存"
+        : "共享视图改动先保存为草稿，需要手动发布"
+      : "需先选择或创建命名视图配置",
+    sharedViewDirectSaveRetryVisible: sharedViewDirectSavePending,
   }), [
     selectedPath,
     collectionPath,
@@ -2273,6 +2306,12 @@ export function App() {
     restarting,
     statusText,
     hiddenFields,
+    activeCollectionKey,
+    activeSharedView,
+    isPersonalSharedViewMode,
+    sharedViewCollaborationMode,
+    sharedViewDirectSavePending,
+    selectedViewProfile,
   ]);
   const viewTabsSnapshot = useMemo<ViewTabsSnapshot>(() => ({
     views: orderedCollectionViews,
@@ -2440,12 +2479,14 @@ export function App() {
       detailPanelWidth: current.detailPanelWidth,
       detailDocumentPanelOpen: current.detailDocumentPanelOpen,
       detailDocumentPanelWidth: current.detailDocumentPanelWidth,
-      favoriteSharedViewIconIds: [...current.favoriteSharedViewIconIds],
+      favoriteSharedViewIconIds: [...(current.favoriteSharedViewIconIds ?? [])],
       fileOrder: [...current.fileOrder],
       sidebarTree: cloneStoredSidebarTreeState(current.sidebarTree),
       lastActiveViews: { ...current.lastActiveViews },
       viewDrafts: { ...current.viewDrafts },
       viewOrderDrafts: { ...current.viewOrderDrafts },
+      sharedViewCollaborationMode: current.sharedViewCollaborationMode,
+      structureDrafts: { ...current.structureDrafts },
       ...(current.appearance ? { appearance: cloneUiPreferences(current.appearance) } : {}),
       viewLayouts: Object.fromEntries(Object.entries(current.viewLayouts).map(([key, views]) => [
         key,
@@ -2544,22 +2585,160 @@ export function App() {
     }
   }
 
+  function reportSharedDraftSaveFailure(error: unknown) {
+    setStatus(error instanceof Error ? error.message : String(error));
+  }
+
+  function persistSharedDraftProfileState(next: SharedViewDraftState) {
+    if (!selectedViewProfileNameRef.current) return;
+    selectedViewProfileRef.current = {
+      ...selectedViewProfileRef.current,
+      lastActiveViews: next.lastActiveViews,
+      viewDrafts: next.viewDrafts,
+      viewOrderDrafts: next.viewOrderDrafts,
+      structureDrafts: next.structureDrafts,
+    };
+    setViewDraftDirty(hasSharedDrafts(next));
+    void commitProfileSave(selectedViewProfileNameRef.current!, selectedViewProfileRef.current).catch(reportSharedDraftSaveFailure);
+  }
+
+  function updateSharedViewDraftAndPersist(mutator: (draft: SharedViewDraftState) => SharedViewDraftState) {
+    if (!selectedViewProfileName) return false;
+    const next = mutator(currentSharedViewDraftState());
+    mutateSelectedViewProfile((draft) => {
+      draft.lastActiveViews = next.lastActiveViews;
+      draft.viewDrafts = next.viewDrafts;
+      draft.viewOrderDrafts = next.viewOrderDrafts;
+      draft.structureDrafts = next.structureDrafts;
+    });
+    persistSharedDraftProfileState(next);
+    return true;
+  }
+
+  function replaceSharedViewDraftStateAndPersist(next: SharedViewDraftState) {
+    if (!selectedViewProfileName) return false;
+    mutateSelectedViewProfile((draft) => {
+      draft.lastActiveViews = next.lastActiveViews;
+      draft.viewDrafts = next.viewDrafts;
+      draft.viewOrderDrafts = next.viewOrderDrafts;
+      draft.structureDrafts = next.structureDrafts;
+    });
+    persistSharedDraftProfileState(next);
+    return true;
+  }
+
+  async function enqueueSharedViewDirectSave(
+    mutator: (config: SharedViewsConfig) => SharedViewsConfig,
+    draftFallback?: SharedViewDraftState,
+    successStatus?: string,
+  ) {
+    const fallbackCollectionKey = activeCollectionKey;
+    sharedViewDirectSaveQueueRef.current = sharedViewDirectSaveQueueRef.current.then(async () => {
+      const nextConfig = mutator(sharedViewsConfigRef.current);
+      try {
+        await saveSharedViews(nextConfig, activeProjectId);
+        sharedViewsConfigRef.current = nextConfig;
+        setSharedViewsConfig(nextConfig);
+        if (draftFallback && fallbackCollectionKey) {
+          updateSharedViewDraftState(clearCollectionSharedDrafts(currentSharedViewDraftState(), fallbackCollectionKey));
+        }
+        setSharedViewDirectSavePending(false);
+        sharedViewDirectSaveRetryRef.current = null;
+        if (successStatus) setStatus(successStatus);
+      } catch (error) {
+        if (draftFallback) {
+          updateSharedViewDraftState(draftFallback);
+          sharedViewDirectSaveRetryRef.current = async () => {
+            await saveSharedViews(nextConfig, activeProjectId);
+            sharedViewsConfigRef.current = nextConfig;
+            setSharedViewsConfig(nextConfig);
+            if (fallbackCollectionKey) {
+              updateSharedViewDraftState(clearCollectionSharedDrafts(currentSharedViewDraftState(), fallbackCollectionKey));
+            }
+            setSharedViewDirectSavePending(false);
+            sharedViewDirectSaveRetryRef.current = null;
+            setStatus(successStatus ?? "");
+          };
+        }
+        setSharedViewDirectSavePending(true);
+        setStatus("共享视图自动保存失败");
+      }
+    });
+    return sharedViewDirectSaveQueueRef.current;
+  }
+
   function updateActiveViewDraft(patch: Partial<CollectionView>) {
     if (commandSaving) return;
     if (!activeCollectionKey || !activeSharedView) return;
     const viewId = activeSharedView.id;
-    if (mutateSelectedViewProfile((draft) => {
-      draft.viewDrafts = { ...draft.viewDrafts };
-      draft.viewDrafts[activeCollectionKey] = {
-        ...(draft.viewDrafts[activeCollectionKey] ?? {}),
-        [viewId]: {
-          ...(draft.viewDrafts[activeCollectionKey]?.[viewId] ?? {}),
-          ...patch,
+    if (isPersonalSharedViewMode) {
+      const draftFallback = {
+        lastActiveViews: { ...currentSharedViewDraftState().lastActiveViews },
+        viewDrafts: {
+          ...currentSharedViewDraftState().viewDrafts,
+          [activeCollectionKey]: {
+            ...(currentSharedViewDraftState().viewDrafts[activeCollectionKey] ?? {}),
+            [viewId]: {
+              ...(currentSharedViewDraftState().viewDrafts[activeCollectionKey]?.[viewId] ?? {}),
+              ...patch,
+            },
+          },
         },
+        viewOrderDrafts: { ...currentSharedViewDraftState().viewOrderDrafts },
+        structureDrafts: { ...currentSharedViewDraftState().structureDrafts },
       };
-    })) {
-      void commitProfileSave(selectedViewProfileNameRef.current!, selectedViewProfileRef.current);
-      setViewDraftDirty(true);
+      void enqueueSharedViewDirectSave((currentConfig) => {
+        const currentCollection = currentConfig.collections?.[activeCollectionKey];
+        if (!currentCollection?.items?.length) return currentConfig;
+        return {
+          ...currentConfig,
+          collections: {
+            ...currentConfig.collections,
+            [activeCollectionKey]: {
+              ...currentCollection,
+              items: currentCollection.items.map((item) => item.kind === "view" && item.view.id === activeSharedView.id
+                ? {
+                  ...item,
+                  view: {
+                    ...item.view,
+                    ...patch,
+                  },
+                }
+                : item.kind === "group"
+                  ? {
+                    ...item,
+                    views: item.views.map((leaf) => leaf.view.id === activeSharedView.id
+                      ? {
+                        ...leaf,
+                        view: {
+                          ...leaf.view,
+                          ...patch,
+                        },
+                      }
+                      : leaf),
+                  }
+                  : item),
+            },
+          },
+        };
+      }, draftFallback);
+      return;
+    }
+    if (updateSharedViewDraftAndPersist((current) => ({
+      lastActiveViews: { ...current.lastActiveViews },
+      viewDrafts: {
+        ...current.viewDrafts,
+        [activeCollectionKey]: {
+          ...(current.viewDrafts[activeCollectionKey] ?? {}),
+          [viewId]: {
+            ...(current.viewDrafts[activeCollectionKey]?.[viewId] ?? {}),
+            ...patch,
+          },
+        },
+      },
+      viewOrderDrafts: { ...current.viewOrderDrafts },
+      structureDrafts: { ...current.structureDrafts },
+    }))) {
       return;
     }
     setLocalSharedViewDrafts((current) => {
@@ -2576,6 +2755,7 @@ export function App() {
           },
         },
         viewOrderDrafts: { ...current.viewOrderDrafts },
+        structureDrafts: { ...current.structureDrafts },
       };
       writeLocalSharedViewDrafts(window.localStorage, next);
       return next;
@@ -3500,22 +3680,7 @@ export function App() {
   }
 
   function updateSharedViewDraftState(next: SharedViewDraftState) {
-    if (mutateSelectedViewProfile((draft) => {
-      draft.lastActiveViews = next.lastActiveViews;
-      draft.viewDrafts = next.viewDrafts;
-      draft.viewOrderDrafts = next.viewOrderDrafts;
-      draft.structureDrafts = next.structureDrafts;
-    })) {
-      selectedViewProfileRef.current = {
-        ...selectedViewProfileRef.current,
-        lastActiveViews: next.lastActiveViews,
-        viewDrafts: next.viewDrafts,
-        viewOrderDrafts: next.viewOrderDrafts,
-        structureDrafts: next.structureDrafts,
-      };
-      setViewDraftDirty(hasSharedDrafts(next));
-      return;
-    }
+    if (replaceSharedViewDraftStateAndPersist(next)) return;
     setLocalSharedViewDrafts(next);
     writeLocalSharedViewDrafts(window.localStorage, next);
     setViewDraftDirty(hasSharedDrafts(next));
@@ -3834,6 +3999,22 @@ export function App() {
 
   function handleReorderSharedViews(operation: ViewTabReorderOperation) {
     if (commandSaving || !activeCollectionKey) return;
+    if (isPersonalSharedViewMode) {
+      const directDraftState = draftSharedViewStructure({
+        draftState: currentSharedViewDraftState(),
+        collectionKey: activeCollectionKey,
+        topLevelItems: resolvedCollectionViews.topLevelItems,
+        operation,
+      });
+      void enqueueSharedViewDirectSave((currentConfig) => {
+        const structureDrafts = directDraftState.structureDrafts as NonNullable<SharedViewDraftState["structureDrafts"]> | undefined;
+        const structureDraft = structureDrafts?.[activeCollectionKey];
+        return structureDraft?.items?.length
+          ? applyStructureDraftToConfig(currentConfig, activeCollectionKey, structureDraft) as SharedViewsConfig
+          : currentConfig;
+      }, directDraftState);
+      return;
+    }
     const next = draftSharedViewStructure({
       draftState: currentSharedViewDraftState(),
       collectionKey: activeCollectionKey,
@@ -3869,6 +4050,9 @@ export function App() {
 
   function handleResetSharedViewDraft() {
     if (commandSaving || !activeCollectionKey || !activeSharedView) return;
+    setSharedViewDirectSavePending(false);
+    sharedViewDirectSaveRetryRef.current = null;
+    setStatus("");
     if (mutateSelectedViewProfile((draft) => {
       const result = resetActiveSharedViewDraft(draft, activeCollectionKey, activeSharedView.id);
       draft.lastActiveViews = result.draftState.lastActiveViews;
@@ -4107,6 +4291,57 @@ export function App() {
     } finally {
       setCommandSaving(false);
     }
+  }
+
+  async function publishCurrentSharedDraftsForModeSwitch() {
+    const current = currentSharedViewDraftState();
+    const collectionKeys = collectDraftCollectionKeys(current);
+    if (!collectionKeys.length) return;
+    let nextConfig = sharedViewsConfig;
+    let nextDraftState = current;
+    for (const collectionKey of collectionKeys) {
+      const activeViewId = nextDraftState.lastActiveViews?.[collectionKey]
+        ?? (collectionKey === activeCollectionKey ? activeSharedView?.id ?? null : null);
+      if (!activeViewId) continue;
+      const result = saveSharedViewDraftsToConfig(nextConfig, nextDraftState, collectionKey, activeViewId);
+      nextConfig = result.config as SharedViewsConfig;
+      nextDraftState = clearCollectionSharedDrafts(nextDraftState, collectionKey);
+    }
+    await saveSharedViews(nextConfig, activeProjectId);
+    setSharedViewsConfig(nextConfig);
+    updateSharedViewDraftState(nextDraftState);
+  }
+
+  async function handleChangeSharedViewCollaborationMode(mode: "team" | "personal") {
+    if (!selectedViewProfileName) return;
+    const currentMode = resolveSharedViewCollaborationMode(selectedViewProfileName, selectedViewProfileRef.current);
+    if (mode === currentMode) return;
+    setCommandSaving(true);
+    setStatus("");
+    try {
+      if (mode === "personal") {
+        await publishCurrentSharedDraftsForModeSwitch();
+      }
+      const nextProfile = mutateSelectedViewProfile((draft) => {
+        draft.sharedViewCollaborationMode = mode;
+      });
+      if (!nextProfile) return;
+      await commitProfileSave(selectedViewProfileName, nextProfile);
+      setSelectedViewProfile(nextProfile);
+      selectedViewProfileRef.current = nextProfile;
+      setStatus(mode === "personal" ? "已切换到个人模式" : "已切换到团队模式");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCommandSaving(false);
+    }
+  }
+
+  function handleRetrySharedViewDirectSave() {
+    if (!sharedViewDirectSaveRetryRef.current) return;
+    void sharedViewDirectSaveRetryRef.current().catch((error) => {
+      setStatus("共享视图自动保存失败");
+    });
   }
 
   function shouldInterceptPrimaryKeySync(currentDataDirty: boolean, force = false) {
@@ -4517,6 +4752,9 @@ export function App() {
         <Toolbar
           snapshot={toolbarSnapshot}
           onQueryChange={handleToolbarQueryChange}
+          onSaveSharedViewPublish={() => void handleSaveViewForEveryone()}
+          onChangeSharedViewCollaborationMode={(mode) => { void handleChangeSharedViewCollaborationMode(mode); }}
+          onRetrySharedViewDirectSave={handleRetrySharedViewDirectSave}
           onRefreshBuild={handleRefreshBuild}
           onRestartServer={handleRestartServer}
           onCloseServer={handleCloseServer}
@@ -4570,7 +4808,6 @@ export function App() {
                     onCreateFormalOption={handleCreateFormalFilterOption}
                     onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
                     onResetView={handleResetSharedViewDraft}
-                    onSaveForEveryone={() => void handleSaveViewForEveryone()}
                   />
                 </Profiler>
               ) : null}
@@ -4678,7 +4915,6 @@ export function App() {
                 onCreateFormalOption={handleCreateFormalFilterOption}
                 onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
                 onResetView={handleResetSharedViewDraft}
-                onSaveForEveryone={() => void handleSaveViewForEveryone()}
               />
             ) : null}
             {showPrimaryKeyCandidateBanner && selectedPath ? (
@@ -5598,6 +5834,7 @@ function emptyUserViewProfile(): UserViewProfile {
     lastActiveViews: {},
     viewDrafts: {},
     viewOrderDrafts: {},
+    sharedViewCollaborationMode: "team",
     viewLayouts: {},
     collections: {},
   };
@@ -5618,6 +5855,17 @@ function normalizeUserViewProfile(profile: Partial<UserViewProfile> | null | und
     lastActiveViews: { ...(profile.lastActiveViews ?? {}) },
     viewDrafts: { ...(profile.viewDrafts ?? {}) },
     viewOrderDrafts: { ...(profile.viewOrderDrafts ?? {}) },
+    sharedViewCollaborationMode: profile.sharedViewCollaborationMode === "personal" ? "personal" : "team",
+    structureDrafts: Object.fromEntries(Object.entries(profile.structureDrafts ?? {}).map(([key, draft]) => [
+      key,
+      {
+        items: Array.isArray(draft?.items)
+          ? draft.items.map((item) => item.kind === "group"
+            ? { kind: "group", groupId: item.groupId, ...(item.name ? { name: item.name } : {}), viewIds: [...item.viewIds] }
+            : { kind: "view", viewId: item.viewId })
+          : [],
+      },
+    ])),
     ...(profile.appearance ? { appearance: cloneUiPreferences(profile.appearance) } : {}),
     viewLayouts: Object.fromEntries(Object.entries(profile.viewLayouts ?? {}).map(([key, views]) => [
       key,
@@ -5661,6 +5909,35 @@ function hasSharedDrafts(draftState: SharedViewDraftState) {
   return Object.values(draftState.viewDrafts).some((views) => Object.keys(views).length > 0)
     || Object.values(draftState.viewOrderDrafts).some((order) => order.length > 0)
     || Object.values(draftState.structureDrafts ?? {}).some((draft) => Array.isArray(draft?.items) && draft.items.length > 0);
+}
+
+function collectDraftCollectionKeys(draftState: SharedViewDraftState) {
+  return [...new Set([
+    ...Object.keys(draftState.viewDrafts ?? {}),
+    ...Object.keys(draftState.viewOrderDrafts ?? {}),
+    ...Object.keys(draftState.structureDrafts ?? {}),
+  ])];
+}
+
+function clearCollectionSharedDrafts(draftState: SharedViewDraftState, collectionKey: string): SharedViewDraftState {
+  const nextLastActiveViews = { ...draftState.lastActiveViews };
+  const nextViewDrafts = { ...draftState.viewDrafts };
+  const nextViewOrderDrafts = { ...draftState.viewOrderDrafts };
+  const nextStructureDrafts = { ...(draftState.structureDrafts ?? {}) };
+  delete nextViewDrafts[collectionKey];
+  delete nextViewOrderDrafts[collectionKey];
+  delete nextStructureDrafts[collectionKey];
+  return {
+    lastActiveViews: nextLastActiveViews,
+    viewDrafts: nextViewDrafts,
+    viewOrderDrafts: nextViewOrderDrafts,
+    structureDrafts: nextStructureDrafts,
+  };
+}
+
+function resolveSharedViewCollaborationMode(profileName: string | null, profile: UserViewProfile | null) {
+  if (!profileName) return "team" as const;
+  return profile?.sharedViewCollaborationMode === "personal" ? "personal" : "team";
 }
 
 function emptyProjectViewConfig(): ViewConfig {

@@ -53,6 +53,7 @@ export function emptyViewProfile() {
     viewDrafts: {},
     viewOrderDrafts: {},
     structureDrafts: {},
+    sharedViewCollaborationMode: "team",
     viewLayouts: {},
     collections: {},
   };
@@ -84,6 +85,7 @@ function normalizeViewProfile(value) {
     viewDrafts: sharedDrafts.viewDrafts,
     viewOrderDrafts: sharedDrafts.viewOrderDrafts,
     structureDrafts: sharedDrafts.structureDrafts,
+    sharedViewCollaborationMode: value.sharedViewCollaborationMode === "personal" ? "personal" : "team",
     ...(appearance ? { appearance } : {}),
     viewLayouts,
     collections,
@@ -273,6 +275,7 @@ function serializeViewProfile(profile) {
     viewDrafts: normalized.viewDrafts,
     viewOrderDrafts: normalized.viewOrderDrafts,
     structureDrafts: normalized.structureDrafts,
+    sharedViewCollaborationMode: normalized.sharedViewCollaborationMode,
     ...(normalized.appearance ? { appearance: normalized.appearance } : {}),
     viewLayouts: normalized.viewLayouts,
   };
