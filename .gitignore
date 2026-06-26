@@ -12,3 +12,4 @@ playwright-report/
 tests/.scratch/
 *.log
 .tmp-*
+*.import
