@@ -89,6 +89,15 @@ export function createSharedViewConfig(sharedViewsConfig, collectionKey, activeV
   return { config, view: nextView };
 }
 
+export function updateSharedViewConfig(sharedViewsConfig, collectionKey, activeViewId, activeViewSnapshot) {
+  const config = cloneSharedViewsConfig(sharedViewsConfig);
+  const collection = ensureSharedCollection(config, collectionKey);
+  const snapshot = normalizeCollectionView(activeViewSnapshot ?? defaultAllView());
+  collection.items = applyActiveViewSnapshotToItems(collection.items, activeViewId, snapshot);
+  collection.defaultViewId = resolveDefaultFromCollection(collection);
+  return config;
+}
+
 export function renameSharedViewConfig(sharedViewsConfig, collectionKey, viewId, name) {
   const trimmed = typeof name === "string" ? name.trim() : "";
   if (!trimmed) return cloneSharedViewsConfig(sharedViewsConfig);
@@ -433,6 +442,55 @@ function applyDraftsToItems(items, activeViewId, activeDraft, orderDraft) {
   if (!Array.isArray(orderDraft) || !orderDraft.length) return nextItems;
   if (nextItems.some((item) => item?.kind === "group")) return nextItems;
   return applyFlatLeafOrderDraft(nextItems, orderDraft);
+}
+
+function applyActiveViewSnapshotToItems(items, activeViewId, snapshot) {
+  const nextItems = [];
+  let updated = false;
+  for (const item of Array.isArray(items) ? items : []) {
+    if (item?.kind === "group") {
+      const views = (item.views ?? []).map((view) => {
+        const normalized = normalizeSharedViewLeaf(view);
+        if (normalized.view.id !== activeViewId) return normalized;
+        updated = true;
+        return {
+          ...normalized,
+          view: {
+            ...snapshot,
+            id: activeViewId,
+          },
+        };
+      });
+      nextItems.push({ ...item, views });
+      continue;
+    }
+    const rawView = item?.kind === "view" ? item.view : item;
+    const icon = item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll";
+    if (rawView?.id === activeViewId) {
+      nextItems.push({
+        kind: "view",
+        icon,
+        view: {
+          ...snapshot,
+          id: activeViewId,
+        },
+      });
+      updated = true;
+      continue;
+    }
+    nextItems.push({ kind: "view", icon, view: { ...rawView } });
+  }
+  if (!updated) {
+    nextItems.push({
+      kind: "view",
+      icon: "borderAll",
+      view: {
+        ...snapshot,
+        id: activeViewId,
+      },
+    });
+  }
+  return nextItems;
 }
 
 function applyFlatLeafOrderDraft(items, orderDraft) {

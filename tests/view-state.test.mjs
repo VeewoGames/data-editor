@@ -717,6 +717,39 @@ test("saveSharedViewDraftsToConfig only persists the explicit active shared view
   assert.equal(result.dirty, true);
 });
 
+test("updateSharedViewConfig materializes a missing collection and persists the active all view snapshot", () => {
+  assert.equal(typeof viewState.updateSharedViewConfig, "function");
+  const result = viewState.updateSharedViewConfig(
+    { version: 1, collections: {} },
+    "data/affixes.json:affixes",
+    "all",
+    {
+      ...allView,
+      sorts: [{ id: "sort:affix_id", field: "affix_id", direction: "asc" }],
+      filters: {
+        topLevelRules: [{ id: "rule:role", kind: "rule", field: "role", operator: "is", value: "primary" }],
+        advancedRoot: null,
+      },
+    },
+  );
+
+  assert.deepEqual(result.collections["data/affixes.json:affixes"], {
+    defaultViewId: "all",
+    items: [{
+      kind: "view",
+      icon: "borderAll",
+      view: {
+        ...allView,
+        sorts: [{ id: "sort:affix_id", field: "affix_id", direction: "asc" }],
+        filters: {
+          topLevelRules: [{ id: "rule:role", kind: "rule", field: "role", operator: "is", value: "primary" }],
+          advancedRoot: null,
+        },
+      },
+    }],
+  });
+});
+
 test("App dirty state treats structure drafts as shared view dirty", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 
@@ -887,14 +920,25 @@ test("stable text editing structure is wired", async () => {
   assert.match(appSource, /const \[commandSaving, setCommandSaving\] = useState\(false\)/);
   assert.match(appSource, /activeTextEditorRef/);
   assert.match(appSource, /tableTextEditMode/);
+  assert.match(appSource, /const enableTableTextEditMode = useCallback\(\(\) => \{/);
+  assert.match(appSource, /setTableTextEditMode\(\(current\) => current \? current : true\)/);
+  assert.match(appSource, /onEnableTextEditMode: enableTableTextEditMode/);
+  const enableTableTextEditModeSection = appSource.slice(
+    appSource.indexOf("const enableTableTextEditMode = useCallback(() => {"),
+    appSource.indexOf("}, []);", appSource.indexOf("const enableTableTextEditMode = useCallback(() => {")) + "}, []);".length,
+  );
+  assert.doesNotMatch(enableTableTextEditModeSection, /setTableTextEditMode\(\(value\) => !value\)/);
 
   assert.match(dataTableSource, /textEditable: boolean/);
+  assert.match(dataTableSource, /onEnableTextEditMode\?: \(\) => void;/);
   assert.match(dataTableSource, /const \[activeTextCellId, setActiveTextCellId\] = useState<string \| null>\(null\);/);
   assert.match(dataTableSource, /previous\.textEditable === next\.textEditable/);
   assert.match(dataTableSource, /previous\.onRegisterActiveTextEditor === next\.onRegisterActiveTextEditor/);
   assert.match(tableColumnsSource, /textEditable=\{runtime\.textEditable\}/);
+  assert.match(tableColumnsSource, /onEnableTextEditMode: \(\) => void;/);
   assert.match(tableColumnsSource, /const textEditingActive = runtime\.activeTextCellId === cellId;/);
   assert.match(cellRendererSource, /TextCellSurface/);
+  assert.match(cellRendererSource, /onEnableTextEditMode\?: \(\) => void;/);
   assert.match(cellRendererSource, /displayType === "Text"[\s\S]+textEditable/);
   assert.match(cellRendererSource, /displayType === "Number"[\s\S]+displayType="Number"/);
   const tableTextCellEditorSource = await readFile(new URL("../src/editing/TableTextCellEditor.tsx", import.meta.url), "utf8");
@@ -906,7 +950,9 @@ test("stable text editing structure is wired", async () => {
   assert.match(textCellSurfaceSource, /editable-active/);
   assert.match(textCellSurfaceSource, /data-display-type=\{displayType\.toLowerCase\(\)\}/);
   assert.match(textCellSurfaceSource, /data-zero-value=\{isZeroValue \? "true" : "false"\}/);
+  assert.match(textCellSurfaceSource, /onEnableEditing\?: \(\) => void;/);
   assert.match(textCellSurfaceSource, /onActivate\(cellId\)/);
+  assert.match(textCellSurfaceSource, /onDoubleClick=\{handleRequestEnableEditing\}/);
   assert.doesNotMatch(textCellSurfaceSource, /title=\{textValue\}/);
   assert.doesNotMatch(cellRendererSource, /data-cell-role="content"[\s\S]+title=\{textValue\}/);
   assert.doesNotMatch(tableColumnsSource, /data-cell-role="title-action"[\s\S]+title=/);
@@ -1188,7 +1234,7 @@ test("personal mode routes shared view content edits through serialized direct s
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 
   assert.match(appSource, /enqueueSharedViewDirectSave/);
-  assert.match(appSource, /if \(isPersonalSharedViewMode\)[\s\S]*enqueueSharedViewDirectSave/);
+  assert.match(appSource, /if \(isPersonalSharedViewMode\)[\s\S]*updateSharedViewConfig/);
 });
 
 test("personal mode reset clears pending direct-save retry state instead of leaving retry affordances behind", async () => {

@@ -468,6 +468,50 @@ test("single click selection does not keep expanding on later hover", async ({ p
   await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(1);
 });
 
+test("select and multi-select interactions do not automatically enter rectangular selection", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+
+  const selectedCells = page.locator('td[data-cell-selected="true"]');
+  await expect(selectedCells).toHaveCount(0);
+
+  const selectCell = tableRow(page, 0).locator('td[data-column-field="category"]').first();
+  await selectCell.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover")).toBeVisible();
+  await expect(selectedCells).toHaveCount(0);
+  await page.locator(".multi-select-option").filter({ hasText: "attack" }).click();
+  await expect(selectedCells).toHaveCount(0);
+  await expect(selectCell.locator(".multi-select-trigger")).toContainText("attack");
+
+  const multiSelectCell = tableRow(page, 0).locator('td[data-column-field="tags"]').first();
+  await multiSelectCell.locator(".multi-select-trigger").click();
+  await expect(page.locator(".multi-select-popover")).toBeVisible();
+  await expect(selectedCells).toHaveCount(0);
+  await page.locator(".multi-select-option").filter({ hasText: "combo" }).click();
+  await expect(selectedCells).toHaveCount(0);
+  await closePopoverByClickingOutside(page);
+  await expect(selectedCells).toHaveCount(0);
+  await expect(multiSelectCell.locator(".multi-select-trigger")).toContainText("combo");
+});
+
+test("dragging from a select cell into a multi-select cell still creates a rectangular selection", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await expect(page.locator(".column-menu-popup")).toHaveCount(0);
+
+  const start = tableRow(page, 0).locator('td[data-column-field="category"]').first();
+  const end = tableRow(page, 0).locator('td[data-column-field="tags"]').first();
+  await dragBetweenCells(page, start, end);
+  await expect(page.locator('td[data-cell-selected="true"]')).toHaveCount(2);
+  await expect(start).toHaveAttribute("data-cell-selected", "true");
+  await expect(end).toHaveAttribute("data-cell-selected", "true");
+});
+
 test("delete clears rectangle values for text number checkbox select and multiselect", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_selection_delete.json"]').click();
@@ -5549,6 +5593,68 @@ test("table text edit mode toggles ordinary text cell editing and autosaves", as
   await expect(tableCell(page, 0, "description").locator('[data-cell-role="content"]')).toContainText("table text edit value");
 });
 
+test("table text cell saves the latest draft when clicking another cell", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const editButton = page.getByRole("button", { name: "编辑" });
+  await editButton.click();
+  await expect(editButton).toHaveAttribute("aria-pressed", "true");
+
+  await tableCell(page, 0, "description").locator('[data-cell-role="content"]').click();
+  const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor input");
+  await expect(editor).toBeVisible();
+
+  await editor.fill("table text switches cell and saves");
+  await page.waitForTimeout(400);
+
+  const textBeforeSwitch = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
+  expect(textBeforeSwitch).not.toContain("table text switches cell and saves");
+
+  await tableCell(page, 1, "id").locator('[data-cell-role="content"]').click();
+
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
+    return text.includes("table text switches cell and saves");
+  });
+});
+
+test("table text cell saves the latest draft when clicking table whitespace", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const editButton = page.getByRole("button", { name: "编辑" });
+  await editButton.click();
+  await expect(editButton).toHaveAttribute("aria-pressed", "true");
+
+  await tableCell(page, 0, "description").locator('[data-cell-role="content"]').click();
+  const editor = tableCell(page, 0, "description").locator(".table-text-cell-editor input");
+  await expect(editor).toBeVisible();
+
+  await editor.fill("table text whitespace click saves");
+  await page.waitForTimeout(400);
+
+  const textBeforeBlur = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
+  expect(textBeforeBlur).not.toContain("table text whitespace click saves");
+
+  const scrollBox = await page.locator(".table-scroll").boundingBox();
+  expect(scrollBox).not.toBeNull();
+  await page.mouse.click(scrollBox!.x + 24, scrollBox!.y + scrollBox!.height - 24);
+
+  await waitForAutosaveWrite(page, async () => {
+    const text = await readFile(path.resolve("tests/.scratch/data/e2e_wrap_rows.json"), "utf8");
+    return text.includes("table text whitespace click saves");
+  });
+});
+
 test("table number edit mode uses the same full-cell editor chrome as text fields", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -5992,6 +6098,80 @@ test("table text edit mode keeps wrapped text cells idle until the user activate
   } finally {
     await bestEffortRestore("e2e_text_edit_idle_activation.json", () => rm(dataPath, { force: true }));
   }
+});
+
+test("double click text cell enables table text edit mode without activating the editor", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const editButton = page.getByRole("button", { name: "编辑" });
+  await expect(editButton).toHaveAttribute("aria-pressed", "false");
+
+  const cell = tableCell(page, 0, "description");
+  const content = cell.locator('[data-cell-role="content"]');
+  await content.dblclick();
+
+  await expect(editButton).toHaveAttribute("aria-pressed", "true");
+  await expect(cell.locator(".table-text-cell-editor")).toHaveCount(0);
+  await expect(cell.locator(".text-cell-surface")).toHaveAttribute("data-text-cell-mode", "editable-idle");
+});
+
+test("double click number cell enables table text edit mode without activating the editor", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_numeric_ids.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const editButton = page.getByRole("button", { name: "编辑" });
+  await expect(editButton).toHaveAttribute("aria-pressed", "false");
+
+  const cell = tableCell(page, 0, "id");
+  await cell.locator('[data-cell-role="content"]').dblclick();
+
+  await expect(editButton).toHaveAttribute("aria-pressed", "true");
+  await expect(cell.locator(".table-text-cell-editor")).toHaveCount(0);
+  await expect(cell.locator(".text-cell-surface")).toHaveAttribute("data-text-cell-mode", "editable-idle");
+});
+
+test("double click enable keeps normal click activation available afterwards", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const cell = tableCell(page, 0, "description");
+  const content = cell.locator('[data-cell-role="content"]');
+  await content.dblclick();
+
+  await expect(cell.locator(".table-text-cell-editor")).toHaveCount(0);
+  await content.click();
+  await expect(cell.locator(".table-text-cell-editor input")).toBeVisible();
+});
+
+test("double click while table edit mode is already enabled does not auto-activate the text cell", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_wrap_rows.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  const cell = tableCell(page, 0, "description");
+  const content = cell.locator('[data-cell-role="content"]');
+  await content.dblclick();
+  await expect(cell.locator(".table-text-cell-editor")).toHaveCount(0);
+
+  await content.dblclick();
+  await expect(cell.locator(".table-text-cell-editor")).toHaveCount(0);
+  await expect(cell.locator(".text-cell-surface")).toHaveAttribute("data-text-cell-mode", "editable-idle");
 });
 
 test("wrapped text overlay can extend beyond the cell without changing row height", async ({ page }) => {

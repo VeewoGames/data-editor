@@ -22,6 +22,7 @@ type TableColumnsRuntime = {
   primaryKeyField: string | null;
   textEditable: boolean;
   activeTextCellId: string | null;
+  onEnableTextEditMode: () => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
   onActivateTextCell: (cellId: string) => void;
   onDeactivateTextCell: (cellId: string) => void;
@@ -272,6 +273,7 @@ function TableColumnCellView(
         issue={resolveValidationIssue(runtime.validation, rowId, originalRowIndex, columnModel.fieldName)}
         textEditable={runtime.textEditable}
         textEditingActive={textEditingActive}
+        onEnableTextEditMode={runtime.onEnableTextEditMode}
         onRegisterActiveEditor={runtime.onRegisterActiveTextEditor}
         onActivateTextCell={runtime.onActivateTextCell}
         onDeactivateTextCell={runtime.onDeactivateTextCell}

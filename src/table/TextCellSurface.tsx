@@ -1,4 +1,4 @@
-import { memo, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { TableTextCellEditor, type ActiveTextEditorRegistrar } from "../editing";
 
 type TextCellSurfaceProps = {
@@ -10,6 +10,7 @@ type TextCellSurfaceProps = {
   active: boolean;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   normalizeInput?: (value: string) => string;
+  onEnableEditing?: () => void;
   onActivate: (cellId: string) => void;
   onDeactivate: (cellId: string) => void;
   onChangeValue: (value: string) => void;
@@ -36,6 +37,7 @@ function TextCellSurfaceComponent({
   active,
   inputMode,
   normalizeInput,
+  onEnableEditing,
   onActivate,
   onDeactivate,
   onChangeValue,
@@ -44,11 +46,22 @@ function TextCellSurfaceComponent({
   const textValue = stringifyValue(value);
   const mode = !editable ? "readonly" : active ? "editable-active" : "editable-idle";
   const isZeroValue = displayType === "Number" && isZeroNumberValue(value);
+  const pendingActivationTimeoutRef = useRef<number | null>(null);
+
+  function clearPendingActivation() {
+    if (pendingActivationTimeoutRef.current == null) return;
+    window.clearTimeout(pendingActivationTimeoutRef.current);
+    pendingActivationTimeoutRef.current = null;
+  }
 
   function handleActivate(event: ReactMouseEvent<HTMLDivElement>) {
     event.stopPropagation();
     if (!editable || active) return;
-    onActivate(cellId);
+    clearPendingActivation();
+    pendingActivationTimeoutRef.current = window.setTimeout(() => {
+      pendingActivationTimeoutRef.current = null;
+      onActivate(cellId);
+    }, 220);
   }
 
   function handleActivateByKeyboard(event: ReactKeyboardEvent<HTMLDivElement>) {
@@ -58,6 +71,17 @@ function TextCellSurfaceComponent({
     event.stopPropagation();
     onActivate(cellId);
   }
+
+  function handleRequestEnableEditing(event: ReactMouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+    clearPendingActivation();
+    if (editable) return;
+    onEnableEditing?.();
+  }
+
+  useEffect(() => () => {
+    clearPendingActivation();
+  }, []);
 
   return (
     <div
@@ -73,6 +97,7 @@ function TextCellSurfaceComponent({
         data-zero-value={isZeroValue ? "true" : "false"}
         tabIndex={editable && !active ? 0 : undefined}
         onClick={handleActivate}
+        onDoubleClick={handleRequestEnableEditing}
         onKeyDown={handleActivateByKeyboard}
       >
         <span aria-hidden={active}>{textValue}</span>
@@ -104,6 +129,7 @@ export const TextCellSurface = memo(TextCellSurfaceComponent, (previous, next) =
   previous.active === next.active &&
   previous.inputMode === next.inputMode &&
   previous.normalizeInput === next.normalizeInput &&
+  previous.onEnableEditing === next.onEnableEditing &&
   previous.onActivate === next.onActivate &&
   previous.onDeactivate === next.onDeactivate &&
   previous.onChangeValue === next.onChangeValue &&

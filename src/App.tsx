@@ -168,6 +168,7 @@ import {
   renameSharedViewConfig,
   resetActiveSharedViewDraft,
   saveSharedViewDraftsToConfig,
+  updateSharedViewConfig,
   updateSharedViewIconConfig,
 } from "./view/view-state.mjs";
 import {
@@ -544,6 +545,9 @@ export function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
   const [tableTextEditMode, setTableTextEditMode] = useState(false);
+  const enableTableTextEditMode = useCallback(() => {
+    setTableTextEditMode((current) => current ? current : true);
+  }, []);
   const [rowDeleteControlsVisible, setRowDeleteControlsVisible] = useState(false);
   const [pendingOpenFilterRuleId, setPendingOpenFilterRuleId] = useState<string | null>(null);
   const [uiRevision, bumpUiRevision] = useState(0);
@@ -2137,6 +2141,7 @@ export function App() {
     scrollRestoreKey,
     initialScrollPosition,
     textEditable: tableTextEditMode,
+    onEnableTextEditMode: enableTableTextEditMode,
     onRegisterActiveTextEditor: registerActiveTextEditor,
   }), [
     model,
@@ -2160,6 +2165,7 @@ export function App() {
     scrollRestoreKey,
     initialScrollPosition,
     tableTextEditMode,
+    enableTableTextEditMode,
     registerActiveTextEditor,
   ]);
   const detailSnapshot = useMemo<DetailSnapshot>(() => ({
@@ -2670,8 +2676,13 @@ export function App() {
   function updateActiveViewDraft(patch: Partial<CollectionView>) {
     if (commandSaving) return;
     if (!activeCollectionKey || !activeSharedView) return;
+    if (!activeView) return;
     const viewId = activeSharedView.id;
     if (isPersonalSharedViewMode) {
+      const nextActiveView = {
+        ...activeView,
+        ...patch,
+      };
       const draftFallback = {
         lastActiveViews: { ...currentSharedViewDraftState().lastActiveViews },
         viewDrafts: {
@@ -2687,41 +2698,10 @@ export function App() {
         viewOrderDrafts: { ...currentSharedViewDraftState().viewOrderDrafts },
         structureDrafts: { ...currentSharedViewDraftState().structureDrafts },
       };
-      void enqueueSharedViewDirectSave((currentConfig) => {
-        const currentCollection = currentConfig.collections?.[activeCollectionKey];
-        if (!currentCollection?.items?.length) return currentConfig;
-        return {
-          ...currentConfig,
-          collections: {
-            ...currentConfig.collections,
-            [activeCollectionKey]: {
-              ...currentCollection,
-              items: currentCollection.items.map((item) => item.kind === "view" && item.view.id === activeSharedView.id
-                ? {
-                  ...item,
-                  view: {
-                    ...item.view,
-                    ...patch,
-                  },
-                }
-                : item.kind === "group"
-                  ? {
-                    ...item,
-                    views: item.views.map((leaf) => leaf.view.id === activeSharedView.id
-                      ? {
-                        ...leaf,
-                        view: {
-                          ...leaf.view,
-                          ...patch,
-                        },
-                      }
-                      : leaf),
-                  }
-                  : item),
-            },
-          },
-        };
-      }, draftFallback);
+      void enqueueSharedViewDirectSave(
+        (currentConfig) => updateSharedViewConfig(currentConfig, activeCollectionKey, viewId, nextActiveView) as SharedViewsConfig,
+        draftFallback,
+      );
       return;
     }
     if (updateSharedViewDraftAndPersist((current) => ({
@@ -6260,4 +6240,3 @@ function collectSingleSelectValues(rows: DataRecord[], fieldName: string) {
   }
   return values;
 }
-

@@ -60,12 +60,19 @@ const rowOverscan = 8;
 const rowActionColumnWidth = 42;
 const addColumnWidth = 44;
 const tableBottomBufferHeight = 300;
+const interactiveSelectionDragThreshold = 4;
 
 type TableCellCoord = {
   rowId: string;
   visibleRowIndex: number;
   fieldName: string;
   visibleColumnIndex: number;
+};
+
+type PendingInteractiveSelection = {
+  anchor: TableCellCoord;
+  clientX: number;
+  clientY: number;
 };
 
 function sameTableCellCoord(left: TableCellCoord | null, right: TableCellCoord | null) {
@@ -98,6 +105,7 @@ export type TableSnapshot = {
   scrollRestoreKey: string | null;
   initialScrollPosition: { scrollTop: number; scrollLeft: number } | null;
   textEditable: boolean;
+  onEnableTextEditMode?: () => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
 };
 
@@ -164,6 +172,7 @@ function DataTableComponent(props: DataTableProps) {
   const selectionPointerActiveRef = useRef(false);
   const selectionExpandedRef = useRef(false);
   const suppressNextSelectionClickRef = useRef(false);
+  const pendingInteractiveSelectionRef = useRef<PendingInteractiveSelection | null>(null);
   const runtimeActionRef = useRef({
     onSort: props.onSort,
     onAddFilter: props.onAddFilter,
@@ -597,6 +606,7 @@ function DataTableComponent(props: DataTableProps) {
     primaryKeyField: snapshot.primaryKeyField,
     textEditable: snapshot.textEditable,
     activeTextCellId,
+    onEnableTextEditMode: snapshot.onEnableTextEditMode ?? (() => {}),
     onRegisterActiveTextEditor: snapshot.onRegisterActiveTextEditor,
     onActivateTextCell: handleActivateTextCell,
     onDeactivateTextCell: handleDeactivateTextCell,
@@ -635,6 +645,7 @@ function DataTableComponent(props: DataTableProps) {
     snapshot.primaryKeyField,
     snapshot.textEditable,
     activeTextCellId,
+    snapshot.onEnableTextEditMode,
     snapshot.onRegisterActiveTextEditor,
     handleActivateTextCell,
     handleDeactivateTextCell,
@@ -763,6 +774,14 @@ function DataTableComponent(props: DataTableProps) {
     setSelectionPointerActive(false);
     selectionPointerActiveRef.current = false;
     selectionExpandedRef.current = false;
+    pendingInteractiveSelectionRef.current = null;
+  }, []);
+
+  const blurActiveTextEditor = useCallback(() => {
+    const activeElement = document.activeElement;
+    if (!(activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement)) return;
+    if (!scrollContainerRef.current?.contains(activeElement)) return;
+    activeElement.blur();
   }, []);
 
   const finishCellSelectionPointer = useCallback((expanded: boolean) => {
@@ -807,6 +826,19 @@ function DataTableComponent(props: DataTableProps) {
     };
   }, []);
 
+  const activatePendingInteractiveSelection = useCallback((clientX: number, clientY: number) => {
+    const pending = pendingInteractiveSelectionRef.current;
+    if (!pending) return false;
+    if (Math.abs(clientX - pending.clientX) < interactiveSelectionDragThreshold && Math.abs(clientY - pending.clientY) < interactiveSelectionDragThreshold) {
+      return false;
+    }
+    pendingInteractiveSelectionRef.current = null;
+    beginCellSelection(pending.anchor);
+    const nextCoord = resolveSelectionCoordFromPoint(clientX, clientY);
+    if (nextCoord) extendCellSelection(nextCoord);
+    return true;
+  }, [beginCellSelection, extendCellSelection, resolveSelectionCoordFromPoint]);
+
   useEffect(() => {
     function updateSelectionFromPoint(clientX: number, clientY: number) {
       const coord = resolveSelectionCoordFromPoint(clientX, clientY);
@@ -814,10 +846,15 @@ function DataTableComponent(props: DataTableProps) {
       extendCellSelection(coord);
     }
     function onWindowMouseMove(event: MouseEvent) {
+      if (!selectionPointerActiveRef.current) activatePendingInteractiveSelection(event.clientX, event.clientY);
       if (!selectionPointerActiveRef.current) return;
       updateSelectionFromPoint(event.clientX, event.clientY);
     }
     function onWindowMouseUp(event: MouseEvent) {
+      if (!selectionPointerActiveRef.current) {
+        pendingInteractiveSelectionRef.current = null;
+        return;
+      }
       if (!selectionPointerActiveRef.current) return;
       updateSelectionFromPoint(event.clientX, event.clientY);
       finishCellSelectionPointer(selectionExpandedRef.current);
@@ -833,12 +870,25 @@ function DataTableComponent(props: DataTableProps) {
   const handleSelectionCellPointerDown = useCallback((event: ReactMouseEvent<HTMLTableCellElement> | ReactPointerEvent<HTMLTableCellElement>, coord: TableCellCoord) => {
     if ("button" in event && event.button !== 0) return;
     const target = event.target;
-    if (target instanceof HTMLElement && target.closest('input, textarea, [contenteditable="true"], [data-cell-role="editor"], [data-cell-role="text-editor-overlay"]')) {
+    if (target instanceof HTMLElement && target.closest('[data-cell-role="token-trigger"], [data-cell-role="detail-trigger"]')) {
+      pendingInteractiveSelectionRef.current = {
+        anchor: coord,
+        clientX: "clientX" in event ? event.clientX : 0,
+        clientY: "clientY" in event ? event.clientY : 0,
+      };
       return;
     }
+    pendingInteractiveSelectionRef.current = null;
+    if (
+      target instanceof HTMLElement &&
+      target.closest('input, textarea, [contenteditable="true"], [data-cell-role="editor"], [data-cell-role="text-editor-overlay"], [data-radix-popper-content-wrapper]')
+    ) {
+      return;
+    }
+    blurActiveTextEditor();
     event.preventDefault();
     beginCellSelection(coord);
-  }, [beginCellSelection]);
+  }, [beginCellSelection, blurActiveTextEditor]);
 
   const handleSelectionCellClickCapture = useCallback((event: ReactMouseEvent<HTMLTableCellElement>) => {
     if (!suppressNextSelectionClickRef.current) return;
@@ -925,6 +975,7 @@ function DataTableComponent(props: DataTableProps) {
             const target = event.target;
             if (!(target instanceof HTMLElement)) return;
             if (target.closest('td[data-cell-kind="data"]')) return;
+            blurActiveTextEditor();
             clearCellSelection();
           }}
           onScroll={(event) => {

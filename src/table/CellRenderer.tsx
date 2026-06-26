@@ -28,6 +28,7 @@ type CellRendererProps = {
   relationMode?: RelationMode;
   textEditable?: boolean;
   textEditingActive?: boolean;
+  onEnableTextEditMode?: () => void;
   onRegisterActiveEditor?: ActiveTextEditorRegistrar;
   onActivateTextCell?: (cellId: string) => void;
   onDeactivateTextCell?: (cellId: string) => void;
@@ -52,6 +53,7 @@ function CellRendererComponent({
   relationMode,
   textEditable = false,
   textEditingActive = false,
+  onEnableTextEditMode,
   onRegisterActiveEditor,
   onActivateTextCell,
   onDeactivateTextCell,
@@ -176,6 +178,7 @@ function CellRendererComponent({
             active={textEditingActive}
             value={value}
             wrapped={wrapped}
+            onEnableEditing={onEnableTextEditMode}
             onActivate={onActivateTextCell ?? (() => {})}
             onDeactivate={onDeactivateTextCell ?? (() => {})}
             onChangeValue={(next) => onEdit(next)}
@@ -202,6 +205,7 @@ function CellRendererComponent({
             wrapped={wrapped}
             inputMode="decimal"
             normalizeInput={sanitizeNumberDraft}
+            onEnableEditing={onEnableTextEditMode}
             onActivate={onActivateTextCell ?? (() => {})}
             onDeactivate={onDeactivateTextCell ?? (() => {})}
             onChangeValue={(next) => onEdit(parseNumberDraft(next))}
@@ -242,6 +246,7 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.relationMode === next.relationMode &&
   previous.textEditable === next.textEditable &&
   previous.textEditingActive === next.textEditingActive &&
+  previous.onEnableTextEditMode === next.onEnableTextEditMode &&
   previous.onRegisterActiveEditor === next.onRegisterActiveEditor &&
   previous.onActivateTextCell === next.onActivateTextCell &&
   previous.onDeactivateTextCell === next.onDeactivateTextCell &&

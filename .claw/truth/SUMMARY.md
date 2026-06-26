@@ -1,5 +1,7 @@
 ﻿# data-editor Truth Summary
 
+- [DataTable 矩形选区对离散选项触发区的豁免边界](./data-table-rect-selection-option-trigger-exemption.md)
+- [DataTable 文本/数字单元格切换时的 blur 绕过与 draft 丢失](./data-table-text-cell-blur-bypass-draft-loss.md)
 - [Streamline Export Manifest 与 Tags 元数据接入（含并行与 human-mode metadata runner、批量安全写回、离线官方 metadata 导入与 registry 搜索消费验证；持续收录 batch-30 增量）](./streamline-export-manifest-metadata.md)
 - [Streamline micro-solid tags 自动补全链路第一版实现（持续收录 stable-prefix / stable-cluster 收口，以及 baseline 铺底模式切换、`--include-labeled` 全量重写与 micro/core 全量 tags 收口）](./streamline-micro-solid-tags-auto-complete.md)
 - [Streamline 图标 Tags 的真值源、同步链路与低频回填验证边界](./adr/streamline-tags-manifest-metadata.md)

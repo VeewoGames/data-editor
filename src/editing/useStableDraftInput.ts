@@ -93,8 +93,6 @@ export function useStableDraftInput({
     setDraft(next);
   }, [value]);
 
-  useEffect(() => () => clearTimer(), [clearTimer]);
-
   const setDraftFromInput = useCallback((next: string, nativeEvent?: Event) => {
     next = normalizeDraft(next);
     draftRef.current = next;
@@ -111,6 +109,12 @@ export function useStableDraftInput({
   const flushDraft = useCallback(() => {
     commitDraft(draftRef.current);
   }, [commitDraft]);
+
+  useEffect(() => () => {
+    focusedRef.current = false;
+    flushDraft();
+    clearTimer();
+  }, [clearTimer, flushDraft]);
 
   const replaceDraft = useCallback((next: string) => {
     next = normalizeDraft(next);
