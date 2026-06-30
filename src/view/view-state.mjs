@@ -413,7 +413,11 @@ function deleteViewFromItems(items, viewId) {
     }
     const rawView = item?.kind === "view" ? item.view : item;
     if (rawView?.id === viewId) continue;
-    nextItems.push({ kind: "view", view: { ...rawView } });
+    nextItems.push({
+      kind: "view",
+      icon: item?.kind === "view" ? item.icon ?? "borderAll" : "borderAll",
+      view: { ...rawView },
+    });
   }
   return nextItems;
 }

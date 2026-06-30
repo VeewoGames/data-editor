@@ -208,7 +208,8 @@ export function DetailPanel({
     if (!row) return {};
     const result: SelectOptionsByField = {};
     for (const key of naturalFieldOrder) {
-      if (displayTypes[key] !== "Select") continue;
+      const displayType = displayTypes[key] ?? defaultTypeFor(row[key]);
+      if (displayType !== "Select") continue;
       const options = new Map<string, MultiSelectOptionView>();
       for (const [value, option] of Object.entries(fieldViewConfigs[key]?.selectOptions ?? {})) {
         options.set(value, { value, label: option.label, color: option.color ?? null });
@@ -227,7 +228,8 @@ export function DetailPanel({
     if (!row) return {};
     const result: Record<string, { options: MultiSelectOptionView[]; optionMap: Record<string, MultiSelectOptionView> }> = {};
     for (const key of naturalFieldOrder) {
-      if (displayTypes[key] !== "Multi-select") continue;
+      const displayType = displayTypes[key] ?? defaultTypeFor(row[key]);
+      if (displayType !== "Multi-select") continue;
       result[key] = buildMultiSelectFieldConfigFromRows(allRows, key, fieldViewConfigs[key]);
     }
     return result;

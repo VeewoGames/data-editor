@@ -932,7 +932,7 @@ test("readLocalSharedViewDrafts keeps shared view structure draft payload", () =
       viewOrderDrafts: {},
       structureDrafts: {
         "data/runes.json:$": {
-          items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["damage"] }],
+          items: [{ kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["damage"] }],
         },
       },
     }),
@@ -940,7 +940,33 @@ test("readLocalSharedViewDrafts keeps shared view structure draft payload", () =
 
   assert.deepEqual(readLocalSharedViewDrafts(storage).structureDrafts, {
     "data/runes.json:$": {
-      items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["damage"] }],
+      items: [{ kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["damage"] }],
+    },
+  });
+});
+
+test("writeLocalSharedViewDrafts keeps structure draft group icons", () => {
+  const storage = createMemoryStorage();
+
+  writeLocalSharedViewDrafts(storage, {
+    lastActiveViews: { "data/runes.json:$": "damage" },
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    structureDrafts: {
+      "data/runes.json:$": {
+        items: [{ kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["damage"] }],
+      },
+    },
+  });
+
+  assert.deepEqual(JSON.parse(storage.getItem("data-editor:shared-view-drafts")), {
+    lastActiveViews: { "data/runes.json:$": "damage" },
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    structureDrafts: {
+      "data/runes.json:$": {
+        items: [{ kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["damage"] }],
+      },
     },
   });
 });

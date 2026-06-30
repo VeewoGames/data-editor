@@ -111,14 +111,16 @@ test("App compares view filters with sameViewFilters instead of sameFilterGroup"
   assert.doesNotMatch(appSource, /function sameFilterGroup\(/);
 });
 
-test("handleAddFilter no longer blocks duplicate field names", async () => {
+test("handleAddFilter reuses an existing top-level rule for the same field", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const section = appSource.slice(
     appSource.indexOf("function handleAddFilter"),
     appSource.indexOf("function handleCommitMultiSelectOptionFieldDraft"),
   );
 
-  assert.doesNotMatch(section, /currentRules\.some\(\(rule\) => rule\.field === fieldName\)/);
+  assert.match(section, /const existingRule = currentRules\.find\(\(rule\) => rule\.field === fieldName\)/);
+  assert.match(section, /setPendingOpenFilterRuleId\(existingRule\.id\)/);
+  assert.match(section, /if \(existingRule\) \{/);
 });
 
 test("ViewFilterBar renders advanced filter chip and does not dedupe fields", async () => {
@@ -127,6 +129,13 @@ test("ViewFilterBar renders advanced filter chip and does not dedupe fields", as
   assert.match(filterBarSource, /advancedRoot/);
   assert.match(filterBarSource, /AdvancedFilterPanel/);
   assert.doesNotMatch(filterBarSource, /fields\.filter\(\(field\) => !visibleFilterRules\.some\(\(rule\) => rule\.field === field\)\)/);
+});
+
+test("ViewFilterBar reopens an existing quick filter chip instead of creating a duplicate id locally", async () => {
+  const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
+
+  assert.match(filterBarSource, /const existingRule = visibleFilterRules\.find\(\(rule\) => rule\.field === field\)/);
+  assert.match(filterBarSource, /if \(existingRule\) setOpenRuleId\(existingRule\.id\)/);
 });
 
 test("FilterActionMenu exposes merge into advanced filter action", async () => {
@@ -483,6 +492,30 @@ test("renameSharedViewConfig keeps top-level view icons", () => {
   assert.equal(result.collections["data/runes.json:$"].items[0].icon, "json");
   assert.equal(result.collections["data/runes.json:$"].items[1].icon, "shield");
   assert.equal(result.collections["data/runes.json:$"].items[1].view.name, "Damage renamed");
+});
+
+test("deleteSharedViewConfig keeps remaining top-level view icons", () => {
+  const result = viewState.deleteSharedViewConfig({
+    version: 1,
+    collections: {
+      "data/runes.json:$": {
+        defaultViewId: "all",
+        items: [
+          { kind: "view", icon: "json", view: { ...allView, id: "all", name: "All" } },
+          { kind: "view", icon: "shield", view: { ...allView, id: "damage", name: "Damage" } },
+          { kind: "view", icon: "filter", view: { ...allView, id: "utility", name: "Utility" } },
+        ],
+      },
+    },
+  }, {
+    lastActiveViews: { "data/runes.json:$": "all" },
+    viewDrafts: {},
+    viewOrderDrafts: {},
+    structureDrafts: {},
+  }, "data/runes.json:$", "damage");
+
+  assert.equal(result.deleted, true);
+  assert.deepEqual(result.config.collections["data/runes.json:$"].items.map((item) => item.icon), ["json", "filter"]);
 });
 
 test("deleteSharedViewConfig refuses last view and selects adjacent replacement", () => {
@@ -1346,6 +1379,17 @@ test("ViewTabs clears drag click suppression on the next pointerdown instead of 
   assert.doesNotMatch(viewTabsSource, /setTimeout\(\(\) => \{\s*suppressClickRef\.current = false;/);
 });
 
+test("ViewFilterBar uses anchored Popover filter chips instead of manual timeout suppression", async () => {
+  const viewFilterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
+
+  assert.match(viewFilterBarSource, /<Popover\.Root\s+key=\{rule\.id\}\s+open=\{openRuleId === rule\.id\}/);
+  assert.match(viewFilterBarSource, /<Popover\.Trigger asChild>/);
+  assert.match(viewFilterBarSource, /<Popover\.Content[\s\S]*className="menu-content filter-popover-content filter-popover-inline"/);
+  assert.doesNotMatch(viewFilterBarSource, /createPortal\(/);
+  assert.doesNotMatch(viewFilterBarSource, /suppressCloseRuleIdRef/);
+  assert.doesNotMatch(viewFilterBarSource, /setTimeout\(/);
+});
+
 test("DataTable no longer renders the bottom New row button", async () => {
   const tableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
   const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
@@ -1387,6 +1431,12 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(viewTabsSource, /missingProtectedPackIds/);
   assert.match(viewTabsSource, /loadSharedViewIconPack\(packId as keyof typeof sharedViewIconPackLabels\)/);
   assert.match(viewTabsSource, /await hydratePersistedSharedViewIconPacks\(\)/);
+});
+
+test("normalizeUserViewProfile keeps structure draft group icons", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+
+  assert.match(appSource, /item\.kind === "group"[\s\S]*item\.icon \? \{ icon: item\.icon \} : \{\}/);
 });
 
 test("favorite icon profile updates retain the favorites array and save immediately", async () => {

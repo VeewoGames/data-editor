@@ -1676,6 +1676,7 @@ test("view groups expose dual create entry points and restore expanded group aft
           kind: "group",
           id: "combat",
           name: "战斗",
+          icon: "shield",
           views: [
             {
               id: "damage",
@@ -1801,6 +1802,7 @@ test("group row search filters visible child tabs while preserving the active ta
           kind: "group",
           id: "combat",
           name: "战斗",
+          icon: "shield",
           views: [
             {
               id: "damage",
@@ -1924,6 +1926,7 @@ test("expandable search shows a clear button for toolbar and group searches", as
           kind: "group",
           id: "combat",
           name: "战斗",
+          icon: "shield",
           views: [
             {
               id: "damage",
@@ -2016,6 +2019,7 @@ test("view groups support dragging views into groups and back out with explicit 
           kind: "group",
           id: "combat",
           name: "战斗",
+          icon: "shield",
           views: [
             {
               id: "damage",
@@ -2150,19 +2154,24 @@ test("top-level view groups can be reordered by drag and persist after shared sa
           kind: "group",
           id: "combat",
           name: "战斗",
+          icon: "shield",
           views: [
             {
-              id: "damage",
-              name: "伤害",
-              type: "table",
-              query: "ignite",
-              filters: { op: "and", rules: [] },
-              sorts: [],
-              hidden: [],
-              wrapped: [],
-              order: [],
-              detailOrder: [],
-              widths: {},
+              kind: "view",
+              icon: "settings",
+              view: {
+                id: "damage",
+                name: "伤害",
+                type: "table",
+                query: "ignite",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: [],
+                widths: {},
+              },
             },
           ],
         },
@@ -2188,19 +2197,22 @@ test("top-level view groups can be reordered by drag and persist after shared sa
     await page.reload();
 
     await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
     await dragTopLevelGroupTab(page, "战斗", "支援", "after");
     await expect(page.locator(".view-order-dirty")).toBeVisible();
     await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["全部", "支援", "战斗"]);
 
     await saveSharedViewForEveryone(page, (config) => {
       const labels = listTopLevelSharedItemLabels(config, collectionKey);
-      return labels.join("|") === "全部|支援|战斗";
+      const combatGroup = config.collections[collectionKey]?.items?.find((item) => item.kind === "group" && item.id === "combat");
+      return labels.join("|") === "全部|支援|战斗" && combatGroup?.kind === "group" && combatGroup.icon === "shield";
     });
 
     await page.reload();
     await page.locator('.sidebar-item[title="data/runes.json"]').click();
     await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["全部", "支援", "战斗"]);
     await expect(topLevelGroupTab(page, "战斗")).toBeVisible();
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
     if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
@@ -2375,6 +2387,7 @@ test("duplicating a view group copies child view snapshots and the current user'
           kind: "group",
           id: "combat",
           name: "战斗",
+          icon: "shield",
           views: [
             {
               kind: "view",
@@ -2433,6 +2446,7 @@ test("duplicating a view group copies child view snapshots and the current user'
     const sharedViews = await loadSharedViewsConfig(page);
     const duplicatedGroup = sharedViews.collections[collectionKey]?.items?.find((item) => item.kind === "group" && item.name === "战斗 副本");
     expect(duplicatedGroup && duplicatedGroup.kind === "group").toBeTruthy();
+    expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.icon : null).toBe("shield");
     expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => unwrapGroupView(view).name) : []).toEqual(["辅助", "伤害"]);
     expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => unwrapGroupView(view).query) : []).toEqual(["shield", "ignite"]);
     expect(duplicatedGroup?.kind === "group" ? duplicatedGroup.views.map((view) => ("kind" in view ? (view.icon ?? "borderAll") : "borderAll")) : []).toEqual(["settings", "filter"]);
@@ -2640,6 +2654,97 @@ test("top-level group keeps configured icon after reload", async ({ page }) => {
     await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("saving grouped view filters keeps top-level group icon", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "support",
+      items: [
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          icon: "shield",
+          views: [
+            {
+              kind: "view",
+              icon: "settings",
+              view: {
+                id: "support",
+                name: "辅助",
+                type: "table",
+                query: "shield",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: [],
+                widths: {},
+              },
+            },
+            {
+              kind: "view",
+              icon: "filter",
+              view: {
+                id: "damage",
+                name: "伤害",
+                type: "table",
+                query: "ignite",
+                filters: { op: "and", rules: [] },
+                sorts: [],
+                hidden: [],
+                wrapped: [],
+                order: [],
+                detailOrder: [],
+                widths: {},
+              },
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
+    await expect(groupRowViewTab(page, "辅助")).toBeVisible();
+    await page.getByRole("button", { name: "+ 筛选" }).click();
+    await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+    await page.getByRole("menuitem", { name: "id", exact: true }).click();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-text-input").fill("rune");
+    await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
+
+    await saveSharedViewForEveryone(page, (config) => {
+      const combatGroup = config.collections[collectionKey]?.items?.find((item) => item.kind === "group" && item.id === "combat");
+      const supportLeaf = findSharedViewLeaf(config, collectionKey, "support");
+      return combatGroup?.kind === "group"
+        && combatGroup.icon === "shield"
+        && filterValues(supportLeaf?.view, "id").includes("rune");
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
+    await expect(groupRowViewTab(page, "辅助")).toBeVisible();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "rune" })).toBeVisible();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
   }
 });
 
@@ -3688,36 +3793,31 @@ test("detail and document panels keep a shared 200px bottom buffer", async ({ pa
   }
 });
 
-test("duplicate field rules survive save for everyone and reload", async ({ page }) => {
+test("retriggering the same quick filter field reuses the existing rule", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
-  await columnHeaderTrigger(page, "category").click();
-  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await columnHeaderTrigger(page, "id").click();
+  await page.locator('.column-menu-popup [data-field-type="Text"]').click();
 
   await page.getByRole("button", { name: "+ 筛选" }).click();
-  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
-  await expect(page.locator(".filter-popover-content")).toBeVisible();
-  await page.locator(".filter-option-row").filter({ hasText: "spell" }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(1);
+  await page.locator(".add-filter-field-option").filter({ hasText: "id" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toHaveCount(1);
 
   await page.getByRole("button", { name: "+ 筛选" }).click();
-  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
-  await expect(page.locator(".filter-popover-content")).toBeVisible();
-  await page.locator(".filter-select-trigger").click();
-  await page.locator('.filter-select-content [data-filter-operator="does_not_contain"]').click();
-  await page.locator(".filter-option-row").filter({ hasText: "attack" }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(2);
+  await page.locator(".add-filter-field-option").filter({ hasText: "id" }).click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toHaveCount(1);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toHaveCount(1);
 
   await toolbarSharedPublishButton(page).click();
   await expect(toolbarSharedPublishButton(page)).toHaveCount(0);
 
   await page.reload();
-  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toHaveCount(2);
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toHaveCount(1);
 });
 
 test("select filter restores cached values after empty operators hide the value area", async ({ page }) => {
@@ -9140,18 +9240,21 @@ test("personal mode saves shared view structure reorders directly without surfac
       items: [
         {
           kind: "view",
+          icon: "json",
           view: { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
         },
         {
           kind: "view",
+          icon: "shield",
           view: { id: "support", name: "支援", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
         },
         {
           kind: "group",
           id: "combat",
           name: "战斗",
+          icon: "folder",
           views: [
-            { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+            { kind: "view", icon: "settings", view: { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} } },
           ],
         },
       ],
@@ -9169,19 +9272,371 @@ test("personal mode saves shared view structure reorders directly without surfac
     }).toBe("personal");
     await page.keyboard.press("Escape");
 
+    await selectViewTab(page, "全部");
+    await columnHeaderTrigger(page, "id").click();
+    await expect(page.locator(".column-menu-popup")).toBeVisible();
+    await page.locator('.column-menu-popup .menu-item[data-column-action="add-filter"]').click();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "id" })).toBeVisible();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-text-input").fill("rune");
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "rune" })).toBeVisible();
+
     await dragTopLevelViewTabByPointerEvents(page, "全部", "支援", "after");
     await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
     await expect.poll(async () => {
       const sharedViews = await loadSharedViewsConfig(page);
-      return listTopLevelSharedItemLabels(sharedViews, collectionKey).join("|");
-    }).toBe("支援|全部|战斗");
+      const allLeaf = findSharedViewLeaf(sharedViews, collectionKey, "all");
+      const savedView = getSharedView(sharedViews, collectionKey, "all");
+      return {
+        labels: listTopLevelSharedItemLabels(sharedViews, collectionKey),
+        icon: allLeaf?.icon ?? null,
+        filters: filterValues(savedView, "id"),
+      };
+    }).toEqual({
+      labels: ["支援", "全部", "战斗"],
+      icon: "json",
+      filters: ["rune"],
+    });
 
     await page.reload();
     await page.locator('.sidebar-item[title="data/runes.json"]').click();
     await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["支援", "全部", "战斗"]);
+    await selectViewTab(page, "全部");
+    await expect(topLevelViewTab(page, "全部").locator("[data-view-icon='json']")).toBeVisible();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "rune" })).toBeVisible();
     await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("personal mode keeps a newly changed top-level icon after immediate reorder and reload", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+
+  try {
+    await page.evaluate(async () => {
+      localStorage.clear();
+      await fetch("/api/view-profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "personal_icon_reorder_profile", profile: { collections: {} } }),
+      });
+      localStorage.setItem("data-editor:selected-view-profile", "personal_icon_reorder_profile");
+      localStorage.setItem("data-editor:shared-view-recent-icons", JSON.stringify(["tablerFilledAccessible"]));
+    });
+
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          icon: "borderAll",
+          view: { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "view",
+          icon: "shield",
+          view: { id: "support", name: "支援", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          icon: "folder",
+          views: [
+            { kind: "view", icon: "settings", view: { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} } },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await page.locator(".toolbar .toolbar-settings-button").click();
+    await page.getByRole("button", { name: "个人模式", exact: true }).click();
+    await page.keyboard.press("Escape");
+
+    await openActiveViewMenu(page, "全部");
+    await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
+    await page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option[data-view-icon='tablerFilledAccessible'] .view-tab-icon-picker-option-main").click();
+    await expect(topLevelViewTab(page, "全部").locator("[data-view-icon='tablerFilledAccessible']")).toBeVisible();
+
+    await dragTopLevelViewTabByPointerEvents(page, "全部", "支援", "after");
+    await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toHaveCount(0);
+    await expect.poll(async () => {
+      const sharedViews = await loadSharedViewsConfig(page);
+      const allLeaf = findSharedViewLeaf(sharedViews, collectionKey, "all");
+      return {
+        labels: listTopLevelSharedItemLabels(sharedViews, collectionKey),
+        icon: allLeaf?.icon ?? null,
+      };
+    }).toEqual({
+      labels: ["支援", "全部", "战斗"],
+      icon: "tablerFilledAccessible",
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["支援", "全部", "战斗"]);
+    await selectViewTab(page, "全部");
+    await expect(topLevelViewTab(page, "全部").locator("[data-view-icon='tablerFilledAccessible']")).toBeVisible();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("named profile team-mode structure drafts keep top-level group icon through reload", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  const profileName = "team_structure_icon_profile";
+  const profilePath = path.resolve(`tests/.scratch/.data-editor/view-configs/${profileName}.json`);
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(async (nextProfileName) => {
+      localStorage.clear();
+      await fetch("/api/view-profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: nextProfileName, profile: { collections: {} } }),
+      });
+      localStorage.setItem("data-editor:selected-view-profile", nextProfileName);
+    }, profileName);
+
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          icon: "shield",
+          views: [
+            {
+              kind: "view",
+              icon: "settings",
+              view: { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+            },
+          ],
+        },
+        {
+          kind: "view",
+          view: { id: "support", name: "支援", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".toolbar-profile-select-trigger")).toContainText(profileName);
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
+
+    await dragTopLevelGroupTab(page, "战斗", "支援", "after");
+    await expect(page.locator(".view-order-dirty")).toBeVisible();
+    await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["全部", "支援", "战斗"]);
+
+    await expect.poll(async () => {
+      const text = await readFile(profilePath, "utf8");
+      const profile = JSON.parse(text);
+      return profile.structureDrafts?.[collectionKey]?.items?.find((item: any) => item.kind === "group" && item.groupId === "combat")?.icon ?? null;
+    }).toBe("shield");
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".toolbar-profile-select-trigger")).toContainText(profileName);
+    await expect.poll(() => getTopLevelItemLabelsFromUi(page)).toEqual(["全部", "支援", "战斗"]);
+    await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
+    await expect(page.getByRole("button", { name: "保存团队共享视图", exact: true })).toBeVisible();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("named profile keeps top-level view icon through team publish and reload", async ({ page }) => {
+  const collectionKey = "data/e2e_multiselect.json:$";
+  const profileName = "team_top_level_view_icon_profile";
+  const dataPath = path.resolve("tests/.scratch/data/e2e_multiselect.json");
+  const originalData = await readFile(dataPath, "utf8");
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(async (nextProfileName) => {
+      localStorage.clear();
+      await fetch("/api/view-profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: nextProfileName, profile: { collections: {} } }),
+      });
+      localStorage.setItem("data-editor:selected-view-profile", nextProfileName);
+    }, profileName);
+
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "profile-icon-view",
+      items: [
+        {
+          kind: "view",
+          icon: "borderAll",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "view",
+          icon: "json",
+          view: {
+            id: "profile-icon-view",
+            name: "Profile Icon View",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await selectViewTab(page, "Profile Icon View");
+    await expect(page.locator(".toolbar-profile-select-trigger")).toContainText(profileName);
+    await expect(topLevelViewTab(page, "Profile Icon View").locator("[data-view-icon='json']")).toBeVisible();
+
+    await page.getByRole("button", { name: "+ 筛选" }).click();
+    await expect(page.locator(".add-filter-popover-content")).toBeVisible();
+    await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+    await expect(page.locator(".filter-popover-content")).toBeVisible();
+    await page.locator(".filter-option-row").filter({ hasText: "attack" }).click();
+    await expect(page.locator(".view-tab-shell.dirty")).toHaveCount(1);
+
+    await saveSharedViewForEveryone(page, (config) => {
+      const savedView = getSharedView(config, collectionKey, "profile-icon-view");
+      const leaf = findSharedViewLeaf(config, collectionKey, "profile-icon-view");
+      return Boolean(savedView && leaf?.icon === "json" && filterValues(savedView, "features").includes("attack"));
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await expect(page.locator(".toolbar-profile-select-trigger")).toContainText(profileName);
+    await selectViewTab(page, "Profile Icon View");
+    await expect(topLevelViewTab(page, "Profile Icon View").locator("[data-view-icon='json']")).toBeVisible();
+    await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "attack" })).toBeVisible();
+  } finally {
+    await bestEffortRestore("e2e_multiselect.json", () => writeFile(dataPath, originalData, "utf8"));
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("named profile team-mode top-level view reorder keeps icon through reload", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  const profileName = "team_top_level_view_reorder_icon_profile";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(async (nextProfileName) => {
+      localStorage.clear();
+      await fetch("/api/view-profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: nextProfileName, profile: { collections: {} } }),
+      });
+      localStorage.setItem("data-editor:selected-view-profile", nextProfileName);
+    }, profileName);
+
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          icon: "json",
+          view: { id: "all", name: "全部", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "view",
+          icon: "shield",
+          view: { id: "support", name: "支援", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          icon: "folder",
+          views: [
+            { kind: "view", icon: "settings", view: { id: "damage", name: "伤害", type: "table", query: "", filters: { op: "and", rules: [] }, sorts: [], hidden: [], wrapped: [], order: [], detailOrder: [], widths: {} } },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".toolbar-profile-select-trigger")).toContainText(profileName);
+    await expect(topLevelViewTab(page, "全部").locator("[data-view-icon='json']")).toBeVisible();
+    await dragViewTab(page, "全部", "支援", "after");
+    await expect(page.locator(".view-order-dirty")).toBeVisible();
+    await expect.poll(() => getViewTabNames(page)).toEqual(["支援", "全部", "战斗"]);
+
+    await saveSharedViewForEveryone(page, (config) => {
+      const labels = listTopLevelSharedItemLabels(config, collectionKey);
+      const allLeaf = findSharedViewLeaf(config, collectionKey, "all");
+      return labels.join("|") === "支援|全部|战斗" && allLeaf?.icon === "json";
+    });
+
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".toolbar-profile-select-trigger")).toContainText(profileName);
+    await expect.poll(() => getViewTabNames(page)).toEqual(["支援", "全部", "战斗"]);
+    await expect(topLevelViewTab(page, "全部").locator("[data-view-icon='json']")).toBeVisible();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
   }
 });
 

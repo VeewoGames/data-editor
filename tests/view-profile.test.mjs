@@ -83,6 +83,13 @@ test("saveViewProfile writes normalized profile file", async () => {
         " data/runes.json::$ ": [" view-2 ", "view-1", "view-2", " "],
         "data/empty.json::$": [" "],
       },
+      structureDrafts: {
+        " data/runes.json::$ ": {
+          items: [
+            { kind: "group", groupId: " combat ", name: " Combat ", icon: "shield", viewIds: [" view-2 ", "view-1", "view-2", " "] },
+          ],
+        },
+      },
       appearance: {
         activeThemeId: "dark",
         baseFontSize: 16,
@@ -143,7 +150,13 @@ test("saveViewProfile writes normalized profile file", async () => {
       viewOrderDrafts: {
         "data/runes.json::$": ["view-2", "view-1"],
       },
-      structureDrafts: {},
+      structureDrafts: {
+        "data/runes.json::$": {
+          items: [
+            { kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["view-2", "view-1"] },
+          ],
+        },
+      },
       sharedViewCollaborationMode: "team",
       appearance: {
         activeThemeId: "dark",
@@ -314,6 +327,34 @@ test("loadViewProfile preserves sharedViewCollaborationMode", async () => {
 
     const profile = await loadViewProfile(root, "lans");
     assert.equal(profile.sharedViewCollaborationMode, "personal");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadViewProfile preserves structure draft group icons", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
+  try {
+    const profileDir = path.join(root, ".data-editor", "view-configs");
+    await mkdir(profileDir, { recursive: true });
+    await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
+      structureDrafts: {
+        "data/runes.json:$": {
+          items: [
+            { kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["damage"] },
+          ],
+        },
+      },
+    }), "utf8");
+
+    const profile = await loadViewProfile(root, "lans");
+    assert.deepEqual(profile.structureDrafts, {
+      "data/runes.json:$": {
+        items: [
+          { kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["damage"] },
+        ],
+      },
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

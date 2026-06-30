@@ -660,6 +660,11 @@ export function App() {
   useEffect(() => {
     sharedViewsConfigRef.current = sharedViewsConfig;
   }, [sharedViewsConfig]);
+
+  function commitSharedViewsConfig(nextConfig: SharedViewsConfig) {
+    sharedViewsConfigRef.current = nextConfig;
+    setSharedViewsConfig(nextConfig);
+  }
   const saveCoordinator = useMemo(
     () => createSaveCoordinator({
       delayMs: 800,
@@ -887,7 +892,7 @@ export function App() {
       filesRef.current = nextFiles;
       setViewConfig(migratedConfig);
       viewConfigRef.current = migratedConfig;
-      setSharedViewsConfig(migratedSharedViewsConfig);
+      commitSharedViewsConfig(migratedSharedViewsConfig);
       setLocalSharedViewDrafts(migratedLocalSharedViewDrafts);
       setViewProfiles(nextProfiles);
       if (profileNameForInitialOrder && normalizedInitialProfile && selectedViewProfileNameRef.current === profileNameForInitialOrder) {
@@ -948,7 +953,7 @@ export function App() {
     saveCoordinator.cancel();
     setViewConfig(emptyProjectViewConfig());
     viewConfigRef.current = emptyProjectViewConfig();
-    setSharedViewsConfig(emptySharedViewsConfig());
+    commitSharedViewsConfig(emptySharedViewsConfig());
     setLocalSharedViewDrafts(readLocalSharedViewDrafts(window.localStorage));
     setViewProfiles([]);
     if (options.resetProfile) {
@@ -2644,7 +2649,7 @@ export function App() {
       try {
         await saveSharedViews(nextConfig, activeProjectId);
         sharedViewsConfigRef.current = nextConfig;
-        setSharedViewsConfig(nextConfig);
+        commitSharedViewsConfig(nextConfig);
         if (draftFallback && fallbackCollectionKey) {
           updateSharedViewDraftState(clearCollectionSharedDrafts(currentSharedViewDraftState(), fallbackCollectionKey));
         }
@@ -2657,7 +2662,7 @@ export function App() {
           sharedViewDirectSaveRetryRef.current = async () => {
             await saveSharedViews(nextConfig, activeProjectId);
             sharedViewsConfigRef.current = nextConfig;
-            setSharedViewsConfig(nextConfig);
+            commitSharedViewsConfig(nextConfig);
             if (fallbackCollectionKey) {
               updateSharedViewDraftState(clearCollectionSharedDrafts(currentSharedViewDraftState(), fallbackCollectionKey));
             }
@@ -3229,6 +3234,12 @@ export function App() {
   function handleAddFilter(fieldName: string, fieldType: FieldDisplayType) {
     if (!activeView) return;
     const currentRules = activeView.filters?.topLevelRules ?? [];
+    const existingRule = currentRules.find((rule) => rule.field === fieldName);
+    if (existingRule) {
+      setFilterBarVisible(true);
+      setPendingOpenFilterRuleId(existingRule.id);
+      return;
+    }
     const nextRule = createDefaultFilterRule(fieldName, fieldType, currentRules);
     setFilterBarVisible(true);
     setPendingOpenFilterRuleId(nextRule.id);
@@ -3699,7 +3710,7 @@ export function App() {
       const result = createSharedViewConfig(sharedViewsConfig, activeCollectionKey, activeSharedView.id, activeView);
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       const current = currentSharedViewDraftState();
       updateSharedViewDraftState({
         lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
@@ -3730,7 +3741,7 @@ export function App() {
       });
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       if (selectedViewProfileName) {
         mutateSelectedViewProfile((draftProfile) => {
           const copyResult = copyViewLayoutState({
@@ -3789,6 +3800,7 @@ export function App() {
       kind: "group" as const,
       id: sourceGroup.id,
       name: sourceGroup.name,
+      icon: sourceGroup.icon,
       views: sourceGroup.views.map((item) => ({
         ...item,
         view: mergeSharedViewWithDraft(item.view, currentCollectionDrafts[item.view.id]) as CollectionView,
@@ -3810,7 +3822,7 @@ export function App() {
       }
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
 
       const duplicatedViewDraftsById: Record<string, Partial<CollectionView>> = {};
       for (const [sourceViewId, targetViewId] of Object.entries(result.sourceToTargetViewIdMap)) {
@@ -3892,7 +3904,7 @@ export function App() {
     try {
       const nextConfig = renameSharedViewConfig(sharedViewsConfig, activeCollectionKey, viewId, name) as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       setStatus("已重命名团队共享视图");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -3908,7 +3920,7 @@ export function App() {
     try {
       const nextConfig = updateSharedViewIconConfig(sharedViewsConfig, activeCollectionKey, viewId, icon) as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       setStatus("已更新团队共享视图图标");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -3946,7 +3958,7 @@ export function App() {
     try {
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       if (mutateSelectedViewProfile((draft) => {
         const collectionLayouts = draft.viewLayouts?.[activeCollectionKey];
         if (collectionLayouts) {
@@ -4066,7 +4078,7 @@ export function App() {
       });
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       const current = currentSharedViewDraftState();
       updateSharedViewDraftState({
         lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
@@ -4102,7 +4114,7 @@ export function App() {
       });
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       const current = currentSharedViewDraftState();
       updateSharedViewDraftState({
         lastActiveViews: { ...current.lastActiveViews, [activeCollectionKey]: result.view.id },
@@ -4137,7 +4149,7 @@ export function App() {
         name,
       }) as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       setStatus("已重命名视图组");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -4157,7 +4169,7 @@ export function App() {
         groupId,
       }) as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       const nextLastActiveViewIdByGroupId = { ...projectPageContext.lastActiveViewIdByGroupId };
       delete nextLastActiveViewIdByGroupId[groupId];
       updatePageContextViewGrouping(window.localStorage, activeProjectId, {
@@ -4263,7 +4275,7 @@ export function App() {
       const result = saveSharedViewDraftsToConfig(sharedViewsConfig, current, activeCollectionKey, activeSharedView.id);
       const nextConfig = result.config as SharedViewsConfig;
       await saveSharedViews(nextConfig, activeProjectId);
-      setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
       updateSharedViewDraftState(result.draftState);
       setStatus("已保存当前团队共享视图");
     } catch (error) {
@@ -4288,7 +4300,7 @@ export function App() {
       nextDraftState = clearCollectionSharedDrafts(nextDraftState, collectionKey);
     }
     await saveSharedViews(nextConfig, activeProjectId);
-    setSharedViewsConfig(nextConfig);
+      commitSharedViewsConfig(nextConfig);
     updateSharedViewDraftState(nextDraftState);
   }
 
@@ -5841,7 +5853,13 @@ function normalizeUserViewProfile(profile: Partial<UserViewProfile> | null | und
       {
         items: Array.isArray(draft?.items)
           ? draft.items.map((item) => item.kind === "group"
-            ? { kind: "group", groupId: item.groupId, ...(item.name ? { name: item.name } : {}), viewIds: [...item.viewIds] }
+            ? {
+              kind: "group",
+              groupId: item.groupId,
+              ...(item.name ? { name: item.name } : {}),
+              ...(item.icon ? { icon: item.icon } : {}),
+              viewIds: [...item.viewIds],
+            }
             : { kind: "view", viewId: item.viewId })
           : [],
       },

@@ -60,6 +60,11 @@ export function MultiSelectFilterPopover({
     setLocalOptionsOverride(null);
   }, [options, rule.field]);
 
+  useEffect(() => {
+    if (!operatorConfig.needsValue) return;
+    focusSearchInput();
+  }, [operatorConfig.needsValue, rule.id]);
+
   function focusSearchInput() {
     queueMicrotask(() => focusWithoutScroll(inputRef.current));
   }

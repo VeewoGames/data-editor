@@ -194,14 +194,14 @@ test("rewriteSharedDraftState migrates structureDrafts collection keys together 
     viewOrderDrafts: {},
     structureDrafts: {
       [oldKey]: {
-        items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["view:alpha"] }],
+        items: [{ kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["view:alpha"] }],
       },
     },
   }, migrations);
 
   assert.deepEqual(result.value.structureDrafts, {
     [newKey]: {
-      items: [{ kind: "group", groupId: "combat", name: "Combat", viewIds: ["view:alpha"] }],
+      items: [{ kind: "group", groupId: "combat", name: "Combat", icon: "shield", viewIds: ["view:alpha"] }],
     },
   });
 });
