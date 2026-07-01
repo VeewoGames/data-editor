@@ -127,3 +127,82 @@ test("loadProjectRegistry drops filesystem-root projects and restores a valid ac
   assert.equal(registry.projects[0].id, "nocturnel-e621a436");
   assert.equal(registry.activeProjectId, "nocturnel-e621a436");
 });
+
+test("loadProjectRegistry normalizes entryActions and preserves valid runtime action config", async (t) => {
+  const home = await makeHome(t);
+  const validRoot = path.join(home, "Nocturnel");
+  await mkdir(validRoot, { recursive: true });
+  await writeFile(projectRegistryPath({ home }), `${JSON.stringify({
+    version: 1,
+    activeProjectId: "nocturnel-e621a436",
+    projects: [{
+      id: "nocturnel-e621a436",
+      name: "Nocturnel",
+      root: validRoot,
+      adapter: "nocturnel",
+      dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
+      filePolicy: { includeExtensions: [".json", ".csv"] },
+      entryActions: [{
+        id: "nocturnel-skill-review",
+        label: "复核词条",
+        icon: "automation",
+        targets: {
+          files: ["data/skills.json", "data/skills.json"],
+          collections: ["skills", "skills"],
+        },
+        payload: {
+          includeRow: true,
+          includeNeighbors: true,
+        },
+      }],
+    }],
+  }, null, 2)}\n`, "utf8");
+
+  const registry = await loadProjectRegistry({ home });
+  assert.deepEqual(registry.projects[0].entryActions, [{
+    id: "nocturnel-skill-review",
+    label: "复核词条",
+    icon: "automation",
+    targets: {
+      files: ["data/skills.json"],
+      collections: ["skills"],
+    },
+    payload: {
+      includeRow: true,
+      includeNeighbors: true,
+    },
+  }]);
+});
+
+test("saveProjectRegistry rejects invalid entryActions", async (t) => {
+  const home = await makeHome(t);
+
+  await assert.rejects(
+    () => saveProjectRegistry({
+      version: 1,
+      activeProjectId: "nocturnel-e621a436",
+      projects: [{
+        id: "nocturnel-e621a436",
+        name: "Nocturnel",
+        root: path.join(home, "Nocturnel"),
+        adapter: "nocturnel",
+        dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
+        filePolicy: { includeExtensions: [".json", ".csv"] },
+        entryActions: [{
+          id: "nocturnel-skill-review",
+          label: "",
+          icon: "automation",
+          targets: {
+            files: ["data/skills.json"],
+            collections: ["skills"],
+          },
+          payload: {
+            includeRow: true,
+            includeNeighbors: false,
+          },
+        }],
+      }],
+    }, { home }),
+    /Missing entry action label/,
+  );
+});

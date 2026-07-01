@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { icons } from "../components/icons";
 import { RelationBacklinksPanel } from "../components/RelationBacklinksPanel";
-import type { SaveDocumentsResult } from "../api/client";
+import type { EntryActionDefinition, SaveDocumentsResult } from "../api/client";
 import type { DataRecord } from "../model/documentModel";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import { defaultTypeFor } from "../model/fieldTypes";
@@ -53,6 +53,9 @@ export type DetailSnapshot = {
   primaryKeySyncPlan: PrimaryKeySyncPlan | null;
   primaryKeySyncResult: SaveDocumentsResult | null;
   commandSaving: boolean;
+  entryActions: EntryActionDefinition[];
+  entryActionRunningId: string | null;
+  entryActionErrorMessage: string | null;
 };
 
 type DetailPanelProps = {
@@ -72,6 +75,7 @@ type DetailPanelProps = {
   onDocumentPanelWidthCommit: (width: number) => void;
   onEditField: (fieldName: string, value: unknown) => void;
   onReorderFields: (nextOrder: string[]) => void;
+  onRunEntryAction: (actionId: string) => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
 };
 
@@ -101,6 +105,7 @@ export function DetailPanel({
   onDocumentPanelWidthCommit,
   onEditField,
   onReorderFields,
+  onRunEntryAction,
   onRegisterActiveTextEditor,
 }: DetailPanelProps) {
   const {
@@ -130,6 +135,9 @@ export function DetailPanel({
     primaryKeySyncPlan,
     primaryKeySyncResult,
     commandSaving,
+    entryActions,
+    entryActionRunningId,
+    entryActionErrorMessage,
   } = snapshot;
   const panelRef = useRef<HTMLElement | null>(null);
   const documentPanelRef = useRef<HTMLElement | null>(null);
@@ -201,6 +209,7 @@ export function DetailPanel({
   const currentRow = row ?? ({} as DataRecord);
   const canGoPrevious = previousRowTarget != null;
   const canGoNext = nextRowTarget != null;
+  const entryActionsBusy = entryActionRunningId != null;
   const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""} ${documentPanel.open ? "with-document" : ""}`;
   const naturalFieldOrder = useMemo(() => row ? mergeDetailFieldOrder(row, displayTypes) : [], [row, displayTypes]);
   const orderedFields = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
@@ -382,8 +391,24 @@ export function DetailPanel({
             <div className="panel-subtitle">
               {visibleRowPosition == null ? "Row hidden by current view" : `Row ${visibleRowPosition + 1} of ${rowCount}`}
             </div>
+            {entryActionErrorMessage ? <div className="panel-subtitle">{entryActionErrorMessage}</div> : null}
           </div>
           <div className="detail-nav">
+            {entryActions.map((action) => {
+              const EntryActionIcon = resolveDetailActionIcon(action.icon);
+              return (
+                <button
+                  key={action.id}
+                  className={`icon-button ${entryActionRunningId === action.id ? "active" : ""}`}
+                  disabled={entryActionsBusy}
+                  onClick={() => onRunEntryAction(action.id)}
+                  title={action.label}
+                  aria-label={action.label}
+                >
+                  <EntryActionIcon size={16} />
+                </button>
+              );
+            })}
             {Object.keys(documentPanel.fields).length ? (
               <button
                 className={`icon-button ${documentPanel.open ? "active" : ""}`}
@@ -564,6 +589,11 @@ export function DetailPanel({
       ) : null}
     </>
   );
+}
+
+function resolveDetailActionIcon(iconId: string) {
+  const candidate = icons[iconId as keyof typeof icons];
+  return typeof candidate === "function" ? candidate : icons.edit;
 }
 
 function NestedCollectionPanel(props: {

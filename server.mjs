@@ -8,6 +8,19 @@ import { parseCsv, serializeCsv } from "./src/csv-codec.mjs";
 import { parseJson, serializeJson } from "./src/json-codec.mjs";
 import { buildDocumentModel } from "./src/document-model.mjs";
 import { buildDocumentIndex, readResolvedDocument } from "./src/document-service.mjs";
+import {
+  buildEntryActionHandoff,
+  createEntryActionRunId,
+  entryActionHandoffPath,
+  findEntryAction,
+  normalizeEntryActionPath,
+  normalizeEntryActionRowId,
+  normalizeEntryActionSourceRowIndex,
+  readEntryActionStarted,
+  resolveEntryActionRow,
+  validateEntryActionTarget,
+  writeEntryActionHandoff,
+} from "./src/entry-actions.mjs";
 import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
@@ -41,6 +54,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/project-update" && req.method === "POST") return await handleUpdateProject(req, res);
     if (url.pathname === "/api/project-delete" && req.method === "POST") return await handleDeleteProject(req, res);
     if (url.pathname === "/api/project-activate" && req.method === "POST") return await handleActivateProject(req, res);
+    if (url.pathname === "/api/entry-actions/run" && req.method === "POST") return await handleRunEntryAction(req, res);
     if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/document") return await handleDocument(url, res);
     if (url.pathname === "/api/document-index") return await handleDocumentIndex(url, res);
@@ -191,6 +205,74 @@ async function handleActivateProject(req, res) {
   if (!registry.projects.some((project) => project.id === projectId)) throw new Error(`Unknown project: ${projectId}`);
   const saved = await saveProjectRegistry({ ...registry, activeProjectId: projectId }, registryOptions);
   sendJson(res, { ok: true, activeProjectId: saved.activeProjectId });
+}
+
+async function handleRunEntryAction(req, res) {
+  const body = await readJsonBody(req);
+  const projectId = String(body.projectId ?? "").trim();
+  if (!projectId) throw new Error("Missing projectId");
+
+  const registry = await loadProjectRegistry(registryOptions);
+  if (registry.activeProjectId !== projectId) {
+    throw new Error(`Entry actions are limited to the active project: ${projectId}`);
+  }
+  const project = registry.projects.find((candidate) => candidate.id === projectId);
+  if (!project) throw new Error(`Unknown project: ${projectId}`);
+
+  const projectContext = createProjectContext({
+    projectRoot: project.root,
+    adapterId: project.adapter,
+    dataSources: project.dataSources,
+    filePolicy: project.filePolicy,
+  });
+  const action = findEntryAction(project, body.actionId);
+  const sourcePath = normalizeEntryActionPath(body.sourcePath, "sourcePath");
+  const collectionPath = normalizeEntryActionPath(body.collectionPath, "collectionPath");
+  const rowId = normalizeEntryActionRowId(body.rowId);
+  const sourceRowIndex = normalizeEntryActionSourceRowIndex(body.sourceRowIndex);
+  if (rowId == null && sourceRowIndex == null) {
+    throw new Error("Entry action requires rowId or sourceRowIndex");
+  }
+  if (sourceRowIndex == null) {
+    throw new Error("Entry action MVP requires sourceRowIndex");
+  }
+
+  validateEntryActionTarget(action, sourcePath, collectionPath);
+  const text = await readTextFile(projectContext, sourcePath);
+  const ext = path.extname(sourcePath).toLowerCase();
+  const parsed = ext === ".csv" ? { data: parseCsv(text), format: "csv" } : parseJson(text);
+  const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
+  const { row, previousRow, nextRow, rowCount } = resolveEntryActionRow(model, collectionPath, sourceRowIndex);
+  const runId = createEntryActionRunId();
+  const handoff = buildEntryActionHandoff({
+    runId,
+    project,
+    action,
+    sourcePath,
+    collectionPath,
+    rowId,
+    sourceRowIndex,
+    row,
+    previousRow,
+    nextRow,
+    rowCount,
+  });
+  const handoffPath = await writeEntryActionHandoff(projectContext, runId, handoff);
+
+  await execFileAsync(process.execPath, [path.resolve(toolRoot, "scripts", "run-entry-action.mjs"), "--handoff", handoffPath], {
+    cwd: toolRoot,
+    shell: false,
+    windowsHide: true,
+    maxBuffer: 1024 * 1024,
+  });
+
+  const started = await readEntryActionStarted(projectContext, runId);
+  sendJson(res, {
+    ok: true,
+    status: started.status,
+    runId,
+    handoffPath: entryActionHandoffPath(projectContext, runId),
+  });
 }
 
 function handleShutdown(res) {

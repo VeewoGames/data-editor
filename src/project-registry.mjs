@@ -67,6 +67,7 @@ export async function addOrActivateProject(input, options = {}) {
       kind: "relative",
     }],
     filePolicy: input.filePolicy ?? { includeExtensions: [".json", ".csv"] },
+    entryActions: input.entryActions ?? [],
   });
   registry.projects.push(project);
   registry.activeProjectId = project.id;
@@ -110,6 +111,7 @@ function normalizeProjectDefinition(value) {
     filePolicy: {
       includeExtensions: normalizeIncludeExtensions(value?.filePolicy?.includeExtensions),
     },
+    entryActions: normalizeEntryActions(value?.entryActions),
   };
 }
 
@@ -135,6 +137,32 @@ function normalizeIncludeExtensions(value) {
     .map((item) => item.trim().toLowerCase()))];
 }
 
+function normalizeEntryActions(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((action) => action && typeof action === "object" && !Array.isArray(action))
+    .map((action) => ({
+      id: String(action.id ?? "").trim(),
+      label: String(action.label ?? "").trim(),
+      icon: String(action.icon ?? "").trim(),
+      targets: {
+        files: normalizeActionTargetList(action.targets?.files),
+        collections: normalizeActionTargetList(action.targets?.collections),
+      },
+      payload: {
+        includeRow: action.payload?.includeRow !== false,
+        includeNeighbors: action.payload?.includeNeighbors === true,
+      },
+    }));
+}
+
+function normalizeActionTargetList(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value
+    .filter((item) => typeof item === "string" && item.trim())
+    .map((item) => item.trim()))];
+}
+
 function validateProjectRegistry(registry) {
   const projectIds = new Set();
   const roots = new Set();
@@ -147,6 +175,7 @@ function validateProjectRegistry(registry) {
     if (roots.has(rootKey)) throw new Error(`Duplicate project root: ${project.root}`);
     roots.add(rootKey);
     validateProjectDataSources(project);
+    validateProjectEntryActions(project);
   }
   if (registry.activeProjectId != null && !projectIds.has(registry.activeProjectId)) {
     throw new Error(`Active project does not exist: ${registry.activeProjectId}`);
@@ -167,6 +196,23 @@ function validateProjectDataSources(project) {
     const sourceRootKey = normalizePathKey(sourceRoot);
     if (roots.has(sourceRootKey)) throw new Error(`Duplicate data source root: ${sourceRoot}`);
     roots.add(sourceRootKey);
+  }
+}
+
+function validateProjectEntryActions(project) {
+  const actionIds = new Set();
+  for (const action of project.entryActions ?? []) {
+    validateId(action.id, "entry action");
+    if (actionIds.has(action.id)) throw new Error(`Duplicate entry action id: ${action.id}`);
+    actionIds.add(action.id);
+    if (!action.label) throw new Error(`Missing entry action label: ${action.id}`);
+    if (!action.icon) throw new Error(`Missing entry action icon: ${action.id}`);
+    if (!Array.isArray(action.targets?.files) || action.targets.files.length === 0) {
+      throw new Error(`Missing entry action target files: ${action.id}`);
+    }
+    if (!Array.isArray(action.targets?.collections) || action.targets.collections.length === 0) {
+      throw new Error(`Missing entry action target collections: ${action.id}`);
+    }
   }
 }
 

@@ -1337,6 +1337,21 @@ select {
   gap: 12px;
 }
 
+.project-settings-dialog {
+  max-height: min(760px, calc(100vh - 32px));
+  overflow-y: auto;
+  width: min(640px, calc(100vw - 32px));
+}
+
+.project-settings-dialog .dialog-actions {
+  background: var(--color-bg-surface);
+  border-top: 1px solid var(--color-border-subtle);
+  bottom: 0;
+  margin-top: 4px;
+  padding-top: 12px;
+  position: sticky;
+}
+
 .project-settings textarea {
   min-height: 96px;
   resize: vertical;

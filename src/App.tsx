@@ -19,6 +19,7 @@ import {
   recoverableRequestEventName,
   reopenEditor,
   rebuildFrontend,
+  runEntryAction,
   saveDocument,
   saveDocuments,
   saveSharedViews,
@@ -511,6 +512,8 @@ export function App() {
   const [viewDraftDirty, setViewDraftDirty] = useState(false);
   const [toolbarQueryOverride, setToolbarQueryOverride] = useState<string | null>(null);
   const [commandSaving, setCommandSaving] = useState(false);
+  const [entryActionRunningId, setEntryActionRunningId] = useState<string | null>(null);
+  const [entryActionErrorMessage, setEntryActionErrorMessage] = useState<string | null>(null);
   const [autosaveState, setAutosaveState] = useState<AutosaveState>("idle");
   const [closing, setClosing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
@@ -637,6 +640,10 @@ export function App() {
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
   const loadedProjectIdRef = useRef<string | null>(null);
   const viewDraftDirtyRef = useRef(false);
+  const activeProject = useMemo(
+    () => projects.find((project) => project.id === activeProjectId) ?? null,
+    [projects, activeProjectId],
+  );
   const detailReorderPerfRef = useRef({
     active: false,
     awaitingRows: false,
@@ -1953,6 +1960,9 @@ export function App() {
     selectedSourceRowIndexRef.current = selectedSourceRowIndex;
   }, [selectedRowId, selectedSourceRowIndex]);
   useEffect(() => {
+    setEntryActionErrorMessage(null);
+  }, [activeProjectId, selectedPath, collectionPath, selectedRowId]);
+  useEffect(() => {
     const nextSelection = resolveDetailSelectionSync({
       collectionStore,
       selectedRowId: selectedRowIdState,
@@ -2173,6 +2183,12 @@ export function App() {
     enableTableTextEditMode,
     registerActiveTextEditor,
   ]);
+  const visibleEntryActions = useMemo(
+    () => activeProject && selectedPath
+      ? activeProject.entryActions.filter((action) => action.targets.files.includes(selectedPath) && action.targets.collections.includes(collectionPath))
+      : [],
+    [activeProject, selectedPath, collectionPath],
+  );
   const detailSnapshot = useMemo<DetailSnapshot>(() => ({
     open: detailOpen,
     panelWidth: detailPanelWidth,
@@ -2222,6 +2238,9 @@ export function App() {
     primaryKeySyncPlan,
     primaryKeySyncResult,
     commandSaving,
+    entryActions: visibleEntryActions,
+    entryActionRunningId,
+    entryActionErrorMessage,
   }), [
     detailOpen,
     detailPanelWidth,
@@ -2258,6 +2277,9 @@ export function App() {
     primaryKeySyncPlan,
     primaryKeySyncResult,
     commandSaving,
+    visibleEntryActions,
+    entryActionRunningId,
+    entryActionErrorMessage,
   ]);
   const sharedViewCollaborationMode = selectedViewProfileName
     ? (selectedViewProfile?.sharedViewCollaborationMode === "personal" ? "personal" : "team")
@@ -3491,6 +3513,27 @@ export function App() {
       } else {
         localStorage.setItem(detailPanelWidthStorageKey, String(nextWidth));
       }
+    }
+  }
+
+  async function handleRunDetailEntryAction(actionId: string) {
+    if (entryActionRunningId) return;
+    if (!activeProjectId || !selectedPath || selectedSourceRowIndex == null) return;
+    setEntryActionErrorMessage(null);
+    setEntryActionRunningId(actionId);
+    try {
+      await runEntryAction({
+        projectId: activeProjectId,
+        actionId,
+        sourcePath: selectedPath,
+        collectionPath,
+        rowId: selectedRowId,
+        sourceRowIndex: selectedSourceRowIndex,
+      });
+    } catch (error) {
+      setEntryActionErrorMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setEntryActionRunningId(null);
     }
   }
 
@@ -4864,6 +4907,7 @@ export function App() {
                   onDocumentPanelWidthCommit={commitDetailDocumentPanelWidth}
                   onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
                   onReorderFields={handleReorderDetailFields}
+                  onRunEntryAction={(actionId) => void handleRunDetailEntryAction(actionId)}
                   onRegisterActiveTextEditor={registerActiveTextEditor}
                 />
               </Profiler>
@@ -4965,6 +5009,7 @@ export function App() {
               onDocumentPanelWidthCommit={commitDetailDocumentPanelWidth}
               onEditField={(fieldName, value) => selectedRowId && handleEditCellByRowId(selectedRowId, fieldName, value)}
               onReorderFields={handleReorderDetailFields}
+              onRunEntryAction={(actionId) => void handleRunDetailEntryAction(actionId)}
               onRegisterActiveTextEditor={registerActiveTextEditor}
             />
           </div>
@@ -5143,6 +5188,8 @@ function ProjectSettingsDialog(props: {
   const [name, setName] = useState("");
   const [root, setRoot] = useState("");
   const [sourcesText, setSourcesText] = useState("");
+  const [entryActionsText, setEntryActionsText] = useState("");
+  const [entryActionsError, setEntryActionsError] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectRoot, setNewProjectRoot] = useState("");
 
@@ -5151,20 +5198,33 @@ function ProjectSettingsDialog(props: {
       setName("");
       setRoot("");
       setSourcesText("");
+      setEntryActionsText("");
+      setEntryActionsError(null);
       return;
     }
     setName(activeProject.name);
     setRoot(activeProject.root);
     setSourcesText(activeProject.dataSources.map((source) => `${source.id}|${source.label}|${source.kind}|${source.path}`).join("\n"));
+    setEntryActionsText(serializeEntryActions(activeProject.entryActions));
+    setEntryActionsError(null);
   }, [activeProject]);
 
   function saveCurrentProject() {
     if (!activeProject) return;
+    let entryActions: ProjectDefinition["entryActions"];
+    try {
+      entryActions = parseEntryActionsText(entryActionsText);
+      setEntryActionsError(null);
+    } catch (error) {
+      setEntryActionsError(error instanceof Error ? error.message : String(error));
+      return;
+    }
     props.onSaveProject({
       ...activeProject,
       name,
       root,
       dataSources: parseDataSources(sourcesText),
+      entryActions,
     });
   }
 
@@ -5196,17 +5256,38 @@ function ProjectSettingsDialog(props: {
               <label className="dialog-field">
                 <span>Data Sources</span>
                 <textarea
-                  rows={Math.max(3, activeProject.dataSources.length + 1)}
+                  rows={Math.min(8, Math.max(3, activeProject.dataSources.length + 1))}
                   value={sourcesText}
                   onChange={(event) => setSourcesText(event.target.value)}
                 />
               </label>
+              <label className="dialog-field">
+                <span>Entry Actions</span>
+                <textarea
+                  rows={Math.min(14, Math.max(8, entryActionsText.split(/\r?\n/).length + 1))}
+                  value={entryActionsText}
+                  onChange={(event) => {
+                    setEntryActionsText(event.target.value);
+                    if (entryActionsError) setEntryActionsError(null);
+                  }}
+                />
+              </label>
+              {entryActionsError ? <div className="dialog-error">{entryActionsError}</div> : null}
               <div className="sidebar-label">Data Sources</div>
               <div className="project-source-list">
                 {parseDataSources(sourcesText).map((source) => (
                   <div className="project-source-row" key={source.id}>
                     <strong>{source.label}</strong>
                     <small>{source.kind}: {source.path}</small>
+                  </div>
+                ))}
+              </div>
+              <div className="sidebar-label">Entry Actions</div>
+              <div className="project-source-list">
+                {renderEntryActionSummary(entryActionsText).map((action) => (
+                  <div className="project-source-row" key={action.id}>
+                    <strong>{action.label}</strong>
+                    <small>{action.id} | {action.icon} | {action.targets.files.join(", ")} | {action.targets.collections.join(", ")}</small>
                   </div>
                 ))}
               </div>
@@ -5251,6 +5332,53 @@ function parseDataSources(text: string) {
     })
     .filter((source) => source.id && source.path);
   return sources.length ? sources : [{ id: "data", label: "Data", kind: "relative" as const, path: "data" }];
+}
+
+function serializeEntryActions(entryActions: ProjectDefinition["entryActions"]) {
+  return JSON.stringify(entryActions ?? [], null, 2);
+}
+
+function parseEntryActionsText(text: string): ProjectDefinition["entryActions"] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch (error) {
+    throw new Error(`Entry Actions JSON 解析失败：${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (!Array.isArray(parsed)) throw new Error("Entry Actions 必须是 JSON 数组。");
+  return parsed.map((action, index) => {
+    if (!action || typeof action !== "object" || Array.isArray(action)) {
+      throw new Error(`Entry Actions 第 ${index + 1} 项必须是对象。`);
+    }
+    const normalized = action as Record<string, unknown>;
+    return {
+      id: String(normalized.id ?? "").trim(),
+      label: String(normalized.label ?? "").trim(),
+      icon: String(normalized.icon ?? "").trim(),
+      targets: {
+        files: Array.isArray((normalized.targets as { files?: unknown[] } | undefined)?.files)
+          ? (normalized.targets as { files: unknown[] }).files.map((item) => String(item ?? "").trim()).filter(Boolean)
+          : [],
+        collections: Array.isArray((normalized.targets as { collections?: unknown[] } | undefined)?.collections)
+          ? (normalized.targets as { collections: unknown[] }).collections.map((item) => String(item ?? "").trim()).filter(Boolean)
+          : [],
+      },
+      payload: {
+        includeRow: (normalized.payload as { includeRow?: unknown } | undefined)?.includeRow !== false,
+        includeNeighbors: (normalized.payload as { includeNeighbors?: unknown } | undefined)?.includeNeighbors === true,
+      },
+    };
+  });
+}
+
+function renderEntryActionSummary(text: string) {
+  try {
+    return parseEntryActionsText(text);
+  } catch {
+    return [];
+  }
 }
 
 function ConfirmDialog(props: {

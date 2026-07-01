@@ -18,6 +18,19 @@ export type DataSourceDefinition = {
   path: string;
   kind: "relative" | "absolute";
 };
+export type EntryActionDefinition = {
+  id: string;
+  label: string;
+  icon: string;
+  targets: {
+    files: string[];
+    collections: string[];
+  };
+  payload: {
+    includeRow: boolean;
+    includeNeighbors: boolean;
+  };
+};
 export type ProjectDefinition = {
   id: string;
   name: string;
@@ -25,6 +38,7 @@ export type ProjectDefinition = {
   adapter: string;
   dataSources: DataSourceDefinition[];
   filePolicy: { includeExtensions: string[] };
+  entryActions: EntryActionDefinition[];
 };
 export type ProjectRegistry = {
   version: number;
@@ -38,6 +52,20 @@ export type SaveDocumentsResult = {
   savedPaths: string[];
   failedPath: string | null;
   errorMessage: string | null;
+};
+export type RunEntryActionRequest = {
+  projectId: string;
+  actionId: string;
+  sourcePath: string;
+  collectionPath: string;
+  rowId?: string | null;
+  sourceRowIndex: number;
+};
+export type RunEntryActionResponse = {
+  ok: true;
+  status: "started";
+  runId: string;
+  handoffPath: string;
 };
 export type RelationConfig = {
   targetFile: string;
@@ -459,6 +487,14 @@ export async function saveViewProfile(name: string, profile: UserViewProfile, pr
     keepalive,
     headers: { "content-type": "application/json" },
     body,
+  });
+}
+
+export async function runEntryAction(request: RunEntryActionRequest): Promise<RunEntryActionResponse> {
+  return fetchJson("/api/entry-actions/run", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(request),
   });
 }
 

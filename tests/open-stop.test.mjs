@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -1372,6 +1372,84 @@ test("server registers project and lists files by projectId", async (t) => {
 
   const files = await waitForJsonOk(port, `/api/files?projectId=${encodeURIComponent(projects.activeProjectId)}`);
   assert.deepEqual(files.map((file) => file.path), ["data/api.json"]);
+});
+
+test("server runs an entry action and writes artifacts under project .data-editor runtime", async (t) => {
+  const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-project-"));
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-home-"));
+  t.after(async () => {
+    await rm(project, { recursive: true, force: true });
+    await rm(registryHome, { recursive: true, force: true });
+  });
+  await mkdir(path.join(project, "data"));
+  await writeFile(path.join(project, "data", "items.json"), `${JSON.stringify({
+    items: [
+      { id: "alpha", name: "Alpha", tags: ["a"] },
+      { id: "beta", name: "Beta", tags: ["b"] },
+      { id: "gamma", name: "Gamma", tags: ["c"] },
+    ],
+  }, null, 2)}\n`, "utf8");
+
+  const port = await findAvailablePort();
+  const child = spawnDataEditorServer(port, ["--project", project, "--registry-home", registryHome, "--static", "dist"]);
+  t.after(async () => {
+    try {
+      child.kill();
+    } catch {}
+    await waitForExit(child).catch(() => {});
+  });
+
+  await waitForHttpOk(port);
+  const projects = await waitForJsonOk(port, "/api/projects");
+  const projectId = projects.activeProjectId;
+  const updateResponse = await postJson(port, "/api/project-update", {
+    id: projectId,
+    entryActions: [{
+      id: "recheck",
+      label: "Recheck",
+      icon: "sparkles",
+      targets: {
+        files: ["data/items.json"],
+        collections: ["items"],
+      },
+      payload: {
+        includeRow: true,
+        includeNeighbors: true,
+      },
+    }],
+  });
+  assert.equal(updateResponse.statusCode, 200, JSON.stringify(updateResponse.body));
+
+  const runResponse = await postJson(port, "/api/entry-actions/run", {
+    projectId,
+    actionId: "recheck",
+    sourcePath: "data/items.json",
+    collectionPath: "items",
+    rowId: "items:1",
+    sourceRowIndex: 1,
+  });
+  assert.equal(runResponse.statusCode, 200, JSON.stringify(runResponse.body));
+  assert.equal(runResponse.body?.status, "started");
+
+  const runId = runResponse.body?.runId;
+  assert.equal(typeof runId, "string");
+  const handoffPath = path.join(project, ".data-editor", "runtime", "entry-actions", `${runId}.json`);
+  const startedPath = path.join(project, ".data-editor", "runtime", "entry-actions", `${runId}.started.json`);
+  const legacyRuntimePath = path.join(project, ".runtime", "entry-actions", `${runId}.json`);
+
+  const handoff = JSON.parse(await readFile(handoffPath, "utf8"));
+  assert.equal(handoff.action.id, "recheck");
+  assert.equal(handoff.entry.sourcePath, "data/items.json");
+  assert.equal(handoff.entry.collectionPath, "items");
+  assert.equal(handoff.entry.sourceRowIndex, 1);
+  assert.deepEqual(handoff.entry.row, { id: "beta", name: "Beta", tags: ["b"] });
+  assert.deepEqual(handoff.entry.previousRow, { id: "alpha", name: "Alpha", tags: ["a"] });
+  assert.deepEqual(handoff.entry.nextRow, { id: "gamma", name: "Gamma", tags: ["c"] });
+
+  const started = JSON.parse(await readFile(startedPath, "utf8"));
+  assert.equal(started.status, "started");
+  assert.equal(started.runId, runId);
+  await assert.rejects(() => readFile(legacyRuntimePath, "utf8"));
 });
 
 test("POST /api/shutdown returns success and stops the static service through the formal stop flow", async (t) => {

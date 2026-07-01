@@ -1,5 +1,5 @@
 ﻿import { expect, test, type Page } from "@playwright/test";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Locator } from "@playwright/test";
 
@@ -10391,6 +10391,115 @@ test("project settings opens from the empty workspace state", async ({ page }) =
   await expect(page.locator(".project-switcher-menu")).toHaveCount(0);
   await page.getByRole("button", { name: "Project settings" }).click();
   await expect(page.getByRole("dialog", { name: "Project Settings" })).toBeVisible();
-  await expect(page.locator(".project-settings-dialog textarea")).toContainText("data|Data|relative|data");
+  await expect(page.locator(".project-settings-dialog .dialog-field").filter({ hasText: "Data Sources" }).locator("textarea")).toContainText("data|Data|relative|data");
 });
+
+test("project settings can save entryActions and show the detail action button", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Project settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Project Settings" });
+  await expect(dialog).toBeVisible();
+
+  const entryActionsField = dialog.locator(".dialog-field").filter({ hasText: "Entry Actions" }).locator("textarea");
+  const entryActionsValue = JSON.stringify([{
+    id: "recheck",
+    label: "Recheck",
+    icon: "refresh",
+    targets: {
+      files: ["data/e2e_select.json"],
+      collections: ["$"],
+    },
+    payload: {
+      includeRow: true,
+      includeNeighbors: true,
+    },
+  }], null, 2);
+  await entryActionsField.fill(entryActionsValue);
+  await dialog.getByRole("button", { name: "Save Project", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+
+  const projectsResponse = await page.request.get("/api/projects");
+  expect(projectsResponse.ok()).toBeTruthy();
+  const projects = await projectsResponse.json() as {
+    activeProjectId: string | null;
+    projects: Array<{ id: string; entryActions?: Array<{ id: string }> }>;
+  };
+  expect(projects.projects[0]?.entryActions?.map((action) => action.id)).toContain("recheck");
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator('.detail-panel.primary .detail-nav button[title="Recheck"]')).toBeVisible();
+});
+
+test("detail panel entry action button triggers the server handoff flow", async ({ page }) => {
+  const entryActionsDir = path.resolve("tests/.scratch/.data-editor/runtime/entry-actions");
+  await rm(entryActionsDir, { recursive: true, force: true });
+
+  const projectsResponse = await page.request.get("/api/projects");
+  expect(projectsResponse.ok()).toBeTruthy();
+  const registry = await projectsResponse.json() as {
+    activeProjectId: string | null;
+    projects: Array<{ id: string }>;
+  };
+  const projectId = registry.activeProjectId;
+  expect(projectId).toBeTruthy();
+
+  const updateResponse = await page.request.post("/api/project-update", {
+    data: {
+      id: projectId,
+      entryActions: [{
+        id: "recheck",
+        label: "Recheck",
+        icon: "refresh",
+        targets: {
+          files: ["data/e2e_select.json"],
+          collections: ["$"],
+        },
+        payload: {
+          includeRow: true,
+          includeNeighbors: true,
+        },
+      }],
+    },
+  });
+  expect(updateResponse.ok()).toBeTruthy();
+
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+
+  const recheckButton = page.locator('.detail-panel.primary .detail-nav button[title="Recheck"]');
+  await expect(recheckButton).toBeVisible();
+  await recheckButton.click();
+
+  await expect.poll(async () => {
+    try {
+      const files = await readFile(path.join(entryActionsDir, await newestEntryActionFile(entryActionsDir, ".started.json")), "utf8");
+      const started = JSON.parse(files) as { status?: string; projectId?: string | null };
+      return `${started.status ?? ""}:${started.projectId ?? ""}`;
+    } catch {
+      return "";
+    }
+  }).toBe(`started:${projectId}`);
+
+  const handoffName = await newestEntryActionFile(entryActionsDir, ".json", ".started.json");
+  const handoff = JSON.parse(await readFile(path.join(entryActionsDir, handoffName), "utf8")) as {
+    action: { id: string };
+    entry: { sourcePath: string; collectionPath: string; sourceRowIndex: number };
+  };
+  expect(handoff.action.id).toBe("recheck");
+  expect(handoff.entry.sourcePath).toBe("data/e2e_select.json");
+  expect(handoff.entry.collectionPath).toBe("$");
+  expect(handoff.entry.sourceRowIndex).toBe(0);
+});
+
+async function newestEntryActionFile(dir: string, suffix: string, excludedSuffix?: string) {
+  const names = (await readdir(dir, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(suffix) && (!excludedSuffix || !entry.name.endsWith(excludedSuffix)))
+    .map((entry) => entry.name)
+    .sort();
+  expect(names.length).toBeGreaterThan(0);
+  return names[names.length - 1]!;
+}
 
