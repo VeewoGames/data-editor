@@ -30,3 +30,5 @@
 - [skills `全部` 组叶子标签页布局对齐：优先批量更新 profile `viewLayouts`](./shared-view-skills-all-group-profile-layout-alignment.md)
 - [skills `全部` 组公共筛选同步：更新 shared view 本体，保留各叶子 `advancedRoot`](./shared-view-skills-all-group-public-filter-alignment.md)
 - [筛选条件首次点击无效：普通筛选弹层交互边界与最小修复入口](./filter-first-click-noop-planning-boundary.md)
+- [detail panel 条目级 Codex 自动化：正式维护入口、registry 真值链与详情按钮过滤边界](./detail-panel-entry-codex-automation-boundary.md)
+- [detail panel 条目级 Codex 自动化集成边界（已被正式运行时 truth 部分替代）](./adr/detail-panel-entry-codex-automation-integration.md)
