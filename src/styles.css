@@ -3123,6 +3123,22 @@ select {
   z-index: 55;
 }
 
+
+.view-tab-icon-picker-tooltip {
+  background: rgba(20, 20, 20, 0.96);
+  border-radius: 8px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+  color: #f6f4ef;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: min(220px, calc(100vw - 24px));
+  padding: 7px 10px;
+  pointer-events: none;
+  position: fixed;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  z-index: 55;
+}
 .column-trigger span {
   align-self: stretch;
   color: #37352f;

@@ -152,6 +152,12 @@ export function ViewTabs({
   const [loadedIconPackIds, setLoadedIconPackIds] = useState<Array<keyof typeof sharedViewIconPackLabels>>(() => readLoadedSharedViewIconPackIds());
   const [, setIconPickerVersion] = useState(0);
   const [hoverPreviewIconId, setHoverPreviewIconId] = useState<SharedViewIconId | null>(null);
+  const [hoverTooltip, setHoverTooltip] = useState<null | {
+    iconId: SharedViewIconId;
+    label: string;
+    left: number;
+    top: number;
+  }>(null);
   const [recentIconIds, setRecentIconIds] = useState<SharedViewIconId[]>([]);
   const [optimisticIconByViewId, setOptimisticIconByViewId] = useState<Record<string, SharedViewIconId>>({});
   const [groupTabFilter, setGroupTabFilter] = useState("");
@@ -168,6 +174,7 @@ export function ViewTabs({
   const dragShellRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const topLevelItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const groupViewRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const iconOptionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const topLevelRowRef = useRef<HTMLDivElement | null>(null);
   const groupRowRef = useRef<HTMLDivElement | null>(null);
   const pointerDragRef = useRef<null | {
@@ -188,6 +195,7 @@ export function ViewTabs({
   }>(null);
   const suppressClickRef = useRef(false);
   const hoverPreviewResetTimeoutRef = useRef<number | null>(null);
+  const hoverTooltipDelayTimeoutRef = useRef<number | null>(null);
   const viewTabsDisabled = commandSaving;
   const expandedGroup = useMemo(
     () => topLevelItems.find((item): item is Extract<ViewTabsSnapshot["topLevelItems"][number], { kind: "group" }> => item.kind === "group" && item.id === expandedGroupId) ?? null,
@@ -252,12 +260,16 @@ export function ViewTabs({
       setActiveIconGroupId("recent");
       setIconPackOptionsOpen(false);
       setHoverPreviewIconId(null);
+      setHoverTooltip(null);
     }
   }, [iconPickerOpenForViewId]);
 
   useEffect(() => () => {
     if (hoverPreviewResetTimeoutRef.current !== null && typeof window !== "undefined") {
       window.clearTimeout(hoverPreviewResetTimeoutRef.current);
+    }
+    if (hoverTooltipDelayTimeoutRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(hoverTooltipDelayTimeoutRef.current);
     }
   }, []);
 
@@ -450,9 +462,32 @@ export function ViewTabs({
       hoverPreviewResetTimeoutRef.current = null;
     }
     setHoverPreviewIconId(iconId);
+    if (typeof window === "undefined") return;
+    if (hoverTooltipDelayTimeoutRef.current !== null) {
+      window.clearTimeout(hoverTooltipDelayTimeoutRef.current);
+    }
+    setHoverTooltip((current) => current?.iconId === iconId ? current : null);
+    hoverTooltipDelayTimeoutRef.current = window.setTimeout(() => {
+      hoverTooltipDelayTimeoutRef.current = null;
+      const optionNode = iconOptionRefs.current[iconId];
+      if (!optionNode) return;
+      const bounds = optionNode.getBoundingClientRect();
+      const label = formatSharedViewIconLabel(iconId);
+      setHoverTooltip({
+        iconId,
+        label,
+        left: bounds.left + bounds.width / 2,
+        top: Math.max(12, bounds.top - 10),
+      });
+    }, 500);
   }
 
   function hideHoverPreview(iconId: SharedViewIconId) {
+    if (hoverTooltipDelayTimeoutRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(hoverTooltipDelayTimeoutRef.current);
+      hoverTooltipDelayTimeoutRef.current = null;
+    }
+    setHoverTooltip((current) => current?.iconId === iconId ? null : current);
     if (typeof window === "undefined") {
       setHoverPreviewIconId((current) => current === iconId ? null : current);
       return;
@@ -894,6 +929,9 @@ export function ViewTabs({
                             return (
                               <div
                                 key={candidate}
+                                ref={(node) => {
+                                  iconOptionRefs.current[candidate] = node;
+                                }}
                                 className={[
                                   "view-tab-icon-picker-option",
                                   candidate === iconId ? "is-selected" : "",
@@ -1312,6 +1350,18 @@ export function ViewTabs({
           <span>{dragGhost.label}</span>
         </div>
       ) : null}
+      {hoverTooltip ? (
+        <div
+          className="view-tab-icon-picker-tooltip"
+          aria-hidden="true"
+          style={{
+            left: `${hoverTooltip.left}px`,
+            top: `${hoverTooltip.top}px`,
+          }}
+        >
+          {hoverTooltip.label}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1375,6 +1425,25 @@ function resolveGroupDropTarget(
 
 function normalizeGroupTabFilter(value: string) {
   return value.trim().toLowerCase();
+}
+
+const sharedViewIconIdPrefixPattern = /^(streamlineCoreSolid|streamlineMicroSolid|streamlineMicroLine|tablerFilled|tablerLine)/;
+
+function formatSharedViewIconLabel(iconId: string) {
+  const withoutPrefix = iconId.replace(sharedViewIconIdPrefixPattern, "");
+  const spaced = withoutPrefix
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-zA-Z])(\d)/g, "$1 $2")
+    .replace(/(\d)([a-zA-Z])/g, "$1 $2")
+    .trim();
+  const fallback = iconId.trim();
+  const source = spaced || fallback;
+  return source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => /^\d+$/.test(part) ? part : `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
+    .join(" ");
 }
 
 function resolveTopLevelDropTarget(

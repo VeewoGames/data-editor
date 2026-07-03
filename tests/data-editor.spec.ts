@@ -2854,6 +2854,17 @@ test("icon picker shows built-in and streamline family groups", async ({ page })
     await globalSearchToggle.check();
     await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='streamlineCoreSolidApplyToAll']")).toBeVisible();
 
+
+    const delayedTooltipTarget = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option[data-view-icon='streamlineCoreSolidApplyToAll']");
+    const delayedTooltip = page.locator(".view-tab-icon-picker-tooltip");
+    await delayedTooltipTarget.hover();
+    await page.waitForTimeout(250);
+    await expect(delayedTooltip).toHaveCount(0);
+    await page.waitForTimeout(350);
+    await expect(delayedTooltip).toBeVisible();
+    await expect(delayedTooltip).toHaveText("Apply To All");
+    await page.mouse.move(0, 0);
+    await expect(delayedTooltip).toHaveCount(0);
     await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
     await expect(page.locator(".view-tab-icon-picker-content")).toHaveCount(0);
     await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
