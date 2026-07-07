@@ -1,4 +1,5 @@
 import { attachRowId, readRowId } from "./row-id.mjs";
+import { readPersistentEntryId } from "./persistent-entry-id.mjs";
 
 export function buildDocumentStore({ documentId = "document", model, previousStore = null }) {
   const collections = new Map();
@@ -53,7 +54,8 @@ function buildCollectionStore(documentId, model, collectionPath, previousCollect
 
   sourceEntries.forEach((entry, index) => {
     const resolved = resolvedEntries[index];
-    const rowId = resolved.rowId ?? buildFreshRowId(documentId, collectionPath, resolved.sourceOrder);
+    const persistedRowId = readPersistentEntryId(entry.sourceRow);
+    const rowId = resolved.rowId ?? persistedRowId ?? buildFreshRowId(documentId, collectionPath, resolved.sourceOrder);
     attachRowId(entry.sourceRow, rowId);
     const row = createRowView(model, entry.sourceKey, entry.sourceRow);
     const handle = {

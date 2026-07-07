@@ -1433,6 +1433,12 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(viewTabsSource, /await hydratePersistedSharedViewIconPacks\(\)/);
 });
 
+test("relation lookup effect re-runs when table revision changes", async () => {
+  const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(appSource, /if \(!selectedPath \|\| !model\) \{\s*setRelationIndexes\(\{\}\);\s*setRelationOptions\(\{\}\);\s*return;\s*\}/);
+  assert.match(appSource, /\}, \[viewConfig\.relations, selectedPath, collectionPath, model, activeProjectId, tableRevision\]\);/);
+});
+
 test("normalizeUserViewProfile keeps structure draft group icons", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 

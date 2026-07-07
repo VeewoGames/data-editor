@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { icons } from "../components/icons";
 import { RelationBacklinksPanel } from "../components/RelationBacklinksPanel";
-import type { EntryActionDefinition, SaveDocumentsResult } from "../api/client";
+import type { EntryActionRule, SaveDocumentsResult } from "../api/client";
 import type { DataRecord } from "../model/documentModel";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import { defaultTypeFor } from "../model/fieldTypes";
@@ -25,6 +25,7 @@ import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { DocumentPanel, type DocumentPanelSnapshot } from "./DocumentPanel";
 import { mergeDetailFieldOrder } from "../model/document-field-state.mjs";
 import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
+import { isPersistentEntryIdField } from "../model/persistent-entry-id.mjs";
 
 export type DetailSnapshot = {
   open: boolean;
@@ -53,10 +54,18 @@ export type DetailSnapshot = {
   primaryKeySyncPlan: PrimaryKeySyncPlan | null;
   primaryKeySyncResult: SaveDocumentsResult | null;
   commandSaving: boolean;
-  entryActions: EntryActionDefinition[];
+  entryActions: EntryActionRule[];
   entryActionRunningId: string | null;
   entryActionErrorMessage: string | null;
+  entryActionStatus: {
+    actionId: string;
+    tone: "running" | "success" | "warning" | "error";
+    title: string;
+    detail: string | null;
+  } | null;
 };
+
+export type DetailEntryActionStatus = NonNullable<DetailSnapshot["entryActionStatus"]>;
 
 type DetailPanelProps = {
   snapshot: DetailSnapshot;
@@ -138,6 +147,7 @@ export function DetailPanel({
     entryActions,
     entryActionRunningId,
     entryActionErrorMessage,
+    entryActionStatus,
   } = snapshot;
   const panelRef = useRef<HTMLElement | null>(null);
   const documentPanelRef = useRef<HTMLElement | null>(null);
@@ -391,7 +401,12 @@ export function DetailPanel({
             <div className="panel-subtitle">
               {visibleRowPosition == null ? "Row hidden by current view" : `Row ${visibleRowPosition + 1} of ${rowCount}`}
             </div>
-            {entryActionErrorMessage ? <div className="panel-subtitle">{entryActionErrorMessage}</div> : null}
+            {entryActionStatus ? (
+              <div className={`detail-entry-action-status detail-entry-action-status--${entryActionStatus.tone}`}>
+                <strong>{entryActionStatus.title}</strong>
+                {entryActionStatus.detail ? <span>{entryActionStatus.detail}</span> : null}
+              </div>
+            ) : entryActionErrorMessage ? <div className="panel-subtitle">{entryActionErrorMessage}</div> : null}
           </div>
           <div className="detail-nav">
             {entryActions.map((action) => {
@@ -951,6 +966,15 @@ function renderValueEditor(props: {
       </button>
     );
   }
+  if (isPersistentEntryIdField(props.fieldName)) {
+    return (
+      <input
+        className="detail-input detail-input--readonly"
+        value={props.value == null ? "" : String(props.value)}
+        readOnly
+      />
+    );
+  }
   if (shouldUseMultilineEditor(props.fieldName, props.value)) {
     return (
       <DetailStableTextEditor
@@ -973,7 +997,6 @@ function renderValueEditor(props: {
         fieldName={props.fieldName}
         inputMode="decimal"
         normalizeInput={sanitizeNumberDraft}
-        commitMode={props.fieldName === props.primaryKeyField ? "manual" : "realtime"}
         mapValue={(next) => parseNumberDraft(next)}
         onEditField={props.onEditField}
         onRegisterActiveEditor={props.onRegisterActiveTextEditor}
@@ -986,7 +1009,6 @@ function renderValueEditor(props: {
         className="detail-input"
         value={props.value}
         fieldName={props.fieldName}
-        commitMode={props.fieldName === props.primaryKeyField ? "manual" : "realtime"}
         onEditField={props.onEditField}
         onRegisterActiveEditor={props.onRegisterActiveTextEditor}
       />

@@ -46,6 +46,12 @@ test("main columns include primitives and primitive arrays only", () => {
   assert.deepEqual(getNestedFields(model, "$").sort(), ["drops", "effects"]);
 });
 
+test("persistent internal entry id is hidden from visible columns", () => {
+  const model = buildDocumentModel([{ __entry_id: "01JZTESTENTRY00000000000000", id: 1, name: "A" }], "json");
+  assert.deepEqual(getMainColumns(model, "$").sort(), ["id", "name"]);
+  assert.deepEqual(getNestedFields(model, "$"), []);
+});
+
 test("mixed primitive and object values classify field as nested", () => {
   const model = buildDocumentModel([
     { effect_id: "stun", control: { debuff_family: "control", control_kind: "hard_control" } },
@@ -80,7 +86,10 @@ test("add row appends empty record to collection", () => {
   const model = buildDocumentModel({ skills: [{ id: 1, skill_id: "a" }] }, "json");
   addRow(model, "skills", { id: null, skill_id: "" });
   assert.equal(model.root.skills.length, 2);
-  assert.deepEqual(model.root.skills[1], { id: null, skill_id: "" });
+  assert.equal(typeof model.root.skills[1].__entry_id, "string");
+  assert.match(model.root.skills[1].__entry_id, /^[0-9A-Z]{26}$/);
+  assert.equal(model.root.skills[1].id, null);
+  assert.equal(model.root.skills[1].skill_id, "");
 });
 
 test("delete row removes only selected collection row", () => {

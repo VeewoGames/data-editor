@@ -73,7 +73,32 @@ Project Settings 中保存 `entryActions` 时，稳定链路是：
 
 所以，这轮落地补的是“正式维护入口进入项目设置”，不是改写 executor 架构。
 
-### 6. Project Settings 弹窗的可保存性已经成为这类扩展的固定 UI 约束
+### 6. 关闭态 detail panel 仍可能在视口里漏出一小段按钮区，但那一段本质上是不可交互假象
+
+`src/detail/DetailPanel.tsx` 的 `detail-header` / `detail-nav` / `icon-button` 会始终随主面板一起渲染；真正决定可交互性的不是按钮自身，而是外层 `aside.detail-panel` 是否带 `open` class。
+
+`src/styles.css` 当前稳定契约是：
+
+- `.detail-panel` 默认 `transform: translateX(100%)`
+- `.detail-panel` 默认 `pointer-events: none`
+- `.detail-panel.open` 才切回 `transform: translateX(0)` 与 `pointer-events: auto`
+
+因此，用户看到“按钮看得见但点不到”时，优先怀疑的是关闭态面板因 transform 或布局关系在视口边缘漏出，而不是 `onClick` 丢失或按钮组件失效。
+
+### 7. entry-action 完成后如果要 reload 当前文档，必须显式保留详情面板状态反馈
+
+`src/App.tsx::openDocumentAt(...)` 默认会在打开文档前执行 `clearEntryActionFeedback()`；只有 `preserveEntryActionFeedback = true` 时，详情面板里的完成态 / 错误态提示才会被保留。
+
+当前稳定调用链是：
+
+- `handleRunDetailEntryAction(...)` 等待 `/api/entry-actions/result`
+- 生成最终 `entryActionStatus`
+- 如果结果进入 `completed_with_writeback` 或 `completed_without_observed_writeback`
+- 再调用 `openDocumentAt(..., preserveEntryActionFeedback = true)` 做 reload
+
+这意味着“自动化完成后重新加载文档”与“详情面板保留最终状态”不是天然同时成立，reload 链必须显式传递保留标志。
+
+### 8. Project Settings 弹窗的可保存性已经成为这类扩展的固定 UI 约束
 
 因为项目设置内容会继续增长，`project-settings-dialog` 现在需要依赖专用布局规则保证底部操作区始终可达：
 
@@ -95,6 +120,8 @@ Project Settings 中保存 `entryActions` 时，稳定链路是：
 - Project Settings 能保存合法 `entryActions`
 - `/api/projects` 能回显保存后的 `entryActions`
 - 详情面板右上角能按目标过滤显示动作按钮
+- 关闭态 detail panel 不应被误判成“按钮逻辑失效”；即使视口边缘漏出按钮视觉，也仍应保持不可交互
+- entry-action 完成后 reload 当前文档，详情面板仍保留最终状态提示
 - 点击动作按钮后，服务端 handoff 文件流程仍然真实触发
 
 ## 关联代码

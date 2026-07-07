@@ -94,6 +94,7 @@ export const icons = {
   edit: IconEdit,
   adjust: IconAdjustmentsHorizontal,
   settings: IconSettings,
+  wand: IconWand,
   hidden: IconEyeOff,
   reset: IconRotateClockwise2,
   dragHandle: IconGripVertical,

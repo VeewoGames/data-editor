@@ -1,7 +1,7 @@
 import http from "node:http";
 import path from "node:path";
 import { readFile, readdir } from "node:fs/promises";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { parseCsv, serializeCsv } from "./src/csv-codec.mjs";
@@ -12,15 +12,20 @@ import {
   buildEntryActionHandoff,
   createEntryActionRunId,
   entryActionHandoffPath,
-  findEntryAction,
+  findAutomationEntryAction,
   normalizeEntryActionPath,
   normalizeEntryActionRowId,
   normalizeEntryActionSourceRowIndex,
+  readEntryActionResult,
   readEntryActionStarted,
+  resolveAutomationEntryActionBinding,
   resolveEntryActionRow,
   validateEntryActionTarget,
   writeEntryActionHandoff,
 } from "./src/entry-actions.mjs";
+import { loadAutomationBindings, saveAutomationBindings } from "./src/automation-bindings.mjs";
+import { loadAutomationProfile, saveAutomationProfile } from "./src/automation-profile.mjs";
+import { resolveCodexBindingStatus } from "./src/codex-runtime.mjs";
 import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
@@ -67,6 +72,11 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/view-profiles") return sendJson(res, await listViewProfiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-profile" && req.method === "GET") return await handleLoadViewProfile(url, res);
     if (url.pathname === "/api/view-profile" && req.method === "POST") return await handleSaveViewProfile(req, res);
+    if (url.pathname === "/api/automation-profile" && req.method === "GET") return await handleLoadAutomationProfile(url, res);
+    if (url.pathname === "/api/automation-profile" && req.method === "POST") return await handleSaveAutomationProfile(req, res);
+    if (url.pathname === "/api/automation-bindings" && req.method === "GET") return await handleLoadAutomationBindings(url, res);
+    if (url.pathname === "/api/automation-bindings" && req.method === "POST") return await handleSaveAutomationBindings(req, res);
+    if (url.pathname === "/api/entry-actions/result" && req.method === "GET") return await handleLoadEntryActionResult(url, res);
     if (url.pathname === "/api/shared-view-icon-pack-manifest" && req.method === "GET") return await handleSharedViewIconPackManifest(url, res);
     if (url.pathname === "/api/shared-view-icon-pack" && req.method === "GET") return await handleSharedViewIconPack(url, res);
     if (url.pathname === "/api/health" && req.method === "GET") return sendJson(res, { ok: true, bridgePort });
@@ -162,6 +172,36 @@ async function handleSaveViewProfile(req, res) {
   sendJson(res, { ok: true, ...result });
 }
 
+async function handleLoadAutomationProfile(url, res) {
+  sendJson(res, await loadAutomationProfile(await projectContextForUrl(url)));
+}
+
+async function handleSaveAutomationProfile(req, res) {
+  const body = await readJsonBody(req);
+  const projectContext = await projectContextForId(body.projectId);
+  const profile = body && typeof body === "object" && "profile" in body ? body.profile : body;
+  const result = await saveAutomationProfile(projectContext, profile);
+  sendJson(res, { ok: true, ...result });
+}
+
+async function handleLoadAutomationBindings(url, res) {
+  const projectContext = await projectContextForUrl(url);
+  const bindings = await loadAutomationBindings(projectContext);
+  const bindingStatuses = {};
+  for (const [ruleId, binding] of Object.entries(bindings.bindings ?? {})) {
+    bindingStatuses[ruleId] = await resolveCodexBindingStatus(binding, { projectRoot: projectContext.projectRoot });
+  }
+  sendJson(res, { ...bindings, bindingStatuses });
+}
+
+async function handleSaveAutomationBindings(req, res) {
+  const body = await readJsonBody(req);
+  const projectContext = await projectContextForId(body.projectId);
+  const bindings = body && typeof body === "object" && "bindings" in body ? body.bindings : body;
+  const result = await saveAutomationBindings(projectContext, bindings);
+  sendJson(res, { ok: true, ...result });
+}
+
 async function handleCreateProject(req, res) {
   const body = await readJsonBody(req);
   const result = await addOrActivateProject(body, registryOptions);
@@ -225,7 +265,15 @@ async function handleRunEntryAction(req, res) {
     dataSources: project.dataSources,
     filePolicy: project.filePolicy,
   });
-  const action = findEntryAction(project, body.actionId);
+  const profile = await loadAutomationProfile(projectContext);
+  const bindings = await loadAutomationBindings(projectContext);
+  const action = findAutomationEntryAction(profile, body.actionId);
+  const binding = resolveAutomationEntryActionBinding(bindings, action.id);
+  const bindingStatus = await resolveCodexBindingStatus(binding, { projectRoot: projectContext.projectRoot });
+  if (bindingStatus.status !== "ready") {
+    sendJson(res, { error: bindingStatus.message ?? "当前设备绑定不可用。" }, 400);
+    return;
+  }
   const sourcePath = normalizeEntryActionPath(body.sourcePath, "sourcePath");
   const collectionPath = normalizeEntryActionPath(body.collectionPath, "collectionPath");
   const rowId = normalizeEntryActionRowId(body.rowId);
@@ -242,16 +290,17 @@ async function handleRunEntryAction(req, res) {
   const ext = path.extname(sourcePath).toLowerCase();
   const parsed = ext === ".csv" ? { data: parseCsv(text), format: "csv" } : parseJson(text);
   const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
-  const { row, previousRow, nextRow, rowCount } = resolveEntryActionRow(model, collectionPath, sourceRowIndex);
+  const { row, previousRow, nextRow, rowCount, sourceRowIndex: resolvedSourceRowIndex } = resolveEntryActionRow(model, collectionPath, sourceRowIndex, rowId);
   const runId = createEntryActionRunId();
   const handoff = buildEntryActionHandoff({
     runId,
     project,
     action,
+    binding,
     sourcePath,
     collectionPath,
     rowId,
-    sourceRowIndex,
+    sourceRowIndex: resolvedSourceRowIndex,
     row,
     previousRow,
     nextRow,
@@ -259,20 +308,41 @@ async function handleRunEntryAction(req, res) {
   });
   const handoffPath = await writeEntryActionHandoff(projectContext, runId, handoff);
 
-  await execFileAsync(process.execPath, [path.resolve(toolRoot, "scripts", "run-entry-action.mjs"), "--handoff", handoffPath], {
+  spawn(process.execPath, [path.resolve(toolRoot, "scripts", "run-entry-action.mjs"), "--handoff", handoffPath], {
     cwd: toolRoot,
     shell: false,
     windowsHide: true,
-    maxBuffer: 1024 * 1024,
-  });
+    // On Windows the fire-and-forget child can die before startup if it stays attached.
+    detached: true,
+    stdio: "ignore",
+  }).unref();
 
-  const started = await readEntryActionStarted(projectContext, runId);
   sendJson(res, {
     ok: true,
-    status: started.status,
+    status: "started",
     runId,
     handoffPath: entryActionHandoffPath(projectContext, runId),
   });
+}
+
+async function handleLoadEntryActionResult(url, res) {
+  const runId = String(url.searchParams.get("runId") ?? "").trim();
+  if (!runId) throw new Error("Missing runId");
+  const projectContext = await projectContextForUrl(url);
+  try {
+    sendJson(res, await readEntryActionResult(projectContext, runId));
+    return;
+  } catch {}
+  try {
+    sendJson(res, await readEntryActionStarted(projectContext, runId));
+    return;
+  } catch {}
+  try {
+    await readFile(entryActionHandoffPath(projectContext, runId), "utf8");
+    sendJson(res, { runId, status: "started" });
+    return;
+  } catch {}
+  sendJson(res, { error: `Unknown entry action run: ${runId}` }, 404);
 }
 
 function handleShutdown(res) {

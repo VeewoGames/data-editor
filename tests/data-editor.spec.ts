@@ -2854,7 +2854,6 @@ test("icon picker shows built-in and streamline family groups", async ({ page })
     await globalSearchToggle.check();
     await expect(page.locator(".view-tab-icon-picker-grid [data-view-icon='streamlineCoreSolidApplyToAll']")).toBeVisible();
 
-
     const delayedTooltipTarget = page.locator(".view-tab-icon-picker-grid .view-tab-icon-picker-option[data-view-icon='streamlineCoreSolidApplyToAll']");
     const delayedTooltip = page.locator(".view-tab-icon-picker-tooltip");
     await delayedTooltipTarget.hover();
@@ -2865,6 +2864,7 @@ test("icon picker shows built-in and streamline family groups", async ({ page })
     await expect(delayedTooltip).toHaveText("Apply To All");
     await page.mouse.move(0, 0);
     await expect(delayedTooltip).toHaveCount(0);
+
     await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
     await expect(page.locator(".view-tab-icon-picker-content")).toHaveCount(0);
     await page.locator(".view-tab-menu-icon-trigger[data-view-icon-trigger='view']").click();
@@ -10400,46 +10400,151 @@ test("project settings opens from the empty workspace state", async ({ page }) =
   await expect(page.getByRole("menuitemradio", { name: "Empty Project" })).toHaveAttribute("aria-checked", "true");
   await page.locator(".project-switcher-trigger").click();
   await expect(page.locator(".project-switcher-menu")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add project" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "自动化设置" })).toBeVisible();
   await page.getByRole("button", { name: "Project settings" }).click();
   await expect(page.getByRole("dialog", { name: "Project Settings" })).toBeVisible();
   await expect(page.locator(".project-settings-dialog .dialog-field").filter({ hasText: "Data Sources" }).locator("textarea")).toContainText("data|Data|relative|data");
 });
 
-test("project settings can save entryActions and show the detail action button", async ({ page }) => {
+test("add project opens from its own button", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Project settings" }).click();
-  const dialog = page.getByRole("dialog", { name: "Project Settings" });
+  await page.getByRole("button", { name: "Add project" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add Project" });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Add Project", exact: true })).toBeVisible();
+  await expect(dialog.locator(".dialog-field").filter({ hasText: "New Project Root" }).locator("input")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Project Settings" })).toHaveCount(0);
+});
 
-  const entryActionsField = dialog.locator(".dialog-field").filter({ hasText: "Entry Actions" }).locator("textarea");
-  const entryActionsValue = JSON.stringify([{
-    id: "recheck",
-    label: "Recheck",
-    icon: "refresh",
-    targets: {
-      files: ["data/e2e_select.json"],
-      collections: ["$"],
-    },
-    payload: {
-      includeRow: true,
-      includeNeighbors: true,
-    },
-  }], null, 2);
-  await entryActionsField.fill(entryActionsValue);
-  await dialog.getByRole("button", { name: "Save Project", exact: true }).click();
-  await expect(dialog).toHaveCount(0);
-
+test("automation settings loads personal rules and local bindings", async ({ page }) => {
   const projectsResponse = await page.request.get("/api/projects");
   expect(projectsResponse.ok()).toBeTruthy();
-  const projects = await projectsResponse.json() as {
+  const registry = await projectsResponse.json() as {
     activeProjectId: string | null;
-    projects: Array<{ id: string; entryActions?: Array<{ id: string }> }>;
   };
-  expect(projects.projects[0]?.entryActions?.map((action) => action.id)).toContain("recheck");
+  expect(registry.activeProjectId).toBeTruthy();
+  await page.request.post("/api/automation-profile", {
+    data: {
+      projectId: registry.activeProjectId,
+      profile: {
+        rules: [{
+          id: "recheck",
+          label: "Recheck",
+          icon: "wand",
+          enabled: true,
+          targets: [
+            { file: "data/e2e_select.json", collection: "$" },
+          ],
+          payload: {
+            includeRow: true,
+            includeNeighbors: false,
+          },
+        }],
+      },
+    },
+  });
+  await page.request.post("/api/automation-bindings", {
+    data: {
+      projectId: registry.activeProjectId,
+      bindings: {
+        bindings: {
+          recheck: {
+            provider: "codex",
+            skill: "recheck",
+            enabled: true,
+          },
+        },
+      },
+    },
+  });
 
-  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
-  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
-  await expect(page.locator('.detail-panel.primary .detail-nav button[title="Recheck"]')).toBeVisible();
+  await page.goto("/");
+  await page.getByRole("button", { name: "自动化设置" }).click();
+  const dialog = page.getByRole("dialog", { name: "自动化设置" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("1 条规则");
+  await expect(dialog).toContainText("1 条绑定就绪");
+  await expect(dialog).toContainText("0 条缺失");
+  await expect(dialog).toContainText("0 条无效");
+  const card = dialog.locator(".automation-rule-card").first();
+  await expect(card.getByRole("textbox", { name: "Rule Id" })).toHaveValue("recheck");
+  await expect(card.getByRole("textbox", { name: "Label" })).toHaveValue("Recheck");
+  await expect(card.getByRole("textbox", { name: "Icon" })).toHaveValue("wand");
+  await expect(card.getByRole("textbox", { name: "Skill" })).toHaveValue("recheck");
+  await expect(card.getByRole("combobox", { name: "目标文件 1" })).toHaveValue("data/e2e_select.json");
+  await expect(card.getByRole("combobox", { name: "目标集合 1" })).toHaveValue("$");
+  await expect(card).toContainText("data/e2e_select.json · 根集合 ($)");
+});
+
+test("automation settings shows local validation issues before save", async ({ page }) => {
+  const projectsResponse = await page.request.get("/api/projects");
+  expect(projectsResponse.ok()).toBeTruthy();
+  const registry = await projectsResponse.json() as {
+    activeProjectId: string | null;
+  };
+  expect(registry.activeProjectId).toBeTruthy();
+  await page.request.post("/api/automation-profile", {
+    data: {
+      projectId: registry.activeProjectId,
+      profile: { rules: [] },
+    },
+  });
+  await page.request.post("/api/automation-bindings", {
+    data: {
+      projectId: registry.activeProjectId,
+      bindings: { bindings: {} },
+    },
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "自动化设置" }).click();
+  const dialog = page.getByRole("dialog", { name: "自动化设置" });
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByRole("button", { name: "新增动作" }).click();
+  await expect(dialog).toContainText("校验问题");
+  await expect(dialog).toContainText("Rule 1: Label 不能为空。");
+  await expect(dialog).toContainText("Rule 1: 目标范围至少要有一项。");
+  await expect(dialog).toContainText("Rule 1: Skill 不能为空。");
+  await expect(dialog.getByRole("button", { name: "保存自动化设置" })).toBeDisabled();
+});
+
+test("automation settings keeps Rule Id focus while typing", async ({ page }) => {
+  const projectsResponse = await page.request.get("/api/projects");
+  expect(projectsResponse.ok()).toBeTruthy();
+  const registry = await projectsResponse.json() as {
+    activeProjectId: string | null;
+  };
+  expect(registry.activeProjectId).toBeTruthy();
+  await page.request.post("/api/automation-profile", {
+    data: {
+      projectId: registry.activeProjectId,
+      profile: { rules: [] },
+    },
+  });
+  await page.request.post("/api/automation-bindings", {
+    data: {
+      projectId: registry.activeProjectId,
+      bindings: { bindings: {} },
+    },
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "自动化设置" }).click();
+  const dialog = page.getByRole("dialog", { name: "自动化设置" });
+  await expect(dialog).toBeVisible();
+
+  const addRuleButton = dialog.getByRole("button", { name: "新增动作" });
+  await expect(addRuleButton).toBeEnabled();
+  await addRuleButton.click();
+  const ruleIdInput = dialog.getByRole("textbox", { name: "Rule Id" });
+  await expect(ruleIdInput).toBeVisible();
+  await ruleIdInput.click();
+  await ruleIdInput.type("test");
+
+  await expect(ruleIdInput).toHaveValue("action-1test");
+  await expect(ruleIdInput).toBeFocused();
 });
 
 test("detail panel entry action button triggers the server handoff flow", async ({ page }) => {
@@ -10455,25 +10560,42 @@ test("detail panel entry action button triggers the server handoff flow", async 
   const projectId = registry.activeProjectId;
   expect(projectId).toBeTruthy();
 
-  const updateResponse = await page.request.post("/api/project-update", {
+  const profileResponse = await page.request.post("/api/automation-profile", {
     data: {
-      id: projectId,
-      entryActions: [{
-        id: "recheck",
-        label: "Recheck",
-        icon: "refresh",
-        targets: {
-          files: ["data/e2e_select.json"],
-          collections: ["$"],
-        },
-        payload: {
-          includeRow: true,
-          includeNeighbors: true,
-        },
-      }],
+      projectId,
+      profile: {
+        rules: [{
+          id: "recheck",
+          label: "Recheck",
+          icon: "wand",
+          enabled: true,
+          targets: [
+            { file: "data/e2e_select.json", collection: "$" },
+          ],
+          payload: {
+            includeRow: true,
+            includeNeighbors: true,
+          },
+        }],
+      },
     },
   });
-  expect(updateResponse.ok()).toBeTruthy();
+  expect(profileResponse.ok()).toBeTruthy();
+  const bindingsResponse = await page.request.post("/api/automation-bindings", {
+    data: {
+      projectId,
+      bindings: {
+        bindings: {
+          recheck: {
+            provider: "codex",
+            skill: "recheck",
+            enabled: true,
+          },
+        },
+      },
+    },
+  });
+  expect(bindingsResponse.ok()).toBeTruthy();
 
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
@@ -10496,10 +10618,11 @@ test("detail panel entry action button triggers the server handoff flow", async 
 
   const handoffName = await newestEntryActionFile(entryActionsDir, ".json", ".started.json");
   const handoff = JSON.parse(await readFile(path.join(entryActionsDir, handoffName), "utf8")) as {
-    action: { id: string };
+    action: { id: string; binding?: { skill?: string } };
     entry: { sourcePath: string; collectionPath: string; sourceRowIndex: number };
   };
   expect(handoff.action.id).toBe("recheck");
+  expect(handoff.action.binding?.skill).toBe("recheck");
   expect(handoff.entry.sourcePath).toBe("data/e2e_select.json");
   expect(handoff.entry.collectionPath).toBe("$");
   expect(handoff.entry.sourceRowIndex).toBe(0);

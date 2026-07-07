@@ -23,6 +23,8 @@ type SidebarProps = {
   onSelectCollection: (path: string) => void;
   onSelectProject?: (projectId: string) => void;
   onOpenProjectSettings?: () => void;
+  onOpenAutomationSettings?: () => void;
+  onOpenAddProject?: () => void;
 };
 
 type SidebarTreeNode = {
@@ -107,13 +109,31 @@ export function Sidebar(props: SidebarProps) {
               <icons.chevronDown className="project-switcher-caret" aria-hidden="true" size={16} />
             </button>
             <button
+              aria-label="Add project"
+              className="project-switcher-add"
+              onClick={props.onOpenAddProject}
+              title="Add project"
+              type="button"
+            >
+              <icons.addField aria-hidden="true" size={16} />
+            </button>
+            <button
               aria-label="Project settings"
               className="project-switcher-add"
               onClick={props.onOpenProjectSettings}
               title="Project settings"
               type="button"
             >
-              +
+              <icons.settings aria-hidden="true" size={16} />
+            </button>
+            <button
+              aria-label="自动化设置"
+              className="project-switcher-add"
+              onClick={props.onOpenAutomationSettings}
+              title="自动化设置"
+              type="button"
+            >
+              <icons.wand aria-hidden="true" size={16} />
             </button>
             {projectMenuOpen ? (
               <div className="project-switcher-menu" role="menu">

@@ -1,4 +1,5 @@
 import { setByPath } from "./path-utils.mjs";
+import { buildVisibleFieldList, ensurePersistentEntryId } from "./model/persistent-entry-id.mjs";
 
 const objectMapCollectionPath = "$";
 const defaultObjectMapKeyField = "key";
@@ -31,16 +32,16 @@ export function getRows(model, collectionPath) {
 export function getMainColumns(model, collectionPath) {
   if (isRecordMapModel(model) && collectionPath === objectMapCollectionPath) {
     const fields = classifyFields(getRows(model, collectionPath), model.rootKeyField);
-    return [model.rootKeyField, ...fields.main];
+    return [model.rootKeyField, ...buildVisibleFieldList(fields.main)];
   }
-  return classifyFields(getRows(model, collectionPath)).main;
+  return buildVisibleFieldList(classifyFields(getRows(model, collectionPath)).main);
 }
 
 export function getNestedFields(model, collectionPath) {
-  return classifyFields(
+  return buildVisibleFieldList(classifyFields(
     getRows(model, collectionPath),
     isRecordMapModel(model) && collectionPath === objectMapCollectionPath ? model.rootKeyField : null,
-  ).nested;
+  ).nested);
 }
 
 export function summarizeNested(value) {
@@ -87,6 +88,7 @@ export function addRow(model, collectionPath, row) {
     model.root[key] = stripRecordMapKey(row, model.rootKeyField);
     return;
   }
+  ensurePersistentEntryId(row);
   getRows(model, collectionPath).push(row);
 }
 

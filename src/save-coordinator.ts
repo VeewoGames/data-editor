@@ -8,7 +8,11 @@ export type AutosaveSnapshot = {
 
 export type AutosaveFlushResult =
   | { outcome: "saved" | "idle" }
-  | { outcome: "blocked-confirmation" }
+  | {
+    outcome: "blocked-confirmation";
+    reason?: "primary-key-blocking" | "primary-key-confirmation";
+    message?: string | null;
+  }
   | { outcome: "deferred" }
   | { outcome: "error" };
 

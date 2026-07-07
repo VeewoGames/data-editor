@@ -9,6 +9,8 @@ import {
   createProject,
   listFiles,
   listProjects,
+  loadAutomationBindings,
+  loadAutomationProfile,
   listViewProfiles,
   loadDocument,
   loadDocumentContent,
@@ -19,15 +21,23 @@ import {
   recoverableRequestEventName,
   reopenEditor,
   rebuildFrontend,
+  loadEntryActionResult,
   runEntryAction,
   saveDocument,
   saveDocuments,
+  saveAutomationBindings,
+  saveAutomationProfile,
   saveSharedViews,
   shutdownServer,
   saveViewConfig,
   saveViewProfile,
   updateProject,
   type DataFile,
+  type DeviceEntryActionBindings,
+  type EntryActionRunResult,
+  type EntryActionBinding,
+  type EntryActionRule,
+  type EntryActionTarget,
   type ProjectDefinition,
   type SaveDocumentsResult,
   type CollectionView,
@@ -43,6 +53,7 @@ import {
   type SortRule,
   type SidebarTreePreferences,
   type UserViewLayoutState,
+  type UserAutomationProfile,
   type UserViewProfile,
   type ViewConfig,
 } from "./api/client";
@@ -58,12 +69,15 @@ import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanne
 import { icons, resolveSharedViewIconPackId } from "./components/icons";
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
 import { DataTable, type FieldConfig, type TableFieldConfig, type TableSnapshot } from "./table/DataTable";
-import { DetailPanel, type DetailSnapshot } from "./detail/DetailPanel";
+import { DetailPanel, type DetailEntryActionStatus, type DetailSnapshot } from "./detail/DetailPanel";
+import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
+import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
 import { buildDetailSelectionState, resolveDetailSelectionSync } from "./detail/selection-state.mjs";
 import { stabilizeViewResult } from "./view/stable-view-result.mjs";
 import { buildStableViewEngineRows } from "./view/stable-view-engine-rows.mjs";
 import type { DataRecord, DocumentModel } from "./model/documentModel";
 import { addField, addRow, buildDocumentModel, deleteField, deleteRow, getMainColumns, getNestedFields, getRows, setCellValue } from "./model/documentModel";
+import { ensurePersistentEntryIds } from "./model/persistent-entry-id.mjs";
 import type { FieldDisplayType } from "./model/fieldTypes";
 import { defaultTypeFor, isCompatible, resolveCompatibleDisplayType } from "./model/fieldTypes";
 import type { RelationOption } from "./model/relations";
@@ -501,6 +515,8 @@ export function App() {
   const [projects, setProjects] = useState<ProjectDefinition[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
+  const [automationSettingsOpen, setAutomationSettingsOpen] = useState(false);
+  const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [model, setModel] = useState<DocumentModel | null>(null);
   const [collectionPath, setCollectionPath] = useState("$");
@@ -514,6 +530,10 @@ export function App() {
   const [commandSaving, setCommandSaving] = useState(false);
   const [entryActionRunningId, setEntryActionRunningId] = useState<string | null>(null);
   const [entryActionErrorMessage, setEntryActionErrorMessage] = useState<string | null>(null);
+  const [entryActionStatus, setEntryActionStatus] = useState<DetailEntryActionStatus | null>(null);
+  const entryActionWatchIdRef = useRef(0);
+  const [automationProfileState, setAutomationProfileState] = useState<UserAutomationProfile>({ rules: [] });
+  const [automationBindingsState, setAutomationBindingsState] = useState<DeviceEntryActionBindings>({ bindings: {} });
   const [autosaveState, setAutosaveState] = useState<AutosaveState>("idle");
   const [closing, setClosing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
@@ -770,6 +790,36 @@ export function App() {
   }, [activeProjectId]);
 
   useEffect(() => {
+    if (!activeProject) {
+      setAutomationProfileState({ rules: [] });
+      setAutomationBindingsState({ bindings: {} });
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      loadAutomationProfile(activeProject.id),
+      loadAutomationBindings(activeProject.id),
+    ])
+      .then(([profile, bindings]) => {
+        if (cancelled) return;
+        setAutomationProfileState(profile);
+        setAutomationBindingsState(bindings);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setAutomationProfileState({ rules: [] });
+        setAutomationBindingsState({ bindings: {} });
+        setStatus(error instanceof Error ? error.message : String(error));
+      })
+      .finally(() => {
+        if (cancelled) return;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject]);
+
+  useEffect(() => {
     if (!selectedViewProfileName) {
       setSelectedViewProfile(emptyUserViewProfile());
       localStorage.removeItem(selectedViewProfileStorageKey);
@@ -938,6 +988,7 @@ export function App() {
     openRequestRef.current += 1;
     relationIndexRequestRef.current += 1;
     loadedProjectIdRef.current = null;
+    clearEntryActionFeedback();
     setFiles([]);
     setSelectedPath(null);
     setModel(null);
@@ -1028,7 +1079,7 @@ export function App() {
       const registry = await listProjects();
       setProjects(registry.projects);
       setActiveProjectId(registry.activeProjectId);
-      setProjectSettingsOpen(false);
+      setAddProjectOpen(false);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
@@ -1054,6 +1105,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!selectedPath || !model) {
+      setRelationIndexes({});
+      setRelationOptions({});
+      return;
+    }
     if (deferRelationWarmupRef.current) {
       deferRelationWarmupRef.current = false;
       scheduleDeferredTask(relationWarmupHandleRef, () => {
@@ -1062,7 +1118,7 @@ export function App() {
       return;
     }
     void loadRelationIndexes(viewConfig);
-  }, [viewConfig.relations, selectedPath, model, activeProjectId]);
+  }, [viewConfig.relations, selectedPath, collectionPath, model, activeProjectId, tableRevision]);
 
   useEffect(() => {
     async function syncHealth() {
@@ -1251,10 +1307,12 @@ export function App() {
     openDetailPanel = false,
     projectId = activeProjectId,
     targetRowId?: string | null,
+    preserveEntryActionFeedback = false,
   ) {
     const requestId = openRequestRef.current + 1;
     openRequestRef.current = requestId;
     selectedPathRef.current = path;
+    if (!preserveEntryActionFeedback) clearEntryActionFeedback();
     setSelectedPath(path);
     setModel(null);
     modelRef.current = null;
@@ -1293,6 +1351,7 @@ export function App() {
       return;
     }
     if (requestId !== openRequestRef.current) return;
+    const persistentEntryIdResult = ensurePersistentEntryIds(documentModel);
     const nextCollection = resolveDocumentCollection(documentModel, targetCollection);
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
     const nextStore = buildDocumentStoreTyped({ documentId: path, model: documentModel });
@@ -1314,9 +1373,10 @@ export function App() {
     setSelectedRowIndex(nextSelectedRowIndex);
     setSelectedRowIdState(nextSelectedRowId);
     setDetailOpen(openDetailPanel);
-    setDataDirty(false);
-    dataDirtyRef.current = false;
-    setStatus("");
+    setDataDirty(persistentEntryIdResult.changed);
+    dataDirtyRef.current = persistentEntryIdResult.changed;
+    if (persistentEntryIdResult.changed) saveCoordinator.markDirty("document");
+    setStatus(persistentEntryIdResult.changed ? `已为 ${persistentEntryIdResult.changedCount} 条记录补充内部条目 ID，待自动保存。` : "");
   }
 
   function finalizeDetailReorderAsyncSegment(segment: "backlinks" | "maintenance") {
@@ -1960,9 +2020,6 @@ export function App() {
     selectedSourceRowIndexRef.current = selectedSourceRowIndex;
   }, [selectedRowId, selectedSourceRowIndex]);
   useEffect(() => {
-    setEntryActionErrorMessage(null);
-  }, [activeProjectId, selectedPath, collectionPath, selectedRowId]);
-  useEffect(() => {
     const nextSelection = resolveDetailSelectionSync({
       collectionStore,
       selectedRowId: selectedRowIdState,
@@ -2184,10 +2241,13 @@ export function App() {
     registerActiveTextEditor,
   ]);
   const visibleEntryActions = useMemo(
-    () => activeProject && selectedPath
-      ? activeProject.entryActions.filter((action) => action.targets.files.includes(selectedPath) && action.targets.collections.includes(collectionPath))
-      : [],
-    [activeProject, selectedPath, collectionPath],
+    () => resolveVisibleEntryActions({
+      profile: automationProfileState,
+      bindings: automationBindingsState,
+      selectedPath,
+      collectionPath,
+    }),
+    [automationProfileState, automationBindingsState, selectedPath, collectionPath],
   );
   const detailSnapshot = useMemo<DetailSnapshot>(() => ({
     open: detailOpen,
@@ -2241,6 +2301,7 @@ export function App() {
     entryActions: visibleEntryActions,
     entryActionRunningId,
     entryActionErrorMessage,
+    entryActionStatus,
   }), [
     detailOpen,
     detailPanelWidth,
@@ -2280,6 +2341,7 @@ export function App() {
     visibleEntryActions,
     entryActionRunningId,
     entryActionErrorMessage,
+    entryActionStatus,
   ]);
   const sharedViewCollaborationMode = selectedViewProfileName
     ? (selectedViewProfile?.sharedViewCollaborationMode === "personal" ? "personal" : "team")
@@ -2860,13 +2922,47 @@ export function App() {
     return store.rowViews[sourceIndex]?.rowId ?? null;
   }
 
+  function clearEntryActionFeedback() {
+    entryActionWatchIdRef.current += 1;
+    setEntryActionErrorMessage(null);
+    setEntryActionStatus(null);
+  }
+
+  function buildCurrentEntryActionFeedbackSelection(): EntryActionFeedbackSelection {
+    return {
+      sourcePath: selectedPathRef.current,
+      collectionPath: collectionPathRef.current,
+      rowId: selectedRowIdRef.current,
+      sourceRowIndex: selectedSourceRowIndexRef.current,
+    };
+  }
+
+  function clearEntryActionFeedbackForSelection(nextSelection: EntryActionFeedbackSelection) {
+    if (shouldPreserveEntryActionFeedback(buildCurrentEntryActionFeedbackSelection(), nextSelection)) {
+      return;
+    }
+    clearEntryActionFeedback();
+  }
+
   function setSelectedSourceRow(sourceIndex: number | null, rowId: string | null = getRowIdAtSourceIndex(sourceIndex)) {
+    clearEntryActionFeedbackForSelection({
+      sourcePath: selectedPathRef.current,
+      collectionPath: collectionPathRef.current,
+      rowId,
+      sourceRowIndex: sourceIndex,
+    });
     setSelectedRowIndex(sourceIndex);
     setSelectedRowIdState(rowId);
   }
 
   function flushSelectedSourceRow(sourceIndex: number | null, rowId: string | null = getRowIdAtSourceIndex(sourceIndex)) {
     flushSync(() => {
+      clearEntryActionFeedbackForSelection({
+        sourcePath: selectedPathRef.current,
+        collectionPath: collectionPathRef.current,
+        rowId,
+        sourceRowIndex: sourceIndex,
+      });
       setSelectedRowIndex(sourceIndex);
       setSelectedRowIdState(rowId);
     });
@@ -3113,7 +3209,7 @@ export function App() {
   function handleSetPrimaryKeyField(fieldName: string) {
     if (!selectedPath) return;
     if (!canSetPrimaryKeyField(fieldName)) {
-      setStatus(`只有未配置关联的 Text 字段可以设为主键ID`);
+      setStatus("只有未配置关联的 Text 字段可以设为主键ID");
       return;
     }
     assignPrimaryKeyField(fieldName);
@@ -3519,10 +3615,43 @@ export function App() {
   async function handleRunDetailEntryAction(actionId: string) {
     if (entryActionRunningId) return;
     if (!activeProjectId || !selectedPath || selectedSourceRowIndex == null) return;
+    const actionLabel = visibleEntryActions.find((action) => action.id === actionId)?.label ?? actionId;
     setEntryActionErrorMessage(null);
+    setEntryActionStatus({
+      actionId,
+      tone: "running",
+      title: `${actionLabel} 运行中`,
+      detail: "正在保存当前条目并等待自动化执行完成。",
+    });
+    const watchId = entryActionWatchIdRef.current + 1;
+    entryActionWatchIdRef.current = watchId;
     setEntryActionRunningId(actionId);
     try {
-      await runEntryAction({
+      flushActiveTextEditorDraft();
+      const flushResult = await saveCoordinator.flush("flush");
+      if (flushResult.outcome === "blocked-confirmation") {
+        const blockedMessage = describeEntryActionFlushBlockedMessage(actionLabel, flushResult);
+        setEntryActionErrorMessage(blockedMessage);
+        setEntryActionStatus({
+          actionId,
+          tone: "warning",
+          title: `${actionLabel} 尚未发起`,
+          detail: blockedMessage,
+        });
+        return;
+      }
+      if (flushResult.outcome === "error") {
+        const failedMessage = "当前改动保存失败，自动化尚未发起。";
+        setEntryActionErrorMessage(failedMessage);
+        setEntryActionStatus({
+          actionId,
+          tone: "error",
+          title: `${actionLabel} 执行失败`,
+          detail: failedMessage,
+        });
+        return;
+      }
+      const result = await runEntryAction({
         projectId: activeProjectId,
         actionId,
         sourcePath: selectedPath,
@@ -3530,11 +3659,145 @@ export function App() {
         rowId: selectedRowId,
         sourceRowIndex: selectedSourceRowIndex,
       });
+      if (result.message) {
+        setEntryActionErrorMessage(result.message);
+      }
+      const waitOutcome = await waitForEntryActionResultWithBackground({
+        loadResult: loadEntryActionResult,
+        onEnterBackgroundWait: () => {
+          setEntryActionStatus({
+            actionId,
+            tone: "running",
+            title: `${actionLabel} 仍在执行`,
+            detail: "自动化耗时较长，仍在后台等待完成结果。结果返回后会自动更新。",
+          });
+        },
+        projectId: activeProjectId,
+        runId: result.runId,
+        shouldContinue: () => entryActionWatchIdRef.current === watchId,
+      });
+      const finalResult = resolveEntryActionWaitOutcome(actionId, actionLabel, waitOutcome);
+      if (!finalResult) return;
+      const finalStatus = buildEntryActionDetailStatus(actionId, actionLabel, finalResult);
+      setEntryActionStatus(finalStatus);
+      if (finalResult.message) setEntryActionErrorMessage(finalResult.message);
+      if (finalResult.status === "completed_with_writeback" || finalResult.status === "completed_without_observed_writeback") {
+        await openDocumentAt(
+          selectedPathRef.current ?? selectedPath,
+          collectionPathRef.current,
+          selectedSourceRowIndexRef.current ?? selectedSourceRowIndex,
+          true,
+          activeProjectId,
+          selectedRowIdRef.current ?? selectedRowId,
+          true,
+        );
+      }
     } catch (error) {
-      setEntryActionErrorMessage(error instanceof Error ? error.message : String(error));
+      if (error instanceof EntryActionResultWaitCancelledError) return;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setEntryActionErrorMessage(errorMessage);
+      setEntryActionStatus({
+        actionId,
+        tone: "error",
+        title: `${actionLabel} 执行失败`,
+        detail: errorMessage,
+      });
     } finally {
       setEntryActionRunningId(null);
     }
+  }
+
+  function describeEntryActionFlushBlockedMessage(
+    actionLabel: string,
+    flushResult: Awaited<ReturnType<typeof saveCoordinator.flush>>,
+  ) {
+    if (flushResult.outcome !== "blocked-confirmation") {
+      return `${actionLabel} 尚未发起。`;
+    }
+    if (flushResult.reason === "primary-key-blocking") {
+      return flushResult.message
+        ? `当前条目未保存，且主键同步校验未通过：${flushResult.message}`
+        : "当前条目未保存，且主键同步校验未通过，自动化尚未发起。";
+    }
+    if (flushResult.reason === "primary-key-confirmation") {
+      return flushResult.message
+        ? `当前条目未保存，且需要先确认主键同步影响：${flushResult.message}`
+        : "当前条目未保存，且需要先确认主键同步影响，自动化尚未发起。请先处理顶部待确认。";
+    }
+    return flushResult.message ?? "当前条目还有待确认的保存项，自动化尚未发起。请先处理顶部待确认。";
+  }
+
+  function buildEntryActionDetailStatus(
+    actionId: string,
+    actionLabel: string,
+    result: EntryActionRunResult,
+  ): DetailEntryActionStatus {
+    if (result.status === "completed_with_writeback") {
+      const changedFields = result.writebackCheck?.changedFields?.length
+        ? `已观察到字段变更：${result.writebackCheck.changedFields.join("、")}`
+        : "已观察到目标条目写回。";
+      return {
+        actionId,
+        tone: "success",
+        title: `${actionLabel} 已写回`,
+        detail: result.message ?? changedFields,
+      };
+    }
+    if (result.status === "completed_without_observed_writeback") {
+      return {
+        actionId,
+        tone: "warning",
+        title: `${actionLabel} 未观察到写回`,
+        detail: result.message ?? "自动化已执行完成，但当前未观察到目标条目发生变化。",
+      };
+    }
+    if (result.status === "rejected") {
+      return {
+        actionId,
+        tone: "warning",
+        title: `${actionLabel} 未执行`,
+        detail: result.message ?? result.reason ?? "自动化请求被拒绝，未进入执行。",
+      };
+    }
+    if (result.status === "failed") {
+      return {
+        actionId,
+        tone: "error",
+        title: `${actionLabel} 执行失败`,
+        detail: result.message ?? result.reason ?? "自动化执行失败。",
+      };
+    }
+    return {
+      actionId,
+      tone: "running",
+      title: `${actionLabel} 运行中`,
+      detail: "自动化仍在执行，正在等待完成结果。",
+    };
+  }
+
+  async function waitForEntryActionResult(runId: string, projectId: string): Promise<EntryActionRunResult> {
+    const outcome = await waitForEntryActionResultWithBackground({
+      loadResult: loadEntryActionResult,
+      projectId,
+      runId,
+    });
+    if (outcome.kind === "completed") return outcome.result;
+    throw new Error("自动化后台等待超时，仍未收到完成结果。");
+  }
+
+  function resolveEntryActionWaitOutcome(
+    actionId: string,
+    actionLabel: string,
+    outcome: WaitForEntryActionResultOutcome,
+  ) {
+    if (outcome.kind === "completed") return outcome.result;
+    setEntryActionStatus({
+      actionId,
+      tone: "warning",
+      title: `${actionLabel} 仍未完成`,
+      detail: "自动化已长时间运行，当前页面暂时停止等待。你可以稍后刷新页面再次查看最终写回结果。",
+    });
+    return null;
   }
 
   function persistDetailDocumentPanelOpen(nextOpen: boolean) {
@@ -3561,18 +3824,32 @@ export function App() {
   }
 
   function openDetail(rowIndex: number) {
+    const nextRowId = getRowIdAtSourceIndex(rowIndex);
     flushSync(() => {
+      clearEntryActionFeedbackForSelection({
+        sourcePath: selectedPathRef.current,
+        collectionPath: collectionPathRef.current,
+        rowId: nextRowId,
+        sourceRowIndex: rowIndex,
+      });
       setSelectedRowIndex(rowIndex);
-      setSelectedRowIdState(getRowIdAtSourceIndex(rowIndex));
+      setSelectedRowIdState(nextRowId);
       setDetailOpen(true);
     });
   }
 
   function openDetailForRow(rowIndex: number, rowId: string | null) {
     const resolvedSourceIndex = resolveSourceIndexFromRowId(rowId, rowIndex);
+    const resolvedRowId = rowId ?? getRowIdAtSourceIndex(resolvedSourceIndex);
     flushSync(() => {
+      clearEntryActionFeedbackForSelection({
+        sourcePath: selectedPathRef.current,
+        collectionPath: collectionPathRef.current,
+        rowId: resolvedRowId,
+        sourceRowIndex: resolvedSourceIndex,
+      });
       setSelectedRowIndex(resolvedSourceIndex);
-      setSelectedRowIdState(rowId ?? getRowIdAtSourceIndex(resolvedSourceIndex));
+      setSelectedRowIdState(resolvedRowId);
       setDetailOpen(true);
     });
   }
@@ -4443,8 +4720,13 @@ export function App() {
     }
     if (currentDataDirty && currentModel && currentSelectedPath && shouldInterceptPrimaryKeySyncPlan(currentPrimaryKeySyncPlan, currentDataDirty, false)) {
       if (currentPrimaryKeySyncPlan?.blockingIssues.length) {
-        setStatus(describePrimaryKeySyncBlockingIssues(currentPrimaryKeySyncPlan));
-        return { outcome: "blocked-confirmation" } as const;
+        const blockingMessage = describePrimaryKeySyncBlockingIssues(currentPrimaryKeySyncPlan);
+        setStatus(blockingMessage);
+        return {
+          outcome: "blocked-confirmation",
+          reason: "primary-key-blocking",
+          message: blockingMessage,
+        } as const;
       }
       setStatus("");
       try {
@@ -4461,7 +4743,11 @@ export function App() {
         setStatus(error instanceof Error ? error.message : String(error));
         throw error;
       }
-      return { outcome: "blocked-confirmation" } as const;
+      return {
+        outcome: "blocked-confirmation",
+        reason: "primary-key-confirmation",
+        message: "当前改动需要先确认主键同步影响。",
+      } as const;
     }
     autosaveInFlightRef.current = true;
     setStatus("");
@@ -4742,7 +5028,9 @@ export function App() {
           setSelectedSourceRow(0, null);
           }}
           onSelectProject={selectProject}
+          onOpenAddProject={() => setAddProjectOpen(true)}
           onOpenProjectSettings={() => setProjectSettingsOpen(true)}
+          onOpenAutomationSettings={() => setAutomationSettingsOpen(true)}
         />
         <div className="sidebar-resize-handle" onPointerDown={beginSidebarResize} aria-label="调整左侧栏宽度" role="separator" />
         <section className="empty-state">{status || "Loading..."}</section>
@@ -4752,6 +5040,22 @@ export function App() {
           activeProjectId={activeProjectId}
           onOpenChange={setProjectSettingsOpen}
           onSaveProject={saveProjectSettings}
+        />
+        <AutomationSettingsDialog
+          open={automationSettingsOpen}
+          project={activeProject}
+          files={files}
+          profile={automationProfileState}
+          bindings={automationBindingsState}
+          onOpenChange={setAutomationSettingsOpen}
+          onSaved={(nextProfile, nextBindings) => {
+            setAutomationProfileState(nextProfile);
+            setAutomationBindingsState(nextBindings);
+          }}
+        />
+        <AddProjectDialog
+          open={addProjectOpen}
+          onOpenChange={setAddProjectOpen}
           onCreateProject={createProjectFromSettings}
         />
       </main>
@@ -4780,7 +5084,9 @@ export function App() {
           setDetailOpen(false);
         }}
         onSelectProject={selectProject}
+        onOpenAddProject={() => setAddProjectOpen(true)}
         onOpenProjectSettings={() => setProjectSettingsOpen(true)}
+        onOpenAutomationSettings={() => setAutomationSettingsOpen(true)}
       />
       <div className="sidebar-resize-handle" onPointerDown={beginSidebarResize} aria-label="调整左侧栏宽度" role="separator" />
       <section className="workspace">
@@ -5090,6 +5396,22 @@ export function App() {
         activeProjectId={activeProjectId}
         onOpenChange={setProjectSettingsOpen}
         onSaveProject={saveProjectSettings}
+      />
+      <AutomationSettingsDialog
+        open={automationSettingsOpen}
+        project={activeProject}
+        files={files}
+        profile={automationProfileState}
+        bindings={automationBindingsState}
+        onOpenChange={setAutomationSettingsOpen}
+        onSaved={(nextProfile, nextBindings) => {
+          setAutomationProfileState(nextProfile);
+          setAutomationBindingsState(nextBindings);
+        }}
+      />
+      <AddProjectDialog
+        open={addProjectOpen}
+        onOpenChange={setAddProjectOpen}
         onCreateProject={createProjectFromSettings}
       />
     </main>
@@ -5182,59 +5504,32 @@ function ProjectSettingsDialog(props: {
   activeProjectId: string | null;
   onOpenChange: (open: boolean) => void;
   onSaveProject: (project: ProjectDefinition) => void;
-  onCreateProject: (input: { name: string; root: string }) => void;
 }) {
   const activeProject = props.projects.find((project) => project.id === props.activeProjectId) ?? null;
   const [name, setName] = useState("");
   const [root, setRoot] = useState("");
   const [sourcesText, setSourcesText] = useState("");
-  const [entryActionsText, setEntryActionsText] = useState("");
-  const [entryActionsError, setEntryActionsError] = useState<string | null>(null);
-  const [newProjectName, setNewProjectName] = useState("");
-  const [newProjectRoot, setNewProjectRoot] = useState("");
 
   useEffect(() => {
     if (!activeProject) {
       setName("");
       setRoot("");
       setSourcesText("");
-      setEntryActionsText("");
-      setEntryActionsError(null);
       return;
     }
     setName(activeProject.name);
     setRoot(activeProject.root);
     setSourcesText(activeProject.dataSources.map((source) => `${source.id}|${source.label}|${source.kind}|${source.path}`).join("\n"));
-    setEntryActionsText(serializeEntryActions(activeProject.entryActions));
-    setEntryActionsError(null);
   }, [activeProject]);
 
   function saveCurrentProject() {
     if (!activeProject) return;
-    let entryActions: ProjectDefinition["entryActions"];
-    try {
-      entryActions = parseEntryActionsText(entryActionsText);
-      setEntryActionsError(null);
-    } catch (error) {
-      setEntryActionsError(error instanceof Error ? error.message : String(error));
-      return;
-    }
     props.onSaveProject({
       ...activeProject,
       name,
       root,
       dataSources: parseDataSources(sourcesText),
-      entryActions,
     });
-  }
-
-  function createNextProject() {
-    props.onCreateProject({
-      name: newProjectName.trim() || "Project",
-      root: newProjectRoot.trim(),
-    });
-    setNewProjectName("");
-    setNewProjectRoot("");
   }
 
   return (
@@ -5261,18 +5556,6 @@ function ProjectSettingsDialog(props: {
                   onChange={(event) => setSourcesText(event.target.value)}
                 />
               </label>
-              <label className="dialog-field">
-                <span>Entry Actions</span>
-                <textarea
-                  rows={Math.min(14, Math.max(8, entryActionsText.split(/\r?\n/).length + 1))}
-                  value={entryActionsText}
-                  onChange={(event) => {
-                    setEntryActionsText(event.target.value);
-                    if (entryActionsError) setEntryActionsError(null);
-                  }}
-                />
-              </label>
-              {entryActionsError ? <div className="dialog-error">{entryActionsError}</div> : null}
               <div className="sidebar-label">Data Sources</div>
               <div className="project-source-list">
                 {parseDataSources(sourcesText).map((source) => (
@@ -5282,19 +5565,541 @@ function ProjectSettingsDialog(props: {
                   </div>
                 ))}
               </div>
-              <div className="sidebar-label">Entry Actions</div>
-              <div className="project-source-list">
-                {renderEntryActionSummary(entryActionsText).map((action) => (
-                  <div className="project-source-row" key={action.id}>
-                    <strong>{action.label}</strong>
-                    <small>{action.id} | {action.icon} | {action.targets.files.join(", ")} | {action.targets.collections.join(", ")}</small>
-                  </div>
-                ))}
-              </div>
             </div>
           ) : (
             <p>No active project.</p>
           )}
+          <div className="dialog-actions">
+            <Dialog.Close className="primary-button">Close</Dialog.Close>
+            <button className="primary-button" disabled={!activeProject} onClick={saveCurrentProject} type="button">Save Project</button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function AutomationSettingsDialog(props: {
+  open: boolean;
+  project: ProjectDefinition | null;
+  files: DataFile[];
+  profile: UserAutomationProfile;
+  bindings: DeviceEntryActionBindings;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (profile: UserAutomationProfile, bindings: DeviceEntryActionBindings) => void;
+}) {
+  const [profile, setProfile] = useState<UserAutomationProfile>(props.profile);
+  const [bindings, setBindings] = useState<DeviceEntryActionBindings>(props.bindings);
+  const [targetCatalog, setTargetCatalog] = useState<AutomationTargetCatalogItem[]>([]);
+  const [targetCatalogLoading, setTargetCatalogLoading] = useState(false);
+  const [targetCatalogError, setTargetCatalogError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const targetCatalogByFile = useMemo(
+    () => Object.fromEntries(targetCatalog.map((item) => [item.file, item])) as Record<string, AutomationTargetCatalogItem>,
+    [targetCatalog],
+  );
+
+  useEffect(() => {
+    if (!props.open) return;
+    setProfile(props.profile);
+    setBindings(props.bindings);
+  }, [props.open, props.profile, props.bindings]);
+
+  useEffect(() => {
+    if (!props.open || !props.project?.id) return;
+    let cancelled = false;
+    setLoading(true);
+    setLoadedProjectId((current) => (current === props.project!.id ? current : null));
+    setError(null);
+    setSaveMessage(null);
+    Promise.all([
+      loadAutomationProfile(props.project.id),
+      loadAutomationBindings(props.project.id),
+    ])
+      .then(([nextProfile, nextBindings]) => {
+        if (cancelled) return;
+        setProfile(nextProfile);
+        setBindings(nextBindings);
+        setLoadedProjectId(props.project!.id);
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        setError(loadError instanceof Error ? loadError.message : String(loadError));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [props.open, props.project?.id]);
+
+  useEffect(() => {
+    if (!props.open || !props.project?.id) return;
+    let cancelled = false;
+    setTargetCatalogLoading(true);
+    setTargetCatalogError(null);
+    Promise.all(props.files.map(async (file) => {
+      try {
+        const model = await loadDocument(file.path, props.project!.id) as DocumentModel;
+        return {
+          file: file.path,
+          label: file.displayPath ?? file.path,
+          collections: model.collections.map((collection) => collection.path),
+          error: null,
+        };
+      } catch (catalogError) {
+        return {
+          file: file.path,
+          label: file.displayPath ?? file.path,
+          collections: [],
+          error: catalogError instanceof Error ? catalogError.message : String(catalogError),
+        };
+      }
+    }))
+      .then((items) => {
+        if (cancelled) return;
+        setTargetCatalog(items.map((item) => ({
+          file: item.file,
+          label: item.label,
+          collections: item.collections,
+        })));
+        const failedCount = items.filter((item) => item.error).length;
+        setTargetCatalogError(failedCount ? `有 ${failedCount} 个文件未能读取可选集合，仍可继续编辑已加载的目标。` : null);
+      })
+      .finally(() => {
+        if (!cancelled) setTargetCatalogLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [props.open, props.project?.id, props.files]);
+
+  const rules = profile.rules;
+  const controlsDisabled = saving || loading || !props.project || loadedProjectId !== props.project.id || loadedProjectId === null;
+  const activeRules = rules.filter((rule) => rule.enabled);
+  const bindingCounts = activeRules.reduce((summary, rule) => {
+    const binding = bindings.bindings[rule.id];
+    const bindingStatus = bindings.bindingStatuses?.[rule.id];
+    if (!binding) {
+      summary.missing += 1;
+      return summary;
+    }
+    if (!binding.enabled || !binding.skill.trim() || bindingStatus?.status === "invalid") {
+      summary.invalid += 1;
+      return summary;
+    }
+    summary.ready += 1;
+    return summary;
+  }, { ready: 0, missing: 0, invalid: 0 });
+  const validationIssues = useMemo(
+    () => validateAutomationSettings(profile, bindings),
+    [profile, bindings],
+  );
+
+  function updateRule(index: number, nextRule: EntryActionRule) {
+    setProfile((current) => ({
+      rules: current.rules.map((rule, currentIndex) => (currentIndex === index ? nextRule : rule)),
+    }));
+  }
+
+  function updateRuleField<K extends keyof EntryActionRule>(index: number, field: K, value: EntryActionRule[K]) {
+    const rule = rules[index];
+    if (!rule) return;
+    updateRule(index, { ...rule, [field]: value });
+  }
+
+  function updateRuleTargets(index: number, nextTargets: EntryActionTarget[]) {
+    const rule = rules[index];
+    if (!rule) return;
+    updateRule(index, {
+      ...rule,
+      targets: nextTargets,
+    });
+  }
+
+  function addRuleTarget(index: number) {
+    const file = targetCatalog[0]?.file ?? "";
+    const collection = resolveTargetCollectionOptions(targetCatalogByFile, file)[0] ?? "$";
+    const rule = rules[index];
+    if (!rule) return;
+    updateRuleTargets(index, [...rule.targets, { file, collection }]);
+  }
+
+  function removeRuleTarget(index: number, targetIndex: number) {
+    const rule = rules[index];
+    if (!rule) return;
+    updateRuleTargets(index, rule.targets.filter((_, currentIndex) => currentIndex !== targetIndex));
+  }
+
+  function updateRuleTargetFile(index: number, targetIndex: number, file: string) {
+    const rule = rules[index];
+    if (!rule) return;
+    updateRuleTargets(index, rule.targets.map((target, currentIndex) => {
+      if (currentIndex !== targetIndex) return target;
+      const collectionOptions = resolveTargetCollectionOptions(targetCatalogByFile, file, target.collection);
+      return {
+        file,
+        collection: collectionOptions[0] ?? target.collection,
+      };
+    }));
+  }
+
+  function updateRuleTargetCollection(index: number, targetIndex: number, collection: string) {
+    const rule = rules[index];
+    if (!rule) return;
+    updateRuleTargets(index, rule.targets.map((target, currentIndex) => (
+      currentIndex === targetIndex ? { ...target, collection } : target
+    )));
+  }
+
+  function updateRuleId(index: number, nextIdRaw: string) {
+    const rule = rules[index];
+    if (!rule) return;
+    const nextId = nextIdRaw.trim();
+    const previousId = rule.id;
+    updateRule(index, { ...rule, id: nextId });
+    if (!previousId || previousId === nextId) return;
+    setBindings((current) => {
+      const nextBindings = { ...current.bindings };
+      const previousBinding = nextBindings[previousId];
+      delete nextBindings[previousId];
+      if (previousBinding && nextId) nextBindings[nextId] = previousBinding;
+      return { bindings: nextBindings };
+    });
+  }
+
+  function updateBinding(ruleId: string, nextBinding: EntryActionBinding) {
+    setBindings((current) => ({
+      bindings: {
+        ...current.bindings,
+        [ruleId]: nextBinding,
+      },
+    }));
+  }
+
+  function removeRule(index: number) {
+    const rule = rules[index];
+    setProfile((current) => ({
+      rules: current.rules.filter((_, currentIndex) => currentIndex !== index),
+    }));
+    if (!rule?.id) return;
+    setBindings((current) => {
+      const nextBindings = { ...current.bindings };
+      delete nextBindings[rule.id];
+      return { bindings: nextBindings };
+    });
+  }
+
+  function addRule() {
+    const nextIdBase = "action";
+    let nextId = `${nextIdBase}-${rules.length + 1}`;
+    let counter = rules.length + 1;
+    const existingIds = new Set(rules.map((rule) => rule.id));
+    while (existingIds.has(nextId)) {
+      counter += 1;
+      nextId = `${nextIdBase}-${counter}`;
+    }
+    setProfile((current) => ({
+      rules: [
+        ...current.rules,
+        {
+          id: nextId,
+          label: "",
+          icon: "wand",
+          enabled: true,
+          targets: [],
+          payload: {
+            includeRow: true,
+            includeNeighbors: false,
+          },
+        },
+      ],
+    }));
+    setBindings((current) => ({
+      bindings: {
+        ...current.bindings,
+        [nextId]: {
+          provider: "codex",
+          skill: "",
+          enabled: true,
+        },
+      },
+    }));
+  }
+
+  async function saveAutomationSettings() {
+    if (!props.project?.id) return;
+    if (validationIssues.length > 0) {
+      setError("请先修正自动化设置中的校验问题，再保存。");
+      setSaveMessage(null);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSaveMessage(null);
+    try {
+      await saveAutomationProfile(profile, props.project.id);
+      await saveAutomationBindings(bindings, props.project.id);
+      props.onSaved(profile, bindings);
+      setSaveMessage("自动化设置已保存。");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : String(saveError));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="dialog-overlay" />
+        <Dialog.Content className="dialog-content automation-settings-dialog">
+          <Dialog.Title>自动化设置</Dialog.Title>
+          <div className="automation-settings-frame">
+            {props.project ? (
+              <div className="automation-settings">
+                <div className="automation-settings-overview">
+                  <div className="automation-settings-summary">
+                    <div className="automation-settings-summary__title">
+                      <strong>{props.project.name}</strong>
+                      <small>当前项目的个人自动化入口与本机绑定</small>
+                    </div>
+                    <div className="automation-settings-summary__stats" aria-label="自动化配置摘要">
+                      <span className="automation-stat-chip">{rules.length} 条规则</span>
+                      <span className="automation-stat-chip ok">{bindingCounts.ready} 条绑定就绪</span>
+                      <span className="automation-stat-chip">{bindingCounts.missing} 条缺失</span>
+                      <span className="automation-stat-chip warn">{bindingCounts.invalid} 条无效</span>
+                    </div>
+                  </div>
+                  <div className="automation-storage-note">
+                    <strong>存储位置</strong>
+                    <small>规则保存在个人自动化配置档；本机技能绑定保存在项目本地 `.data-editor/local/automation-bindings.json`。</small>
+                  </div>
+                </div>
+                {loading ? <div className="automation-settings-loading">正在加载自动化设置...</div> : null}
+                <div className="automation-settings-header">
+                  <div className="automation-settings-header__title">
+                    <div className="sidebar-label">规则列表</div>
+                    <small>{rules.length ? "按动作规则逐条配置入口、目标范围和本机绑定" : "先新增一条动作规则，再继续填写字段与绑定"}</small>
+                  </div>
+                  <button className="ghost-button" disabled={controlsDisabled} onClick={addRule} type="button">新增动作</button>
+                </div>
+                {validationIssues.length ? (
+                  <div className="automation-validation-panel">
+                    <strong>校验问题</strong>
+                    <ul className="automation-validation-list">
+                      {validationIssues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {rules.length ? (
+                  <div className="automation-rule-list">
+                    {rules.map((rule, index) => {
+                      const binding = bindings.bindings[rule.id] ?? {
+                        provider: "codex" as const,
+                        skill: "",
+                        enabled: true,
+                      };
+                      return (
+                        <section className="automation-rule-card" key={`rule-${index}`}>
+                          <div className="automation-rule-card__header">
+                            <div className="automation-rule-card__title-group">
+                              <strong>{rule.label || rule.id || `动作 ${index + 1}`}</strong>
+                              <small>{rule.enabled ? "规则已启用" : "规则未启用"} · {binding.enabled ? "本机绑定已启用" : "本机绑定未启用"}</small>
+                            </div>
+                            <button className="ghost-button danger-button" disabled={controlsDisabled} onClick={() => removeRule(index)} type="button">删除</button>
+                          </div>
+                          <div className="automation-rule-section">
+                            <div className="automation-rule-section__label">基础信息</div>
+                            <div className="automation-rule-grid">
+                              <label className="dialog-field">
+                                <span>Rule Id</span>
+                                <input value={rule.id} onChange={(event) => updateRuleId(index, event.target.value)} />
+                              </label>
+                              <label className="dialog-field">
+                                <span>Label</span>
+                                <input value={rule.label} onChange={(event) => updateRuleField(index, "label", event.target.value)} />
+                              </label>
+                              <label className="dialog-field">
+                                <span>Icon</span>
+                                <input value={rule.icon} onChange={(event) => updateRuleField(index, "icon", event.target.value as SharedViewIconId)} />
+                              </label>
+                              <label className="dialog-field">
+                                <span>Skill</span>
+                                <input
+                                  placeholder="recheck / explain / ..."
+                                  value={binding.skill}
+                                  onChange={(event) => updateBinding(rule.id, { ...binding, skill: event.target.value })}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                          <div className="automation-rule-section">
+                            <div className="automation-rule-section__label">目标范围</div>
+                            <div className="automation-target-editor">
+                              <div className="automation-target-summary">
+                                {rule.targets.length ? rule.targets.map((target, targetIndex) => (
+                                  <span className="automation-target-chip" key={`${target.file}:${target.collection}:${targetIndex}`}>
+                                    {describeAutomationTarget(target, targetCatalogByFile)}
+                                  </span>
+                                )) : (
+                                  <small className="automation-target-empty">还没有目标。一个目标表示“某个文件里的某个 collection”。</small>
+                                )}
+                              </div>
+                              {targetCatalogLoading ? <div className="automation-settings-loading">正在加载目标候选...</div> : null}
+                              {targetCatalogError ? <div className="dialog-help">{targetCatalogError}</div> : null}
+                              <div className="automation-target-list">
+                                {rule.targets.map((target, targetIndex) => {
+                                  const collectionOptions = resolveTargetCollectionOptions(targetCatalogByFile, target.file, target.collection);
+                                  return (
+                                    <div className="automation-target-row" key={`${target.file}:${target.collection}:${targetIndex}`}>
+                                      <label className="dialog-field">
+                                        <span>目标文件 {targetIndex + 1}</span>
+                                        <select value={target.file} onChange={(event) => updateRuleTargetFile(index, targetIndex, event.target.value)}>
+                                          {buildTargetFileOptions(targetCatalog, target.file).map((option) => (
+                                            <option key={option.file} value={option.file}>{option.label}</option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                      <label className="dialog-field">
+                                        <span>目标集合 {targetIndex + 1}</span>
+                                        <select
+                                          value={target.collection}
+                                          disabled={!target.file}
+                                          onChange={(event) => updateRuleTargetCollection(index, targetIndex, event.target.value)}
+                                        >
+                                          {collectionOptions.map((collection) => (
+                                            <option key={collection} value={collection}>{describeCollectionPath(collection)}</option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                      <button className="ghost-button danger-button automation-target-remove" disabled={controlsDisabled} onClick={() => removeRuleTarget(index, targetIndex)} type="button">
+                                        删除目标
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="automation-target-actions">
+                                <button className="ghost-button" disabled={controlsDisabled || targetCatalogLoading || targetCatalog.length === 0} onClick={() => addRuleTarget(index)} type="button">
+                                  新增目标
+                                </button>
+                                <small>根数组或根对象会显示为“根集合 ($)”，因此即使多个文件都叫 `$`，也会和文件路径一起区分。</small>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="automation-rule-section">
+                            <div className="automation-rule-section__label">执行选项</div>
+                            <div className="automation-rule-checks">
+                              <label className="dialog-check">
+                                <input
+                                  type="checkbox"
+                                  checked={rule.enabled}
+                                  onChange={(event) => updateRuleField(index, "enabled", event.target.checked)}
+                                />
+                                启用规则
+                              </label>
+                              <label className="dialog-check">
+                                <input
+                                  type="checkbox"
+                                  checked={binding.enabled}
+                                  onChange={(event) => updateBinding(rule.id, { ...binding, enabled: event.target.checked })}
+                                />
+                                在本机启用绑定
+                              </label>
+                              <label className="dialog-check">
+                                <input
+                                  type="checkbox"
+                                  checked={rule.payload.includeRow}
+                                  onChange={(event) => updateRule(index, {
+                                    ...rule,
+                                    payload: {
+                                      ...rule.payload,
+                                      includeRow: event.target.checked,
+                                    },
+                                  })}
+                                />
+                                包含当前条目
+                              </label>
+                              <label className="dialog-check">
+                                <input
+                                  type="checkbox"
+                                  checked={rule.payload.includeNeighbors}
+                                  onChange={(event) => updateRule(index, {
+                                    ...rule,
+                                    payload: {
+                                      ...rule.payload,
+                                      includeNeighbors: event.target.checked,
+                                    },
+                                  })}
+                                />
+                                包含相邻条目
+                              </label>
+                            </div>
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="project-source-row">
+                    <strong>暂无个人自动化动作</strong>
+                    <small>新增一条动作规则后，就可以为当前项目配置自己的 Codex 技能入口。</small>
+                  </div>
+                )}
+                {error ? <div className="dialog-error">{error}</div> : null}
+                {saveMessage ? <div className="dialog-help">{saveMessage}</div> : null}
+              </div>
+            ) : (
+              <p>当前没有活动项目。</p>
+            )}
+          </div>
+          <div className="dialog-actions">
+            <Dialog.Close className="ghost-button">关闭</Dialog.Close>
+            <button className="primary-button" disabled={controlsDisabled || validationIssues.length > 0} onClick={() => void saveAutomationSettings()} type="button">
+              {saving ? "正在保存..." : "保存自动化设置"}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function AddProjectDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreateProject: (input: { name: string; root: string }) => void;
+}) {
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectRoot, setNewProjectRoot] = useState("");
+
+  useEffect(() => {
+    if (props.open) return;
+    setNewProjectName("");
+    setNewProjectRoot("");
+  }, [props.open]);
+
+  function createNextProject() {
+    props.onCreateProject({
+      name: newProjectName.trim() || "Project",
+      root: newProjectRoot.trim(),
+    });
+  }
+
+  return (
+    <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="dialog-overlay" />
+        <Dialog.Content className="dialog-content">
+          <Dialog.Title>Add Project</Dialog.Title>
           <div className="project-settings-create">
             <label className="dialog-field">
               <span>New Project Name</span>
@@ -5306,9 +6111,8 @@ function ProjectSettingsDialog(props: {
             </label>
           </div>
           <div className="dialog-actions">
-            <Dialog.Close className="primary-button">Close</Dialog.Close>
-            <button className="ghost-button" disabled={!newProjectRoot.trim()} onClick={createNextProject} type="button">Add Project</button>
-            <button className="primary-button" disabled={!activeProject} onClick={saveCurrentProject} type="button">Save Project</button>
+            <Dialog.Close className="ghost-button">Close</Dialog.Close>
+            <button className="primary-button" disabled={!newProjectRoot.trim()} onClick={createNextProject} type="button">Add Project</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
@@ -5334,51 +6138,120 @@ function parseDataSources(text: string) {
   return sources.length ? sources : [{ id: "data", label: "Data", kind: "relative" as const, path: "data" }];
 }
 
-function serializeEntryActions(entryActions: ProjectDefinition["entryActions"]) {
-  return JSON.stringify(entryActions ?? [], null, 2);
-}
-
-function parseEntryActionsText(text: string): ProjectDefinition["entryActions"] {
-  const trimmed = text.trim();
-  if (!trimmed) return [];
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch (error) {
-    throw new Error(`Entry Actions JSON 解析失败：${error instanceof Error ? error.message : String(error)}`);
-  }
-  if (!Array.isArray(parsed)) throw new Error("Entry Actions 必须是 JSON 数组。");
-  return parsed.map((action, index) => {
-    if (!action || typeof action !== "object" || Array.isArray(action)) {
-      throw new Error(`Entry Actions 第 ${index + 1} 项必须是对象。`);
+function validateAutomationSettings(profile: UserAutomationProfile, bindings: DeviceEntryActionBindings) {
+  const issues: string[] = [];
+  const seenRuleIds = new Set<string>();
+  for (const [index, rule] of profile.rules.entries()) {
+    const prefix = `Rule ${index + 1}`;
+    const ruleId = rule.id.trim();
+    if (!ruleId) {
+      issues.push(`${prefix}: Rule Id 不能为空。`);
+    } else {
+      if (!/^[a-z0-9_-]+$/.test(ruleId)) {
+        issues.push(`${prefix}: Rule Id 只能使用小写字母、数字、_ 或 -。`);
+      }
+      if (seenRuleIds.has(ruleId)) {
+        issues.push(`${prefix}: Rule Id "${ruleId}" 重复。`);
+      }
+      seenRuleIds.add(ruleId);
     }
-    const normalized = action as Record<string, unknown>;
-    return {
-      id: String(normalized.id ?? "").trim(),
-      label: String(normalized.label ?? "").trim(),
-      icon: String(normalized.icon ?? "").trim(),
-      targets: {
-        files: Array.isArray((normalized.targets as { files?: unknown[] } | undefined)?.files)
-          ? (normalized.targets as { files: unknown[] }).files.map((item) => String(item ?? "").trim()).filter(Boolean)
-          : [],
-        collections: Array.isArray((normalized.targets as { collections?: unknown[] } | undefined)?.collections)
-          ? (normalized.targets as { collections: unknown[] }).collections.map((item) => String(item ?? "").trim()).filter(Boolean)
-          : [],
-      },
-      payload: {
-        includeRow: (normalized.payload as { includeRow?: unknown } | undefined)?.includeRow !== false,
-        includeNeighbors: (normalized.payload as { includeNeighbors?: unknown } | undefined)?.includeNeighbors === true,
-      },
-    };
-  });
+    if (!rule.label.trim()) issues.push(`${prefix}: Label 不能为空。`);
+    if (!rule.icon.trim()) issues.push(`${prefix}: Icon 不能为空。`);
+    if (rule.targets.length === 0) {
+      issues.push(`${prefix}: 目标范围至少要有一项。`);
+    } else {
+      const seenTargets = new Set<string>();
+      for (const target of rule.targets) {
+        if (!target.file.trim()) issues.push(`${prefix}: 目标文件不能为空。`);
+        if (!target.collection.trim()) issues.push(`${prefix}: 目标集合不能为空。`);
+        const key = `${target.file}\u0000${target.collection}`;
+        if (seenTargets.has(key)) issues.push(`${prefix}: 目标 "${target.file} / ${target.collection}" 重复。`);
+        seenTargets.add(key);
+      }
+    }
+
+    const binding = bindings.bindings[ruleId];
+    const bindingStatus = bindings.bindingStatuses?.[ruleId];
+    if (!rule.enabled) continue;
+    if (!binding) {
+      issues.push(`${prefix}: 当前设备缺少 binding。`);
+      continue;
+    }
+    if (binding.provider !== "codex") issues.push(`${prefix}: Provider 目前只支持 codex。`);
+    if (!binding.skill.trim()) issues.push(`${prefix}: Skill 不能为空。`);
+    if (bindingStatus?.status === "invalid" && bindingStatus.message) {
+      issues.push(`${prefix}: ${bindingStatus.message}`);
+    }
+  }
+  for (const ruleId of Object.keys(bindings.bindings)) {
+    if (!seenRuleIds.has(ruleId)) {
+      issues.push(`Binding "${ruleId}" 没有对应的 rule。`);
+    }
+  }
+  return issues;
 }
 
-function renderEntryActionSummary(text: string) {
-  try {
-    return parseEntryActionsText(text);
-  } catch {
-    return [];
+function resolveVisibleEntryActions(input: {
+  profile: UserAutomationProfile;
+  bindings: DeviceEntryActionBindings;
+  selectedPath: string | null;
+  collectionPath: string;
+}): EntryActionRule[] {
+  if (!input.selectedPath) return [];
+  return input.profile.rules
+    .filter((rule) => rule.enabled !== false)
+    .filter((rule) => rule.targets.some((target) => target.file === input.selectedPath && target.collection === input.collectionPath))
+    .filter((rule) => {
+      const binding = input.bindings.bindings[rule.id];
+      const bindingStatus = input.bindings.bindingStatuses?.[rule.id];
+      return Boolean(binding && binding.enabled !== false && binding.skill.trim() && bindingStatus?.status !== "invalid");
+    })
+    .map((rule) => ({
+      id: rule.id,
+      label: rule.label,
+      icon: rule.icon,
+      enabled: true,
+      targets: rule.targets.map((target) => ({ ...target })),
+      payload: {
+        includeRow: rule.payload.includeRow,
+        includeNeighbors: rule.payload.includeNeighbors,
+      },
+    }));
+}
+
+type AutomationTargetCatalogItem = {
+  file: string;
+  label: string;
+  collections: string[];
+};
+
+function buildTargetFileOptions(catalog: AutomationTargetCatalogItem[], selectedFile: string) {
+  const options = [...catalog];
+  if (selectedFile && !options.some((item) => item.file === selectedFile)) {
+    options.unshift({ file: selectedFile, label: selectedFile, collections: [] });
   }
+  return options;
+}
+
+function resolveTargetCollectionOptions(
+  catalogByFile: Record<string, AutomationTargetCatalogItem>,
+  file: string,
+  selectedCollection: string | null = null,
+) {
+  const collections = [...(catalogByFile[file]?.collections ?? [])];
+  if (selectedCollection && !collections.includes(selectedCollection)) {
+    collections.unshift(selectedCollection);
+  }
+  return collections;
+}
+
+function describeCollectionPath(collectionPath: string) {
+  return collectionPath === "$" ? "根集合 ($)" : collectionPath;
+}
+
+function describeAutomationTarget(target: EntryActionTarget, catalogByFile: Record<string, AutomationTargetCatalogItem>) {
+  const fileLabel = catalogByFile[target.file]?.label ?? target.file;
+  return `${fileLabel} · ${describeCollectionPath(target.collection)}`;
 }
 
 function ConfirmDialog(props: {

@@ -5,6 +5,8 @@ export const legacyViewProfilesDir = "tools/data-editor/view-configs";
 
 export const defaultSharedViewConfigPath = ".data-editor/view-config.json";
 export const defaultProjectViewProfilesDir = ".data-editor/view-configs";
+export const defaultAutomationProfilePath = ".data-editor/automation-profile.json";
+export const defaultLocalAutomationBindingsPath = ".data-editor/local/automation-bindings.json";
 export const defaultRuntimeDir = ".data-editor/runtime";
 export const defaultLogsDir = ".data-editor/logs";
 export const defaultDataSourceId = "data";
@@ -16,10 +18,15 @@ export function createProjectContext(input = {}) {
   const projectRoot = path.resolve(input.projectRoot ?? input.root ?? process.cwd());
   const projectId = input.projectId ?? defaultProjectId(projectRoot);
   const profileBaseDir = input.profileBaseDir ?? process.env.DATA_EDITOR_PROFILE_HOME;
+  const sharedConfigDir = profileBaseDir
+    ? path.join(path.resolve(profileBaseDir), projectId)
+    : path.join(projectRoot, ".data-editor");
   const userViewProfilesDir = input.userViewProfilesDir
-    ?? (profileBaseDir
-      ? path.join(path.resolve(profileBaseDir), projectId)
-      : path.join(projectRoot, defaultProjectViewProfilesDir));
+    ?? (profileBaseDir ? sharedConfigDir : path.join(projectRoot, defaultProjectViewProfilesDir));
+  const automationProfilePath = input.automationProfilePath
+    ?? path.join(sharedConfigDir, path.basename(defaultAutomationProfilePath));
+  const localAutomationBindingsPath = input.localAutomationBindingsPath
+    ?? path.join(projectRoot, defaultLocalAutomationBindingsPath);
   return {
     projectRoot,
     projectId,
@@ -29,6 +36,8 @@ export function createProjectContext(input = {}) {
     sharedViewConfigPath: input.sharedViewConfigPath ?? defaultSharedViewConfigPath,
     legacySharedViewConfigPath: input.legacySharedViewConfigPath ?? legacySharedViewConfigPath,
     userViewProfilesDir,
+    automationProfilePath,
+    localAutomationBindingsPath,
     legacyViewProfilesDir: input.legacyViewProfilesDir ?? legacyViewProfilesDir,
     runtimeDir: input.runtimeDir ?? defaultRuntimeDir,
     logsDir: input.logsDir ?? defaultLogsDir,

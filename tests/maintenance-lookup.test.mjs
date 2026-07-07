@@ -84,6 +84,88 @@ test("buildMaintenanceLookupState returns empty state when no applicable primary
   assert.equal(result.primaryKeySyncPlan, null);
 });
 
+test("buildMaintenanceLookupState does not block when configured business primary key stays empty", async () => {
+  const activeModel = buildDocumentModel([
+    { __entry_id: "01JZTESTENTRY0000000000000A", skill_id: "", skill_name: "Alpha" },
+  ], "json", "data/skills.json");
+
+  const result = await buildMaintenanceLookupState({
+    selectedPath: "data/skills.json",
+    collectionPath: "$",
+    selectedRow: activeModel.root[0],
+    selectedSourceRowIndex: 0,
+    selectedRowLabel: "Alpha",
+    model: activeModel,
+    rows: activeModel.root,
+    savedRoot: [
+      { __entry_id: "01JZTESTENTRY0000000000000A", skill_id: "", skill_name: "Alpha" },
+    ],
+    viewConfig: {
+      fields: {},
+      relations: {
+        "data/effects.json:$:source_skill_id": {
+          targetFile: "data/skills.json",
+          targetCollection: "$",
+          targetKey: "skill_id",
+          mode: "single",
+          allowMissing: false,
+          titleFields: ["skill_name"],
+        },
+      },
+      backlinks: {},
+      primaryKeys: {
+        "data/skills.json:$": "skill_id",
+      },
+      relationsVersion: 3,
+    },
+    loadDocument: async () => activeModel,
+  });
+
+  assert.equal(result.primaryKeySyncPlan, null);
+  assert.deepEqual(result.relationBacklinks, []);
+});
+
+test("buildMaintenanceLookupState does not block when configured business primary key is cleared to empty", async () => {
+  const activeModel = buildDocumentModel([
+    { __entry_id: "01JZTESTENTRY0000000000000B", skill_id: "", skill_name: "Alpha" },
+  ], "json", "data/skills.json");
+
+  const result = await buildMaintenanceLookupState({
+    selectedPath: "data/skills.json",
+    collectionPath: "$",
+    selectedRow: activeModel.root[0],
+    selectedSourceRowIndex: 0,
+    selectedRowLabel: "Alpha",
+    model: activeModel,
+    rows: activeModel.root,
+    savedRoot: [
+      { __entry_id: "01JZTESTENTRY0000000000000B", skill_id: "skill_alpha", skill_name: "Alpha" },
+    ],
+    viewConfig: {
+      fields: {},
+      relations: {
+        "data/effects.json:$:source_skill_id": {
+          targetFile: "data/skills.json",
+          targetCollection: "$",
+          targetKey: "skill_id",
+          mode: "single",
+          allowMissing: false,
+          titleFields: ["skill_name"],
+        },
+      },
+      backlinks: {},
+      primaryKeys: {
+        "data/skills.json:$": "skill_id",
+      },
+      relationsVersion: 3,
+    },
+    loadDocument: async () => activeModel,
+  });
+
+  assert.equal(result.primaryKeySyncPlan, null);
+  assert.deepEqual(result.relationBacklinks, []);
+});
+
 test("buildMaintenanceLookupState includes document field rewrites for primary key rename", async () => {
   const activeModel = buildDocumentModel([
     { keyword_id: "burn_v2", keyword_doc: "burn", name: "Burn" },

@@ -440,6 +440,17 @@ async function waitForPidExit(pid, timeoutMs = 10000) {
   assert.equal(await inspectProcess(pid), null);
 }
 
+async function waitForFileText(targetPath, timeoutMs = 10000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      return await readFile(targetPath, "utf8");
+    } catch {}
+    await delay(100);
+  }
+  return readFile(targetPath, "utf8");
+}
+
 async function listenOnPort(port) {
   const server = http.createServer((_req, res) => {
     res.writeHead(200, { "content-type": "text/plain" });
@@ -1374,12 +1385,105 @@ test("server registers project and lists files by projectId", async (t) => {
   assert.deepEqual(files.map((file) => file.path), ["data/api.json"]);
 });
 
-test("server runs an entry action and writes artifacts under project .data-editor runtime", async (t) => {
-  const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-project-"));
-  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-home-"));
+test("server saves and loads automation profile and machine-local bindings", async (t) => {
+  const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-automation-api-project-"));
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-automation-api-home-"));
+  const profileHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-automation-api-profile-home-"));
   t.after(async () => {
     await rm(project, { recursive: true, force: true });
     await rm(registryHome, { recursive: true, force: true });
+    await rm(profileHome, { recursive: true, force: true });
+  });
+  await mkdir(path.join(project, "data"));
+  await writeFile(path.join(project, "data", "skills.json"), "[]");
+  const originalProfileHome = process.env.DATA_EDITOR_PROFILE_HOME;
+  process.env.DATA_EDITOR_PROFILE_HOME = profileHome;
+  t.after(() => {
+    if (originalProfileHome == null) delete process.env.DATA_EDITOR_PROFILE_HOME;
+    else process.env.DATA_EDITOR_PROFILE_HOME = originalProfileHome;
+  });
+  const port = await findAvailablePort();
+  const child = spawnDataEditorServer(port, [
+    "--project",
+    project,
+    "--registry-home",
+    registryHome,
+    "--static",
+    "dist",
+  ]);
+  t.after(async () => {
+    try {
+      child.kill();
+    } catch {}
+    await waitForExit(child).catch(() => {});
+  });
+
+  await waitForHttpOk(port);
+  const projects = await waitForJsonOk(port, "/api/projects");
+  const projectId = projects.activeProjectId;
+
+  const profileResponse = await postJson(port, "/api/automation-profile", {
+    projectId,
+    profile: {
+      rules: [
+        {
+          id: "recheck",
+          label: "Recheck",
+          icon: "refresh",
+          enabled: true,
+          targets: [
+            { file: "data/skills.json", collection: "skills" },
+          ],
+          payload: {
+            includeRow: true,
+            includeNeighbors: true,
+          },
+        },
+      ],
+    },
+  });
+  assert.equal(profileResponse.statusCode, 200, JSON.stringify(profileResponse.body));
+
+  const bindingsResponse = await postJson(port, "/api/automation-bindings", {
+    projectId,
+    bindings: {
+      bindings: {
+        recheck: {
+          provider: "codex",
+          skill: "recheck",
+          enabled: true,
+        },
+      },
+    },
+  });
+  assert.equal(bindingsResponse.statusCode, 200, JSON.stringify(bindingsResponse.body));
+
+  const profile = await waitForJsonOk(port, `/api/automation-profile?projectId=${encodeURIComponent(projectId)}`);
+  assert.equal(profile.rules[0].id, "recheck");
+
+  const bindings = await waitForJsonOk(port, `/api/automation-bindings?projectId=${encodeURIComponent(projectId)}`);
+  assert.equal(bindings.bindings.recheck.provider, "codex");
+
+  const sharedProfilePath = path.join(profileHome, Buffer.from(path.resolve(project).toLowerCase()).toString("base64url"), "automation-profile.json");
+  const localBindingsPath = path.join(project, ".data-editor", "local", "automation-bindings.json");
+  const storedProfile = JSON.parse(await readFile(sharedProfilePath, "utf8"));
+  const storedBindings = JSON.parse(await readFile(localBindingsPath, "utf8"));
+  assert.equal(storedProfile.rules[0].id, "recheck");
+  assert.equal(storedBindings.bindings.recheck.skill, "recheck");
+});
+
+test("server runs an entry action and writes artifacts under project .data-editor runtime", async (t) => {
+  const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-project-"));
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-home-"));
+  const originalCodexCli = process.env.DATA_EDITOR_CODEX_CLI;
+  process.env.DATA_EDITOR_CODEX_CLI = process.execPath;
+  t.after(async () => {
+    await rm(project, { recursive: true, force: true });
+    await rm(registryHome, { recursive: true, force: true });
+  });
+  t.after(() => {
+    if (originalCodexCli == null) delete process.env.DATA_EDITOR_CODEX_CLI;
+    else process.env.DATA_EDITOR_CODEX_CLI = originalCodexCli;
   });
   await mkdir(path.join(project, "data"));
   await writeFile(path.join(project, "data", "items.json"), `${JSON.stringify({
@@ -1402,23 +1506,38 @@ test("server runs an entry action and writes artifacts under project .data-edito
   await waitForHttpOk(port);
   const projects = await waitForJsonOk(port, "/api/projects");
   const projectId = projects.activeProjectId;
-  const updateResponse = await postJson(port, "/api/project-update", {
-    id: projectId,
-    entryActions: [{
-      id: "recheck",
-      label: "Recheck",
-      icon: "sparkles",
-      targets: {
-        files: ["data/items.json"],
-        collections: ["items"],
-      },
-      payload: {
-        includeRow: true,
-        includeNeighbors: true,
-      },
-    }],
+  const profileResponse = await postJson(port, "/api/automation-profile", {
+    projectId,
+    profile: {
+      rules: [{
+        id: "recheck",
+        label: "Recheck",
+        icon: "wand",
+        enabled: true,
+        targets: [
+          { file: "data/items.json", collection: "items" },
+        ],
+        payload: {
+          includeRow: true,
+          includeNeighbors: true,
+        },
+      }],
+    },
   });
-  assert.equal(updateResponse.statusCode, 200, JSON.stringify(updateResponse.body));
+  assert.equal(profileResponse.statusCode, 200, JSON.stringify(profileResponse.body));
+  const bindingsResponse = await postJson(port, "/api/automation-bindings", {
+    projectId,
+    bindings: {
+      bindings: {
+        recheck: {
+          provider: "codex",
+          skill: "recheck",
+          enabled: true,
+        },
+      },
+    },
+  });
+  assert.equal(bindingsResponse.statusCode, 200, JSON.stringify(bindingsResponse.body));
 
   const runResponse = await postJson(port, "/api/entry-actions/run", {
     projectId,
@@ -1433,12 +1552,16 @@ test("server runs an entry action and writes artifacts under project .data-edito
 
   const runId = runResponse.body?.runId;
   assert.equal(typeof runId, "string");
+  const startedResponse = await getJson(port, `/api/entry-actions/result?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(runId)}`);
+  assert.equal(startedResponse.statusCode, 200, JSON.stringify(startedResponse.body));
+  assert.equal(startedResponse.body?.status, "started");
   const handoffPath = path.join(project, ".data-editor", "runtime", "entry-actions", `${runId}.json`);
   const startedPath = path.join(project, ".data-editor", "runtime", "entry-actions", `${runId}.started.json`);
   const legacyRuntimePath = path.join(project, ".runtime", "entry-actions", `${runId}.json`);
 
   const handoff = JSON.parse(await readFile(handoffPath, "utf8"));
   assert.equal(handoff.action.id, "recheck");
+  assert.equal(handoff.action.binding.skill, "recheck");
   assert.equal(handoff.entry.sourcePath, "data/items.json");
   assert.equal(handoff.entry.collectionPath, "items");
   assert.equal(handoff.entry.sourceRowIndex, 1);
@@ -1446,7 +1569,7 @@ test("server runs an entry action and writes artifacts under project .data-edito
   assert.deepEqual(handoff.entry.previousRow, { id: "alpha", name: "Alpha", tags: ["a"] });
   assert.deepEqual(handoff.entry.nextRow, { id: "gamma", name: "Gamma", tags: ["c"] });
 
-  const started = JSON.parse(await readFile(startedPath, "utf8"));
+  const started = JSON.parse(await waitForFileText(startedPath));
   assert.equal(started.status, "started");
   assert.equal(started.runId, runId);
   await assert.rejects(() => readFile(legacyRuntimePath, "utf8"));

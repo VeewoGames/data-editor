@@ -1,0 +1,168 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { createProjectContext, displayProjectPath } from "./project-context.mjs";
+import { normalizeSharedViewIcon } from "./view/shared-view-normalize.mjs";
+
+const validRuleIdPattern = /^[a-z0-9_-]+$/;
+
+export function emptyAutomationProfile() {
+  return { rules: [] };
+}
+
+export async function loadAutomationProfile(projectContextOrRoot) {
+  const context = createProjectContext(projectContextOrRoot);
+  try {
+    const parsed = JSON.parse(await readFile(profilePath(context), "utf8"));
+    return normalizeAutomationProfile(parsed);
+  } catch (error) {
+    if (error?.code === "ENOENT") return emptyAutomationProfile();
+    throw error;
+  }
+}
+
+export async function saveAutomationProfile(projectContextOrRoot, profile) {
+  const context = createProjectContext(projectContextOrRoot);
+  const target = profilePath(context);
+  const normalized = validateAutomationProfile(profile);
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
+  return { path: displayProjectPath(context, target) };
+}
+
+export function validateAutomationProfile(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Automation profile must be an object");
+  }
+  if (!Array.isArray(value.rules)) throw new Error("Automation profile rules must be an array");
+  return {
+    rules: normalizeRules(value.rules),
+  };
+}
+
+export function normalizeAutomationProfile(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return emptyAutomationProfile();
+  return {
+    rules: normalizeRules(value.rules),
+  };
+}
+
+function normalizeRules(value) {
+  if (!Array.isArray(value)) return [];
+  const seenIds = new Set();
+  return value.map((item) => normalizeRule(item, seenIds));
+}
+
+function normalizeRule(value, seenIds) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Entry action rule must be an object");
+  }
+  const id = normalizeRequiredString(value.id, "Entry action rule id");
+  validateRuleId(id);
+  if (seenIds.has(id)) throw new Error(`Duplicate entry action rule id: ${id}`);
+  seenIds.add(id);
+  const label = normalizeRequiredString(value.label, `Entry action rule "${id}" label`);
+  const icon = normalizeIcon(value.icon, id);
+  const enabled = normalizeBoolean(value.enabled, true);
+  const targets = normalizeTargets(value.targets, id);
+  const payload = normalizePayload(value.payload, id);
+  return { id, label, icon, enabled, targets, payload };
+}
+
+function normalizeTargets(value, ruleId) {
+  if (Array.isArray(value)) {
+    return normalizeTargetPairs(value, ruleId);
+  }
+  if (!value || typeof value !== "object") {
+    throw new Error(`Entry action rule "${ruleId}" targets must be an array`);
+  }
+  const files = normalizeRequiredStringArray(value.files, `Entry action rule "${ruleId}" targets.files`);
+  const collections = normalizeRequiredStringArray(value.collections, `Entry action rule "${ruleId}" targets.collections`);
+  return dedupeTargetPairs(
+    files.flatMap((file) => collections.map((collection) => ({ file, collection }))),
+    ruleId,
+  );
+}
+
+function normalizeTargetPairs(value, ruleId) {
+  const result = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error(`Entry action rule "${ruleId}" target must be an object`);
+    }
+    result.push({
+      file: normalizeRequiredString(item.file, `Entry action rule "${ruleId}" target.file`),
+      collection: normalizeRequiredString(item.collection, `Entry action rule "${ruleId}" target.collection`),
+    });
+  }
+  return dedupeTargetPairs(result, ruleId);
+}
+
+function dedupeTargetPairs(value, ruleId) {
+  const seen = new Set();
+  const result = [];
+  for (const item of value) {
+    const key = `${item.file}\u0000${item.collection}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+  if (result.length === 0) {
+    throw new Error(`Entry action rule "${ruleId}" targets must contain at least one value`);
+  }
+  return result;
+}
+
+function normalizePayload(value, ruleId) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Entry action rule "${ruleId}" payload must be an object`);
+  }
+  const allowedKeys = new Set(["includeRow", "includeNeighbors"]);
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) throw new Error(`Unsupported entry action payload field: ${key}`);
+  }
+  return {
+    includeRow: normalizeBoolean(value.includeRow, true),
+    includeNeighbors: normalizeBoolean(value.includeNeighbors, true),
+  };
+}
+
+function normalizeIcon(value, ruleId) {
+  const icon = normalizeRequiredString(value, `Entry action rule "${ruleId}" icon`);
+  if (normalizeSharedViewIcon(icon) !== icon) {
+    throw new Error(`Unsupported entry action icon: ${icon}`);
+  }
+  return icon;
+}
+
+function normalizeRequiredStringArray(value, label) {
+  if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
+  const seen = new Set();
+  const result = [];
+  for (const item of value) {
+    const normalized = normalizeRequiredString(item, label);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  if (result.length === 0) throw new Error(`${label} must contain at least one value`);
+  return result;
+}
+
+function normalizeRequiredString(value, label) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} is required`);
+  return value.trim();
+}
+
+function validateRuleId(id) {
+  if (!validRuleIdPattern.test(id)) {
+    throw new Error(`Entry action rule id must use lowercase letters, numbers, "_" or "-": ${id}`);
+  }
+}
+
+function normalizeBoolean(value, fallback) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function profilePath(context) {
+  return path.resolve(context.automationProfilePath);
+}

@@ -5,8 +5,8 @@ import { buildDocumentStore } from "../src/model/document-store.mjs";
 
 test("document store exposes row views for array roots", () => {
   const model = buildDocumentModel([
-    { id: "a", name: "Alpha" },
-    { id: "b", name: "Beta" },
+    { __entry_id: "01JZTESTENTRY0000000000000A", id: "a", name: "Alpha" },
+    { __entry_id: "01JZTESTENTRY0000000000000B", id: "b", name: "Beta" },
   ], "json", "memory://skills.json");
 
   const store = buildDocumentStore({
@@ -18,6 +18,8 @@ test("document store exposes row views for array roots", () => {
   assert.ok(collection);
   assert.equal(collection.rowViews.length, 2);
   assert.equal(new Set(collection.rowViews.map((item) => item.rowId)).size, 2);
+  assert.equal(collection.rowViews[0].rowId, "01JZTESTENTRY0000000000000A");
+  assert.equal(collection.rowViews[1].rowId, "01JZTESTENTRY0000000000000B");
   assert.notEqual(collection.rowViews[0].row, model.root[0]);
   assert.deepEqual(collection.rowViews.map((item) => ({
     sourceIndex: item.sourceIndex,
@@ -81,8 +83,8 @@ test("record-map rebuild preserves row id after key rename and updates source ke
 
 test("array rebuild after delete and add preserves surviving ids and allocates a fresh row id", () => {
   const model = buildDocumentModel([
-    { id: "a", name: "Alpha" },
-    { id: "b", name: "Beta" },
+    { __entry_id: "01JZTESTENTRY0000000000000A", id: "a", name: "Alpha" },
+    { __entry_id: "01JZTESTENTRY0000000000000B", id: "b", name: "Beta" },
   ], "json", "memory://skills.json");
   const first = buildDocumentStore({ documentId: "skills", model });
   const firstCollection = first.collections.get("$");
@@ -102,6 +104,7 @@ test("array rebuild after delete and add preserves surviving ids and allocates a
 
   assert.equal(secondCollection.rowViews[0].rowId, betaRowId);
   assert.notEqual(secondCollection.rowViews[1].rowId, betaRowId);
+  assert.match(secondCollection.rowViews[1].rowId, /^[0-9A-Z]{26}$/);
   assert.equal(secondCollection.handleById.get(secondCollection.rowViews[1].rowId)?.sourceOrder, 2);
   assert.equal(new Set(secondCollection.rowIds).size, secondCollection.rowIds.length);
 });

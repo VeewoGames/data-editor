@@ -18,19 +18,6 @@ export type DataSourceDefinition = {
   path: string;
   kind: "relative" | "absolute";
 };
-export type EntryActionDefinition = {
-  id: string;
-  label: string;
-  icon: string;
-  targets: {
-    files: string[];
-    collections: string[];
-  };
-  payload: {
-    includeRow: boolean;
-    includeNeighbors: boolean;
-  };
-};
 export type ProjectDefinition = {
   id: string;
   name: string;
@@ -38,7 +25,40 @@ export type ProjectDefinition = {
   adapter: string;
   dataSources: DataSourceDefinition[];
   filePolicy: { includeExtensions: string[] };
-  entryActions: EntryActionDefinition[];
+};
+export type EntryActionRule = {
+  id: string;
+  label: string;
+  icon: SharedViewIconId;
+  enabled: boolean;
+  targets: EntryActionTarget[];
+  payload: {
+    includeRow: boolean;
+    includeNeighbors: boolean;
+  };
+};
+export type EntryActionTarget = {
+  file: string;
+  collection: string;
+};
+export type UserAutomationProfile = {
+  rules: EntryActionRule[];
+};
+export type EntryActionBinding = {
+  provider: "codex";
+  skill: string;
+  enabled: boolean;
+};
+export type DeviceEntryActionBindings = {
+  bindings: Record<string, EntryActionBinding>;
+  bindingStatuses?: Record<string, {
+    status: "ready" | "missing" | "invalid";
+    reason: string | null;
+    message: string | null;
+    codexCliPath?: string | null;
+    skillPath?: string | null;
+    model?: string | null;
+  }>;
 };
 export type ProjectRegistry = {
   version: number;
@@ -63,9 +83,27 @@ export type RunEntryActionRequest = {
 };
 export type RunEntryActionResponse = {
   ok: true;
-  status: "started";
+  status: "started" | "completed";
   runId: string;
   handoffPath: string;
+  outputPath?: string | null;
+  message?: string | null;
+};
+export type EntryActionRunResult = {
+  version?: number;
+  runId: string;
+  status: "started" | "rejected" | "failed" | "completed_with_writeback" | "completed_without_observed_writeback";
+  finishedAt?: string;
+  outputPath?: string | null;
+  reason?: string | null;
+  message?: string | null;
+  writebackCheck?: {
+    available: boolean;
+    fileChanged: boolean;
+    targetRowChanged: boolean;
+    changedFields: string[];
+    reason?: string;
+  };
 };
 export type RelationConfig = {
   targetFile: string;
@@ -481,12 +519,34 @@ export async function loadViewProfile(name: string, projectId?: string | null): 
 }
 
 export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null) {
-  const { body, keepalive } = createKeepaliveJsonRequest({ projectId, name, profile });
   return fetchJson("/api/view-profile", {
     method: "POST",
-    keepalive,
     headers: { "content-type": "application/json" },
-    body,
+    body: JSON.stringify({ projectId, name, profile }),
+  });
+}
+
+export async function loadAutomationProfile(projectId?: string | null): Promise<UserAutomationProfile> {
+  return normalizeFetchedAutomationProfile(await fetchJson(withProjectId("/api/automation-profile", projectId))) as UserAutomationProfile;
+}
+
+export async function saveAutomationProfile(profile: UserAutomationProfile, projectId?: string | null) {
+  return fetchJson("/api/automation-profile", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId, profile: normalizeFetchedAutomationProfile(profile) }),
+  });
+}
+
+export async function loadAutomationBindings(projectId?: string | null): Promise<DeviceEntryActionBindings> {
+  return fetchJson(withProjectId("/api/automation-bindings", projectId));
+}
+
+export async function saveAutomationBindings(bindings: DeviceEntryActionBindings, projectId?: string | null) {
+  return fetchJson("/api/automation-bindings", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId, bindings }),
   });
 }
 
@@ -496,6 +556,10 @@ export async function runEntryAction(request: RunEntryActionRequest): Promise<Ru
     headers: { "content-type": "application/json" },
     body: JSON.stringify(request),
   });
+}
+
+export async function loadEntryActionResult(runId: string, projectId?: string | null): Promise<EntryActionRunResult> {
+  return fetchJson(withProjectId(`/api/entry-actions/result?runId=${encodeURIComponent(runId)}`, projectId));
 }
 
 export async function shutdownServer() {
@@ -558,7 +622,75 @@ type FetchJsonOptions = {
 function isAutosaveDebugRequest(url: string, options?: RequestInit) {
   const method = (options?.method ?? "GET").toUpperCase();
   if (method !== "POST") return false;
-  return url === "/api/save" || url === "/api/view-config" || url === "/api/view-profile";
+  return url === "/api/save"
+    || url === "/api/view-config"
+    || url === "/api/view-profile"
+    || url === "/api/automation-profile"
+    || url === "/api/automation-bindings";
+}
+
+function normalizeFetchedAutomationProfile(value: unknown): UserAutomationProfile {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { rules: [] };
+  const rules = Array.isArray((value as { rules?: unknown }).rules) ? (value as { rules: unknown[] }).rules : [];
+  return {
+    rules: rules.map((rule) => normalizeFetchedEntryActionRule(rule)).filter(Boolean) as EntryActionRule[],
+  };
+}
+
+function normalizeFetchedEntryActionRule(value: unknown): EntryActionRule | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const rule = value as Record<string, unknown>;
+  const id = typeof rule.id === "string" ? rule.id.trim() : "";
+  if (!id) return null;
+  return {
+    id,
+    label: typeof rule.label === "string" ? rule.label.trim() : "",
+    icon: typeof rule.icon === "string" ? rule.icon.trim() as SharedViewIconId : "wand",
+    enabled: typeof rule.enabled === "boolean" ? rule.enabled : true,
+    targets: normalizeFetchedEntryActionTargets(rule.targets),
+    payload: {
+      includeRow: typeof (rule.payload as { includeRow?: unknown } | null)?.includeRow === "boolean"
+        ? Boolean((rule.payload as { includeRow?: boolean }).includeRow)
+        : true,
+      includeNeighbors: typeof (rule.payload as { includeNeighbors?: unknown } | null)?.includeNeighbors === "boolean"
+        ? Boolean((rule.payload as { includeNeighbors?: boolean }).includeNeighbors)
+        : true,
+    },
+  };
+}
+
+function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[] {
+  if (Array.isArray(value)) {
+    return dedupeFetchedEntryActionTargets(value.map((item) => ({
+      file: typeof (item as { file?: unknown } | null)?.file === "string" ? (item as { file: string }).file.trim() : "",
+      collection: typeof (item as { collection?: unknown } | null)?.collection === "string" ? (item as { collection: string }).collection.trim() : "",
+    })));
+  }
+  if (value && typeof value === "object") {
+    const legacy = value as { files?: unknown; collections?: unknown };
+    const files = normalizeFetchedStringArray(legacy.files);
+    const collections = normalizeFetchedStringArray(legacy.collections);
+    return dedupeFetchedEntryActionTargets(files.flatMap((file) => collections.map((collection) => ({ file, collection }))));
+  }
+  return [];
+}
+
+function normalizeFetchedStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => typeof item === "string" ? item.trim() : "")
+    .filter(Boolean);
+}
+
+function dedupeFetchedEntryActionTargets(value: EntryActionTarget[]) {
+  const seen = new Set<string>();
+  return value.filter((target) => {
+    if (!target.file || !target.collection) return false;
+    const key = `${target.file}\u0000${target.collection}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 async function fetchJson(url: string, options?: RequestInit, fetchOptions: FetchJsonOptions = {}) {

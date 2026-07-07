@@ -47,9 +47,11 @@ export async function buildMaintenanceLookupState({
   const savedRow = selectedSourceRowIndex == null ? null : savedRows[selectedSourceRowIndex] ?? null;
   const previousPrimaryKeyValue = savedRow?.[primaryKeyField];
   const currentPrimaryKeyValue = selectedRow[primaryKeyField];
+  const normalizedPreviousPrimaryKeyValue = previousPrimaryKeyValue == null ? "" : String(previousPrimaryKeyValue).trim();
+  const normalizedCurrentPrimaryKeyValue = currentPrimaryKeyValue == null ? "" : String(currentPrimaryKeyValue).trim();
   if (
-    (previousPrimaryKeyValue == null || previousPrimaryKeyValue === "")
-    && (currentPrimaryKeyValue == null || currentPrimaryKeyValue === "")
+    (!normalizedPreviousPrimaryKeyValue && !normalizedCurrentPrimaryKeyValue)
+    || !normalizedCurrentPrimaryKeyValue
   ) {
     return emptyMaintenanceState();
   }
