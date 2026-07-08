@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { saveAutomationBindings, saveAutomationProfile, saveViewProfile } from "../src/api/client.ts";
+import { loadAutomationSkillCatalog, saveAutomationBindings, saveAutomationProfile, saveViewProfile, validateAutomationBindings } from "../src/api/client.ts";
 
 test("saveViewProfile does not use keepalive for profile autosave requests", async () => {
   const calls = [];
@@ -106,4 +106,62 @@ test("saveAutomationBindings posts the bindings payload", async () => {
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, "/api/automation-bindings");
   assert.equal("keepalive" in calls[0].options, false);
+});
+
+test("validateAutomationBindings posts validateOnly to the bindings endpoint", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { ok: true, validated: true };
+      },
+    };
+  };
+
+  try {
+    await validateAutomationBindings({
+      bindings: {
+        recheck: {
+          provider: "codex",
+          skill: "recheck",
+          enabled: true,
+        },
+      },
+    }, "project-1");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "/api/automation-bindings");
+  const body = JSON.parse(String(calls[0].options.body));
+  assert.equal(body.validateOnly, true);
+});
+
+test("loadAutomationSkillCatalog reads the catalog endpoint with projectId", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { provider: "codex", loadedAt: "2026-07-08T12:00:00.000Z", skills: [] };
+      },
+    };
+  };
+
+  try {
+    await loadAutomationSkillCatalog("project-1");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "/api/automation-skill-catalog?projectId=project-1");
 });

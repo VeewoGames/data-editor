@@ -1,6 +1,7 @@
 import { Profiler, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Popover from "@radix-ui/react-popover";
 import * as Select from "@radix-ui/react-select";
 import {
   checkEditorHealth,
@@ -11,6 +12,7 @@ import {
   listProjects,
   loadAutomationBindings,
   loadAutomationProfile,
+  loadAutomationSkillCatalog,
   listViewProfiles,
   loadDocument,
   loadDocumentContent,
@@ -27,6 +29,7 @@ import {
   saveDocuments,
   saveAutomationBindings,
   saveAutomationProfile,
+  validateAutomationBindings,
   saveSharedViews,
   shutdownServer,
   saveViewConfig,
@@ -41,6 +44,8 @@ import {
   type ProjectDefinition,
   type SaveDocumentsResult,
   type CollectionView,
+  type AutomationSkillCatalog,
+  type AutomationSkillCatalogItem,
   type DocumentContentResponse,
   type DocumentIndexResponse,
   type FilterGroup,
@@ -58,6 +63,7 @@ import {
   type ViewConfig,
 } from "./api/client";
 import { Sidebar } from "./components/Sidebar";
+import { SharedViewIconPicker } from "./components/SharedViewIconPicker";
 import { Toolbar, type ToolbarSnapshot } from "./components/Toolbar";
 import { ViewTabs, type ViewTabsSnapshot, type ViewTabReorderOperation } from "./components/ViewTabs";
 import { ViewFilterBar, type ViewFilterBarSnapshot } from "./components/ViewFilterBar";
@@ -66,7 +72,7 @@ import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editin
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { DocumentFieldConfigDialog } from "./components/DocumentFieldConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
-import { icons, resolveSharedViewIconPackId } from "./components/icons";
+import { collectProtectedIconPackIdsFromIcons, icons, readSharedViewIconComponent, sharedViewDefaultIconId, sharedViewFallbackIcon } from "./components/icons";
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
 import { DataTable, type FieldConfig, type TableFieldConfig, type TableSnapshot } from "./table/DataTable";
 import { DetailPanel, type DetailEntryActionStatus, type DetailSnapshot } from "./detail/DetailPanel";
@@ -215,19 +221,16 @@ type ResolvedCollectionViewsState = {
 };
 
 function collectProtectedSharedViewIconPackIds(topLevelItems: Array<SharedViewLeafItem | SharedViewGroupItem>) {
-  const protectedPackIds = new Set<string>();
-  for (const item of topLevelItems) {
-    if (item.kind === "view") {
-      if (item.icon) protectedPackIds.add(resolveSharedViewIconPackId(item.icon));
-      continue;
-    }
-    if (item.icon) protectedPackIds.add(resolveSharedViewIconPackId(item.icon));
-    for (const viewItem of item.views) {
-      if (viewItem.icon) protectedPackIds.add(resolveSharedViewIconPackId(viewItem.icon));
-    }
-  }
-  protectedPackIds.delete("base");
-  return [...protectedPackIds];
+  return collectProtectedIconPackIdsFromIcons(
+    topLevelItems.flatMap((item) => (
+      item.kind === "view"
+        ? [item.icon].filter((icon): icon is SharedViewIconId => !!icon)
+        : [
+          item.icon,
+          ...item.views.map((viewItem) => viewItem.icon),
+        ].filter((icon): icon is SharedViewIconId => !!icon)
+    )),
+  );
 }
 type SidebarTreeNodeLike = {
   id: string;
@@ -5047,6 +5050,9 @@ export function App() {
           files={files}
           profile={automationProfileState}
           bindings={automationBindingsState}
+          favoriteIconIds={selectedViewProfile.favoriteSharedViewIconIds ?? []}
+          favoritesEnabled={!!selectedViewProfileName}
+          onToggleFavoriteIcon={handleToggleFavoriteSharedViewIcon}
           onOpenChange={setAutomationSettingsOpen}
           onSaved={(nextProfile, nextBindings) => {
             setAutomationProfileState(nextProfile);
@@ -5403,6 +5409,9 @@ export function App() {
         files={files}
         profile={automationProfileState}
         bindings={automationBindingsState}
+        favoriteIconIds={selectedViewProfile.favoriteSharedViewIconIds ?? []}
+        favoritesEnabled={!!selectedViewProfileName}
+        onToggleFavoriteIcon={handleToggleFavoriteSharedViewIcon}
         onOpenChange={setAutomationSettingsOpen}
         onSaved={(nextProfile, nextBindings) => {
           setAutomationProfileState(nextProfile);
@@ -5585,6 +5594,9 @@ function AutomationSettingsDialog(props: {
   files: DataFile[];
   profile: UserAutomationProfile;
   bindings: DeviceEntryActionBindings;
+  favoriteIconIds: SharedViewIconId[];
+  favoritesEnabled: boolean;
+  onToggleFavoriteIcon: (iconId: SharedViewIconId) => void;
   onOpenChange: (open: boolean) => void;
   onSaved: (profile: UserAutomationProfile, bindings: DeviceEntryActionBindings) => void;
 }) {
@@ -5593,11 +5605,33 @@ function AutomationSettingsDialog(props: {
   const [targetCatalog, setTargetCatalog] = useState<AutomationTargetCatalogItem[]>([]);
   const [targetCatalogLoading, setTargetCatalogLoading] = useState(false);
   const [targetCatalogError, setTargetCatalogError] = useState<string | null>(null);
+  const [skillCatalog, setSkillCatalog] = useState<AutomationSkillCatalog>({ provider: "codex", loadedAt: "", skills: [] });
+  const [skillCatalogLoading, setSkillCatalogLoading] = useState(false);
+  const [skillCatalogError, setSkillCatalogError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+  const [iconPickerOpenRuleId, setIconPickerOpenRuleId] = useState<string | null>(null);
+  const [skillPickerOpenRuleId, setSkillPickerOpenRuleId] = useState<string | null>(null);
+  const [skillPickerQuery, setSkillPickerQuery] = useState("");
+  const [targetPickerOpenId, setTargetPickerOpenId] = useState<string | null>(null);
+  const [targetPickerQuery, setTargetPickerQuery] = useState("");
+  const [ruleSearchQuery, setRuleSearchQuery] = useState("");
+  const rules = profile.rules;
+  const filteredRules = useMemo(() => {
+    const query = ruleSearchQuery.trim().toLowerCase();
+    if (!query) return rules;
+    return rules.filter((rule) => {
+      const binding = bindings.bindings[rule.id];
+      const label = rule.label.trim().toLowerCase();
+      const ruleId = rule.id.trim().toLowerCase();
+      const skill = binding?.skill?.trim().toLowerCase() ?? "";
+      return label.includes(query) || ruleId.includes(query) || skill.includes(query);
+    });
+  }, [bindings.bindings, ruleSearchQuery, rules]);
   const targetCatalogByFile = useMemo(
     () => Object.fromEntries(targetCatalog.map((item) => [item.file, item])) as Record<string, AutomationTargetCatalogItem>,
     [targetCatalog],
@@ -5607,7 +5641,50 @@ function AutomationSettingsDialog(props: {
     if (!props.open) return;
     setProfile(props.profile);
     setBindings(props.bindings);
+    setSelectedRuleId(props.profile.rules[0]?.id ?? null);
   }, [props.open, props.profile, props.bindings]);
+
+  useEffect(() => {
+    if (props.open) return;
+    setSelectedRuleId(null);
+    setIconPickerOpenRuleId(null);
+    setSkillPickerOpenRuleId(null);
+    setSkillPickerQuery("");
+    setTargetPickerOpenId(null);
+    setTargetPickerQuery("");
+    setRuleSearchQuery("");
+  }, [props.open]);
+
+  useEffect(() => {
+    if (!rules.length) {
+      setSelectedRuleId(null);
+      return;
+    }
+    if (selectedRuleId && rules.some((rule) => rule.id === selectedRuleId)) return;
+    setSelectedRuleId(rules[0]?.id ?? null);
+  }, [rules, selectedRuleId]);
+
+  useEffect(() => {
+    if (!filteredRules.length) {
+      if (ruleSearchQuery.trim()) setSelectedRuleId(null);
+      return;
+    }
+    if (selectedRuleId && filteredRules.some((rule) => rule.id === selectedRuleId)) return;
+    setSelectedRuleId(filteredRules[0]?.id ?? null);
+  }, [filteredRules, ruleSearchQuery, selectedRuleId]);
+
+  const refreshSkillCatalog = useCallback(async (projectId: string) => {
+    setSkillCatalogLoading(true);
+    setSkillCatalogError(null);
+    try {
+      const nextCatalog = await loadAutomationSkillCatalog(projectId);
+      setSkillCatalog(nextCatalog);
+    } catch (catalogError) {
+      setSkillCatalogError(catalogError instanceof Error ? catalogError.message : String(catalogError));
+    } finally {
+      setSkillCatalogLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!props.open || !props.project?.id) return;
@@ -5637,6 +5714,11 @@ function AutomationSettingsDialog(props: {
       cancelled = true;
     };
   }, [props.open, props.project?.id]);
+
+  useEffect(() => {
+    if (!props.open || !props.project?.id) return;
+    void refreshSkillCatalog(props.project.id);
+  }, [props.open, props.project?.id, refreshSkillCatalog]);
 
   useEffect(() => {
     if (!props.open || !props.project?.id) return;
@@ -5679,8 +5761,11 @@ function AutomationSettingsDialog(props: {
     };
   }, [props.open, props.project?.id, props.files]);
 
-  const rules = profile.rules;
   const controlsDisabled = saving || loading || !props.project || loadedProjectId !== props.project.id || loadedProjectId === null;
+  const skillCatalogMap = useMemo(
+    () => new Map(skillCatalog.skills.map((item) => [item.id, item])),
+    [skillCatalog.skills],
+  );
   const activeRules = rules.filter((rule) => rule.enabled);
   const bindingCounts = activeRules.reduce((summary, rule) => {
     const binding = bindings.bindings[rule.id];
@@ -5700,6 +5785,23 @@ function AutomationSettingsDialog(props: {
     () => validateAutomationSettings(profile, bindings),
     [profile, bindings],
   );
+  const validationIssuesByRuleId = useMemo(
+    () => buildAutomationValidationIssuesByRuleId(profile, bindings),
+    [profile, bindings],
+  );
+  const protectedIconPackIds = useMemo(
+    () => collectProtectedIconPackIdsFromIcons(
+      rules
+        .map((rule) => rule.icon?.trim())
+        .filter((iconId): iconId is SharedViewIconId => !!iconId),
+    ),
+    [rules],
+  );
+
+  function renderRuleIcon(iconId: SharedViewIconId, size = 18) {
+    const IconComponent = readSharedViewIconComponent(iconId) ?? sharedViewFallbackIcon;
+    return <IconComponent size={size} />;
+  }
 
   function updateRule(index: number, nextRule: EntryActionRule) {
     setProfile((current) => ({
@@ -5757,11 +5859,18 @@ function AutomationSettingsDialog(props: {
     )));
   }
 
+  function buildTargetPickerId(targetIndex: number, kind: "file" | "collection") {
+    return `${kind}:${targetIndex}`;
+  }
+
   function updateRuleId(index: number, nextIdRaw: string) {
     const rule = rules[index];
     if (!rule) return;
     const nextId = nextIdRaw.trim();
     const previousId = rule.id;
+    if (selectedRuleId === previousId) {
+      setSelectedRuleId(nextId || previousId);
+    }
     updateRule(index, { ...rule, id: nextId });
     if (!previousId || previousId === nextId) return;
     setBindings((current) => {
@@ -5784,9 +5893,13 @@ function AutomationSettingsDialog(props: {
 
   function removeRule(index: number) {
     const rule = rules[index];
+    const nextSelectedRuleId = selectedRuleId === rule?.id
+      ? (rules[index + 1]?.id ?? rules[index - 1]?.id ?? null)
+      : selectedRuleId;
     setProfile((current) => ({
       rules: current.rules.filter((_, currentIndex) => currentIndex !== index),
     }));
+    setSelectedRuleId(nextSelectedRuleId);
     if (!rule?.id) return;
     setBindings((current) => {
       const nextBindings = { ...current.bindings };
@@ -5830,6 +5943,7 @@ function AutomationSettingsDialog(props: {
         },
       },
     }));
+    setSelectedRuleId(nextId);
   }
 
   async function saveAutomationSettings() {
@@ -5843,9 +5957,12 @@ function AutomationSettingsDialog(props: {
     setError(null);
     setSaveMessage(null);
     try {
+      await validateAutomationBindings(bindings, props.project.id);
       await saveAutomationProfile(profile, props.project.id);
       await saveAutomationBindings(bindings, props.project.id);
-      props.onSaved(profile, bindings);
+      const refreshedBindings = await loadAutomationBindings(props.project.id);
+      setBindings(refreshedBindings);
+      props.onSaved(profile, refreshedBindings);
       setSaveMessage("自动化设置已保存。");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
@@ -5881,6 +5998,7 @@ function AutomationSettingsDialog(props: {
                     <small>规则保存在个人自动化配置档；本机技能绑定保存在项目本地 `.data-editor/local/automation-bindings.json`。</small>
                   </div>
                 </div>
+                {skillCatalogError ? <div className="dialog-help">{skillCatalogError}</div> : null}
                 {loading ? <div className="automation-settings-loading">正在加载自动化设置...</div> : null}
                 <div className="automation-settings-header">
                   <div className="automation-settings-header__title">
@@ -5889,55 +6007,225 @@ function AutomationSettingsDialog(props: {
                   </div>
                   <button className="ghost-button" disabled={controlsDisabled} onClick={addRule} type="button">新增动作</button>
                 </div>
-                {validationIssues.length ? (
-                  <div className="automation-validation-panel">
-                    <strong>校验问题</strong>
-                    <ul className="automation-validation-list">
-                      {validationIssues.map((issue) => (
-                        <li key={issue}>{issue}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
                 {rules.length ? (
-                  <div className="automation-rule-list">
-                    {rules.map((rule, index) => {
-                      const binding = bindings.bindings[rule.id] ?? {
+                  <div className="automation-rules-shell">
+                    <div className="automation-rule-nav-panel">
+                      <label className="automation-rule-nav-search">
+                        <icons.search size={14} />
+                        <input
+                          type="text"
+                          value={ruleSearchQuery}
+                          onChange={(event) => setRuleSearchQuery(event.target.value)}
+                          placeholder="搜索规则名称、Rule Id 或技能"
+                        />
+                      </label>
+                      <div className="automation-rule-nav">
+                        {filteredRules.length ? filteredRules.map((rule, index) => {
+                          const binding = bindings.bindings[rule.id] ?? {
+                            provider: "codex" as const,
+                            skill: "",
+                            enabled: true,
+                          };
+                          const bindingStatus = bindings.bindingStatuses?.[rule.id];
+                          const issueCount = validationIssuesByRuleId[rule.id]?.length ?? 0;
+                          const skillUiState = resolveAutomationSkillUiState(binding, bindingStatus, skillCatalogMap);
+                          const isSelected = rule.id === selectedRuleId;
+                          return (
+                            <button
+                              key={`rule-nav-${rule.id || index}`}
+                              type="button"
+                              className={`automation-rule-nav-item ${isSelected ? "is-selected" : ""}`}
+                              onClick={() => setSelectedRuleId(rule.id)}
+                            >
+                              <span className="automation-rule-nav-item__icon" data-view-icon={rule.icon || sharedViewDefaultIconId}>
+                                {renderRuleIcon((rule.icon || sharedViewDefaultIconId) as SharedViewIconId, 16)}
+                              </span>
+                              <span className="automation-rule-nav-item__body">
+                                <strong>{rule.label || rule.id || `动作 ${index + 1}`}</strong>
+                                <small>{binding.skill.trim() || "未选择技能"}</small>
+                              </span>
+                              <span className="automation-rule-nav-item__meta">
+                                <span className={`automation-rule-nav-item__status automation-rule-nav-item__status--${resolveAutomationSkillTone(skillUiState.kind)}`}>
+                                  {describeAutomationRuleStatus(rule, binding, issueCount)}
+                                </span>
+                                {issueCount > 0 ? <span className="automation-rule-nav-item__issue-count">{issueCount}</span> : null}
+                              </span>
+                            </button>
+                          );
+                        }) : (
+                          <div className="automation-rule-nav-empty">
+                            <strong>没有匹配的规则</strong>
+                            <small>试试搜索按钮名称、Rule Id 或技能名。</small>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {(() => {
+                      const selectedIndex = rules.findIndex((rule) => rule.id === selectedRuleId);
+                      const selectedRule = selectedIndex >= 0 ? rules[selectedIndex] : null;
+                      if (!selectedRule) {
+                        return (
+                          <div className="automation-rule-empty-detail">
+                            <strong>请选择一条规则</strong>
+                            <small>左侧点击具体规则后，再在右侧编辑它的入口、目标和执行选项。</small>
+                          </div>
+                        );
+                      }
+                      const binding = bindings.bindings[selectedRule.id] ?? {
                         provider: "codex" as const,
                         skill: "",
                         enabled: true,
                       };
+                      const selectedRuleIssues = validationIssuesByRuleId[selectedRule.id]
+                        ?? validationIssuesByRuleId[`__index_${selectedIndex}`]
+                        ?? [];
+                      const bindingStatus = bindings.bindingStatuses?.[selectedRule.id];
+                      const skillUiState = resolveAutomationSkillUiState(binding, bindingStatus, skillCatalogMap);
+                      const skillSelectValue = isAbsoluteSkillPath(binding.skill) ? "" : binding.skill;
                       return (
-                        <section className="automation-rule-card" key={`rule-${index}`}>
+                        <section className="automation-rule-card">
                           <div className="automation-rule-card__header">
                             <div className="automation-rule-card__title-group">
-                              <strong>{rule.label || rule.id || `动作 ${index + 1}`}</strong>
-                              <small>{rule.enabled ? "规则已启用" : "规则未启用"} · {binding.enabled ? "本机绑定已启用" : "本机绑定未启用"}</small>
+                              <strong>{selectedRule.label || selectedRule.id || `动作 ${selectedIndex + 1}`}</strong>
+                              <small>{selectedRule.enabled ? "规则已启用" : "规则未启用"} · {binding.enabled ? "本机绑定已启用" : "本机绑定未启用"}</small>
                             </div>
-                            <button className="ghost-button danger-button" disabled={controlsDisabled} onClick={() => removeRule(index)} type="button">删除</button>
+                            <button className="ghost-button danger-button" disabled={controlsDisabled} onClick={() => removeRule(selectedIndex)} type="button">删除</button>
                           </div>
+                          {selectedRuleIssues.length ? (
+                            <div className="automation-validation-panel">
+                              <strong>当前规则的校验问题</strong>
+                              <ul className="automation-validation-list">
+                                {selectedRuleIssues.map((issue) => (
+                                  <li key={issue}>{issue}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
                           <div className="automation-rule-section">
                             <div className="automation-rule-section__label">基础信息</div>
                             <div className="automation-rule-grid">
                               <label className="dialog-field">
                                 <span>Rule Id</span>
-                                <input value={rule.id} onChange={(event) => updateRuleId(index, event.target.value)} />
+                                <input value={selectedRule.id} onChange={(event) => updateRuleId(selectedIndex, event.target.value)} />
                               </label>
                               <label className="dialog-field">
-                                <span>Label</span>
-                                <input value={rule.label} onChange={(event) => updateRuleField(index, "label", event.target.value)} />
+                                <span>按钮名称</span>
+                                <input value={selectedRule.label} onChange={(event) => updateRuleField(selectedIndex, "label", event.target.value)} />
                               </label>
                               <label className="dialog-field">
-                                <span>Icon</span>
-                                <input value={rule.icon} onChange={(event) => updateRuleField(index, "icon", event.target.value as SharedViewIconId)} />
-                              </label>
-                              <label className="dialog-field">
-                                <span>Skill</span>
-                                <input
-                                  placeholder="recheck / explain / ..."
-                                  value={binding.skill}
-                                  onChange={(event) => updateBinding(rule.id, { ...binding, skill: event.target.value })}
+                                <span>图标</span>
+                                <SharedViewIconPicker
+                                  open={iconPickerOpenRuleId === selectedRule.id}
+                                  onOpenChange={(open) => setIconPickerOpenRuleId(open ? selectedRule.id : null)}
+                                  value={(selectedRule.icon || sharedViewDefaultIconId) as SharedViewIconId}
+                                  onSelectIcon={(iconId) => updateRuleField(selectedIndex, "icon", iconId)}
+                                  favoriteIconIds={props.favoriteIconIds}
+                                  favoritesEnabled={props.favoritesEnabled}
+                                  onToggleFavoriteIcon={props.onToggleFavoriteIcon}
+                                  protectedIconPackIds={protectedIconPackIds}
+                                  trigger={(
+                                    <button type="button" className="automation-icon-field-trigger" aria-label="打开图标选择器">
+                                      <span className="automation-icon-field-trigger__preview" data-view-icon={selectedRule.icon || sharedViewDefaultIconId}>
+                                        {renderRuleIcon((selectedRule.icon || sharedViewDefaultIconId) as SharedViewIconId)}
+                                      </span>
+                                      <span className="automation-icon-field-trigger__value">{selectedRule.icon || sharedViewDefaultIconId}</span>
+                                      <icons.chevronDown size={16} />
+                                    </button>
+                                  )}
                                 />
+                              </label>
+                              <label className="dialog-field">
+                                <span>技能</span>
+                                <div className="automation-skill-field-row">
+                                  <Popover.Root
+                                    open={skillPickerOpenRuleId === selectedRule.id}
+                                    onOpenChange={(open) => {
+                                      setSkillPickerOpenRuleId(open ? selectedRule.id : null);
+                                      setSkillPickerQuery("");
+                                    }}
+                                  >
+                                    <Popover.Trigger asChild>
+                                      <button
+                                        type="button"
+                                        className={`select-trigger automation-skill-select-trigger automation-skill-select-trigger--${resolveAutomationSkillTone(skillUiState.kind)}`}
+                                        aria-label="技能"
+                                      >
+                                        <span className="automation-skill-select-trigger__value">
+                                          {skillSelectValue
+                                            ? resolveAutomationSkillCatalogLabel(skillCatalogMap, skillSelectValue)
+                                            : "从列表选择技能"}
+                                        </span>
+                                        <icons.chevronDown size={16} />
+                                      </button>
+                                    </Popover.Trigger>
+                                    <Popover.Portal>
+                                      <Popover.Content
+                                        className="menu-content automation-skill-picker-content"
+                                        sideOffset={6}
+                                        align="start"
+                                      >
+                                        <div className="automation-skill-picker-shell">
+                                          <input
+                                            aria-label="筛选技能"
+                                            className="automation-skill-picker-search"
+                                            onChange={(event) => setSkillPickerQuery(event.target.value)}
+                                            placeholder="筛选技能..."
+                                            value={skillPickerQuery}
+                                          />
+                                          <div
+                                            className="automation-skill-picker-list"
+                                            role="listbox"
+                                            aria-label="技能候选列表"
+                                            onWheelCapture={(event) => event.stopPropagation()}
+                                          >
+                                            <button
+                                              className="automation-skill-picker-option"
+                                              type="button"
+                                              onClick={() => {
+                                                updateBinding(selectedRule.id, { ...binding, skill: "" });
+                                                setSkillPickerOpenRuleId(null);
+                                                setSkillPickerQuery("");
+                                              }}
+                                            >
+                                              <span className="automation-skill-picker-option__title">清空当前技能</span>
+                                              <span className="automation-skill-picker-option__meta">移除这条规则的技能选择。</span>
+                                            </button>
+                                            {skillCatalog.skills
+                                              .filter((item) => matchesAutomationSkillQuery(item, skillPickerQuery))
+                                              .map((item) => (
+                                                <button
+                                                  className={`automation-skill-picker-option ${item.id === skillSelectValue ? "is-selected" : ""}`}
+                                                  key={item.id}
+                                                  type="button"
+                                                  onClick={() => {
+                                                    updateBinding(selectedRule.id, { ...binding, skill: item.id });
+                                                    setSkillPickerOpenRuleId(null);
+                                                    setSkillPickerQuery("");
+                                                  }}
+                                                >
+                                                  <span className="automation-skill-picker-option__title">{item.label}</span>
+                                                  <span className="automation-skill-picker-option__meta">{describeAutomationSkillCatalogSource(item)}</span>
+                                                </button>
+                                              ))}
+                                            {!skillCatalog.skills.some((item) => matchesAutomationSkillQuery(item, skillPickerQuery)) ? (
+                                              <div className="automation-skill-picker-empty">没有匹配的技能。</div>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      </Popover.Content>
+                                    </Popover.Portal>
+                                  </Popover.Root>
+                                  <button
+                                    aria-label="刷新技能列表"
+                                    className="ghost-button automation-skill-refresh-icon"
+                                    disabled={controlsDisabled || skillCatalogLoading || !props.project?.id}
+                                    onClick={() => props.project?.id ? void refreshSkillCatalog(props.project.id) : undefined}
+                                    title={skillCatalogLoading ? "刷新中..." : "刷新技能列表"}
+                                    type="button"
+                                  >
+                                    <icons.refresh size={16} />
+                                  </button>
+                                </div>
                               </label>
                             </div>
                           </div>
@@ -5945,7 +6233,7 @@ function AutomationSettingsDialog(props: {
                             <div className="automation-rule-section__label">目标范围</div>
                             <div className="automation-target-editor">
                               <div className="automation-target-summary">
-                                {rule.targets.length ? rule.targets.map((target, targetIndex) => (
+                                {selectedRule.targets.length ? selectedRule.targets.map((target, targetIndex) => (
                                   <span className="automation-target-chip" key={`${target.file}:${target.collection}:${targetIndex}`}>
                                     {describeAutomationTarget(target, targetCatalogByFile)}
                                   </span>
@@ -5956,39 +6244,164 @@ function AutomationSettingsDialog(props: {
                               {targetCatalogLoading ? <div className="automation-settings-loading">正在加载目标候选...</div> : null}
                               {targetCatalogError ? <div className="dialog-help">{targetCatalogError}</div> : null}
                               <div className="automation-target-list">
-                                {rule.targets.map((target, targetIndex) => {
+                                {selectedRule.targets.map((target, targetIndex) => {
                                   const collectionOptions = resolveTargetCollectionOptions(targetCatalogByFile, target.file, target.collection);
+                                  const filePickerId = buildTargetPickerId(targetIndex, "file");
+                                  const collectionPickerId = buildTargetPickerId(targetIndex, "collection");
+                                  const visibleFileOptions = buildTargetFileOptions(targetCatalog, target.file)
+                                    .filter((option) => matchesAutomationTargetFileQuery(option, targetPickerQuery));
+                                  const visibleCollectionOptions = collectionOptions
+                                    .filter((collection) => matchesAutomationTargetCollectionQuery(collection, targetPickerQuery));
                                   return (
                                     <div className="automation-target-row" key={`${target.file}:${target.collection}:${targetIndex}`}>
                                       <label className="dialog-field">
                                         <span>目标文件 {targetIndex + 1}</span>
-                                        <select value={target.file} onChange={(event) => updateRuleTargetFile(index, targetIndex, event.target.value)}>
-                                          {buildTargetFileOptions(targetCatalog, target.file).map((option) => (
-                                            <option key={option.file} value={option.file}>{option.label}</option>
-                                          ))}
-                                        </select>
+                                        <Popover.Root
+                                          open={targetPickerOpenId === filePickerId}
+                                          onOpenChange={(open) => {
+                                            setTargetPickerOpenId(open ? filePickerId : null);
+                                            setTargetPickerQuery("");
+                                          }}
+                                        >
+                                          <Popover.Trigger asChild>
+                                            <button
+                                              type="button"
+                                              className="select-trigger automation-target-picker-trigger"
+                                              aria-label={`目标文件 ${targetIndex + 1}`}
+                                              title={target.file}
+                                            >
+                                              <span className="automation-target-picker-trigger__value">
+                                                {describeTargetFileName(target.file)}
+                                              </span>
+                                              <icons.chevronDown size={16} />
+                                            </button>
+                                          </Popover.Trigger>
+                                          <Popover.Portal>
+                                            <Popover.Content
+                                              className="menu-content automation-skill-picker-content automation-target-picker-content"
+                                              sideOffset={6}
+                                              align="start"
+                                            >
+                                              <div className="automation-skill-picker-shell">
+                                                <input
+                                                  aria-label="筛选目标文件"
+                                                  className="automation-skill-picker-search"
+                                                  onChange={(event) => setTargetPickerQuery(event.target.value)}
+                                                  placeholder="筛选文件..."
+                                                  value={targetPickerQuery}
+                                                />
+                                                <div
+                                                  className="automation-skill-picker-list automation-target-picker-list"
+                                                  role="listbox"
+                                                  aria-label="目标文件候选列表"
+                                                  onWheelCapture={(event) => event.stopPropagation()}
+                                                >
+                                                  {visibleFileOptions.length ? visibleFileOptions.map((option) => (
+                                                    <button
+                                                      className={`automation-skill-picker-option automation-target-picker-option ${option.file === target.file ? "is-selected" : ""}`}
+                                                      key={option.file}
+                                                      type="button"
+                                                      onClick={() => {
+                                                        updateRuleTargetFile(selectedIndex, targetIndex, option.file);
+                                                        setTargetPickerOpenId(null);
+                                                        setTargetPickerQuery("");
+                                                      }}
+                                                      title={option.file}
+                                                    >
+                                                      <span className="automation-skill-picker-option__title">{describeTargetFileName(option.file)}</span>
+                                                    </button>
+                                                  )) : (
+                                                    <div className="automation-skill-picker-empty">没有匹配的文件。</div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </Popover.Content>
+                                          </Popover.Portal>
+                                        </Popover.Root>
                                       </label>
                                       <label className="dialog-field">
                                         <span>目标集合 {targetIndex + 1}</span>
-                                        <select
-                                          value={target.collection}
-                                          disabled={!target.file}
-                                          onChange={(event) => updateRuleTargetCollection(index, targetIndex, event.target.value)}
+                                        <Popover.Root
+                                          open={targetPickerOpenId === collectionPickerId}
+                                          onOpenChange={(open) => {
+                                            setTargetPickerOpenId(open ? collectionPickerId : null);
+                                            setTargetPickerQuery("");
+                                          }}
                                         >
-                                          {collectionOptions.map((collection) => (
-                                            <option key={collection} value={collection}>{describeCollectionPath(collection)}</option>
-                                          ))}
-                                        </select>
+                                          <Popover.Trigger asChild>
+                                            <button
+                                              type="button"
+                                              className="select-trigger automation-target-picker-trigger"
+                                              aria-label={`目标集合 ${targetIndex + 1}`}
+                                              disabled={!target.file}
+                                            >
+                                              <span className="automation-target-picker-trigger__value">
+                                                {describeCollectionPath(target.collection)}
+                                              </span>
+                                              <icons.chevronDown size={16} />
+                                            </button>
+                                          </Popover.Trigger>
+                                          <Popover.Portal>
+                                            <Popover.Content
+                                              className="menu-content automation-skill-picker-content automation-target-picker-content"
+                                              sideOffset={6}
+                                              align="start"
+                                            >
+                                              <div className="automation-skill-picker-shell">
+                                                <input
+                                                  aria-label="筛选目标集合"
+                                                  className="automation-skill-picker-search"
+                                                  onChange={(event) => setTargetPickerQuery(event.target.value)}
+                                                  placeholder="筛选集合..."
+                                                  value={targetPickerQuery}
+                                                />
+                                                <div
+                                                  className="automation-skill-picker-list automation-target-picker-list"
+                                                  role="listbox"
+                                                  aria-label="目标集合候选列表"
+                                                  onWheelCapture={(event) => event.stopPropagation()}
+                                                >
+                                                  {visibleCollectionOptions.length ? visibleCollectionOptions.map((collection) => (
+                                                    <button
+                                                      className={`automation-skill-picker-option automation-target-picker-option ${collection === target.collection ? "is-selected" : ""}`}
+                                                      key={collection}
+                                                      type="button"
+                                                      onClick={() => {
+                                                        updateRuleTargetCollection(selectedIndex, targetIndex, collection);
+                                                        setTargetPickerOpenId(null);
+                                                        setTargetPickerQuery("");
+                                                      }}
+                                                    >
+                                                      <span className="automation-skill-picker-option__title">{describeCollectionPath(collection)}</span>
+                                                    </button>
+                                                  )) : (
+                                                    <div className="automation-skill-picker-empty">没有匹配的集合。</div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </Popover.Content>
+                                          </Popover.Portal>
+                                        </Popover.Root>
                                       </label>
-                                      <button className="ghost-button danger-button automation-target-remove" disabled={controlsDisabled} onClick={() => removeRuleTarget(index, targetIndex)} type="button">
-                                        删除目标
-                                      </button>
+                                      <div className="automation-target-remove-slot">
+                                        <span className="automation-target-remove-slot__spacer" aria-hidden="true">操作</span>
+                                        <button
+                                          aria-label={`删除目标 ${targetIndex + 1}`}
+                                          className="ghost-button icon-button danger-button automation-target-remove"
+                                          disabled={controlsDisabled}
+                                          onClick={() => removeRuleTarget(selectedIndex, targetIndex)}
+                                          title="删除目标"
+                                          type="button"
+                                        >
+                                          <icons.close size={15} />
+                                        </button>
+                                      </div>
                                     </div>
                                   );
                                 })}
                               </div>
                               <div className="automation-target-actions">
-                                <button className="ghost-button" disabled={controlsDisabled || targetCatalogLoading || targetCatalog.length === 0} onClick={() => addRuleTarget(index)} type="button">
+                                <button className="ghost-button" disabled={controlsDisabled || targetCatalogLoading || targetCatalog.length === 0} onClick={() => addRuleTarget(selectedIndex)} type="button">
                                   新增目标
                                 </button>
                                 <small>根数组或根对象会显示为“根集合 ($)”，因此即使多个文件都叫 `$`，也会和文件路径一起区分。</small>
@@ -5998,55 +6411,67 @@ function AutomationSettingsDialog(props: {
                           <div className="automation-rule-section">
                             <div className="automation-rule-section__label">执行选项</div>
                             <div className="automation-rule-checks">
-                              <label className="dialog-check">
+                              <label
+                                className="dialog-check"
+                                title="关闭后，这条规则不会在详情面板中作为可执行动作出现。"
+                              >
                                 <input
                                   type="checkbox"
-                                  checked={rule.enabled}
-                                  onChange={(event) => updateRuleField(index, "enabled", event.target.checked)}
+                                  checked={selectedRule.enabled}
+                                  onChange={(event) => updateRuleField(selectedIndex, "enabled", event.target.checked)}
                                 />
-                                启用规则
+                                <span>启用规则</span>
                               </label>
-                              <label className="dialog-check">
+                              <label
+                                className="dialog-check"
+                                title="关闭后，这台电脑上不会实际执行这条规则，即使规则本身仍然保留。"
+                              >
                                 <input
                                   type="checkbox"
                                   checked={binding.enabled}
-                                  onChange={(event) => updateBinding(rule.id, { ...binding, enabled: event.target.checked })}
+                                  onChange={(event) => updateBinding(selectedRule.id, { ...binding, enabled: event.target.checked })}
                                 />
-                                在本机启用绑定
+                                <span>在本机启用绑定</span>
                               </label>
-                              <label className="dialog-check">
+                              <label
+                                className="dialog-check"
+                                title="执行技能时，把当前详情面板对应的这条记录一起放进请求上下文。"
+                              >
                                 <input
                                   type="checkbox"
-                                  checked={rule.payload.includeRow}
-                                  onChange={(event) => updateRule(index, {
-                                    ...rule,
+                                  checked={selectedRule.payload.includeRow}
+                                  onChange={(event) => updateRule(selectedIndex, {
+                                    ...selectedRule,
                                     payload: {
-                                      ...rule.payload,
+                                      ...selectedRule.payload,
                                       includeRow: event.target.checked,
                                     },
                                   })}
                                 />
-                                包含当前条目
+                                <span>包含当前条目</span>
                               </label>
-                              <label className="dialog-check">
+                              <label
+                                className="dialog-check"
+                                title="执行技能时，额外把当前条目前后的相邻记录也一起提供给技能参考。"
+                              >
                                 <input
                                   type="checkbox"
-                                  checked={rule.payload.includeNeighbors}
-                                  onChange={(event) => updateRule(index, {
-                                    ...rule,
+                                  checked={selectedRule.payload.includeNeighbors}
+                                  onChange={(event) => updateRule(selectedIndex, {
+                                    ...selectedRule,
                                     payload: {
-                                      ...rule.payload,
+                                      ...selectedRule.payload,
                                       includeNeighbors: event.target.checked,
                                     },
                                   })}
                                 />
-                                包含相邻条目
+                                <span>包含相邻条目</span>
                               </label>
                             </div>
                           </div>
                         </section>
                       );
-                    })}
+                    })()}
                   </div>
                 ) : (
                   <div className="project-source-row">
@@ -6138,6 +6563,42 @@ function parseDataSources(text: string) {
   return sources.length ? sources : [{ id: "data", label: "Data", kind: "relative" as const, path: "data" }];
 }
 
+function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile, bindings: DeviceEntryActionBindings) {
+  const issuesByRuleId: Record<string, string[]> = {};
+  const seenRuleIds = new Set<string>();
+  for (const [index, rule] of profile.rules.entries()) {
+    const ruleIssues: string[] = [];
+    const ruleId = rule.id.trim();
+    if (!ruleId) {
+      ruleIssues.push("Rule Id 不能为空。");
+    } else {
+      if (!/^[a-z0-9_-]+$/.test(ruleId)) {
+        ruleIssues.push("Rule Id 只能包含小写字母、数字、`-`、`_`。");
+      }
+      if (seenRuleIds.has(ruleId)) {
+        ruleIssues.push("Rule Id 不能重复。");
+      }
+      seenRuleIds.add(ruleId);
+    }
+    if (!rule.label.trim()) ruleIssues.push("按钮名称不能为空。");
+    if (!rule.targets.length) ruleIssues.push("至少需要一个目标。");
+    for (const target of rule.targets) {
+      if (!target.file.trim()) ruleIssues.push("目标文件不能为空。");
+      if (!target.collection.trim()) ruleIssues.push("目标集合不能为空。");
+    }
+    const binding = bindings.bindings[rule.id];
+    if (binding) {
+      if (binding.provider !== "codex") ruleIssues.push("当前仅支持 codex provider。");
+      if (!binding.skill.trim()) ruleIssues.push("Skill 不能为空。");
+    } else {
+      ruleIssues.push("缺少本机绑定。");
+    }
+    issuesByRuleId[rule.id] = ruleIssues;
+    if (!rule.id.trim()) issuesByRuleId[`__index_${index}`] = ruleIssues;
+  }
+  return issuesByRuleId;
+}
+
 function validateAutomationSettings(profile: UserAutomationProfile, bindings: DeviceEntryActionBindings) {
   const issues: string[] = [];
   const seenRuleIds = new Set<string>();
@@ -6191,6 +6652,13 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
   return issues;
 }
 
+function describeAutomationRuleStatus(rule: EntryActionRule, binding: EntryActionBinding, issueCount: number) {
+  if (issueCount > 0) return `${issueCount} 个问题`;
+  if (!rule.enabled) return "未启用";
+  if (!binding.enabled) return "绑定关闭";
+  return "正常";
+}
+
 function resolveVisibleEntryActions(input: {
   profile: UserAutomationProfile;
   bindings: DeviceEntryActionBindings;
@@ -6233,6 +6701,18 @@ function buildTargetFileOptions(catalog: AutomationTargetCatalogItem[], selected
   return options;
 }
 
+function describeTargetFileName(filePath: string) {
+  const normalized = filePath.replace(/\\/g, "/");
+  const parts = normalized.split("/");
+  return parts[parts.length - 1] || filePath;
+}
+
+function matchesAutomationTargetFileQuery(option: AutomationTargetCatalogItem, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return option.file.toLowerCase().includes(normalized) || describeTargetFileName(option.file).toLowerCase().includes(normalized);
+}
+
 function resolveTargetCollectionOptions(
   catalogByFile: Record<string, AutomationTargetCatalogItem>,
   file: string,
@@ -6249,9 +6729,90 @@ function describeCollectionPath(collectionPath: string) {
   return collectionPath === "$" ? "根集合 ($)" : collectionPath;
 }
 
+function matchesAutomationTargetCollectionQuery(collectionPath: string, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  const display = describeCollectionPath(collectionPath).toLowerCase();
+  return collectionPath.toLowerCase().includes(normalized) || display.includes(normalized);
+}
+
 function describeAutomationTarget(target: EntryActionTarget, catalogByFile: Record<string, AutomationTargetCatalogItem>) {
-  const fileLabel = catalogByFile[target.file]?.label ?? target.file;
+  const fileLabel = describeTargetFileName(catalogByFile[target.file]?.label ?? target.file);
   return `${fileLabel} · ${describeCollectionPath(target.collection)}`;
+}
+
+function isAbsoluteSkillPath(value: string) {
+  const skill = value.trim();
+  return /^[a-zA-Z]:[\\/]/.test(skill) || skill.startsWith("\\\\") || skill.startsWith("/");
+}
+
+function resolveAutomationSkillCatalogLabel(skillCatalogMap: Map<string, AutomationSkillCatalogItem>, skill: string) {
+  return skillCatalogMap.get(skill)?.label ?? skill;
+}
+
+function resolveAutomationSkillTone(kind: string) {
+  if (kind === "ready") return "ready";
+  if (kind === "invalid" || kind === "missing") return "invalid";
+  return "muted";
+}
+
+function matchesAutomationSkillQuery(item: AutomationSkillCatalogItem, query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return true;
+  return item.id.toLowerCase().includes(normalizedQuery)
+    || item.label.toLowerCase().includes(normalizedQuery)
+    || describeAutomationSkillCatalogSource(item).toLowerCase().includes(normalizedQuery);
+}
+
+function describeAutomationSkillCatalogSource(item: AutomationSkillCatalogItem) {
+  switch (item.source) {
+    case "project-agents":
+      return "项目 .agents";
+    case "user-codex-home":
+      return "用户 .codex";
+    case "user-agents-home":
+      return "用户 .agents";
+    default:
+      return "其它来源";
+  }
+}
+
+function resolveAutomationSkillUiState(
+  binding: EntryActionBinding,
+  bindingStatus: DeviceEntryActionBindings["bindingStatuses"] extends Record<string, infer T> ? T | undefined : never,
+  skillCatalogMap: Map<string, AutomationSkillCatalogItem>,
+) {
+  const skill = binding.skill.trim();
+  if (!skill) {
+    return { kind: "empty", label: "未选择", detail: "请先选择 skill。" };
+  }
+  if (binding.enabled === false) {
+    return { kind: "invalid", label: "绑定已禁用", detail: "当前本机绑定未启用。" };
+  }
+  if (isAbsoluteSkillPath(skill)) {
+    if (bindingStatus?.status === "ready") {
+      return { kind: "ready", label: "绝对路径可用", detail: "当前值走本机绝对路径。" };
+    }
+    if (bindingStatus?.status === "invalid") {
+      return { kind: "invalid", label: "绝对路径无效", detail: bindingStatus.message ?? "当前路径不可用。" };
+    }
+    return { kind: "manual", label: "绝对路径", detail: "当前值未走 catalog 列表。" };
+  }
+  if (bindingStatus?.status === "ready") {
+    return skillCatalogMap.has(skill)
+      ? { kind: "ready", label: "已就绪", detail: "当前 skill 已命中列表且运行时可用。" }
+      : { kind: "ready", label: "运行时可用", detail: "当前 skill 可用，但最新列表未命中。" };
+  }
+  if (bindingStatus?.status === "invalid") {
+    return { kind: "invalid", label: "当前无效", detail: bindingStatus.message ?? "当前运行时校验失败。" };
+  }
+  if (bindingStatus?.status === "missing") {
+    return { kind: "missing", label: "未绑定", detail: bindingStatus.message ?? "当前设备缺少绑定。" };
+  }
+  if (skillCatalogMap.has(skill)) {
+    return { kind: "catalog", label: "已命中列表", detail: "保存时会继续做真实校验。" };
+  }
+  return { kind: "missing", label: "列表未命中", detail: "可刷新列表，或直接输入绝对路径。" };
 }
 
 function ConfirmDialog(props: {

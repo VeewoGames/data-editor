@@ -15,6 +15,8 @@
 - [共享视图图标最终收口：已完成执行、验证边界与真相源分工](./shared-view-icon-final-closeout.md)
 - [共享视图图标未加载态零元信息边界：manifest 按需加载与搜索池收缩](./shared-view-icon-final-closeout.md)
 - [shared view 图标多轮保存 follow-up：剩余真实根因、当前验证边界与复现收口](./shared-view-icon-multi-save-followup-closeout.md)
+- [Automation Settings 图标选择器：shared icon runtime 复用边界与单一状态源](./automation-settings-icon-picker-runtime-reuse-boundary.md)
+- [Automation Settings Skill 真值链与最小保存边界](./automation-settings-skill-truth-chain-and-save-boundary.md)
 - [共享视图图标 Playwright 冷启动链路：planning 执行入口与边界收敛](./shared-view-icon-playwright-cold-start-planning-entry.md)
 - [共享视图图标 Playwright 冷启动修复：静态 webServer 链路与高位端口隔离](./shared-view-icon-playwright-cold-start-fix.md)
 - [共享视图图标刷新构建卡在构建中：等待语义与按包 SVG 供应链收缩](./shared-view-icon-refresh-build-fix.md)

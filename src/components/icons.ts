@@ -395,6 +395,16 @@ export function resolveSharedViewIconPackId(iconId: string) {
   return resolveGeneratedPackIdFromIconId(iconId) ?? "legacy";
 }
 
+export function collectProtectedIconPackIdsFromIcons(iconIds: Iterable<string>) {
+  const protectedPackIds = new Set<string>();
+  for (const iconId of iconIds) {
+    const packId = resolveSharedViewIconPackId(iconId);
+    if (packId === "base") continue;
+    protectedPackIds.add(packId);
+  }
+  return [...protectedPackIds];
+}
+
 export function isSharedViewIconLoaded(iconId: string) {
   return !!sharedViewIconRegistry[iconId];
 }
@@ -465,4 +475,23 @@ export function readRecentSharedViewIconIds(storage: Storage | null) {
   } catch {
     return [];
   }
+}
+
+const sharedViewIconIdPrefixPattern = /^(streamlineCoreSolid|streamlineMicroSolid|streamlineMicroLine|tablerFilled|tablerLine)/;
+
+export function formatSharedViewIconLabel(iconId: string) {
+  const withoutPrefix = iconId.replace(sharedViewIconIdPrefixPattern, "");
+  const spaced = withoutPrefix
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-zA-Z])(\d)/g, "$1 $2")
+    .replace(/(\d)([a-zA-Z])/g, "$1 $2")
+    .trim();
+  const fallback = iconId.trim();
+  const source = spaced || fallback;
+  return source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => /^\d+$/.test(part) ? part : `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
+    .join(" ");
 }

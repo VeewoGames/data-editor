@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createProjectContext, displayProjectPath } from "./project-context.mjs";
+import { resolveCodexSkill } from "./codex-runtime.mjs";
 
 const allowedProviders = new Set(["codex"]);
 
@@ -19,10 +20,13 @@ export async function loadAutomationBindings(projectContextOrRoot) {
   }
 }
 
-export async function saveAutomationBindings(projectContextOrRoot, value) {
+export async function saveAutomationBindings(projectContextOrRoot, value, options = {}) {
   const context = createProjectContext(projectContextOrRoot);
   const target = bindingsPath(context);
   const normalized = validateAutomationBindings(value);
+  if (options.validateRuntime === true) {
+    await validateAutomationBindingsRuntime(normalized, { projectRoot: context.projectRoot });
+  }
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
   return { path: displayProjectPath(context, target) };
@@ -51,6 +55,21 @@ export function normalizeAutomationBindings(value) {
     bindings[normalizedRuleId] = normalizeBinding(rawBinding, normalizedRuleId);
   }
   return { bindings };
+}
+
+export async function validateAutomationBindingsRuntime(value, options = {}) {
+  const normalized = validateAutomationBindings(value);
+  const projectRoot = typeof options.projectRoot === "string" && options.projectRoot.trim()
+    ? path.resolve(options.projectRoot)
+    : null;
+  for (const [ruleId, binding] of Object.entries(normalized.bindings)) {
+    if (binding.provider !== "codex") continue;
+    const skill = await resolveCodexSkill(binding.skill, { projectRoot });
+    if (!skill.available) {
+      throw new Error(`Automation binding "${ruleId}" ${skill.message}`);
+    }
+  }
+  return normalized;
 }
 
 function normalizeBinding(value, ruleId) {

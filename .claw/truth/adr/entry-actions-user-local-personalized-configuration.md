@@ -167,6 +167,17 @@ status: accepted
 
 这条合同的长期目标不是把设置页做成完整表单系统，而是保证用户不会只在保存失败后看到一条不可行动的错误。
 
+### 11. `Automation Settings` 的图标选择器必须复用 shared view 图标体系，不再另起自动化专属系统
+
+`Automation Settings` 中每条自动化规则的 `icon` 不再继续作为纯文本工程输入，而是升级为可视化图标选择入口。正式实现方向固定为：
+
+- 第一选择是复用现有 shared view 图标体系，而不是为自动化规则另建一套专属图标系统
+- `Automation Settings` 与 `ViewTabs` 在第一版中共用同一套图标 picker 底座
+- 收藏、最近使用和图标包加载状态继续沿用 shared view 的现有语义，不新增一份 automation 专属偏好配置
+- 落地顺序先做共享组件抽取与状态复用，再把同一 picker 接入 `Automation Settings` 的规则卡
+
+这条决策的核心边界是：`Automation Settings` 只是 shared icon runtime 的消费面，不是第二套图标体系的所有者。任何后续扩展都必须继续沿用 shared view 的图标 registry、加载与持久化合同，不能因为自动化场景不同就重新分叉一套收藏 / 最近 / pack 语义。
+
 ## consequences
 
 - 后续实现重心将从“项目共享配置编辑”转向“用户共享规则 + 设备本地绑定”编辑。
@@ -180,6 +191,7 @@ status: accepted
 - 设置页的最小体验收口不是一次性 UI 美化，而是持续要求“保存前可发现 + 服务端可拒绝 + 错误可回显”，避免非法配置混入正式真值。
 - `automation profile` 与 `automation bindings` 的读写分层会长期保留：`load` 允许宽松归一化，`save` 必须严格校验。
 - 自动化规则的目标范围语义已经固定为 file-scoped collection pair；`$` 只在具体文件上下文里解释，不再单独作为全局目标名使用。
+- `Automation Settings` 的图标入口将长期复用 shared view 图标体系，避免为自动化规则维护第二套收藏、最近与 pack 状态。
 
 ## related code
 
@@ -191,6 +203,8 @@ status: accepted
 - `src/api/client.ts`
 - `src/project-context.mjs`
 - `src/project-registry.mjs`
+- `src/components/ViewTabs.tsx`
+- `src/components/icons.ts`
 - `server.mjs`
 - `scripts/run-entry-action.mjs`
 - `docs/plans/2026-07-01-entryActions第二版具体执行方案.md`

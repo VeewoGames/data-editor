@@ -10469,12 +10469,15 @@ test("automation settings loads personal rules and local bindings", async ({ pag
   await expect(dialog).toContainText("0 条无效");
   const card = dialog.locator(".automation-rule-card").first();
   await expect(card.getByRole("textbox", { name: "Rule Id" })).toHaveValue("recheck");
-  await expect(card.getByRole("textbox", { name: "Label" })).toHaveValue("Recheck");
-  await expect(card.getByRole("textbox", { name: "Icon" })).toHaveValue("wand");
-  await expect(card.getByRole("textbox", { name: "Skill" })).toHaveValue("recheck");
+  await expect(card.getByRole("textbox", { name: "按钮名称" })).toHaveValue("Recheck");
+  await expect(card.getByRole("button", { name: "打开图标选择器" })).toContainText("wand");
+  await expect(card.getByRole("combobox", { name: "技能" })).toHaveValue("recheck");
+  await expect(card).toContainText("已就绪");
+  await expect(card.getByRole("button", { name: "刷新技能列表" })).toBeVisible();
+  await expect(card).toContainText("当前值：recheck");
   await expect(card.getByRole("combobox", { name: "目标文件 1" })).toHaveValue("data/e2e_select.json");
   await expect(card.getByRole("combobox", { name: "目标集合 1" })).toHaveValue("$");
-  await expect(card).toContainText("data/e2e_select.json · 根集合 ($)");
+  await expect(card.locator(".automation-target-chip").first()).toContainText("e2e_select.json · 根集合 ($)");
 });
 
 test("automation settings shows local validation issues before save", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { icons } from "../components/icons";
+import { icons, readSharedViewIconComponent, sharedViewFallbackIcon } from "../components/icons";
 import { RelationBacklinksPanel } from "../components/RelationBacklinksPanel";
 import type { EntryActionRule, SaveDocumentsResult } from "../api/client";
 import type { DataRecord } from "../model/documentModel";
@@ -607,8 +607,10 @@ export function DetailPanel({
 }
 
 function resolveDetailActionIcon(iconId: string) {
+  const sharedViewIcon = readSharedViewIconComponent(iconId);
+  if (typeof sharedViewIcon === "function") return sharedViewIcon;
   const candidate = icons[iconId as keyof typeof icons];
-  return typeof candidate === "function" ? candidate : icons.edit;
+  return typeof candidate === "function" ? candidate : sharedViewFallbackIcon;
 }
 
 function NestedCollectionPanel(props: {

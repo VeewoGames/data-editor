@@ -60,6 +60,16 @@ export type DeviceEntryActionBindings = {
     model?: string | null;
   }>;
 };
+export type AutomationSkillCatalogItem = {
+  id: string;
+  label: string;
+  source?: string;
+};
+export type AutomationSkillCatalog = {
+  provider: "codex";
+  loadedAt: string;
+  skills: AutomationSkillCatalogItem[];
+};
 export type ProjectRegistry = {
   version: number;
   activeProjectId: string | null;
@@ -542,11 +552,23 @@ export async function loadAutomationBindings(projectId?: string | null): Promise
   return fetchJson(withProjectId("/api/automation-bindings", projectId));
 }
 
+export async function loadAutomationSkillCatalog(projectId?: string | null): Promise<AutomationSkillCatalog> {
+  return fetchJson(withProjectId("/api/automation-skill-catalog", projectId));
+}
+
 export async function saveAutomationBindings(bindings: DeviceEntryActionBindings, projectId?: string | null) {
   return fetchJson("/api/automation-bindings", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ projectId, bindings }),
+  });
+}
+
+export async function validateAutomationBindings(bindings: DeviceEntryActionBindings, projectId?: string | null) {
+  return fetchJson("/api/automation-bindings", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId, bindings, validateOnly: true }),
   });
 }
 

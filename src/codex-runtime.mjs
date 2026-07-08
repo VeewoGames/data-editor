@@ -55,7 +55,7 @@ export async function resolveCodexSkill(bindingSkill, options = {}) {
     };
   }
 
-  for (const candidate of codexSkillCandidates(skill, projectRoot)) {
+  for (const candidate of resolveCodexSkillCandidatePaths(skill, projectRoot)) {
     if (await pathExists(candidate)) {
       return {
         available: true,
@@ -72,6 +72,23 @@ export async function resolveCodexSkill(bindingSkill, options = {}) {
     reason: "skill_missing",
     message: `未找到 skill "${skill}"，请确认它已安装到当前设备。`,
   };
+}
+
+export function resolveCodexSkillSearchRoots(projectRoot) {
+  const roots = [];
+  if (projectRoot) {
+    roots.push(path.join(projectRoot, ".agents", "skills"));
+  }
+  const userProfile = process.env.USERPROFILE;
+  if (userProfile) {
+    roots.push(path.join(userProfile, ".codex", "skills"));
+    roots.push(path.join(userProfile, ".agents", "skills"));
+  }
+  return uniquePaths(roots);
+}
+
+export function resolveCodexSkillCandidatePaths(skill, projectRoot) {
+  return resolveCodexSkillSearchRoots(projectRoot).map((root) => path.join(root, skill, "SKILL.md"));
 }
 
 export async function resolveCodexBindingStatus(binding, options = {}) {
@@ -140,19 +157,6 @@ function codexCliCandidates() {
     candidates.push(path.join(localAppData, "OpenAI", "Codex", "bin", "codex.exe"));
   }
   candidates.push(path.join(process.cwd(), "codex.exe"));
-  return uniquePaths(candidates);
-}
-
-function codexSkillCandidates(skill, projectRoot) {
-  const candidates = [];
-  if (projectRoot) {
-    candidates.push(path.join(projectRoot, ".agents", "skills", skill, "SKILL.md"));
-  }
-  const userProfile = process.env.USERPROFILE;
-  if (userProfile) {
-    candidates.push(path.join(userProfile, ".codex", "skills", skill, "SKILL.md"));
-    candidates.push(path.join(userProfile, ".agents", "skills", skill, "SKILL.md"));
-  }
   return uniquePaths(candidates);
 }
 

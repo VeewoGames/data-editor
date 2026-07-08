@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { emptyAutomationBindings, loadAutomationBindings, normalizeAutomationBindings, saveAutomationBindings, validateAutomationBindings } from "../src/automation-bindings.mjs";
+import { emptyAutomationBindings, loadAutomationBindings, normalizeAutomationBindings, saveAutomationBindings, validateAutomationBindings, validateAutomationBindingsRuntime } from "../src/automation-bindings.mjs";
 
 test("loadAutomationBindings returns empty bindings when file is missing", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-bindings-"));
@@ -74,6 +74,23 @@ test("saveAutomationBindings rejects non-boolean enabled values", async () => {
         },
       },
     }), /enabled must be a boolean/i);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("validateAutomationBindingsRuntime rejects missing skills for codex bindings", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-bindings-"));
+  try {
+    await assert.rejects(() => validateAutomationBindingsRuntime({
+      bindings: {
+        recheck: {
+          provider: "codex",
+          skill: "missing-skill",
+          enabled: true,
+        },
+      },
+    }, { projectRoot: root }), /未找到 skill/i);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

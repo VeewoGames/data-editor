@@ -24,6 +24,7 @@ import {
   writeEntryActionHandoff,
 } from "./src/entry-actions.mjs";
 import { loadAutomationBindings, saveAutomationBindings } from "./src/automation-bindings.mjs";
+import { loadAutomationSkillCatalog } from "./src/automation-skill-catalog.mjs";
 import { loadAutomationProfile, saveAutomationProfile } from "./src/automation-profile.mjs";
 import { resolveCodexBindingStatus } from "./src/codex-runtime.mjs";
 import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
@@ -74,6 +75,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/view-profile" && req.method === "POST") return await handleSaveViewProfile(req, res);
     if (url.pathname === "/api/automation-profile" && req.method === "GET") return await handleLoadAutomationProfile(url, res);
     if (url.pathname === "/api/automation-profile" && req.method === "POST") return await handleSaveAutomationProfile(req, res);
+    if (url.pathname === "/api/automation-skill-catalog" && req.method === "GET") return await handleLoadAutomationSkillCatalog(url, res);
     if (url.pathname === "/api/automation-bindings" && req.method === "GET") return await handleLoadAutomationBindings(url, res);
     if (url.pathname === "/api/automation-bindings" && req.method === "POST") return await handleSaveAutomationBindings(req, res);
     if (url.pathname === "/api/entry-actions/result" && req.method === "GET") return await handleLoadEntryActionResult(url, res);
@@ -184,6 +186,11 @@ async function handleSaveAutomationProfile(req, res) {
   sendJson(res, { ok: true, ...result });
 }
 
+async function handleLoadAutomationSkillCatalog(url, res) {
+  const projectContext = await projectContextForUrl(url);
+  sendJson(res, await loadAutomationSkillCatalog({ projectRoot: projectContext.projectRoot }));
+}
+
 async function handleLoadAutomationBindings(url, res) {
   const projectContext = await projectContextForUrl(url);
   const bindings = await loadAutomationBindings(projectContext);
@@ -198,7 +205,12 @@ async function handleSaveAutomationBindings(req, res) {
   const body = await readJsonBody(req);
   const projectContext = await projectContextForId(body.projectId);
   const bindings = body && typeof body === "object" && "bindings" in body ? body.bindings : body;
-  const result = await saveAutomationBindings(projectContext, bindings);
+  if (body?.validateOnly) {
+    await saveAutomationBindings(projectContext, bindings, { validateRuntime: true, validateOnly: true });
+    sendJson(res, { ok: true, validated: true });
+    return;
+  }
+  const result = await saveAutomationBindings(projectContext, bindings, { validateRuntime: true });
   sendJson(res, { ok: true, ...result });
 }
 
