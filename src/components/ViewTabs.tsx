@@ -8,11 +8,15 @@ import {
   sharedViewDefaultIconId,
   sharedViewFallbackIcon,
 } from "./icons";
+import { buildSharedViewUrl } from "../shared-view-location.mjs";
 import { SharedViewIconPicker } from "./SharedViewIconPicker";
 import { TableSettingsPopover } from "./TableSettingsPopover";
 
 export type ViewTabsProps = {
   snapshot: ViewTabsSnapshot;
+  activeProjectId: string | null;
+  selectedPath: string | null;
+  collectionPath: string;
   onSelectView: (viewId: string) => void;
   onAddRow: () => void;
   onManualSave: () => void;
@@ -73,6 +77,9 @@ export type ViewTabReorderOperation =
 
 export function ViewTabs({
   snapshot,
+  activeProjectId,
+  selectedPath,
+  collectionPath,
   onSelectView,
   onAddRow,
   onManualSave,
@@ -342,9 +349,14 @@ export function ViewTabs({
 
   async function handleCopyLink(view: CollectionView) {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
-    const url = new URL(window.location.href);
-    url.hash = `view=${encodeURIComponent(view.id)}`;
-    await navigator.clipboard.writeText(url.toString());
+    if (!activeProjectId || !selectedPath || !collectionPath) return;
+    const url = buildSharedViewUrl(window.location.href, {
+      projectId: activeProjectId,
+      path: selectedPath,
+      collectionPath,
+      viewId: view.id,
+    });
+    await navigator.clipboard.writeText(url);
     setOpenMenuViewId(null);
   }
 

@@ -70,14 +70,16 @@ import { ViewFilterBar, type ViewFilterBarSnapshot } from "./components/ViewFilt
 import type { CreateFilterOptionInput } from "./components/filters/MultiSelectFilterPopover";
 import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editing";
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
+import { SearchablePicker } from "./components/SearchablePicker";
 import { DocumentFieldConfigDialog } from "./components/DocumentFieldConfigDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
-import { collectProtectedIconPackIdsFromIcons, icons, readSharedViewIconComponent, sharedViewDefaultIconId, sharedViewFallbackIcon } from "./components/icons";
+import { collectProtectedIconPackIdsFromIcons, icons, isSharedViewIconPackLoaded, loadSharedViewIconPack, readSharedViewIconComponent, sharedViewDefaultIconId, sharedViewFallbackIcon } from "./components/icons";
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
 import { DataTable, type FieldConfig, type TableFieldConfig, type TableSnapshot } from "./table/DataTable";
 import { DetailPanel, type DetailEntryActionStatus, type DetailSnapshot } from "./detail/DetailPanel";
 import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
+import { defaultAutomationRuntime } from "./automation-runtime.mjs";
 import { buildDetailSelectionState, resolveDetailSelectionSync } from "./detail/selection-state.mjs";
 import { stabilizeViewResult } from "./view/stable-view-result.mjs";
 import { buildStableViewEngineRows } from "./view/stable-view-engine-rows.mjs";
@@ -135,6 +137,11 @@ import {
   type ProjectPageContextState,
 } from "./page-context-storage";
 import {
+  clearSharedViewUrlLocation,
+  readSharedViewUrlLocation,
+  writeSharedViewUrlLocation,
+} from "./shared-view-location.mjs";
+import {
   applyLocalPathMigrations,
   applyPageContextPathMigrations,
   applyProfilePathMigrations,
@@ -179,6 +186,7 @@ import type { ValidationFieldConfig as ValidationFieldConfigType, ValidationRule
 import { createSaveCoordinator, type AutosaveDomain, type AutosaveState } from "./save-coordinator";
 import { buildDocumentStore, type CollectionStore, type DocumentStore, type TableRowView } from "./model/document-store";
 import { addFieldByRowId, deleteRowByRowId, setCellValueByRowId } from "./model/writeback-adapter";
+import { describeFileBasename, matchesFileSearchQuery } from "./searchable-picker-utils.mjs";
 import { applySidebarTreePreferences, buildSidebarTree, buildSidebarTreePreferences, findSidebarFallbackFilePath } from "./sidebar-tree.mjs";
 import {
   collectionConfigKey,
@@ -205,6 +213,18 @@ import {
 
 type ServiceLifecycleState = "running" | "closed" | "recovering" | "disconnected" | "recoveredPendingReload" | "bridgeUnavailable";
 type SharedViewDraftState = Pick<UserViewProfile, "lastActiveViews" | "viewDrafts" | "viewOrderDrafts" | "structureDrafts">;
+type SharedViewUrlLocationState = {
+  projectId: string | null;
+  path: string | null;
+  collectionPath: string | null;
+  viewId: string | null;
+};
+type SharedViewUrlResolutionResult = {
+  invalidProjectId: boolean;
+  invalidPath: boolean;
+  invalidCollectionPath: boolean;
+  invalidViewId: boolean;
+};
 type ResolvedCollectionViewsState = {
   topLevelItems: Array<
     | SharedViewLeafItem
@@ -251,6 +271,15 @@ const buildDocumentStoreTyped = buildDocumentStore as (input: {
 }) => DocumentStore;
 const runViewTyped = runView as (input: ViewInput) => ViewResult;
 const sidebarTreePrefsStorageKey = "data-editor:__sidebar-tree-prefs";
+type AutomationModelOption = { value: string; label: string };
+type DeviceEntryActionBindingStatus = NonNullable<DeviceEntryActionBindings["bindingStatuses"]>[string];
+const automationRuntimeInheritValue = "__inherit__";
+const automationModelOptions: AutomationModelOption[] = [
+  { value: "gpt-5.5", label: "gpt-5.5" },
+  { value: "gpt-5.4", label: "gpt-5.4" },
+  { value: "gpt-5.4-mini", label: "gpt-5.4-mini" },
+  { value: "gpt-5.3-codex-spark", label: "gpt-5.3-codex-spark" },
+];
 
 function markPerf(name: string) {
   if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
@@ -338,6 +367,15 @@ type PathRewriteContext = {
   collectionPathsByFile: Record<string, string[]>;
   viewIdsByCollectionKey: Record<string, string[]>;
 };
+
+function emptySharedViewUrlResolutionResult(): SharedViewUrlResolutionResult {
+  return {
+    invalidProjectId: false,
+    invalidPath: false,
+    invalidCollectionPath: false,
+    invalidViewId: false,
+  };
+}
 
 function addUniqueRecordValue(record: Record<string, string[]>, key: string, value: string) {
   if (!key || !value) return;
@@ -513,6 +551,13 @@ async function refreshFingerprintCacheForFiles(cache: unknown, files: DataFile[]
   return updateFingerprintCache(cache, files.filter((file) => fingerprints.some((fingerprint: { path: string }) => fingerprint.path === file.path)), fingerprints);
 }
 
+type PendingNestedOpenTarget = {
+  rowId: string | null;
+  sourceRowIndex: number | null;
+  fieldName: string;
+  requestKey: number;
+};
+
 export function App() {
   const [files, setFiles] = useState<DataFile[]>([]);
   const [projects, setProjects] = useState<ProjectDefinition[]>([]);
@@ -536,7 +581,7 @@ export function App() {
   const [entryActionStatus, setEntryActionStatus] = useState<DetailEntryActionStatus | null>(null);
   const entryActionWatchIdRef = useRef(0);
   const [automationProfileState, setAutomationProfileState] = useState<UserAutomationProfile>({ rules: [] });
-  const [automationBindingsState, setAutomationBindingsState] = useState<DeviceEntryActionBindings>({ bindings: {} });
+  const [automationBindingsState, setAutomationBindingsState] = useState<DeviceEntryActionBindings>({ defaults: {}, bindings: {} });
   const [autosaveState, setAutosaveState] = useState<AutosaveState>("idle");
   const [closing, setClosing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
@@ -569,6 +614,7 @@ export function App() {
   const [pendingDeleteRowId, setPendingDeleteRowId] = useState<string | null>(null);
   const [pendingDeleteField, setPendingDeleteField] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [pendingNestedOpen, setPendingNestedOpen] = useState<PendingNestedOpenTarget | null>(null);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
   const [tableTextEditMode, setTableTextEditMode] = useState(false);
   const enableTableTextEditMode = useCallback(() => {
@@ -579,6 +625,7 @@ export function App() {
   const [uiRevision, bumpUiRevision] = useState(0);
   const [layoutRevision, bumpLayoutRevision] = useState(0);
   const [tableRevision, bumpTableRevision] = useState(0);
+  const [, setSharedViewIconPackVersion] = useState(0);
   const [viewConfig, setViewConfig] = useState<ViewConfig>(emptyProjectViewConfig());
   const [sharedViewsConfig, setSharedViewsConfig] = useState<SharedViewsConfig>(emptySharedViewsConfig());
   const [localSharedViewDrafts, setLocalSharedViewDrafts] = useState<SharedViewDraftState>(() => readLocalSharedViewDrafts(window.localStorage));
@@ -604,6 +651,10 @@ export function App() {
   const modelRef = useRef<DocumentModel | null>(null);
   const savedDocumentRootRef = useRef<unknown | null>(null);
   const selectedPathRef = useRef<string | null>(null);
+  const pendingSharedViewUrlLocationRef = useRef<SharedViewUrlLocationState | null>(
+    typeof window === "undefined" ? null : readSharedViewUrlLocation(window.location),
+  );
+  const sharedViewUrlResolutionRef = useRef<SharedViewUrlResolutionResult>(emptySharedViewUrlResolutionResult());
   const collectionPathRef = useRef("$");
   const selectedRowIdRef = useRef<string | null>(null);
   const selectedSourceRowIndexRef = useRef<number | null>(null);
@@ -777,11 +828,51 @@ export function App() {
   }, [viewConfig.primaryKeys, selectedCollectionKey]);
   useEffect(() => () => saveCoordinator.cancel(), [saveCoordinator]);
 
+  function finalizePendingSharedViewUrlResolution(options: { rewriteToCurrent?: boolean; resolvedViewId?: string | null } = {}) {
+    if (typeof window === "undefined") return;
+    const pending = pendingSharedViewUrlLocationRef.current;
+    if (!pending) return;
+    const resolution = sharedViewUrlResolutionRef.current;
+    const shouldRewrite = options.rewriteToCurrent
+      || resolution.invalidProjectId
+      || resolution.invalidPath
+      || resolution.invalidCollectionPath
+      || resolution.invalidViewId;
+    if (shouldRewrite) {
+      const url = new URL(window.location.href);
+      if (activeProjectIdRef.current && selectedPathRef.current) {
+        writeSharedViewUrlLocation(url, {
+          projectId: activeProjectIdRef.current,
+          path: selectedPathRef.current,
+          collectionPath: collectionPathRef.current,
+          viewId: options.resolvedViewId ?? null,
+        });
+      } else {
+        clearSharedViewUrlLocation(url);
+      }
+      window.history.replaceState(null, "", url.toString());
+    }
+    pendingSharedViewUrlLocationRef.current = null;
+    sharedViewUrlResolutionRef.current = emptySharedViewUrlResolutionResult();
+  }
+
   useEffect(() => {
     listProjects()
-      .then((registry) => {
+      .then(async (registry) => {
         setProjects(registry.projects);
-        setActiveProjectId(registry.activeProjectId);
+        const pending = pendingSharedViewUrlLocationRef.current;
+        const hasUrlProject = Boolean(
+          pending?.projectId
+          && registry.projects.some((project) => project.id === pending.projectId),
+        );
+        if (pending?.projectId && !hasUrlProject) {
+          sharedViewUrlResolutionRef.current.invalidProjectId = true;
+        }
+        const nextProjectId = hasUrlProject ? pending?.projectId ?? null : registry.activeProjectId;
+        if (hasUrlProject && nextProjectId && nextProjectId !== registry.activeProjectId) {
+          await activateProject(nextProjectId);
+        }
+        setActiveProjectId(nextProjectId);
       })
       .catch((error) => setStatus(error.message));
   }, []);
@@ -795,7 +886,7 @@ export function App() {
   useEffect(() => {
     if (!activeProject) {
       setAutomationProfileState({ rules: [] });
-      setAutomationBindingsState({ bindings: {} });
+      setAutomationBindingsState({ defaults: {}, bindings: {} });
       return;
     }
     let cancelled = false;
@@ -811,7 +902,7 @@ export function App() {
       .catch((error) => {
         if (cancelled) return;
         setAutomationProfileState({ rules: [] });
-        setAutomationBindingsState({ bindings: {} });
+        setAutomationBindingsState({ defaults: {}, bindings: {} });
         setStatus(error instanceof Error ? error.message : String(error));
       })
       .finally(() => {
@@ -972,14 +1063,36 @@ export function App() {
         setDetailDocumentPanelWidth(readDetailDocumentPanelWidth());
       }
       const sidebarTree = buildResolvedSidebarTree(nextFiles, profileNameForInitialOrder, normalizedInitialProfile, window.localStorage);
+      const pendingUrlLocation = pendingSharedViewUrlLocationRef.current;
+      const urlPathCandidate = pendingUrlLocation?.projectId && pendingUrlLocation.projectId !== projectId
+        ? null
+        : pendingUrlLocation?.path ?? null;
+      const validUrlPath = urlPathCandidate && nextFiles.some((file) => file.path === urlPathCandidate)
+        ? urlPathCandidate
+        : null;
+      if (urlPathCandidate && !validUrlPath) {
+        sharedViewUrlResolutionRef.current.invalidPath = true;
+      }
       const preferredPath = findSidebarFallbackFilePath(
         sidebarTree,
-        currentPageContext.selectedPath ?? selectedPathRef.current,
+        validUrlPath ?? currentPageContext.selectedPath ?? selectedPathRef.current,
       );
       loadedProjectIdRef.current = projectId;
       if (preferredPath) {
-        const targetCollection = preferredPath === currentPageContext.selectedPath ? currentPageContext.collectionPath : undefined;
-        await openDocumentAt(preferredPath, targetCollection, undefined, false, projectId);
+        const targetCollection = preferredPath === validUrlPath
+          ? (pendingUrlLocation?.collectionPath ?? "$")
+          : preferredPath === currentPageContext.selectedPath
+            ? currentPageContext.collectionPath
+            : undefined;
+        const opened = await openDocumentAt(preferredPath, targetCollection, undefined, false, projectId);
+        if (
+          pendingUrlLocation
+          && preferredPath === validUrlPath
+          && opened
+          && opened.collectionPath !== (pendingUrlLocation.collectionPath ?? "$")
+        ) {
+          sharedViewUrlResolutionRef.current.invalidCollectionPath = true;
+        }
       }
       loadedProjectIdRef.current = projectId;
     } catch (error) {
@@ -1211,6 +1324,46 @@ export function App() {
     }
   }
 
+  async function waitForEditorHealthState(target: "up" | "down", timeoutMs: number, pollMs: number) {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+      try {
+        const health = await checkEditorHealth();
+        if (Number.isInteger(Number(health.bridgePort)) && Number(health.bridgePort) > 0) {
+          setBridgePort(Number(health.bridgePort));
+        }
+        if (target === "up") return true;
+      } catch {
+        if (target === "down") return true;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, pollMs));
+    }
+    return false;
+  }
+
+  async function recoverEditorService(port: number, options: { expectShutdownFirst?: boolean; timeoutMs?: number } = {}) {
+    const {
+      expectShutdownFirst = false,
+      timeoutMs = 15000,
+    } = options;
+    const canUseHealthRecovery = expectShutdownFirst
+      ? await waitForEditorHealthState("down", 5000, 150)
+      : true;
+    const recoveryCandidates: Promise<unknown>[] = [reopenEditor(port)];
+    if (canUseHealthRecovery) {
+      recoveryCandidates.push((async () => {
+        const recovered = await waitForEditorHealthState("up", timeoutMs, 250);
+        if (!recovered) throw new Error("Timed out waiting for editor service to recover.");
+      })());
+    }
+    await Promise.race([
+      Promise.any(recoveryCandidates),
+      new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("Timed out waiting for editor service to recover.")), timeoutMs);
+      }),
+    ]);
+  }
+
   function isRecoverableNetworkFailureUrl(url: string) {
     if (!url) return true;
     if (url.includes("/api/rebuild") || url.includes("/api/shutdown")) return false;
@@ -1311,7 +1464,7 @@ export function App() {
     projectId = activeProjectId,
     targetRowId?: string | null,
     preserveEntryActionFeedback = false,
-  ) {
+  ): Promise<{ path: string; collectionPath: string; rowId: string | null } | null> {
     const requestId = openRequestRef.current + 1;
     openRequestRef.current = requestId;
     selectedPathRef.current = path;
@@ -1351,9 +1504,9 @@ export function App() {
       selectedPathRef.current = null;
       setSelectedPath(null);
       setStatus(error instanceof Error ? error.message : String(error));
-      return;
+      return null;
     }
-    if (requestId !== openRequestRef.current) return;
+    if (requestId !== openRequestRef.current) return null;
     const persistentEntryIdResult = ensurePersistentEntryIds(documentModel);
     const nextCollection = resolveDocumentCollection(documentModel, targetCollection);
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
@@ -1380,6 +1533,7 @@ export function App() {
     dataDirtyRef.current = persistentEntryIdResult.changed;
     if (persistentEntryIdResult.changed) saveCoordinator.markDirty("document");
     setStatus(persistentEntryIdResult.changed ? `已为 ${persistentEntryIdResult.changedCount} 条记录补充内部条目 ID，待自动保存。` : "");
+    return { path, collectionPath: nextCollection, rowId: nextSelectedRowId };
   }
 
   function finalizeDetailReorderAsyncSegment(segment: "backlinks" | "maintenance") {
@@ -1620,6 +1774,14 @@ export function App() {
     () => readProjectPageContext(readPageContextState(window.localStorage), activeProjectId),
     [activeProjectId, activeCollectionKey, sharedViewsConfig, draftSource],
   );
+  const pendingPreferredViewId = useMemo(() => {
+    const pending = pendingSharedViewUrlLocationRef.current;
+    if (!pending || !activeProjectId || !selectedPath) return null;
+    if (pending.projectId && pending.projectId !== activeProjectId) return null;
+    if (pending.path && pending.path !== selectedPath) return null;
+    if ((pending.collectionPath ?? "$") !== collectionPath) return null;
+    return pending.viewId ?? null;
+  }, [activeProjectId, selectedPath, collectionPath]);
   const resolvedCollectionViews = useMemo<ResolvedCollectionViewsState>(
     () => activeCollectionKey
       ? resolveSharedViewStructure({
@@ -1627,6 +1789,7 @@ export function App() {
         collectionKey: activeCollectionKey,
         draftState: draftSource,
         pageContext: projectPageContext,
+        preferredViewId: pendingPreferredViewId,
       }) as ResolvedCollectionViewsState
       : {
         topLevelItems: [],
@@ -1639,7 +1802,7 @@ export function App() {
         parentGroupIdByViewId: {},
         lastActiveViewIdByGroupId: {},
       },
-    [activeCollectionKey, sharedViewsConfig, draftSource, projectPageContext],
+    [activeCollectionKey, sharedViewsConfig, draftSource, projectPageContext, pendingPreferredViewId],
   );
   const collectionSharedViews = useMemo(
     () => activeCollectionKey ? resolvedCollectionViews.flattenedViews : [],
@@ -1679,6 +1842,42 @@ export function App() {
   const stableActiveViewRenderStateRef = useRef<{ query: string; filters: FilterGroup; sorts: SortRule[] } | null>(null);
   const activeToolbarQuery = toolbarQueryOverride ?? (activeView?.query ?? "");
   const activeViewLayoutId = activeSharedView?.id ?? null;
+  useEffect(() => {
+    const pending = pendingSharedViewUrlLocationRef.current;
+    if (!pending || !activeProjectId || !selectedPath) return;
+    if (pending.projectId && pending.projectId !== activeProjectId) return;
+    if (pending.path && pending.path !== selectedPath && !sharedViewUrlResolutionRef.current.invalidPath) return;
+    if (pending.viewId) {
+      if ((pending.collectionPath ?? "$") !== collectionPath && !sharedViewUrlResolutionRef.current.invalidCollectionPath) return;
+      if (sharedViewUrlResolutionRef.current.invalidPath || sharedViewUrlResolutionRef.current.invalidCollectionPath) {
+        finalizePendingSharedViewUrlResolution({ rewriteToCurrent: true, resolvedViewId: activeViewLayoutId });
+        return;
+      }
+      if (!activeCollectionKey) return;
+      if (resolvedCollectionViews.viewsById[pending.viewId]) {
+        const parentGroupId = resolvedCollectionViews.parentGroupIdByViewId?.[pending.viewId] ?? null;
+        const currentDraftState = currentSharedViewDraftState();
+        if (currentDraftState.lastActiveViews?.[activeCollectionKey] !== pending.viewId) {
+          updateSharedViewDraftState({
+            lastActiveViews: { ...currentDraftState.lastActiveViews, [activeCollectionKey]: pending.viewId },
+            viewDrafts: { ...currentDraftState.viewDrafts },
+            viewOrderDrafts: { ...currentDraftState.viewOrderDrafts },
+            structureDrafts: { ...currentDraftState.structureDrafts },
+          });
+        }
+        updatePageContextViewGrouping(window.localStorage, activeProjectId, {
+          expandedGroupId: parentGroupId,
+          lastActiveViewIdByGroupId: parentGroupId
+            ? { ...projectPageContext.lastActiveViewIdByGroupId, [parentGroupId]: pending.viewId }
+            : { ...projectPageContext.lastActiveViewIdByGroupId },
+        });
+        finalizePendingSharedViewUrlResolution({ resolvedViewId: pending.viewId });
+        return;
+      }
+      sharedViewUrlResolutionRef.current.invalidViewId = true;
+    }
+    finalizePendingSharedViewUrlResolution({ rewriteToCurrent: true, resolvedViewId: activeViewLayoutId });
+  }, [activeProjectId, activeCollectionKey, activeViewLayoutId, collectionPath, projectPageContext.lastActiveViewIdByGroupId, resolvedCollectionViews.parentGroupIdByViewId, resolvedCollectionViews.viewsById, selectedPath]);
   const activeViewHasFilters = Boolean(
     (activeView?.filters?.topLevelRules?.length ?? 0) > 0
     || activeView?.filters?.advancedRoot,
@@ -1997,7 +2196,7 @@ export function App() {
     let cancelled = false;
     setDocumentContentLoading(true);
     setDocumentContentError(null);
-    loadDocumentContent(selectedPath, activeDocumentId, activeProjectId)
+    loadDocumentContent(selectedPath, activeDocumentId, activeProjectId, { refresh: true })
       .then((response) => {
         if (cancelled) return;
         setDocumentContent(response);
@@ -2252,6 +2451,12 @@ export function App() {
     }),
     [automationProfileState, automationBindingsState, selectedPath, collectionPath],
   );
+  const initialNestedTarget = useMemo(() => {
+    if (!pendingNestedOpen) return null;
+    if (pendingNestedOpen.rowId !== selectedRowId) return null;
+    if (pendingNestedOpen.sourceRowIndex !== selectedSourceRowIndex) return null;
+    return pendingNestedOpen;
+  }, [pendingNestedOpen, selectedRowId, selectedSourceRowIndex]);
   const detailSnapshot = useMemo<DetailSnapshot>(() => ({
     open: detailOpen,
     panelWidth: detailPanelWidth,
@@ -2481,6 +2686,22 @@ export function App() {
     [resolvedCollectionViews.topLevelItems],
   );
   const appFrameStyle = useMemo(() => ({ "--sidebar-width": `${sidebarWidth}px` }) as CSSProperties, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!protectedSharedViewIconPackIds.length) return;
+    const missingPackIds = protectedSharedViewIconPackIds.filter((packId) => !isSharedViewIconPackLoaded(packId as any));
+    if (!missingPackIds.length) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.all(missingPackIds.map((packId) => loadSharedViewIconPack(packId as any)));
+      if (!cancelled) {
+        setSharedViewIconPackVersion((current) => current + 1);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [protectedSharedViewIconPackIds]);
 
   useEffect(() => {
     const perfState = detailReorderPerfRef.current;
@@ -3143,18 +3364,33 @@ export function App() {
     setStatus(nextDocRoot ? `已更新 ${selectedPath} 的文档根目录` : `已清除 ${selectedPath} 的文档根目录`);
   }
 
-  function handleRefreshDocumentIndex() {
+  async function handleRefreshDocumentIndex() {
     if (!selectedPath) return;
     setDocumentIndexError(null);
-    loadDocumentIndex(selectedPath, activeProjectId)
-      .then((response) => {
-        setDocumentIndex(response);
-        setStatus(`已重新加载 ${selectedPath} 的文档索引`);
-      })
-      .catch((error) => {
-        setDocumentIndex({ docRoot: viewConfig.documentFiles[selectedPath]?.docRoot ?? null, entries: {} });
-        setDocumentIndexError(error instanceof Error ? error.message : String(error));
-      });
+    const currentDocumentId = activeDocumentId;
+    if (currentDocumentId) {
+      setDocumentContentLoading(true);
+      setDocumentContentError(null);
+    }
+    try {
+      const response = await loadDocumentIndex(selectedPath, activeProjectId, { refresh: true });
+      setDocumentIndex(response);
+      if (currentDocumentId) {
+        const nextContent = await loadDocumentContent(selectedPath, currentDocumentId, activeProjectId, { refresh: true });
+        setDocumentContent(nextContent);
+        setDocumentContentError(null);
+      }
+      setStatus(`已重新加载 ${selectedPath} 的文档索引`);
+    } catch (error) {
+      setDocumentIndex({ docRoot: viewConfig.documentFiles[selectedPath]?.docRoot ?? null, entries: {} });
+      setDocumentIndexError(error instanceof Error ? error.message : String(error));
+      if (currentDocumentId) {
+        setDocumentContent(null);
+        setDocumentContentError(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      if (currentDocumentId) setDocumentContentLoading(false);
+    }
   }
 
   function confirmRelationConfig(config: RelationConfig) {
@@ -3255,7 +3491,8 @@ export function App() {
     if (!selectedPath) return false;
     const collectionKey = buildCollectionKey(selectedPath, collectionPath);
     const documentKey = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
-    return getCurrentBaseFieldType(fieldName) === "Text"
+    const baseType = getCurrentBaseFieldType(fieldName);
+    return (baseType === "Text" || baseType === "Multi-select")
       && viewConfig.titleFields[collectionKey] !== fieldName
       && viewConfig.primaryKeys[collectionKey] !== fieldName
       && !viewConfig.documentFields[documentKey]?.enabled;
@@ -3739,6 +3976,14 @@ export function App() {
       const changedFields = result.writebackCheck?.changedFields?.length
         ? `已观察到字段变更：${result.writebackCheck.changedFields.join("、")}`
         : "已观察到目标条目写回。";
+      if (result.reason === "codex_exec_timeout") {
+        return {
+          actionId,
+          tone: "warning",
+          title: `${actionLabel} 已写回（执行超时）`,
+          detail: result.message ?? `自动化在等待上限内未正常结束，但${changedFields}`,
+        };
+      }
       return {
         actionId,
         tone: "success",
@@ -3747,6 +3992,14 @@ export function App() {
       };
     }
     if (result.status === "completed_without_observed_writeback") {
+      if (result.reason === "codex_exec_timeout") {
+        return {
+          actionId,
+          tone: "warning",
+          title: `${actionLabel} 未观察到写回（执行超时）`,
+          detail: result.message ?? "自动化在等待上限内未正常结束，且当前未观察到目标条目发生变化。",
+        };
+      }
       return {
         actionId,
         tone: "warning",
@@ -3763,6 +4016,14 @@ export function App() {
       };
     }
     if (result.status === "failed") {
+      if (result.reason === "codex_exec_timeout") {
+        return {
+          actionId,
+          tone: "warning",
+          title: `${actionLabel} 执行超时`,
+          detail: result.message ?? "自动化执行超时，已达到当前规则配置的等待上限。",
+        };
+      }
       return {
         actionId,
         tone: "error",
@@ -3854,6 +4115,28 @@ export function App() {
       setSelectedRowIndex(resolvedSourceIndex);
       setSelectedRowIdState(resolvedRowId);
       setDetailOpen(true);
+    });
+  }
+
+  function openNestedDetailForRow(rowIndex: number, rowId: string | null, fieldName: string) {
+    const resolvedSourceIndex = resolveSourceIndexFromRowId(rowId, rowIndex);
+    const resolvedRowId = rowId ?? getRowIdAtSourceIndex(resolvedSourceIndex);
+    flushSync(() => {
+      clearEntryActionFeedbackForSelection({
+        sourcePath: selectedPathRef.current,
+        collectionPath: collectionPathRef.current,
+        rowId: resolvedRowId,
+        sourceRowIndex: resolvedSourceIndex,
+      });
+      setSelectedRowIndex(resolvedSourceIndex);
+      setSelectedRowIdState(resolvedRowId);
+      setDetailOpen(true);
+      setPendingNestedOpen({
+        rowId: resolvedRowId,
+        sourceRowIndex: resolvedSourceIndex,
+        fieldName,
+        requestKey: Date.now() + Math.random(),
+      });
     });
   }
 
@@ -4878,16 +5161,23 @@ export function App() {
     if (globalDirty && !window.confirm("有未保存更改，刷新构建会丢失这些更改。是否继续刷新构建？")) return;
     setRebuilding(true);
     setStatus("");
+    setDisconnectMessage("");
+    setServiceLifecycleState("recovering");
     try {
       flushActiveTextEditorDraft();
       await saveCoordinator.flush("flush");
       await rebuildFrontend();
-      rememberTransientStatus("构建成功，页面已刷新");
+      manualClosedRef.current = false;
+      await shutdownServer();
+      await recoverEditorService(bridgePortRef.current, { expectShutdownFirst: true });
+      rememberTransientStatus("构建并重启成功，页面已刷新");
       window.location.reload();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setStatus(`构建失败：${message}`);
       setRebuilding(false);
+      setDisconnectMessage("");
+      setServiceLifecycleState("running");
     }
   }
 
@@ -4903,8 +5193,7 @@ export function App() {
       await saveCoordinator.flush("flush");
       manualClosedRef.current = false;
       await shutdownServer();
-      await new Promise((resolve) => window.setTimeout(resolve, 800));
-      await reopenEditor(bridgePortRef.current);
+      await recoverEditorService(bridgePortRef.current, { expectShutdownFirst: true });
       rememberTransientStatus("服务已重启，页面已刷新");
       window.location.reload();
     } catch (error) {
@@ -5119,6 +5408,9 @@ export function App() {
               <Profiler id="view-tabs" onRender={handleDetailReorderProfilerRender}>
                 <ViewTabs
                   snapshot={viewTabsSnapshot}
+                  activeProjectId={activeProjectId}
+                  selectedPath={selectedPath}
+                  collectionPath={collectionPath}
                   onSelectView={handleSelectSharedView}
                   onAddRow={handleAddRow}
                   onManualSave={() => void persistChanges()}
@@ -5175,6 +5467,7 @@ export function App() {
                   onScrollPositionChange={handleTableScrollPositionChange}
                   onSelectRow={selectRow}
                   onOpenDetail={openDetailForRow}
+                  onOpenNestedDetail={openNestedDetailForRow}
                   onOpenBacklink={handleOpenBacklink}
                   onEditCell={handleTableEditCell}
                   onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
@@ -5204,6 +5497,10 @@ export function App() {
               <Profiler id="detail-panel" onRender={handleDetailReorderProfilerRender}>
                 <DetailPanel
                   snapshot={detailSnapshot}
+                  initialNestedTarget={initialNestedTarget}
+                  onConsumeInitialNestedTarget={(requestKey) => {
+                    setPendingNestedOpen((current) => current?.requestKey === requestKey ? null : current);
+                  }}
                   onCommitMultiSelectDraft={(fieldName, patch) => selectedRowId && handleCommitMultiSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
                   onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
                   onOpenBacklink={handleOpenBacklink}
@@ -5229,6 +5526,9 @@ export function App() {
           <div className="main-content">
             <ViewTabs
               snapshot={viewTabsSnapshot}
+              activeProjectId={activeProjectId}
+              selectedPath={selectedPath}
+              collectionPath={collectionPath}
               onSelectView={handleSelectSharedView}
               onAddRow={handleAddRow}
               onManualSave={() => void persistChanges()}
@@ -5279,6 +5579,7 @@ export function App() {
               onScrollPositionChange={handleTableScrollPositionChange}
               onSelectRow={selectRow}
               onOpenDetail={openDetailForRow}
+              onOpenNestedDetail={openNestedDetailForRow}
               onOpenBacklink={handleOpenBacklink}
               onEditCell={handleTableEditCell}
               onCommitMultiSelectDraft={handleTableCommitMultiSelectOptionFieldDraft}
@@ -5306,6 +5607,10 @@ export function App() {
             />
             <DetailPanel
               snapshot={detailSnapshot}
+              initialNestedTarget={initialNestedTarget}
+              onConsumeInitialNestedTarget={(requestKey) => {
+                setPendingNestedOpen((current) => current?.requestKey === requestKey ? null : current);
+              }}
               onCommitMultiSelectDraft={(fieldName, patch) => selectedRowId && handleCommitMultiSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
               onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
               onOpenBacklink={handleOpenBacklink}
@@ -5620,6 +5925,27 @@ function AutomationSettingsDialog(props: {
   const [targetPickerOpenId, setTargetPickerOpenId] = useState<string | null>(null);
   const [targetPickerQuery, setTargetPickerQuery] = useState("");
   const [ruleSearchQuery, setRuleSearchQuery] = useState("");
+  const [, setAutomationIconPackVersion] = useState(0);
+  const profileRef = useRef(profile);
+  const bindingsRef = useRef(bindings);
+  const commitProfile = useCallback((updater: UserAutomationProfile | ((current: UserAutomationProfile) => UserAutomationProfile)) => {
+    setProfile((current) => {
+      const next = typeof updater === "function"
+        ? (updater as (current: UserAutomationProfile) => UserAutomationProfile)(current)
+        : updater;
+      profileRef.current = next;
+      return next;
+    });
+  }, []);
+  const commitBindings = useCallback((updater: DeviceEntryActionBindings | ((current: DeviceEntryActionBindings) => DeviceEntryActionBindings)) => {
+    setBindings((current) => {
+      const next = typeof updater === "function"
+        ? (updater as (current: DeviceEntryActionBindings) => DeviceEntryActionBindings)(current)
+        : updater;
+      bindingsRef.current = next;
+      return next;
+    });
+  }, []);
   const rules = profile.rules;
   const filteredRules = useMemo(() => {
     const query = ruleSearchQuery.trim().toLowerCase();
@@ -5639,10 +5965,10 @@ function AutomationSettingsDialog(props: {
 
   useEffect(() => {
     if (!props.open) return;
-    setProfile(props.profile);
-    setBindings(props.bindings);
+    commitProfile(props.profile);
+    commitBindings(props.bindings);
     setSelectedRuleId(props.profile.rules[0]?.id ?? null);
-  }, [props.open, props.profile, props.bindings]);
+  }, [commitBindings, commitProfile, props.open, props.profile, props.bindings]);
 
   useEffect(() => {
     if (props.open) return;
@@ -5699,8 +6025,8 @@ function AutomationSettingsDialog(props: {
     ])
       .then(([nextProfile, nextBindings]) => {
         if (cancelled) return;
-        setProfile(nextProfile);
-        setBindings(nextBindings);
+        commitProfile(nextProfile);
+        commitBindings(nextBindings);
         setLoadedProjectId(props.project!.id);
       })
       .catch((loadError) => {
@@ -5766,6 +6092,15 @@ function AutomationSettingsDialog(props: {
     () => new Map(skillCatalog.skills.map((item) => [item.id, item])),
     [skillCatalog.skills],
   );
+  const bindingDefaults = bindings.defaults ?? {};
+  const effectiveBindingDefaultModel = bindingDefaults.model?.trim() || defaultAutomationRuntime.model;
+  const effectiveBindingDefaultReasoning = bindingDefaults.reasoning ?? defaultAutomationRuntime.reasoning;
+  const effectiveBindingDefaultVerbosity = bindingDefaults.verbosity ?? defaultAutomationRuntime.verbosity;
+  const effectiveBindingDefaultTimeoutMs = bindingDefaults.timeoutMs ?? defaultAutomationRuntime.timeoutMs;
+  const bindingDefaultModelOptions = useMemo(
+    () => buildAutomationModelOptions(bindingDefaults.model),
+    [bindingDefaults.model],
+  );
   const activeRules = rules.filter((rule) => rule.enabled);
   const bindingCounts = activeRules.reduce((summary, rule) => {
     const binding = bindings.bindings[rule.id];
@@ -5798,65 +6133,137 @@ function AutomationSettingsDialog(props: {
     [rules],
   );
 
+  useEffect(() => {
+    if (!protectedIconPackIds.length) return;
+    const missingPackIds = protectedIconPackIds.filter((packId) => !isSharedViewIconPackLoaded(packId as any));
+    if (!missingPackIds.length) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.all(missingPackIds.map((packId) => loadSharedViewIconPack(packId as any)));
+      if (!cancelled) {
+        setAutomationIconPackVersion((current) => current + 1);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [protectedIconPackIds]);
+
   function renderRuleIcon(iconId: SharedViewIconId, size = 18) {
     const IconComponent = readSharedViewIconComponent(iconId) ?? sharedViewFallbackIcon;
     return <IconComponent size={size} />;
   }
 
   function updateRule(index: number, nextRule: EntryActionRule) {
-    setProfile((current) => ({
-      rules: current.rules.map((rule, currentIndex) => (currentIndex === index ? nextRule : rule)),
-    }));
+    commitProfile((current) => {
+      if (!current.rules[index]) return current;
+      return {
+        rules: current.rules.map((rule, currentIndex) => (currentIndex === index ? nextRule : rule)),
+      };
+    });
+  }
+
+  function updateRuleWith(index: number, updater: (rule: EntryActionRule) => EntryActionRule) {
+    commitProfile((current) => {
+      const rule = current.rules[index];
+      if (!rule) return current;
+      return {
+        rules: current.rules.map((currentRule, currentIndex) => (
+          currentIndex === index ? updater(rule) : currentRule
+        )),
+      };
+    });
   }
 
   function updateRuleField<K extends keyof EntryActionRule>(index: number, field: K, value: EntryActionRule[K]) {
-    const rule = rules[index];
-    if (!rule) return;
-    updateRule(index, { ...rule, [field]: value });
+    updateRuleWith(index, (rule) => ({ ...rule, [field]: value }));
+  }
+
+  function updateRuleRuntimeField(index: number, field: "model" | "timeoutMs", value: string) {
+    updateRuleWith(index, (rule) => {
+      const nextRuntime = { ...(rule.runtime ?? {}) };
+      if (field === "model") {
+        const normalized = value.trim();
+        if (normalized) nextRuntime.model = normalized;
+        else delete nextRuntime.model;
+      } else {
+        const normalized = value.trim();
+        if (!normalized) delete nextRuntime.timeoutMs;
+        else {
+          const parsed = Number(normalized);
+          nextRuntime.timeoutMs = Number.isInteger(parsed) ? parsed : Number.NaN;
+        }
+      }
+      return {
+        ...rule,
+        runtime: nextRuntime.model == null && nextRuntime.reasoning == null && nextRuntime.verbosity == null && nextRuntime.timeoutMs == null
+          ? undefined
+          : nextRuntime,
+      };
+    });
+  }
+
+  function updateRuleRuntimeSelectField(index: number, field: "reasoning" | "verbosity", value: string) {
+    updateRuleWith(index, (rule) => {
+      const nextRuntime = { ...(rule.runtime ?? {}) };
+      if (!value.trim()) {
+        delete nextRuntime[field];
+      } else {
+        nextRuntime[field] = value as never;
+      }
+      return {
+        ...rule,
+        runtime: nextRuntime.model == null && nextRuntime.reasoning == null && nextRuntime.verbosity == null && nextRuntime.timeoutMs == null
+          ? undefined
+          : nextRuntime,
+      };
+    });
   }
 
   function updateRuleTargets(index: number, nextTargets: EntryActionTarget[]) {
-    const rule = rules[index];
-    if (!rule) return;
-    updateRule(index, {
+    updateRuleWith(index, (rule) => ({
       ...rule,
       targets: nextTargets,
-    });
+    }));
   }
 
   function addRuleTarget(index: number) {
     const file = targetCatalog[0]?.file ?? "";
     const collection = resolveTargetCollectionOptions(targetCatalogByFile, file)[0] ?? "$";
-    const rule = rules[index];
-    if (!rule) return;
-    updateRuleTargets(index, [...rule.targets, { file, collection }]);
+    updateRuleWith(index, (rule) => ({
+      ...rule,
+      targets: [...rule.targets, { file, collection }],
+    }));
   }
 
   function removeRuleTarget(index: number, targetIndex: number) {
-    const rule = rules[index];
-    if (!rule) return;
-    updateRuleTargets(index, rule.targets.filter((_, currentIndex) => currentIndex !== targetIndex));
+    updateRuleWith(index, (rule) => ({
+      ...rule,
+      targets: rule.targets.filter((_, currentIndex) => currentIndex !== targetIndex),
+    }));
   }
 
   function updateRuleTargetFile(index: number, targetIndex: number, file: string) {
-    const rule = rules[index];
-    if (!rule) return;
-    updateRuleTargets(index, rule.targets.map((target, currentIndex) => {
-      if (currentIndex !== targetIndex) return target;
-      const collectionOptions = resolveTargetCollectionOptions(targetCatalogByFile, file, target.collection);
-      return {
-        file,
-        collection: collectionOptions[0] ?? target.collection,
-      };
+    updateRuleWith(index, (rule) => ({
+      ...rule,
+      targets: rule.targets.map((target, currentIndex) => {
+        if (currentIndex !== targetIndex) return target;
+        const collectionOptions = resolveTargetCollectionOptions(targetCatalogByFile, file, target.collection);
+        return {
+          file,
+          collection: collectionOptions[0] ?? target.collection,
+        };
+      }),
     }));
   }
 
   function updateRuleTargetCollection(index: number, targetIndex: number, collection: string) {
-    const rule = rules[index];
-    if (!rule) return;
-    updateRuleTargets(index, rule.targets.map((target, currentIndex) => (
-      currentIndex === targetIndex ? { ...target, collection } : target
-    )));
+    updateRuleWith(index, (rule) => ({
+      ...rule,
+      targets: rule.targets.map((target, currentIndex) => (
+        currentIndex === targetIndex ? { ...target, collection } : target
+      )),
+    }));
   }
 
   function buildTargetPickerId(targetIndex: number, kind: "file" | "collection") {
@@ -5864,7 +6271,7 @@ function AutomationSettingsDialog(props: {
   }
 
   function updateRuleId(index: number, nextIdRaw: string) {
-    const rule = rules[index];
+    const rule = profileRef.current.rules[index];
     if (!rule) return;
     const nextId = nextIdRaw.trim();
     const previousId = rule.id;
@@ -5873,17 +6280,18 @@ function AutomationSettingsDialog(props: {
     }
     updateRule(index, { ...rule, id: nextId });
     if (!previousId || previousId === nextId) return;
-    setBindings((current) => {
+    commitBindings((current) => {
       const nextBindings = { ...current.bindings };
       const previousBinding = nextBindings[previousId];
       delete nextBindings[previousId];
       if (previousBinding && nextId) nextBindings[nextId] = previousBinding;
-      return { bindings: nextBindings };
+      return { ...current, bindings: nextBindings };
     });
   }
 
   function updateBinding(ruleId: string, nextBinding: EntryActionBinding) {
-    setBindings((current) => ({
+    commitBindings((current) => ({
+      ...current,
       bindings: {
         ...current.bindings,
         [ruleId]: nextBinding,
@@ -5891,20 +6299,48 @@ function AutomationSettingsDialog(props: {
     }));
   }
 
+  function updateBindingDefaultsField(field: "model" | "timeoutMs", value: string) {
+    commitBindings((current) => {
+      const nextDefaults = { ...(current.defaults ?? {}) };
+      if (field === "model") {
+        const normalized = value.trim();
+        if (normalized) nextDefaults.model = normalized;
+        else delete nextDefaults.model;
+      } else {
+        const normalized = value.trim();
+        if (!normalized) delete nextDefaults.timeoutMs;
+        else {
+          const parsed = Number(normalized);
+          nextDefaults.timeoutMs = Number.isInteger(parsed) ? parsed : Number.NaN;
+        }
+      }
+      return { ...current, defaults: nextDefaults };
+    });
+  }
+
+  function updateBindingDefaultsSelectField(field: "reasoning" | "verbosity", value: string) {
+    commitBindings((current) => {
+      const nextDefaults = { ...(current.defaults ?? {}) };
+      if (!value.trim()) delete nextDefaults[field];
+      else nextDefaults[field] = value as never;
+      return { ...current, defaults: nextDefaults };
+    });
+  }
+
   function removeRule(index: number) {
     const rule = rules[index];
     const nextSelectedRuleId = selectedRuleId === rule?.id
       ? (rules[index + 1]?.id ?? rules[index - 1]?.id ?? null)
       : selectedRuleId;
-    setProfile((current) => ({
+    commitProfile((current) => ({
       rules: current.rules.filter((_, currentIndex) => currentIndex !== index),
     }));
     setSelectedRuleId(nextSelectedRuleId);
     if (!rule?.id) return;
-    setBindings((current) => {
+    commitBindings((current) => {
       const nextBindings = { ...current.bindings };
       delete nextBindings[rule.id];
-      return { bindings: nextBindings };
+      return { ...current, bindings: nextBindings };
     });
   }
 
@@ -5917,7 +6353,7 @@ function AutomationSettingsDialog(props: {
       counter += 1;
       nextId = `${nextIdBase}-${counter}`;
     }
-    setProfile((current) => ({
+    commitProfile((current) => ({
       rules: [
         ...current.rules,
         {
@@ -5933,7 +6369,8 @@ function AutomationSettingsDialog(props: {
         },
       ],
     }));
-    setBindings((current) => ({
+    commitBindings((current) => ({
+      ...current,
       bindings: {
         ...current.bindings,
         [nextId]: {
@@ -5948,7 +6385,10 @@ function AutomationSettingsDialog(props: {
 
   async function saveAutomationSettings() {
     if (!props.project?.id) return;
-    if (validationIssues.length > 0) {
+    const latestProfile = profileRef.current;
+    const latestBindings = bindingsRef.current;
+    const latestValidationIssues = validateAutomationSettings(latestProfile, latestBindings);
+    if (latestValidationIssues.length > 0) {
       setError("请先修正自动化设置中的校验问题，再保存。");
       setSaveMessage(null);
       return;
@@ -5957,12 +6397,20 @@ function AutomationSettingsDialog(props: {
     setError(null);
     setSaveMessage(null);
     try {
-      await validateAutomationBindings(bindings, props.project.id);
-      await saveAutomationProfile(profile, props.project.id);
-      await saveAutomationBindings(bindings, props.project.id);
+      await validateAutomationBindings(latestBindings, props.project.id);
+      try {
+        await saveAutomationProfile(latestProfile, props.project.id);
+      } catch (profileSaveError) {
+        throw new Error(`规则配置保存失败：${profileSaveError instanceof Error ? profileSaveError.message : String(profileSaveError)}`);
+      }
+      try {
+        await saveAutomationBindings(latestBindings, props.project.id);
+      } catch (bindingsSaveError) {
+        throw new Error(`本机默认配置保存失败：${bindingsSaveError instanceof Error ? bindingsSaveError.message : String(bindingsSaveError)}`);
+      }
       const refreshedBindings = await loadAutomationBindings(props.project.id);
-      setBindings(refreshedBindings);
-      props.onSaved(profile, refreshedBindings);
+      commitBindings(refreshedBindings);
+      props.onSaved(latestProfile, refreshedBindings);
       setSaveMessage("自动化设置已保存。");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
@@ -5995,8 +6443,90 @@ function AutomationSettingsDialog(props: {
                   </div>
                   <div className="automation-storage-note">
                     <strong>存储位置</strong>
-                    <small>规则保存在个人自动化配置档；本机技能绑定保存在项目本地 `.data-editor/local/automation-bindings.json`。</small>
+                    <small>规则保存在个人自动化配置档；本机技能绑定与默认运行参数保存在项目本地 `.data-editor/local/automation-bindings.json`。</small>
                   </div>
+                </div>
+                <div className="automation-rule-section">
+                  <div className="automation-rule-section__label">本机默认运行参数</div>
+                  <div className="automation-rule-grid">
+                    <label className="dialog-field">
+                      <span>默认模型</span>
+                      <Select.Root
+                        value={bindingDefaults.model ?? automationRuntimeInheritValue}
+                        onValueChange={(value) => updateBindingDefaultsField("model", value === automationRuntimeInheritValue ? "" : value)}
+                      >
+                        <Select.Trigger className="select-trigger" disabled={controlsDisabled}>
+                          <Select.Value placeholder={buildAutomationInheritedOptionLabel("系统默认", defaultAutomationRuntime.model)} />
+                          <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
+                        </Select.Trigger>
+                        <Select.Portal>
+                          <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                            <Select.Viewport>
+                              <Select.Item className="menu-item" value={automationRuntimeInheritValue}><Select.ItemText>{buildAutomationInheritedOptionLabel("系统默认", defaultAutomationRuntime.model)}</Select.ItemText></Select.Item>
+                              {bindingDefaultModelOptions.map((option) => (
+                                <Select.Item className="menu-item" key={option.value} value={option.value}><Select.ItemText>{option.label}</Select.ItemText></Select.Item>
+                              ))}
+                            </Select.Viewport>
+                          </Select.Content>
+                        </Select.Portal>
+                      </Select.Root>
+                    </label>
+                    <label className="dialog-field">
+                      <span>默认推理强度</span>
+                      <Select.Root
+                        value={bindingDefaults.reasoning ?? automationRuntimeInheritValue}
+                        onValueChange={(value) => updateBindingDefaultsSelectField("reasoning", value === automationRuntimeInheritValue ? "" : value)}
+                      >
+                        <Select.Trigger className="select-trigger" disabled={controlsDisabled}>
+                          <Select.Value placeholder={buildAutomationInheritedOptionLabel("系统默认", defaultAutomationRuntime.reasoning)} />
+                          <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
+                        </Select.Trigger>
+                        <Select.Portal>
+                          <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                            <Select.Viewport>
+                              <Select.Item className="menu-item" value={automationRuntimeInheritValue}><Select.ItemText>{buildAutomationInheritedOptionLabel("系统默认", defaultAutomationRuntime.reasoning)}</Select.ItemText></Select.Item>
+                              {["none", "low", "medium", "high", "xhigh"].map((value) => (
+                                <Select.Item className="menu-item" key={value} value={value}><Select.ItemText>{value}</Select.ItemText></Select.Item>
+                              ))}
+                            </Select.Viewport>
+                          </Select.Content>
+                        </Select.Portal>
+                      </Select.Root>
+                    </label>
+                    <label className="dialog-field">
+                      <span>默认输出详略</span>
+                      <Select.Root
+                        value={bindingDefaults.verbosity ?? automationRuntimeInheritValue}
+                        onValueChange={(value) => updateBindingDefaultsSelectField("verbosity", value === automationRuntimeInheritValue ? "" : value)}
+                      >
+                        <Select.Trigger className="select-trigger" disabled={controlsDisabled}>
+                          <Select.Value placeholder={buildAutomationInheritedOptionLabel("系统默认", defaultAutomationRuntime.verbosity)} />
+                          <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
+                        </Select.Trigger>
+                        <Select.Portal>
+                          <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                            <Select.Viewport>
+                              <Select.Item className="menu-item" value={automationRuntimeInheritValue}><Select.ItemText>{buildAutomationInheritedOptionLabel("系统默认", defaultAutomationRuntime.verbosity)}</Select.ItemText></Select.Item>
+                              {["low", "medium", "high"].map((value) => (
+                                <Select.Item className="menu-item" key={value} value={value}><Select.ItemText>{value}</Select.ItemText></Select.Item>
+                              ))}
+                            </Select.Viewport>
+                          </Select.Content>
+                        </Select.Portal>
+                      </Select.Root>
+                    </label>
+                    <label className="dialog-field">
+                      <span>默认超时（毫秒）</span>
+                      <input
+                        value={bindingDefaults.timeoutMs == null ? "" : String(bindingDefaults.timeoutMs)}
+                        onChange={(event) => updateBindingDefaultsField("timeoutMs", event.target.value)}
+                        placeholder={`留空使用系统默认 ${defaultAutomationRuntime.timeoutMs}`}
+                        inputMode="numeric"
+                        disabled={controlsDisabled}
+                      />
+                    </label>
+                  </div>
+                  <small>模型使用 `-m` 下发；推理强度与输出详略会通过 Codex CLI 的 config override 下发。</small>
                 </div>
                 {skillCatalogError ? <div className="dialog-help">{skillCatalogError}</div> : null}
                 {loading ? <div className="automation-settings-loading">正在加载自动化设置...</div> : null}
@@ -6005,7 +6535,10 @@ function AutomationSettingsDialog(props: {
                     <div className="sidebar-label">规则列表</div>
                     <small>{rules.length ? "按动作规则逐条配置入口、目标范围和本机绑定" : "先新增一条动作规则，再继续填写字段与绑定"}</small>
                   </div>
-                  <button className="ghost-button" disabled={controlsDisabled} onClick={addRule} type="button">新增动作</button>
+                  <button className="automation-add-rule-button" disabled={controlsDisabled} onClick={addRule} type="button">
+                    <icons.addField size={16} />
+                    <span>新增动作</span>
+                  </button>
                 </div>
                 {rules.length ? (
                   <div className="automation-rules-shell">
@@ -6082,6 +6615,7 @@ function AutomationSettingsDialog(props: {
                       const bindingStatus = bindings.bindingStatuses?.[selectedRule.id];
                       const skillUiState = resolveAutomationSkillUiState(binding, bindingStatus, skillCatalogMap);
                       const skillSelectValue = isAbsoluteSkillPath(binding.skill) ? "" : binding.skill;
+                      const ruleModelOptions = buildAutomationModelOptions(selectedRule.runtime?.model);
                       return (
                         <section className="automation-rule-card">
                           <div className="automation-rule-card__header">
@@ -6256,16 +6790,25 @@ function AutomationSettingsDialog(props: {
                                     <div className="automation-target-row" key={`${target.file}:${target.collection}:${targetIndex}`}>
                                       <label className="dialog-field">
                                         <span>目标文件 {targetIndex + 1}</span>
-                                        <Popover.Root
+                                        <SearchablePicker
                                           open={targetPickerOpenId === filePickerId}
                                           onOpenChange={(open) => {
                                             setTargetPickerOpenId(open ? filePickerId : null);
-                                            setTargetPickerQuery("");
                                           }}
-                                        >
-                                          <Popover.Trigger asChild>
+                                          query={targetPickerQuery}
+                                          onQueryChange={setTargetPickerQuery}
+                                          searchAriaLabel="筛选目标文件"
+                                          searchPlaceholder="筛选文件..."
+                                          listAriaLabel="目标文件候选列表"
+                                          contentClassName="automation-target-picker-content"
+                                          shellClassName="automation-skill-picker-shell"
+                                          listClassName="automation-target-picker-list"
+                                          emptyContent={<div className="searchable-picker-empty">没有匹配的文件。</div>}
+                                          trigger={(
                                             <button
                                               type="button"
+                                              role="combobox"
+                                              aria-expanded={targetPickerOpenId === filePickerId}
                                               className="select-trigger automation-target-picker-trigger"
                                               aria-label={`目标文件 ${targetIndex + 1}`}
                                               title={target.file}
@@ -6275,49 +6818,24 @@ function AutomationSettingsDialog(props: {
                                               </span>
                                               <icons.chevronDown size={16} />
                                             </button>
-                                          </Popover.Trigger>
-                                          <Popover.Portal>
-                                            <Popover.Content
-                                              className="menu-content automation-skill-picker-content automation-target-picker-content"
-                                              sideOffset={6}
-                                              align="start"
+                                          )}
+                                        >
+                                          {visibleFileOptions.map((option) => (
+                                            <button
+                                              className={`searchable-picker-option automation-target-picker-option ${option.file === target.file ? "is-selected" : ""}`}
+                                              key={option.file}
+                                              type="button"
+                                              onClick={() => {
+                                                updateRuleTargetFile(selectedIndex, targetIndex, option.file);
+                                                setTargetPickerOpenId(null);
+                                                setTargetPickerQuery("");
+                                              }}
+                                              title={option.file}
                                             >
-                                              <div className="automation-skill-picker-shell">
-                                                <input
-                                                  aria-label="筛选目标文件"
-                                                  className="automation-skill-picker-search"
-                                                  onChange={(event) => setTargetPickerQuery(event.target.value)}
-                                                  placeholder="筛选文件..."
-                                                  value={targetPickerQuery}
-                                                />
-                                                <div
-                                                  className="automation-skill-picker-list automation-target-picker-list"
-                                                  role="listbox"
-                                                  aria-label="目标文件候选列表"
-                                                  onWheelCapture={(event) => event.stopPropagation()}
-                                                >
-                                                  {visibleFileOptions.length ? visibleFileOptions.map((option) => (
-                                                    <button
-                                                      className={`automation-skill-picker-option automation-target-picker-option ${option.file === target.file ? "is-selected" : ""}`}
-                                                      key={option.file}
-                                                      type="button"
-                                                      onClick={() => {
-                                                        updateRuleTargetFile(selectedIndex, targetIndex, option.file);
-                                                        setTargetPickerOpenId(null);
-                                                        setTargetPickerQuery("");
-                                                      }}
-                                                      title={option.file}
-                                                    >
-                                                      <span className="automation-skill-picker-option__title">{describeTargetFileName(option.file)}</span>
-                                                    </button>
-                                                  )) : (
-                                                    <div className="automation-skill-picker-empty">没有匹配的文件。</div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </Popover.Content>
-                                          </Popover.Portal>
-                                        </Popover.Root>
+                                              <span className="searchable-picker-option__title">{describeTargetFileName(option.file)}</span>
+                                            </button>
+                                          ))}
+                                        </SearchablePicker>
                                       </label>
                                       <label className="dialog-field">
                                         <span>目标集合 {targetIndex + 1}</span>
@@ -6410,6 +6928,85 @@ function AutomationSettingsDialog(props: {
                           </div>
                           <div className="automation-rule-section">
                             <div className="automation-rule-section__label">执行选项</div>
+                            <div className="automation-rule-grid">
+                              <label className="dialog-field">
+                                <span>模型</span>
+                                <Select.Root
+                                  value={selectedRule.runtime?.model ?? automationRuntimeInheritValue}
+                                  onValueChange={(value) => updateRuleRuntimeField(selectedIndex, "model", value === automationRuntimeInheritValue ? "" : value)}
+                                >
+                                  <Select.Trigger className="select-trigger" disabled={controlsDisabled}>
+                                    <Select.Value placeholder={buildAutomationInheritedOptionLabel("默认", effectiveBindingDefaultModel)} />
+                                    <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
+                                  </Select.Trigger>
+                                  <Select.Portal>
+                                    <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                                      <Select.Viewport>
+                                        <Select.Item className="menu-item" value={automationRuntimeInheritValue}><Select.ItemText>{buildAutomationInheritedOptionLabel("默认", effectiveBindingDefaultModel)}</Select.ItemText></Select.Item>
+                                        {ruleModelOptions.map((option) => (
+                                          <Select.Item className="menu-item" key={option.value} value={option.value}><Select.ItemText>{option.label}</Select.ItemText></Select.Item>
+                                        ))}
+                                      </Select.Viewport>
+                                    </Select.Content>
+                                  </Select.Portal>
+                                </Select.Root>
+                              </label>
+                              <label className="dialog-field">
+                                <span>推理强度</span>
+                                <Select.Root
+                                  value={selectedRule.runtime?.reasoning ?? automationRuntimeInheritValue}
+                                  onValueChange={(value) => updateRuleRuntimeSelectField(selectedIndex, "reasoning", value === automationRuntimeInheritValue ? "" : value)}
+                                >
+                                  <Select.Trigger className="select-trigger" disabled={controlsDisabled}>
+                                    <Select.Value placeholder={buildAutomationInheritedOptionLabel("默认", effectiveBindingDefaultReasoning)} />
+                                    <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
+                                  </Select.Trigger>
+                                  <Select.Portal>
+                                    <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                                      <Select.Viewport>
+                                        <Select.Item className="menu-item" value={automationRuntimeInheritValue}><Select.ItemText>{buildAutomationInheritedOptionLabel("默认", effectiveBindingDefaultReasoning)}</Select.ItemText></Select.Item>
+                                        {["none", "low", "medium", "high", "xhigh"].map((value) => (
+                                          <Select.Item className="menu-item" key={value} value={value}><Select.ItemText>{value}</Select.ItemText></Select.Item>
+                                        ))}
+                                      </Select.Viewport>
+                                    </Select.Content>
+                                  </Select.Portal>
+                                </Select.Root>
+                              </label>
+                              <label className="dialog-field">
+                                <span>输出详略</span>
+                                <Select.Root
+                                  value={selectedRule.runtime?.verbosity ?? automationRuntimeInheritValue}
+                                  onValueChange={(value) => updateRuleRuntimeSelectField(selectedIndex, "verbosity", value === automationRuntimeInheritValue ? "" : value)}
+                                >
+                                  <Select.Trigger className="select-trigger" disabled={controlsDisabled}>
+                                    <Select.Value placeholder={buildAutomationInheritedOptionLabel("默认", effectiveBindingDefaultVerbosity)} />
+                                    <Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon>
+                                  </Select.Trigger>
+                                  <Select.Portal>
+                                    <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
+                                      <Select.Viewport>
+                                        <Select.Item className="menu-item" value={automationRuntimeInheritValue}><Select.ItemText>{buildAutomationInheritedOptionLabel("默认", effectiveBindingDefaultVerbosity)}</Select.ItemText></Select.Item>
+                                        {["low", "medium", "high"].map((value) => (
+                                          <Select.Item className="menu-item" key={value} value={value}><Select.ItemText>{value}</Select.ItemText></Select.Item>
+                                        ))}
+                                      </Select.Viewport>
+                                    </Select.Content>
+                                  </Select.Portal>
+                                </Select.Root>
+                              </label>
+                              <label className="dialog-field">
+                                <span>超时（毫秒）</span>
+                                <input
+                                  value={selectedRule.runtime?.timeoutMs == null ? "" : String(selectedRule.runtime.timeoutMs)}
+                                  onChange={(event) => updateRuleRuntimeField(selectedIndex, "timeoutMs", event.target.value)}
+                                  placeholder={`留空使用默认 ${effectiveBindingDefaultTimeoutMs}`}
+                                  inputMode="numeric"
+                                  disabled={controlsDisabled}
+                                />
+                              </label>
+                            </div>
+                            <small>推理强度通过 `model_reasoning_effort` 下发，输出详略通过 `model_verbosity` 下发。</small>
                             <div className="automation-rule-checks">
                               <label
                                 className="dialog-check"
@@ -6586,6 +7183,15 @@ function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile,
       if (!target.file.trim()) ruleIssues.push("目标文件不能为空。");
       if (!target.collection.trim()) ruleIssues.push("目标集合不能为空。");
     }
+    if (rule.runtime?.reasoning != null && !["none", "low", "medium", "high", "xhigh"].includes(rule.runtime.reasoning)) {
+      ruleIssues.push("规则推理强度必须为 none / low / medium / high / xhigh。");
+    }
+    if (rule.runtime?.verbosity != null && !["low", "medium", "high"].includes(rule.runtime.verbosity)) {
+      ruleIssues.push("规则输出详略必须为 low / medium / high。");
+    }
+    if (rule.runtime?.timeoutMs != null && (!Number.isInteger(rule.runtime.timeoutMs) || rule.runtime.timeoutMs <= 0)) {
+      ruleIssues.push("规则超时时间必须为正整数。");
+    }
     const binding = bindings.bindings[rule.id];
     if (binding) {
       if (binding.provider !== "codex") ruleIssues.push("当前仅支持 codex provider。");
@@ -6630,6 +7236,15 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
         seenTargets.add(key);
       }
     }
+    if (rule.runtime?.reasoning != null && !["none", "low", "medium", "high", "xhigh"].includes(rule.runtime.reasoning)) {
+      issues.push(`${prefix}: 规则推理强度必须为 none / low / medium / high / xhigh。`);
+    }
+    if (rule.runtime?.verbosity != null && !["low", "medium", "high"].includes(rule.runtime.verbosity)) {
+      issues.push(`${prefix}: 规则输出详略必须为 low / medium / high。`);
+    }
+    if (rule.runtime?.timeoutMs != null && (!Number.isInteger(rule.runtime.timeoutMs) || rule.runtime.timeoutMs <= 0)) {
+      issues.push(`${prefix}: 规则超时时间必须为正整数。`);
+    }
 
     const binding = bindings.bindings[ruleId];
     const bindingStatus = bindings.bindingStatuses?.[ruleId];
@@ -6648,6 +7263,15 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
     if (!seenRuleIds.has(ruleId)) {
       issues.push(`Binding "${ruleId}" 没有对应的 rule。`);
     }
+  }
+  if (bindings.defaults.timeoutMs != null && (!Number.isInteger(bindings.defaults.timeoutMs) || bindings.defaults.timeoutMs <= 0)) {
+    issues.push("本机默认超时时间必须为正整数。");
+  }
+  if (bindings.defaults.reasoning != null && !["none", "low", "medium", "high", "xhigh"].includes(bindings.defaults.reasoning)) {
+    issues.push("本机默认推理强度必须为 none / low / medium / high / xhigh。");
+  }
+  if (bindings.defaults.verbosity != null && !["low", "medium", "high"].includes(bindings.defaults.verbosity)) {
+    issues.push("本机默认输出详略必须为 low / medium / high。");
   }
   return issues;
 }
@@ -6702,15 +7326,24 @@ function buildTargetFileOptions(catalog: AutomationTargetCatalogItem[], selected
 }
 
 function describeTargetFileName(filePath: string) {
-  const normalized = filePath.replace(/\\/g, "/");
-  const parts = normalized.split("/");
-  return parts[parts.length - 1] || filePath;
+  return describeFileBasename(filePath);
+}
+
+function buildAutomationModelOptions(currentModel: string | null | undefined) {
+  const options = [...automationModelOptions];
+  const normalized = typeof currentModel === "string" ? currentModel.trim() : "";
+  if (normalized && !options.some((option) => option.value === normalized)) {
+    options.unshift({ value: normalized, label: normalized });
+  }
+  return options;
+}
+
+function buildAutomationInheritedOptionLabel(scopeLabel: string, value: string | number) {
+  return `留空使用${scopeLabel}（${value}）`;
 }
 
 function matchesAutomationTargetFileQuery(option: AutomationTargetCatalogItem, query: string) {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return true;
-  return option.file.toLowerCase().includes(normalized) || describeTargetFileName(option.file).toLowerCase().includes(normalized);
+  return matchesFileSearchQuery(option.file, query);
 }
 
 function resolveTargetCollectionOptions(
@@ -6779,7 +7412,7 @@ function describeAutomationSkillCatalogSource(item: AutomationSkillCatalogItem) 
 
 function resolveAutomationSkillUiState(
   binding: EntryActionBinding,
-  bindingStatus: DeviceEntryActionBindings["bindingStatuses"] extends Record<string, infer T> ? T | undefined : never,
+  bindingStatus: DeviceEntryActionBindingStatus | undefined,
   skillCatalogMap: Map<string, AutomationSkillCatalogItem>,
 ) {
   const skill = binding.skill.trim();

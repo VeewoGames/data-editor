@@ -386,6 +386,7 @@ test("createSharedViewConfig inserts snapshot after active view without clearing
     "damage",
     result.view.id,
   ]);
+  assert.equal(result.view.id, "view-1");
   assert.equal(result.view.name, "Damage copy");
   assert.equal(result.view.query, "fire");
   assert.deepEqual(result.view.hidden, ["debug"]);
@@ -416,6 +417,33 @@ test("createSharedViewConfig preserves an explicit duplicate name base and appen
   });
 
   assert.equal(result.view.name, "构筑 副本 2");
+});
+
+test("createSharedViewConfig uses neutral incremental ids instead of inheriting source semantics", () => {
+  const config = {
+    version: 1,
+    collections: {
+      "data/skills.json:skills": {
+        defaultViewId: "tag-melee-copy-copy-2",
+        views: [
+          { ...allView, id: "tag-melee-copy-copy-2", name: "近战" },
+          { ...allView, id: "view-1", name: "旧副本" },
+          { ...allView, id: "view-2", name: "旧副本 2" },
+        ],
+      },
+    },
+  };
+
+  const result = viewState.createSharedViewConfig(config, "data/skills.json:skills", "tag-melee-copy-copy-2", {
+    ...allView,
+    id: "tag-melee-copy-copy-2",
+    name: "近战",
+  }, {
+    nameBase: "近战 副本",
+  });
+
+  assert.equal(result.view.id, "view-3");
+  assert.equal(result.view.name, "近战 副本");
 });
 
 test("updateSharedViewIconConfig updates only the target shared view icon", () => {

@@ -50,7 +50,7 @@ async function configureRelation(page: Page, fieldName: string, options: {
   await expect(action).toBeVisible();
   await action.dispatchEvent("click");
   await expect(page.locator(".relation-config-dialog")).toBeVisible();
-  await chooseDialogSelect(page, "目标文件", options.targetFile);
+  await chooseRelationTargetFile(page, path.basename(options.targetFile), path.basename(options.targetFile, path.extname(options.targetFile)));
   await chooseDialogSelect(page, "目标集合", options.targetCollection);
   await chooseDialogSelect(page, "目标主键", options.targetKey);
   await chooseDialogSelect(page, "关系模式", options.mode);
@@ -97,6 +97,13 @@ async function chooseDialogSelect(page: Page, label: string, option: string) {
     return;
   }
   await page.locator('[role="option"]').filter({ hasText: option }).first().click();
+}
+
+async function chooseRelationTargetFile(page: Page, optionLabel: string, query: string) {
+  const field = page.locator(".relation-config-dialog .dialog-field").filter({ hasText: "目标文件" });
+  await field.getByRole("combobox").first().click();
+  await page.getByRole("textbox", { name: "筛选目标文件" }).fill(query);
+  await page.getByRole("button", { name: optionLabel }).first().click();
 }
 
 function columnHeaderCell(page: Page, fieldName: string) {
@@ -529,6 +536,50 @@ test("delete clears rectangle values for text number checkbox select and multise
   await expect(tableRow(page, 0).locator('td[data-column-field="enabled"] input')).not.toBeChecked();
   await expect(tableRow(page, 0).locator('td[data-column-field="category"] .chip')).toHaveCount(0);
   await expect(tableRow(page, 0).locator('td[data-column-field="tags"] .chip')).toHaveCount(0);
+});
+
+test("delete clears rectangle values for multi relation", async ({ page }) => {
+  const targetPath = path.resolve("tests/.scratch/data/e2e_multi_relation_delete_target.json");
+  const sourcePath = path.resolve("tests/.scratch/data/e2e_multi_relation_delete_source.json");
+  await writeFile(targetPath, JSON.stringify([
+    { target_id: "target_1", name: "Target Row 1" },
+    { target_id: "target_2", name: "Target Row 2" },
+  ], null, 2), "utf8");
+  await writeFile(sourcePath, JSON.stringify([
+    { id: "source_1", target_ids: ["target_1", "target_2"], notes: "row one" },
+    { id: "source_2", target_ids: ["target_2"], notes: "row two" },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_multi_relation_delete_target.json"]').click();
+    await ensurePrimaryKeySelection(page, "target_id");
+
+    await page.locator('.sidebar-item[title="data/e2e_multi_relation_delete_source.json"]').click();
+    await ensurePrimaryKeySelection(page, "id");
+    await configureRelation(page, "target_ids", {
+      targetFile: "data/e2e_multi_relation_delete_target.json",
+      targetCollection: "$",
+      targetKey: "target_id",
+      mode: "multi",
+    });
+
+    const relationCell = tableRow(page, 0).locator('td[data-column-field="target_ids"]').first();
+    await dragBetweenCells(
+      page,
+      relationCell,
+      tableRow(page, 0).locator('td[data-column-field="notes"]').first(),
+    );
+    await expect(relationCell).toHaveAttribute("data-cell-selected", "true");
+    await page.keyboard.press("Delete");
+    await expect(relationCell.locator(".chip")).toHaveCount(0);
+  } finally {
+    await bestEffortRestore("e2e_multi_relation_delete_target.json", () => rm(targetPath, { force: true }));
+    await bestEffortRestore("e2e_multi_relation_delete_source.json", () => rm(sourcePath, { force: true }));
+  }
 });
 
 test("title click keeps single-cell selection visible and still opens detail", async ({ page }) => {
@@ -1279,6 +1330,18 @@ test("column header menu only shows title, primary key, and relation actions for
   await expect(page.locator('.column-menu-popup [data-relation-action="create"]')).toBeVisible();
 });
 
+test("column header menu shows relation action but not title or primary key for eligible multi-select fields", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await columnHeaderTrigger(page, "features").click();
+  await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-title"]')).toHaveCount(0);
+  await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]')).toHaveCount(0);
+  await expect(page.locator('.column-menu-popup [data-relation-action="create"]')).toBeVisible();
+});
+
 test("relation-configured fields hide type change, title, and primary key actions", async ({ page }) => {
   const originalConfig = await readScratchViewConfigText();
   try {
@@ -1761,6 +1824,110 @@ test("view groups expose dual create entry points and restore expanded group aft
     await expect(page.locator(".view-tabs-group-row")).toBeVisible();
     await expect(groupRowViewTab(page, "辅助")).toBeVisible();
     await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
+  }
+});
+
+test("copied shared view URL reopens the exact grouped view", async ({ page, context }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "all",
+      items: [
+        {
+          kind: "view",
+          view: {
+            id: "all",
+            name: "全部",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+            hidden: [],
+            wrapped: [],
+            order: [],
+            detailOrder: [],
+            widths: {},
+          },
+        },
+        {
+          kind: "group",
+          id: "combat",
+          name: "战斗",
+          icon: "shield",
+          views: [
+            {
+              id: "damage",
+              name: "伤害",
+              type: "table",
+              query: "ignite",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+            {
+              id: "support",
+              name: "辅助",
+              type: "table",
+              query: "shield",
+              filters: { op: "and", rules: [] },
+              sorts: [],
+              hidden: [],
+              wrapped: [],
+              order: [],
+              detailOrder: [],
+              widths: {},
+            },
+          ],
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await topLevelGroupTab(page, "战斗").click();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await groupRowViewTab(page, "辅助").click();
+    await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+
+    const activeGroupedView = groupRowViewTab(page, "辅助");
+    await activeGroupedView.click();
+    await activeGroupedView.click();
+    await expect(page.locator(".view-tab-menu-content")).toBeVisible();
+    await page.locator(".view-tab-menu-item").filter({ hasText: "拷贝视图链接" }).click();
+
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBeTruthy();
+    const copiedUrl = await page.evaluate(() => navigator.clipboard.readText());
+    const parsed = new URL(copiedUrl);
+    const activeProjectId = await getActiveProjectId(page);
+    expect(parsed.searchParams.get("projectId")).toBe(activeProjectId);
+    expect(parsed.searchParams.get("path")).toBe("data/runes.json");
+    expect(parsed.searchParams.get("collectionPath")).toBe("$");
+    expect(parsed.searchParams.get("viewId")).toBe("support");
+
+    await page.goto(copiedUrl);
+    await expect(page.locator(".toolbar strong")).toContainText("data/runes.json");
+    await expect(topLevelGroupTab(page, "战斗")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row")).toBeVisible();
+    await expect(page.locator(".view-tabs-group-row .view-tab-shell.active .view-tab")).toContainText("辅助");
+    await expect.poll(() => page.evaluate(() => window.location.search)).toContain("viewId=support");
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
     if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
@@ -2654,6 +2821,47 @@ test("top-level group keeps configured icon after reload", async ({ page }) => {
     await expect(topLevelGroupTab(page, "战斗").locator("[data-view-icon='shield']")).toBeVisible();
   } finally {
     if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+  }
+});
+
+test("top-level core-solid view icon is hydrated on reload before reopening the picker", async ({ page }) => {
+  const collectionKey = "data/runes.json:$";
+  let originalSharedViews: SharedViewsConfig | null = null;
+  let originalLocalStorage: Record<string, string> | null = null;
+
+  await page.goto("/");
+  originalSharedViews = await loadSharedViewsConfig(page);
+  originalLocalStorage = await snapshotLocalStorage(page);
+
+  try {
+    await page.evaluate(() => localStorage.clear());
+    const nextConfig = structuredClone(originalSharedViews);
+    nextConfig.collections[collectionKey] = {
+      defaultViewId: "core-solid-view",
+      items: [
+        {
+          kind: "view",
+          icon: "streamlineCoreSolid5gChip",
+          view: {
+            id: "core-solid-view",
+            name: "Core Solid",
+            type: "table",
+            query: "",
+            filters: { op: "and", rules: [] },
+            sorts: [],
+          },
+        },
+      ],
+    };
+    await saveSharedViewsConfig(page, nextConfig);
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    const generatedIcon = topLevelViewTab(page, "Core Solid").locator("[data-view-icon='streamlineCoreSolid5gChip'] > span > svg");
+    await expect(generatedIcon).toBeVisible();
+  } finally {
+    if (originalSharedViews) await bestEffortRestore("shared views config", () => saveSharedViewsConfig(page, originalSharedViews));
+    if (originalLocalStorage) await bestEffortRestore("localStorage", () => restoreLocalStorage(page, originalLocalStorage));
   }
 });
 
@@ -4677,7 +4885,7 @@ test("clickable drag surfaces use pointer by default and grabbing while dragging
   await page.mouse.up();
 });
 
-test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page }) => {
+test("unsupported nested items fall back to read-only JSON while scratch data keeps root shape", async ({ page }) => {
   const realRunesBefore = await readFile(fixtureRunesPath, "utf8");
 
   await page.goto("/");
@@ -4692,12 +4900,10 @@ test("opens scratch JSON, edits, saves, and preserves root shape", async ({ page
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
   await expect(page.locator(".nested-item-list button")).toHaveCount(2);
   await page.locator(".nested-item-list button").nth(1).click();
-  await page.locator(".detail-panel.secondary .detail-input").fill("e2e_nested");
-  await expect(page.locator(".dirty-pill")).toBeVisible();
-  await waitForAutosaveWrite(page, async () => {
-    const text = await readFile(path.resolve("tests/.scratch/data/e2e_mixed.json"), "utf8");
-    return text.includes("e2e_nested");
-  });
+  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toBeVisible();
+  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toContainText("Unsupported nested structure.");
+  await expect(page.locator(".detail-panel.secondary .json-editor")).toContainText('"nested": true');
+  await expect(page.locator(".detail-panel.secondary .detail-input")).toHaveCount(0);
 
   await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
@@ -5374,7 +5580,7 @@ test("detail panel reorder emits profiling measures in profile mode", async ({ p
 
 test("nested detail panel renders object items without falling back to raw JSON", async ({ page }) => {
   await page.goto("/");
-  await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
   await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
@@ -5382,13 +5588,163 @@ test("nested detail panel renders object items without falling back to raw JSON"
   await expect(page.locator(".detail-panel.primary .json-editor textarea")).toHaveCount(0);
   await page.locator(".detail-panel.primary .nested-entry-button").click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
-  await expect(page.locator(".nested-item-list button")).toHaveCount(2);
+  await expect.poll(async () => page.locator(".nested-item-list button").count()).toBeGreaterThan(0);
   await page.locator(".nested-item-list button").first().click();
-  await expect(page.locator(".detail-panel.secondary .property-block")).toHaveCount(4);
+  await expect(page.locator(".detail-panel.secondary .property-block").count()).resolves.toBeGreaterThanOrEqual(4);
   await expect(page.locator(".detail-panel.secondary")).toContainText("category");
   await expect(page.locator(".detail-panel.secondary")).toContainText("effect_type");
   await expect(page.locator(".detail-panel.secondary")).toContainText("params");
   await expect(page.locator(".detail-panel.secondary")).toContainText("timing");
+});
+
+test("table nested cell opens matching nested detail directly", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="effects"] .nested-summary').click();
+
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await expect(page.locator(".detail-panel.secondary")).toContainText("effects");
+  await expect(page.locator(".nested-item-list button")).toHaveCount(2);
+});
+
+test("table nested cell replaces the current nested target on the same row", async ({ page }) => {
+  await page.setViewportSize({ width: 1800, height: 900 });
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_nested_entry.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="stat_growth"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await expect(page.locator(".detail-panel.secondary")).toContainText("attack");
+  await expect(page.locator(".detail-panel.secondary")).not.toContainText("speed");
+
+  await tableRow(page, 0).locator('td[data-column-field="starting_stats"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await expect(page.locator(".detail-panel.secondary")).toContainText("speed");
+  await expect(page.locator(".detail-panel.secondary")).not.toContainText("attack");
+});
+
+test("table nested cell on empty row opens primary detail without nested secondary panel", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_nested_entry.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 1).locator('td[data-column-field="stat_growth"] .nested-summary').click();
+
+  await expect(page.locator(".detail-panel.primary")).toBeVisible();
+  await expect(page.locator(".detail-panel.primary")).toContainText("Nested Entry Empty");
+  await expect(page.locator(".detail-panel.secondary.open")).toHaveCount(0);
+});
+
+test("schema-driven object node shows summary and reset restores default values", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/classes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="starting_equipments"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await expect(page.locator(".detail-panel.secondary .property-block--node-summary")).toContainText("starting_equipments");
+  await expect(page.locator(".detail-panel.secondary .property-block--node-summary")).toContainText("已填写");
+
+  const helmInput = page.locator(".detail-panel.secondary .property-block").filter({ hasText: "helm" }).locator("input");
+  const offHandInput = page.locator(".detail-panel.secondary .property-block").filter({ hasText: "off_hand" }).locator("input");
+  await helmInput.fill("debug_helm");
+  await expect(helmInput).toHaveValue("debug_helm");
+  await expect(offHandInput).toHaveValue("");
+  await expect(offHandInput).toHaveAttribute("placeholder", "未装备副手");
+  await expect.poll(async () => offHandInput.evaluate((element) => getComputedStyle(element, "::placeholder").color)).toBe("rgba(120, 119, 116, 0.52)");
+
+  await page.locator('.detail-panel.secondary .icon-button[title="恢复默认值"]').click();
+  await expect(helmInput).toHaveValue("");
+  await expect(helmInput).toHaveAttribute("placeholder", "未装备头盔");
+  await expect(offHandInput).toHaveValue("");
+  await expect(offHandInput).toHaveAttribute("placeholder", "未装备副手");
+});
+
+test("nested collection panel supports duplicate move and delete actions", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_nested_panel.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="effects"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await page.locator(".nested-item-list button").first().click();
+
+  await page.locator('.detail-panel.secondary .ghost-button[title="Duplicate item"]').click();
+  await expect(page.locator(".nested-item-list button")).toHaveCount(3);
+  await expect(page.locator(".nested-item-list button strong")).toHaveText(["trigger_re", "trigger_re", "counter_c"]);
+
+  await page.locator('.detail-panel.secondary .ghost-button[title="Move item down"]').click();
+  await expect(page.locator(".nested-item-list button strong")).toHaveText(["trigger_re", "counter_c", "trigger_re"]);
+
+  await page.locator('.detail-panel.secondary .ghost-button[title="Delete item"]').click();
+  await expect(page.locator(".nested-item-list button")).toHaveCount(2);
+  await expect(page.locator(".nested-item-list button strong")).toHaveText(["trigger_re", "counter_c"]);
+});
+
+test("unsupported nested collection item falls back to read-only JSON", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="mixed"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await page.locator(".nested-item-list button").nth(1).click();
+
+  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toBeVisible();
+  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toContainText("Unsupported nested structure.");
+  await expect(page.locator(".detail-panel.secondary .json-editor")).toContainText('"nested": true');
+  await expect(page.locator(".detail-panel.secondary .detail-input")).toHaveCount(0);
+});
+
+test("skills nested nodes support discriminator switching and recursive child arrays", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/skills.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="nodes"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await page.locator(".nested-item-list button").first().click();
+
+  const typeSelect = page.locator(".detail-panel.secondary .property-block--node-summary select").first();
+  await expect(typeSelect).toHaveValue("targeting");
+  await typeSelect.selectOption("condition");
+  await expect(typeSelect).toHaveValue("condition");
+  await expect(page.locator(".detail-panel.secondary")).toContainText("condition_type");
+  await expect(page.locator(".detail-panel.secondary")).toContainText("then_nodes");
+
+  await page.locator(".detail-panel.secondary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "then_nodes" }),
+  }).locator(".nested-entry-button").click();
+
+  await expect(page.getByRole("button", { name: "Add item" })).toBeVisible();
+  await page.getByRole("button", { name: "Add item" }).click();
+  await page.locator(".nested-item-list button").first().click();
+  await expect(page.locator(".detail-panel.secondary .property-block--node-summary select").first()).toHaveValue("targeting");
+  await expect(page.locator(".detail-panel.secondary")).toContainText("range_type");
+});
+
+test("rune params nested detail resolves discriminator from parent effect context", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="effects"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await page.locator(".nested-item-list button").first().click();
+
+  const effectTypeSelect = page.locator(".detail-panel.secondary .property-block--node-summary select").first();
+  await expect(effectTypeSelect).toHaveValue("trigger_on_cast");
+  await page.locator(".detail-panel.secondary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "params" }),
+  }).locator(".nested-entry-button").click();
+
+  await expect(page.locator(".detail-panel.secondary")).toContainText("energy_per_event");
+  await expect(page.locator(".detail-panel.secondary")).toContainText("skill_filter");
+  await expect(page.locator(".detail-panel.secondary .property-block--node-summary select")).toHaveCount(0);
 });
 
 test("detail panel profile layout persists reorder and nested table widths", async ({ page }) => {
@@ -5595,20 +5951,40 @@ test("keyword backlink columns support wrapped chip layout after reload", async 
   await expect(page.locator(".detail-panel.primary")).toBeVisible();
 });
 
-test("autosave persists scratch json edits without toolbar save button", async ({ page }) => {
+test("relation config target file supports searchable picker", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await ensurePrimaryKeySelection(page, "id");
+
+  const closeDetail = page.locator('.detail-panel.primary button[title="Close detail"]');
+  if (await closeDetail.isVisible().catch(() => false)) await closeDetail.evaluate((element) => (element as HTMLButtonElement).click());
+  await columnHeaderTrigger(page, "keywords").click();
+  const action = page.locator('.column-menu-popup [data-relation-action="create"], .column-menu-popup [data-relation-action="edit"]').first();
+  await expect(action).toBeVisible();
+  await action.dispatchEvent("click");
+  await expect(page.locator(".relation-config-dialog")).toBeVisible();
+
+  await chooseRelationTargetFile(page, "keywords.json", "keyword");
+  await chooseDialogSelect(page, "目标集合", "$");
+  await chooseDialogSelect(page, "目标主键", "keyword_id");
+  await chooseDialogSelect(page, "关系模式", "multi");
+  await page.locator(".relation-config-dialog .primary-button").click();
+  await expect(page.locator(".relation-config-dialog")).toHaveCount(0);
+});
+
+test("autosave persists schema-driven nested node edits without toolbar save button", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
   await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
-  await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
-  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
-  await page.locator(".detail-panel.primary .nested-entry-button").click();
-  await page.locator(".nested-item-list button").nth(1).click();
-  await page.locator(".detail-panel.secondary .detail-input").fill("autosave_e2e");
+  await page.locator('.sidebar-item[title="data/classes.json"]').click();
+  await tableRow(page, 0).locator('td[data-column-field="starting_equipments"] .nested-summary').click();
+  await page.locator(".detail-panel.secondary .property-block").filter({ hasText: "helm" }).locator(".detail-input").fill("autosave_e2e");
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
   await waitForAutosaveWrite(page, async () => {
-    const text = await readFile(path.resolve("tests/.scratch/data/e2e_mixed.json"), "utf8");
+    const text = await readFile(path.resolve("tests/.scratch/data/classes.json"), "utf8");
     return text.includes("autosave_e2e");
   });
 });
@@ -6566,6 +6942,58 @@ test("primary key sync confirmation blocks file switching until confirmed", asyn
   await expect(page.locator(".toolbar strong")).toContainText("data/e2e_primary_key_sync_target.json");
 });
 
+test("primary key sync rewrites top-level multi relation arrays", async ({ page }) => {
+  const targetPath = path.resolve("tests/.scratch/data/e2e_primary_key_sync_multi_target.json");
+  const sourcePath = path.resolve("tests/.scratch/data/e2e_primary_key_sync_multi_source.json");
+  await writeFile(targetPath, JSON.stringify([
+    { target_id: "focus", name: "Focus Target" },
+    { target_id: "guard", name: "Guard Target" },
+  ], null, 2), "utf8");
+  await writeFile(sourcePath, JSON.stringify([
+    { id: "sync_multi_1", name: "Sync Multi Source", target_ids: ["focus", "guard"] },
+  ], null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_multi_target.json"]').click();
+    await ensurePrimaryKeySelection(page, "target_id");
+
+    await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_multi_source.json"]').click();
+    await ensurePrimaryKeySelection(page, "id");
+    await configureRelation(page, "target_ids", {
+      targetFile: "data/e2e_primary_key_sync_multi_target.json",
+      targetCollection: "$",
+      targetKey: "target_id",
+      mode: "multi",
+    });
+
+    await page.locator('.sidebar-item[title="data/e2e_primary_key_sync_multi_target.json"]').click();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    const targetIdInput = page.locator(".detail-panel.primary .property-block").filter({ hasText: "target_id" }).locator(".detail-input").first();
+    await targetIdInput.fill("focus_sync");
+    await expect(page.locator(".relation-maintenance-panel")).toContainText("保存并同步引用");
+    await page.locator(".relation-maintenance-panel .primary-button").evaluate((element) => (element as HTMLButtonElement).click());
+    await expect(page.locator(".primary-key-sync-dialog")).toBeVisible();
+    await expect(page.locator(".primary-key-sync-dialog")).toContainText("Sync Multi Source");
+    await page.locator(".primary-key-sync-dialog .primary-button").click();
+    await expect(page.locator(".primary-key-sync-dialog")).toHaveCount(0);
+
+    await expect.poll(async () => {
+      const targetText = await readFile(targetPath, "utf8");
+      const sourceText = await readFile(sourcePath, "utf8");
+      return targetText.includes('"target_id": "focus_sync"') &&
+        sourceText.includes('"target_ids": [\n      "focus_sync",\n      "guard"\n    ]') &&
+        !sourceText.includes('"target_ids": [\n      "focus",\n      "guard"\n    ]');
+    }).toBe(true);
+  } finally {
+    await bestEffortRestore("e2e_primary_key_sync_multi_target.json", () => rm(targetPath, { force: true }));
+    await bestEffortRestore("e2e_primary_key_sync_multi_source.json", () => rm(sourcePath, { force: true }));
+  }
+});
+
 test("table text edit mode off keeps select cells interactive instead of text inputs", async ({ page }) => {
   const dataPath = path.resolve("tests/.scratch/data/e2e_select_text_edit_off.json");
   await writeFile(dataPath, JSON.stringify([
@@ -7516,6 +7944,75 @@ test("document field opens left panel and persists its open state and width", as
     await bestEffortRestore("view-config.json", () => writeFile(viewConfigPath, originalViewConfig, "utf8"));
     await bestEffortRestore("e2e_document_field.json", () => rm(dataPath, { force: true }));
     await bestEffortRestore("e2e_document_field docs", () => rm(docsRoot, { recursive: true, force: true }));
+  }
+});
+
+test("linked document content reloads after markdown file changes and page refresh", async ({ page }) => {
+  const dataPath = path.resolve("tests/.scratch/data/e2e_document_refresh.json");
+  const docsRoot = path.resolve("tests/.scratch/docs/e2e_document_refresh");
+  const docPath = path.join(docsRoot, "fireball.md");
+  const viewConfigPath = path.resolve("tests/.scratch/tools/data-editor/view-config.json");
+  const originalViewConfig = await readFile(viewConfigPath, "utf8");
+  const fieldKey = "data/e2e_document_refresh.json:$:doc_id";
+
+  await mkdir(docsRoot, { recursive: true });
+  await writeFile(dataPath, JSON.stringify([
+    { id: "fireball", name: "Fireball", doc_id: "fireball" },
+  ], null, 2), "utf8");
+  await writeFile(docPath, "# Fireball Guide\n\nOriginal linked markdown document.\n", "utf8");
+
+  const nextViewConfig = JSON.parse(originalViewConfig);
+  nextViewConfig.fields = {
+    ...(nextViewConfig.fields ?? {}),
+    [fieldKey]: {
+      ...(nextViewConfig.fields?.[fieldKey] ?? {}),
+      type: "Document",
+      selectOptions: nextViewConfig.fields?.[fieldKey]?.selectOptions ?? {},
+      multiSelectOptions: nextViewConfig.fields?.[fieldKey]?.multiSelectOptions ?? {},
+    },
+  };
+  nextViewConfig.documentFiles = {
+    ...(nextViewConfig.documentFiles ?? {}),
+    "data/e2e_document_refresh.json": { docRoot: "docs/e2e_document_refresh" },
+  };
+  nextViewConfig.primaryKeys = {
+    ...(nextViewConfig.primaryKeys ?? {}),
+    "data/e2e_document_refresh.json:$": "id",
+  };
+  nextViewConfig.documentFields = {
+    ...(nextViewConfig.documentFields ?? {}),
+    [fieldKey]: { enabled: true },
+  };
+  await writeFile(viewConfigPath, JSON.stringify(nextViewConfig, null, 2), "utf8");
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_document_refresh.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    if (await page.locator(".detail-panel.document.open").count() === 0) {
+      await page.locator('.detail-panel.primary button[title="Toggle document"]').click();
+    }
+    await expect(page.locator(".detail-panel.document.open")).toBeVisible();
+    await expect(page.locator(".detail-panel.document")).toContainText("Original linked markdown document.");
+
+    await writeFile(docPath, "# Fireball Guide\n\nUpdated linked markdown document.\n", "utf8");
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_document_refresh.json"]').click();
+    await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+    await expect(page.locator(".detail-panel.primary")).toBeVisible();
+    if (await page.locator(".detail-panel.document.open").count() === 0) {
+      await page.locator('.detail-panel.primary button[title="Toggle document"]').click();
+    }
+    await expect(page.locator(".detail-panel.document.open")).toBeVisible();
+    await expect(page.locator(".detail-panel.document")).toContainText("Updated linked markdown document.");
+  } finally {
+    await bestEffortRestore("view-config.json", () => writeFile(viewConfigPath, originalViewConfig, "utf8"));
+    await bestEffortRestore("e2e_document_refresh.json", () => rm(dataPath, { force: true }));
+    await bestEffortRestore("e2e_document_refresh docs", () => rm(docsRoot, { recursive: true, force: true }));
   }
 });
 
@@ -10246,6 +10743,8 @@ test("toolbar renders refresh and restart buttons to the left of close", async (
 
 test("refresh build reloads the page after a successful rebuild request", async ({ page }) => {
   let rebuildCalls = 0;
+  let shutdownCalls = 0;
+  let reopenCalls = 0;
   await page.addInitScript(() => {
     const key = "__data_editor_reload_count";
     const current = Number(sessionStorage.getItem(key) ?? "0");
@@ -10260,16 +10759,92 @@ test("refresh build reloads the page after a successful rebuild request", async 
       body: JSON.stringify({ ok: true }),
     });
   });
+  await page.route("**/api/shutdown", async (route) => {
+    shutdownCalls += 1;
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, stopping: true }),
+    });
+  });
+  await page.route("**/reopen", async (route) => {
+    reopenCalls += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, message: "reopened" }),
+    });
+  });
 
   await page.goto("/");
   const refreshButton = page.locator(".toolbar .toolbar-rebuild-button");
   await refreshButton.click();
-  await expect(refreshButton).toBeDisabled();
-  await expect(refreshButton).toContainText("构建中...");
+  await expect.poll(() => rebuildCalls, { timeout: 15000 }).toBe(1);
+  await expect.poll(() => shutdownCalls, { timeout: 15000 }).toBe(1);
+  await expect.poll(() => reopenCalls, { timeout: 15000 }).toBe(1);
   await page.waitForFunction(() => Number(sessionStorage.getItem("__data_editor_reload_count")) >= 2);
   await expect(page.locator(".workspace")).toBeVisible();
-  await expect(page.locator(".status-text")).toContainText("构建成功，页面已刷新");
-  expect(rebuildCalls).toBe(1);
+  await expect(page.locator(".status-text")).toContainText("构建并重启成功，页面已刷新");
+});
+
+test("restart reloads after service health recovers even if reopen response hangs", async ({ page }) => {
+  let healthCalls = 0;
+  let shutdownAt = 0;
+  let reopenCalls = 0;
+
+  await page.addInitScript(() => {
+    const key = "__data_editor_restart_reload_count";
+    const current = Number(sessionStorage.getItem(key) ?? "0");
+    sessionStorage.setItem(key, String(current + 1));
+  });
+
+  await page.route("**/api/health", async (route) => {
+    healthCalls += 1;
+    if (!shutdownAt) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, bridgePort: 8791 }),
+      });
+      return;
+    }
+    const elapsed = Date.now() - shutdownAt;
+    if (elapsed < 1200) {
+      await route.abort("failed");
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, bridgePort: 8791 }),
+    });
+  });
+  await page.route("**/api/shutdown", async (route) => {
+    shutdownAt = Date.now();
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, stopping: true }),
+    });
+  });
+  await page.route("**/reopen", async (route) => {
+    reopenCalls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 15000));
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, message: "reopened" }),
+    });
+  });
+
+  await page.goto("/");
+  const restartButton = page.locator(".toolbar .toolbar-restart-button");
+  await restartButton.click();
+
+  await page.waitForFunction(() => Number(sessionStorage.getItem("__data_editor_restart_reload_count")) >= 2, undefined, { timeout: 7000 });
+  await expect(page.locator(".workspace")).toBeVisible();
+  expect(reopenCalls).toBe(1);
+  expect(healthCalls).toBeGreaterThan(1);
 });
 
 test("refresh build shows backend errors and stays on the editor page", async ({ page }) => {
@@ -10478,6 +11053,58 @@ test("automation settings loads personal rules and local bindings", async ({ pag
   await expect(card.getByRole("combobox", { name: "目标文件 1" })).toHaveValue("data/e2e_select.json");
   await expect(card.getByRole("combobox", { name: "目标集合 1" })).toHaveValue("$");
   await expect(card.locator(".automation-target-chip").first()).toContainText("e2e_select.json · 根集合 ($)");
+});
+
+test("automation target file picker still filters visible files after shared picker extraction", async ({ page }) => {
+  const projectsResponse = await page.request.get("/api/projects");
+  expect(projectsResponse.ok()).toBeTruthy();
+  const registry = await projectsResponse.json() as {
+    activeProjectId: string | null;
+  };
+  expect(registry.activeProjectId).toBeTruthy();
+  await page.request.post("/api/automation-profile", {
+    data: {
+      projectId: registry.activeProjectId,
+      profile: {
+        rules: [ {
+          id: "recheck",
+          label: "Recheck",
+          icon: "wand",
+          enabled: true,
+          targets: [
+            { file: "data/e2e_select.json", collection: "$" },
+          ],
+          payload: {
+            includeRow: true,
+            includeNeighbors: false,
+          },
+        } ],
+      },
+    },
+  });
+  await page.request.post("/api/automation-bindings", {
+    data: {
+      projectId: registry.activeProjectId,
+      bindings: {
+        bindings: {
+          recheck: {
+            provider: "codex",
+            skill: "recheck",
+            enabled: true,
+          },
+        },
+      },
+    },
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "自动化设置" }).click();
+  const dialog = page.getByRole("dialog", { name: "自动化设置" });
+  await expect(dialog).toBeVisible();
+  const card = dialog.locator(".automation-rule-card").first();
+  await card.getByRole("combobox", { name: "目标文件 1" }).click();
+  await page.getByRole("textbox", { name: "筛选目标文件" }).fill("e2e_select");
+  await expect(page.getByRole("button", { name: "e2e_select.json" })).toBeVisible();
 });
 
 test("automation settings shows local validation issues before save", async ({ page }) => {

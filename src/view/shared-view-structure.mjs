@@ -20,7 +20,7 @@ export function createViewGroupConfig({
   const snapshot = normalizeCollectionView(activeViewSnapshot ?? defaultAllView());
   const nextView = {
     ...snapshot,
-    id: uniqueViewId(views, snapshot.id || "view"),
+    id: uniqueViewId(views),
     name: uniqueViewName(views, "新视图", { preserveBase: true }),
   };
   const nextGroup = {
@@ -48,7 +48,7 @@ export function createViewInGroupConfig({
   const snapshot = normalizeCollectionView(activeViewSnapshot ?? defaultAllView());
   const nextView = {
     ...snapshot,
-    id: uniqueViewId(views, snapshot.id || "view"),
+    id: uniqueViewId(views),
     name: uniqueViewName(views, "新视图", { preserveBase: true }),
   };
   collection.items = appendViewToGroup(collection.items, groupId, { kind: "view", icon: "borderAll", view: nextView });
@@ -88,7 +88,7 @@ export function duplicateViewGroupConfig({
   const duplicatedViews = targetGroup.views.map((leaf) => {
     const duplicatedView = {
       ...normalizeCollectionView(leaf.view),
-      id: uniqueViewId([...existingViews, ...Object.values(sourceToTargetViewIdMap).map((id) => ({ id, name: "" }))], leaf.view.id || "view"),
+      id: uniqueViewId([...existingViews, ...Object.values(sourceToTargetViewIdMap).map((id) => ({ id, name: "" }))]),
       name: leaf.view.name,
     };
     sourceToTargetViewIdMap[leaf.view.id] = duplicatedView.id;
@@ -198,6 +198,7 @@ export function resolveSharedViewStructure({
   collectionKey,
   draftState,
   pageContext,
+  preferredViewId,
 }) {
   const normalizedConfig = normalizeSharedViewsConfig(sharedViewsConfig);
   const normalizedDraftState = normalizeSharedViewDraftState(draftState);
@@ -226,7 +227,13 @@ export function resolveSharedViewStructure({
     viewsById[fallback.id] = fallback;
     parentGroupIdByViewId[fallback.id] = null;
   }
-  const configuredActiveViewId = normalizedDraftState.lastActiveViews?.[collectionKey] ?? collection.defaultViewId ?? flattenedViews[0]?.id ?? null;
+  const configuredActiveViewId = (
+    (typeof preferredViewId === "string" && preferredViewId.trim() && viewsById[preferredViewId.trim()] ? preferredViewId.trim() : null)
+    ?? normalizedDraftState.lastActiveViews?.[collectionKey]
+    ?? collection.defaultViewId
+    ?? flattenedViews[0]?.id
+    ?? null
+  );
   const activeView = configuredActiveViewId && viewsById[configuredActiveViewId]
     ? viewsById[configuredActiveViewId]
     : flattenedViews[0] ?? null;
@@ -669,14 +676,13 @@ function resolveDefaultViewIdFromItems(items) {
   return views[0]?.id ?? null;
 }
 
-function uniqueViewId(views, baseId) {
-  const normalizedBase = String(baseId).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "view";
+function uniqueViewId(views) {
   const existing = new Set(views.map((view) => view.id));
-  let candidate = `${normalizedBase}-copy`;
-  let index = 2;
+  let index = 1;
+  let candidate = `view-${index}`;
   while (existing.has(candidate)) {
-    candidate = `${normalizedBase}-copy-${index}`;
     index += 1;
+    candidate = `view-${index}`;
   }
   return candidate;
 }

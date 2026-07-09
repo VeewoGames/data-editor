@@ -81,7 +81,7 @@ export function createSharedViewConfig(sharedViewsConfig, collectionKey, activeV
   const duplicateNameBase = typeof options.nameBase === "string" ? options.nameBase.trim() : "";
   const nextView = {
     ...snapshot,
-    id: uniqueViewId(views, snapshot.id || "view"),
+    id: uniqueViewId(views),
     name: uniqueViewName(views, duplicateNameBase || snapshot.name || "View", { preserveBase: Boolean(duplicateNameBase) }),
   };
   collection.items = insertViewAfter(collection.items, activeViewId, nextView);
@@ -275,14 +275,13 @@ function normalizeViewOrder(views, viewIds) {
   return order;
 }
 
-function uniqueViewId(views, baseId) {
-  const normalizedBase = String(baseId).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "view";
+function uniqueViewId(views) {
   const existing = new Set(views.map((view) => view.id));
-  let candidate = `${normalizedBase}-copy`;
-  let index = 2;
+  let index = 1;
+  let candidate = `view-${index}`;
   while (existing.has(candidate)) {
-    candidate = `${normalizedBase}-copy-${index}`;
     index += 1;
+    candidate = `view-${index}`;
   }
   return candidate;
 }
