@@ -6,7 +6,7 @@ import { resolveCodexSkill } from "./codex-runtime.mjs";
 const allowedProviders = new Set(["codex"]);
 
 export function emptyAutomationBindings() {
-  return { bindings: {} };
+  return { defaults: {}, bindings: {} };
 }
 
 export async function loadAutomationBindings(projectContextOrRoot) {
@@ -49,12 +49,13 @@ export function normalizeAutomationBindings(value) {
   if (!rawBindings || typeof rawBindings !== "object" || Array.isArray(rawBindings)) {
     return emptyAutomationBindings();
   }
+  const defaults = normalizeDefaults(value.defaults);
   const bindings = {};
   for (const [ruleId, rawBinding] of Object.entries(rawBindings)) {
     const normalizedRuleId = normalizeRequiredString(ruleId, "Automation binding id");
     bindings[normalizedRuleId] = normalizeBinding(rawBinding, normalizedRuleId);
   }
-  return { bindings };
+  return { defaults, bindings };
 }
 
 export async function validateAutomationBindingsRuntime(value, options = {}) {
@@ -87,8 +88,31 @@ function normalizeBinding(value, ruleId) {
   return { provider, skill, enabled };
 }
 
+function normalizeDefaults(value) {
+  if (value == null) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Automation bindings.defaults must be an object");
+  }
+  const model = normalizeOptionalString(value.model, "Automation bindings.defaults.model");
+  const reasoning = normalizeOptionalReasoning(value.reasoning, "Automation bindings.defaults.reasoning");
+  const verbosity = normalizeOptionalVerbosity(value.verbosity, "Automation bindings.defaults.verbosity");
+  const timeoutMs = normalizeOptionalPositiveInteger(value.timeoutMs, "Automation bindings.defaults.timeoutMs");
+  return {
+    ...(model != null ? { model } : {}),
+    ...(reasoning != null ? { reasoning } : {}),
+    ...(verbosity != null ? { verbosity } : {}),
+    ...(timeoutMs != null ? { timeoutMs } : {}),
+  };
+}
+
 function normalizeRequiredString(value, label) {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label} is required`);
+  return value.trim();
+}
+
+function normalizeOptionalString(value, label) {
+  if (value == null) return null;
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
   return value.trim();
 }
 
@@ -96,6 +120,30 @@ function normalizeOptionalBoolean(value, label, fallback) {
   if (value == null) return fallback;
   if (typeof value !== "boolean") throw new Error(`${label} must be a boolean`);
   return value;
+}
+
+function normalizeOptionalPositiveInteger(value, label) {
+  if (value == null || value === "") return null;
+  const normalized = Number(value);
+  if (!Number.isInteger(normalized) || normalized <= 0) throw new Error(`${label} must be a positive integer`);
+  return normalized;
+}
+
+function normalizeOptionalReasoning(value, label) {
+  if (value == null || value === "") return null;
+  return normalizeRequiredEnum(value, ["none", "low", "medium", "high", "xhigh"], label);
+}
+
+function normalizeOptionalVerbosity(value, label) {
+  if (value == null || value === "") return null;
+  return normalizeRequiredEnum(value, ["low", "medium", "high"], label);
+}
+
+function normalizeRequiredEnum(value, allowed, label) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
+  const normalized = value.trim();
+  if (!allowed.includes(normalized)) throw new Error(`${label} must be one of: ${allowed.join(", ")}`);
+  return normalized;
 }
 
 function bindingsPath(context) {

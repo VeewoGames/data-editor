@@ -42,10 +42,21 @@ test("buildSelectedDocumentFields resolves configured document fields from the c
 test("mergeDetailFieldOrder appends sparse document fields after row keys", () => {
   const result = mergeDetailFieldOrder(
     { id: "skill_fireball", name: "Fireball" },
+    ["id", "name"],
     { id: "Text", name: "Text", doc_id: "Document" },
   );
 
   assert.deepEqual(result, ["id", "name", "doc_id"]);
+});
+
+test("mergeDetailFieldOrder appends sparse collection fields even when the current row omits them", () => {
+  const result = mergeDetailFieldOrder(
+    { skill_id: "skill_fireball", skill_name: "Fireball" },
+    ["skill_id", "skill_name", "nodes"],
+    { skill_id: "Text", skill_name: "Text" },
+  );
+
+  assert.deepEqual(result, ["skill_id", "skill_name", "nodes"]);
 });
 
 test("findPreferredActiveDocumentField prefers a linked field when the current field is empty", () => {

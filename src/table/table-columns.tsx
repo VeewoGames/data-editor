@@ -49,6 +49,7 @@ type TableColumnsRuntime = {
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onSelectRow: (rowIndex: number, rowId: string | null) => void;
   onOpenDetail: (rowIndex: number, rowId: string | null) => void;
+  onOpenNestedDetail: (rowIndex: number, rowId: string | null, fieldName: string) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
   onEditCell: (rowIndex: number, rowId: string, fieldName: string, next: unknown) => void;
   onCommitMultiSelectDraft: (rowIndex: number, rowId: string, fieldName: string, patch: OptionFieldDraftCommit) => void;
@@ -225,7 +226,7 @@ function TableColumnCellView(
     return (
       <TableCellFrame kind={frameMeta.kind} layout={frameMeta.layout}>
         <div className="table-cell-content-main">
-          <button className="nested-summary" onClick={() => runtime.onSelectRow(originalRowIndex, rowId)} type="button">
+          <button className="nested-summary" onClick={() => runtime.onOpenNestedDetail(originalRowIndex, rowId, columnModel.fieldName)} type="button">
             {summarizeNestedValue(value)}
           </button>
         </div>

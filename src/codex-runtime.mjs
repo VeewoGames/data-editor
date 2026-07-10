@@ -2,7 +2,7 @@ import path from "node:path";
 import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 
-const defaultCodexModel = "gpt-5.4";
+const defaultCodexModel = "gpt-5.6-terra";
 
 export async function resolveCodexCli() {
   for (const candidate of codexCliCandidates()) {

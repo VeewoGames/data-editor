@@ -33,7 +33,9 @@ test("resolveClearValueByDisplayType uses agreed first-pass clear semantics", ()
   assert.equal(resolveClearValueByDisplayType("Checkbox"), false);
   assert.equal(resolveClearValueByDisplayType("Select"), null);
   assert.deepEqual(resolveClearValueByDisplayType("Multi-select"), []);
-  assert.equal(resolveClearValueByDisplayType("Relation"), undefined);
+  assert.equal(resolveClearValueByDisplayType("Relation", "single"), null);
+  assert.deepEqual(resolveClearValueByDisplayType("Relation", "multi"), []);
+  assert.equal(resolveClearValueByDisplayType("Relation"), null);
 });
 
 test("buildOptionFieldClearPatch clears single and multi selected values without changing option definitions", () => {

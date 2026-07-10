@@ -74,7 +74,10 @@ export async function buildPrimaryKeySyncSaveSnapshot({
     const sourceModel = buildDocumentModel(sourceSnapshot.root, sourceSnapshot.format, rewrite.sourceFile);
     const rows = getRows(sourceModel, rewrite.sourceCollection);
     const row = rows[rewrite.rowIndex];
-    if (row) row[rewrite.fieldPath[0]] = rewrite.newValue;
+    if (row) {
+      const fieldName = rewrite.fieldPath[0];
+      row[fieldName] = applyRewriteValue(row[fieldName], rewrite.oldValue, rewrite.newValue);
+    }
   }
 
   /** @type {import("../api/client").PendingDocumentSave[]} */
@@ -86,4 +89,11 @@ export async function buildPrimaryKeySyncSaveSnapshot({
     pendingSaves.push({ path: sourceFile, root: sourceSnapshot.root });
   }
   return { plan, pendingSaves };
+}
+
+function applyRewriteValue(currentValue, oldValue, newValue) {
+  if (Array.isArray(currentValue)) {
+    return currentValue.map((item) => (String(item ?? "") === String(oldValue) ? newValue : item));
+  }
+  return newValue;
 }

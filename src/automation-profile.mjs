@@ -65,7 +65,28 @@ function normalizeRule(value, seenIds) {
   const enabled = normalizeBoolean(value.enabled, true);
   const targets = normalizeTargets(value.targets, id);
   const payload = normalizePayload(value.payload, id);
-  return { id, label, icon, enabled, targets, payload };
+  const runtime = normalizeRuntime(value.runtime, id);
+  return { id, label, icon, enabled, targets, payload, ...(runtime ? { runtime } : {}) };
+}
+
+function normalizeRuntime(value, ruleId) {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Entry action rule "${ruleId}" runtime must be an object`);
+  }
+  const model = normalizeOptionalString(value.model, `Entry action rule "${ruleId}" runtime.model`);
+  const reasoning = normalizeOptionalReasoning(value.reasoning, `Entry action rule "${ruleId}" runtime.reasoning`);
+  const verbosity = normalizeOptionalVerbosity(value.verbosity, `Entry action rule "${ruleId}" runtime.verbosity`);
+  const timeoutMs = normalizeOptionalPositiveInteger(value.timeoutMs, `Entry action rule "${ruleId}" runtime.timeoutMs`);
+  if (model == null && reasoning == null && verbosity == null && timeoutMs == null) {
+    return null;
+  }
+  return {
+    ...(model != null ? { model } : {}),
+    ...(reasoning != null ? { reasoning } : {}),
+    ...(verbosity != null ? { verbosity } : {}),
+    ...(timeoutMs != null ? { timeoutMs } : {}),
+  };
 }
 
 function normalizeTargets(value, ruleId) {
@@ -153,6 +174,12 @@ function normalizeRequiredString(value, label) {
   return value.trim();
 }
 
+function normalizeOptionalString(value, label) {
+  if (value == null) return null;
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
+  return value.trim();
+}
+
 function validateRuleId(id) {
   if (!validRuleIdPattern.test(id)) {
     throw new Error(`Entry action rule id must use lowercase letters, numbers, "_" or "-": ${id}`);
@@ -161,6 +188,35 @@ function validateRuleId(id) {
 
 function normalizeBoolean(value, fallback) {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function normalizeOptionalPositiveInteger(value, label) {
+  if (value == null || value === "") return null;
+  const normalized = Number(value);
+  if (!Number.isInteger(normalized) || normalized <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return normalized;
+}
+
+function normalizeOptionalReasoning(value, label) {
+  if (value == null || value === "") return null;
+  const normalized = normalizeRequiredEnum(value, ["none", "low", "medium", "high", "xhigh"], label);
+  return normalized;
+}
+
+function normalizeOptionalVerbosity(value, label) {
+  if (value == null || value === "") return null;
+  return normalizeRequiredEnum(value, ["low", "medium", "high"], label);
+}
+
+function normalizeRequiredEnum(value, allowed, label) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
+  const normalized = value.trim();
+  if (!allowed.includes(normalized)) {
+    throw new Error(`${label} must be one of: ${allowed.join(", ")}`);
+  }
+  return normalized;
 }
 
 function profilePath(context) {

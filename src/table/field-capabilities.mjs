@@ -37,6 +37,7 @@ export function computeFieldMenuCapabilities({
   const isRelationRole = roleKind === "relation" || relationConfigured;
   const lockedByStructure = isNested || isBacklink || roleKind === "backlink";
   const isText = baseDisplayType === "Text";
+  const isRelationEligibleBaseType = baseDisplayType === "Text" || baseDisplayType === "Multi-select";
   const canChangeType = !lockedByStructure && !isRelationRole && changeableFieldTypes.includes(baseDisplayType);
 
   return {
@@ -44,7 +45,7 @@ export function computeFieldMenuCapabilities({
     allowedTypeTargets: canChangeType ? [...changeableFieldTypes] : [],
     canBeTitle: !lockedByStructure && !isRelationRole && isText,
     canBePrimaryKey: !lockedByStructure && !isRelationRole && isText,
-    canConfigureRelation: !lockedByStructure && !isRelationRole && isText && !isTitle && !isPrimaryKey,
+    canConfigureRelation: !lockedByStructure && !isRelationRole && isRelationEligibleBaseType && !isTitle && !isPrimaryKey,
     canConfigureDocument: !lockedByStructure && !isRelationRole && (baseDisplayType === "Text" || baseDisplayType === "Document"),
   };
 }

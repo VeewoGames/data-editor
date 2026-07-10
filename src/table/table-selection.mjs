@@ -14,11 +14,17 @@ export function isCellInsideRect(rect, coord) {
     coord.visibleColumnIndex <= rect.columnEnd;
 }
 
-export function resolveClearValueByDisplayType(displayType) {
+/**
+ * @param {import("../model/fieldTypes").FieldDisplayType} displayType
+ * @param {import("../model/viewConfig").RelationMode | null | undefined} [relationMode=null]
+ * @returns {"" | false | null | Array<string | number> | undefined}
+ */
+export function resolveClearValueByDisplayType(displayType, relationMode = null) {
   if (displayType === "Text" || displayType === "Number") return "";
   if (displayType === "Checkbox") return false;
   if (displayType === "Select") return null;
   if (displayType === "Multi-select") return [];
+  if (displayType === "Relation") return relationMode === "multi" ? [] : null;
   return undefined;
 }
 

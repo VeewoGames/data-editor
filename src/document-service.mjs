@@ -2,31 +2,28 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
 
-export async function buildDocumentIndex(projectContextOrRoot, documentFiles, dataFilePath) {
+export async function buildDocumentIndex(projectContextOrRoot, documentFiles, dataFilePath, options) {
   const context = createProjectContext(projectContextOrRoot);
   const docRoot = normalizeNonEmptyString(documentFiles?.[dataFilePath]?.docRoot);
   if (!docRoot) {
     return { docRoot: null, entries: {} };
   }
-  const cache = await getDocumentCache(context.projectRoot, docRoot);
+  const cache = await getDocumentCache(context.projectRoot, docRoot, options);
   return { docRoot, entries: cache.indexEntries };
 }
 
-export async function readResolvedDocument(projectContextOrRoot, documentFiles, dataFilePath, documentId) {
+export async function readResolvedDocument(projectContextOrRoot, documentFiles, dataFilePath, documentId, options) {
   const context = createProjectContext(projectContextOrRoot);
   const docRoot = normalizeNonEmptyString(documentFiles?.[dataFilePath]?.docRoot);
   const normalizedId = normalizeNonEmptyString(documentId);
   if (!docRoot) return { status: "missing", id: normalizedId };
-  const cache = await getDocumentCache(context.projectRoot, docRoot);
-  const index = { docRoot, entries: cache.indexEntries };
   if (!normalizedId) return { status: "missing", id: normalizedId };
-  const entry = index.entries[normalizedId];
-  if (!entry) return { status: "missing", id: normalizedId };
-  if (entry.status !== "resolved") return entry;
-  return {
-    ...entry,
-    content: cache.contentByRelativePath[entry.relativePath] ?? "",
-  };
+  const normalizedOptions = normalizeDocumentServiceOptions(options);
+  const response = await readResolvedDocumentOnce(context.projectRoot, docRoot, normalizedId, normalizedOptions);
+  if (response.status !== "missing" || normalizedOptions.forceRefresh) return response;
+  return readResolvedDocumentOnce(context.projectRoot, docRoot, normalizedId, {
+    forceRefresh: true,
+  });
 }
 
 export function clearDocumentServiceCache() {
@@ -65,10 +62,11 @@ function normalizeNonEmptyString(value) {
 
 const documentCache = new Map();
 
-async function getDocumentCache(projectRoot, docRoot) {
+async function getDocumentCache(projectRoot, docRoot, options) {
   const cacheKey = `${projectRoot}\u0000${docRoot}`;
+  const { forceRefresh } = normalizeDocumentServiceOptions(options);
   const cached = documentCache.get(cacheKey);
-  if (cached) return cached;
+  if (cached && !forceRefresh) return cached;
   const absoluteDocRoot = resolveInsideRoot(projectRoot, docRoot);
   const files = [];
   await walkMarkdownFiles(absoluteDocRoot, "", files);
@@ -103,4 +101,21 @@ async function getDocumentCache(projectRoot, docRoot) {
   const nextCache = { indexEntries, contentByRelativePath };
   documentCache.set(cacheKey, nextCache);
   return nextCache;
+}
+
+async function readResolvedDocumentOnce(projectRoot, docRoot, documentId, options) {
+  const cache = await getDocumentCache(projectRoot, docRoot, options);
+  const entry = cache.indexEntries[documentId];
+  if (!entry) return { status: "missing", id: documentId };
+  if (entry.status !== "resolved") return entry;
+  return {
+    ...entry,
+    content: cache.contentByRelativePath[entry.relativePath] ?? "",
+  };
+}
+
+function normalizeDocumentServiceOptions(options) {
+  return {
+    forceRefresh: options?.forceRefresh === true,
+  };
 }

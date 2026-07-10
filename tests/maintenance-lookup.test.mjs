@@ -53,6 +53,52 @@ test("buildMaintenanceLookupState reuses the active model for same-file incoming
   assert.equal(result.primaryKeySyncPlan?.newValue, "b2");
 });
 
+test("buildMaintenanceLookupState exposes top-level multi relation rewrites in primary key sync plan", async () => {
+  const activeModel = buildDocumentModel([
+    { id: "a", target_ids: ["b"], name: "Alpha" },
+    { id: "b2", target_ids: [], name: "Beta" },
+  ], "json", "data/items.json");
+
+  const result = await buildMaintenanceLookupState({
+    selectedPath: "data/items.json",
+    collectionPath: "$",
+    selectedRow: activeModel.root[1],
+    selectedSourceRowIndex: 1,
+    selectedRowLabel: "Beta",
+    model: activeModel,
+    rows: activeModel.root,
+    savedRoot: [
+      { id: "a", target_ids: ["b"], name: "Alpha" },
+      { id: "b", target_ids: [], name: "Beta" },
+    ],
+    viewConfig: {
+      fields: {},
+      relations: {
+        "data/items.json:$:target_ids": {
+          targetFile: "data/items.json",
+          targetCollection: "$",
+          targetKey: "id",
+          mode: "multi",
+          allowMissing: false,
+          titleFields: ["name"],
+        },
+      },
+      backlinks: {},
+      primaryKeys: {
+        "data/items.json:$": "id",
+      },
+      relationsVersion: 3,
+    },
+    loadDocument: async () => activeModel,
+  });
+
+  assert.equal(result.primaryKeySyncPlan?.rewrites.length, 1);
+  assert.equal(result.primaryKeySyncPlan?.rewrites[0]?.relationKey, "data/items.json:$:target_ids");
+  assert.deepEqual(result.primaryKeySyncPlan?.rewrites[0]?.fieldPath, ["target_ids"]);
+  assert.deepEqual(result.primaryKeySyncPlan?.rewrites[0]?.oldValue, "b");
+  assert.deepEqual(result.primaryKeySyncPlan?.rewrites[0]?.newValue, "b2");
+});
+
 test("buildMaintenanceLookupState returns empty state when no applicable primary key relation exists", async () => {
   const activeModel = buildDocumentModel([
     { id: "a", name: "Alpha" },

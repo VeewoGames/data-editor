@@ -36,6 +36,12 @@ export type EntryActionRule = {
     includeRow: boolean;
     includeNeighbors: boolean;
   };
+  runtime?: {
+    model?: string;
+    reasoning?: "none" | "low" | "medium" | "high" | "xhigh";
+    verbosity?: "low" | "medium" | "high";
+    timeoutMs?: number;
+  };
 };
 export type EntryActionTarget = {
   file: string;
@@ -50,6 +56,12 @@ export type EntryActionBinding = {
   enabled: boolean;
 };
 export type DeviceEntryActionBindings = {
+  defaults: {
+    model?: string;
+    reasoning?: "none" | "low" | "medium" | "high" | "xhigh";
+    verbosity?: "low" | "medium" | "high";
+    timeoutMs?: number;
+  };
   bindings: Record<string, EntryActionBinding>;
   bindingStatuses?: Record<string, {
     status: "ready" | "missing" | "invalid";
@@ -60,6 +72,10 @@ export type DeviceEntryActionBindings = {
     model?: string | null;
   }>;
 };
+type EntryActionRuntime = NonNullable<EntryActionRule["runtime"]>;
+type EntryActionReasoning = NonNullable<EntryActionRuntime["reasoning"]>;
+type EntryActionVerbosity = NonNullable<EntryActionRuntime["verbosity"]>;
+type DeviceEntryActionBindingStatus = NonNullable<DeviceEntryActionBindings["bindingStatuses"]>[string];
 export type AutomationSkillCatalogItem = {
   id: string;
   label: string;
@@ -162,6 +178,9 @@ export type DocumentContentResponse =
   | { status: "resolved"; id: string; relativePath: string; title: string | null; content: string }
   | { status: "conflict"; id: string; matches: string[] }
   | { status: "missing"; id: string };
+type DocumentRequestOptions = {
+  refresh?: boolean;
+};
 export type UserThemeId = "light" | "dark";
 export type UserBaseFontSize = 14 | 14.5 | 15 | 16;
 export type UserThemeOverrides = {
@@ -490,12 +509,12 @@ export async function loadViewConfig(projectId?: string | null): Promise<ViewCon
   return normalizeFetchedViewConfig(await fetchJson(withProjectId("/api/view-config", projectId))) as ViewConfig;
 }
 
-export async function loadDocumentIndex(path: string, projectId?: string | null): Promise<DocumentIndexResponse> {
-  return fetchJson(withProjectId(`/api/document-index?path=${encodeURIComponent(path)}`, projectId));
+export async function loadDocumentIndex(path: string, projectId?: string | null, options?: DocumentRequestOptions): Promise<DocumentIndexResponse> {
+  return fetchJson(withProjectId(buildDocumentRequestPath("/api/document-index", path, options), projectId));
 }
 
-export async function loadDocumentContent(path: string, id: string, projectId?: string | null): Promise<DocumentContentResponse> {
-  return fetchJson(withProjectId(`/api/document-content?path=${encodeURIComponent(path)}&id=${encodeURIComponent(id)}`, projectId));
+export async function loadDocumentContent(path: string, id: string, projectId?: string | null, options?: DocumentRequestOptions): Promise<DocumentContentResponse> {
+  return fetchJson(withProjectId(buildDocumentRequestPath("/api/document-content", path, options, id), projectId));
 }
 
 export async function saveViewConfig(config: ViewConfig, projectId?: string | null) {
@@ -536,6 +555,13 @@ export async function saveViewProfile(name: string, profile: UserViewProfile, pr
   });
 }
 
+function buildDocumentRequestPath(basePath: string, path: string, options?: DocumentRequestOptions, id?: string) {
+  const searchParams = new URLSearchParams({ path });
+  if (id) searchParams.set("id", id);
+  if (options?.refresh === true) searchParams.set("refresh", "1");
+  return `${basePath}?${searchParams.toString()}`;
+}
+
 export async function loadAutomationProfile(projectId?: string | null): Promise<UserAutomationProfile> {
   return normalizeFetchedAutomationProfile(await fetchJson(withProjectId("/api/automation-profile", projectId))) as UserAutomationProfile;
 }
@@ -549,7 +575,7 @@ export async function saveAutomationProfile(profile: UserAutomationProfile, proj
 }
 
 export async function loadAutomationBindings(projectId?: string | null): Promise<DeviceEntryActionBindings> {
-  return fetchJson(withProjectId("/api/automation-bindings", projectId));
+  return normalizeFetchedAutomationBindings(await fetchJson(withProjectId("/api/automation-bindings", projectId)));
 }
 
 export async function loadAutomationSkillCatalog(projectId?: string | null): Promise<AutomationSkillCatalog> {
@@ -678,6 +704,25 @@ function normalizeFetchedEntryActionRule(value: unknown): EntryActionRule | null
         ? Boolean((rule.payload as { includeNeighbors?: boolean }).includeNeighbors)
         : true,
     },
+    runtime: normalizeFetchedEntryActionRuntime(rule.runtime),
+  };
+}
+
+function normalizeFetchedEntryActionRuntime(value: unknown): EntryActionRule["runtime"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const runtime = value as { model?: unknown; reasoning?: unknown; verbosity?: unknown; timeoutMs?: unknown };
+  const model = typeof runtime.model === "string" && runtime.model.trim() ? runtime.model.trim() : undefined;
+  const reasoning = normalizeFetchedReasoning(runtime.reasoning);
+  const verbosity = normalizeFetchedVerbosity(runtime.verbosity);
+  const timeoutMs = Number.isInteger(runtime.timeoutMs) && Number(runtime.timeoutMs) > 0
+    ? Number(runtime.timeoutMs)
+    : undefined;
+  if (model == null && reasoning == null && verbosity == null && timeoutMs == null) return undefined;
+  return {
+    ...(model != null ? { model } : {}),
+    ...(reasoning != null ? { reasoning } : {}),
+    ...(verbosity != null ? { verbosity } : {}),
+    ...(timeoutMs != null ? { timeoutMs } : {}),
   };
 }
 
@@ -713,6 +758,45 @@ function dedupeFetchedEntryActionTargets(value: EntryActionTarget[]) {
     seen.add(key);
     return true;
   });
+}
+
+function normalizeFetchedAutomationBindings(value: unknown): DeviceEntryActionBindings {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { defaults: {}, bindings: {} };
+  }
+  const raw = value as {
+    defaults?: { model?: unknown; reasoning?: unknown; verbosity?: unknown; timeoutMs?: unknown };
+    bindings?: Record<string, EntryActionBinding>;
+    bindingStatuses?: DeviceEntryActionBindings["bindingStatuses"];
+  };
+  const model = typeof raw.defaults?.model === "string" && raw.defaults.model.trim() ? raw.defaults.model.trim() : undefined;
+  const reasoning = normalizeFetchedReasoning(raw.defaults?.reasoning);
+  const verbosity = normalizeFetchedVerbosity(raw.defaults?.verbosity);
+  const timeoutMs = Number.isInteger(raw.defaults?.timeoutMs) && Number(raw.defaults?.timeoutMs) > 0
+    ? Number(raw.defaults?.timeoutMs)
+    : undefined;
+  return {
+    defaults: {
+      ...(model != null ? { model } : {}),
+      ...(reasoning != null ? { reasoning } : {}),
+      ...(verbosity != null ? { verbosity } : {}),
+      ...(timeoutMs != null ? { timeoutMs } : {}),
+    },
+    bindings: raw.bindings && typeof raw.bindings === "object" ? raw.bindings : {},
+    bindingStatuses: raw.bindingStatuses,
+  };
+}
+
+function normalizeFetchedReasoning(value: unknown): EntryActionReasoning | undefined {
+  return typeof value === "string" && ["none", "low", "medium", "high", "xhigh"].includes(value.trim())
+    ? value.trim() as EntryActionReasoning
+    : undefined;
+}
+
+function normalizeFetchedVerbosity(value: unknown): EntryActionVerbosity | undefined {
+  return typeof value === "string" && ["low", "medium", "high"].includes(value.trim())
+    ? value.trim() as EntryActionVerbosity
+    : undefined;
 }
 
 async function fetchJson(url: string, options?: RequestInit, fetchOptions: FetchJsonOptions = {}) {

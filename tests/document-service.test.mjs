@@ -133,3 +133,144 @@ test("readResolvedDocument reuses cached index and content for repeated reads", 
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("buildDocumentIndex refresh picks up markdown files added after the cache was created", async () => {
+  clearDocumentServiceCache();
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-document-service-"));
+  try {
+    await mkdir(path.join(root, "docs", "keywords"), { recursive: true });
+
+    const first = await buildDocumentIndex(root, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json");
+    assert.deepEqual(first.entries, {});
+
+    await writeFile(path.join(root, "docs", "keywords", "burn.md"), "# Burn\n\nDeal damage.", "utf8");
+
+    const stale = await buildDocumentIndex(root, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json");
+    assert.deepEqual(stale.entries, {});
+
+    const refreshed = await buildDocumentIndex(root, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json", { forceRefresh: true });
+    assert.deepEqual(refreshed.entries.burn, {
+      status: "resolved",
+      id: "burn",
+      relativePath: "burn.md",
+      title: "Burn",
+    });
+  } finally {
+    clearDocumentServiceCache();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("readResolvedDocument auto-refreshes once after a cached missing result", async () => {
+  clearDocumentServiceCache();
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-document-service-"));
+  try {
+    await mkdir(path.join(root, "docs", "keywords"), { recursive: true });
+
+    const cachedMissing = await readResolvedDocument(root, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json", "burn", { forceRefresh: true });
+    assert.deepEqual(cachedMissing, {
+      status: "missing",
+      id: "burn",
+    });
+
+    await writeFile(path.join(root, "docs", "keywords", "burn.md"), "# Burn\n\nDeal damage.", "utf8");
+
+    const recovered = await readResolvedDocument(root, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json", "burn");
+    assert.deepEqual(recovered, {
+      status: "resolved",
+      id: "burn",
+      relativePath: "burn.md",
+      title: "Burn",
+      content: "# Burn\n\nDeal damage.",
+    });
+  } finally {
+    clearDocumentServiceCache();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("readResolvedDocument force refresh picks up changed markdown content", async () => {
+  clearDocumentServiceCache();
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-document-service-"));
+  try {
+    await mkdir(path.join(root, "docs", "keywords"), { recursive: true });
+    const documentPath = path.join(root, "docs", "keywords", "burn.md");
+    await writeFile(documentPath, "# Burn\n\nDeal damage.", "utf8");
+
+    const first = await readResolvedDocument(root, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json", "burn");
+    assert.equal(first.status, "resolved");
+    assert.equal(first.content, "# Burn\n\nDeal damage.");
+
+    await writeFile(documentPath, "# Burn\n\nUpdated damage text.", "utf8");
+
+    const refreshed = await readResolvedDocument(root, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json", "burn", { forceRefresh: true });
+    assert.deepEqual(refreshed, {
+      status: "resolved",
+      id: "burn",
+      relativePath: "burn.md",
+      title: "Burn",
+      content: "# Burn\n\nUpdated damage text.",
+    });
+  } finally {
+    clearDocumentServiceCache();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("document cache stays isolated per projectRoot even when docRoot strings match", async () => {
+  clearDocumentServiceCache();
+  const rootA = await mkdtemp(path.join(tmpdir(), "data-editor-document-service-a-"));
+  const rootB = await mkdtemp(path.join(tmpdir(), "data-editor-document-service-b-"));
+  try {
+    await mkdir(path.join(rootA, "docs", "keywords"), { recursive: true });
+    await mkdir(path.join(rootB, "docs", "keywords"), { recursive: true });
+    await writeFile(path.join(rootA, "docs", "keywords", "burn.md"), "# Burn", "utf8");
+    await writeFile(path.join(rootB, "docs", "keywords", "freeze.md"), "# Freeze", "utf8");
+
+    const indexA = await buildDocumentIndex(rootA, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json");
+    const indexB = await buildDocumentIndex(rootB, {
+      "data/keywords.json": {
+        docRoot: "docs/keywords",
+      },
+    }, "data/keywords.json");
+
+    assert.deepEqual(Object.keys(indexA.entries), ["burn"]);
+    assert.deepEqual(Object.keys(indexB.entries), ["freeze"]);
+  } finally {
+    clearDocumentServiceCache();
+    await rm(rootA, { recursive: true, force: true });
+    await rm(rootB, { recursive: true, force: true });
+  }
+});

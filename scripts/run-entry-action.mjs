@@ -33,6 +33,7 @@ await writeFile(startedPath, `${JSON.stringify({
 const bindingStatus = await resolveCodexBindingStatus(handoff.action?.binding ?? null, {
   projectRoot: handoff.project?.root ?? null,
 });
+const runtime = normalizeHandoffRuntime(handoff.action?.runtime);
 const beforeWritebackState = await captureWritebackState(handoff);
 if (bindingStatus.status !== "ready") {
   await writeResult({
@@ -55,7 +56,11 @@ try {
     "--skip-git-repo-check",
     "--dangerously-bypass-approvals-and-sandbox",
     "-m",
-    bindingStatus.model,
+    runtime.model,
+    "-c",
+    `model_reasoning_effort=${JSON.stringify(runtime.reasoning)}`,
+    "-c",
+    `model_verbosity=${JSON.stringify(runtime.verbosity)}`,
     "-C",
     handoff.project.root,
     "-o",
@@ -64,6 +69,7 @@ try {
   ], {
     cwd: handoff.project.root,
     prompt,
+    timeoutMs: runtime.timeoutMs,
   });
   const afterWritebackState = await captureWritebackState(handoff);
   const writebackCheck = compareWritebackState(beforeWritebackState, afterWritebackState);
@@ -78,13 +84,44 @@ try {
     writebackCheck,
   });
 } catch (error) {
+  if (isCodexExecTimeoutError(error)) {
+    const afterWritebackState = await captureWritebackState(handoff);
+    const writebackCheck = compareWritebackState(beforeWritebackState, afterWritebackState);
+    if (writebackCheck.targetRowChanged) {
+      await writeResult({
+        version: 1,
+        runId: handoff.runId,
+        status: "completed_with_writeback",
+        finishedAt: new Date().toISOString(),
+        outputPath,
+        reason: "codex_exec_timeout",
+        message: buildTimeoutWritebackMessage(handoff, outputPath, writebackCheck),
+        writebackCheck,
+      });
+      process.exit(0);
+    }
+    if (writebackCheck.fileChanged) {
+      await writeResult({
+        version: 1,
+        runId: handoff.runId,
+        status: "completed_without_observed_writeback",
+        finishedAt: new Date().toISOString(),
+        outputPath,
+        reason: "codex_exec_timeout",
+        message: buildTimeoutFileChangedMessage(handoff, outputPath),
+        writebackCheck,
+      });
+      process.exit(0);
+    }
+  }
+  const reason = isCodexExecTimeoutError(error) ? "codex_exec_timeout" : "codex_exec_failed";
   await writeResult({
     version: 1,
     runId: handoff.runId,
     status: "failed",
     finishedAt: new Date().toISOString(),
     outputPath,
-    reason: "codex_exec_failed",
+    reason,
     message: buildExecutionErrorMessage(error),
   });
 }
@@ -115,10 +152,31 @@ function buildPrompt(handoff, skillPath) {
 }
 
 function buildExecutionErrorMessage(error) {
+  if (isCodexExecTimeoutError(error)) {
+    return "Codex 执行超时：已达到当前规则配置的等待上限。";
+  }
   if (error instanceof Error && error.message) {
     return `Codex 执行失败：${error.message}`;
   }
   return "Codex 执行失败。";
+}
+
+function normalizeHandoffRuntime(value) {
+  const model = typeof value?.model === "string" && value.model.trim() ? value.model.trim() : "gpt-5.4";
+  const reasoning = normalizeEnum(value?.reasoning, ["none", "low", "medium", "high", "xhigh"], "medium");
+  const verbosity = normalizeEnum(value?.verbosity, ["low", "medium", "high"], "low");
+  const timeoutMs = Number.isInteger(value?.timeoutMs) && value.timeoutMs > 0 ? value.timeoutMs : 120000;
+  return { model, reasoning, verbosity, timeoutMs };
+}
+
+function isCodexExecTimeoutError(error) {
+  return error instanceof Error && error.message === "__CODEX_EXEC_TIMEOUT__";
+}
+
+function normalizeEnum(value, allowed, fallback) {
+  if (typeof value !== "string") return fallback;
+  const normalized = value.trim();
+  return allowed.includes(normalized) ? normalized : fallback;
 }
 
 async function writeResult(payload) {
@@ -196,12 +254,27 @@ function buildCompletionMessage(handoff, outputPath, writebackCheck) {
   return `已完成 ${label}，但本轮无法核对目标条目的真实写回。输出已写入 ${outputPath}。`;
 }
 
+function buildTimeoutWritebackMessage(handoff, outputPath, writebackCheck) {
+  const label = handoff.action?.label ?? handoff.action?.id ?? "条目动作";
+  const changedFields = writebackCheck.changedFields.length
+    ? `目标条目变更字段：${writebackCheck.changedFields.join(", ")}。`
+    : "已观察到目标条目变化。";
+  return `${label} 在等待上限内未正常结束，但已观察到目标条目真实写回。${changedFields} 输出已写入 ${outputPath}。`;
+}
+
+function buildTimeoutFileChangedMessage(handoff, outputPath) {
+  const label = handoff.action?.label ?? handoff.action?.id ?? "条目动作";
+  return `${label} 在等待上限内未正常结束，但已观察到目标文件变化，未观察到目标条目真实写回。输出已写入 ${outputPath}。`;
+}
+
 function stableHash(text) {
   return crypto.createHash("sha256").update(String(text ?? ""), "utf8").digest("hex");
 }
 
 function runCodexExec(command, args, options) {
   return new Promise((resolve, reject) => {
+    let finished = false;
+    let timedOut = false;
     const child = spawn(command, args, {
       cwd: options.cwd,
       shell: false,
@@ -215,13 +288,31 @@ function runCodexExec(command, args, options) {
       stderr += chunk;
     });
 
-    child.on("error", reject);
+    const timeoutId = Number.isInteger(options.timeoutMs) && options.timeoutMs > 0
+      ? globalThis.setTimeout(() => {
+        timedOut = true;
+        child.kill();
+      }, options.timeoutMs)
+      : null;
+
+    const finalize = (callback) => {
+      if (finished) return;
+      finished = true;
+      if (timeoutId != null) globalThis.clearTimeout(timeoutId);
+      callback();
+    };
+
+    child.on("error", (error) => finalize(() => reject(error)));
     child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
+      if (timedOut) {
+        finalize(() => reject(new Error("__CODEX_EXEC_TIMEOUT__")));
         return;
       }
-      reject(new Error(stderr.trim() || `Codex exited with code ${code ?? "unknown"}`));
+      if (code === 0) {
+        finalize(() => resolve());
+        return;
+      }
+      finalize(() => reject(new Error(stderr.trim() || `Codex exited with code ${code ?? "unknown"}`)));
     });
 
     child.stdin.end(options.prompt);

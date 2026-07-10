@@ -132,6 +132,7 @@ export function buildEntryActionHandoff({
   project,
   action,
   binding,
+  runtime,
   sourcePath,
   collectionPath,
   rowId,
@@ -153,6 +154,12 @@ export function buildEntryActionHandoff({
       binding: binding ? {
         provider: binding.provider,
         skill: binding.skill,
+      } : null,
+      runtime: runtime ? {
+        model: runtime.model,
+        reasoning: runtime.reasoning,
+        verbosity: runtime.verbosity,
+        timeoutMs: runtime.timeoutMs,
       } : null,
       payload: {
         includeRow: action.payload.includeRow,

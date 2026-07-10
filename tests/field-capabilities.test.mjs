@@ -53,6 +53,18 @@ test("select and document fields cannot become title, primary key, or relation",
   assert.equal(documentCapabilities.canConfigureDocument, true);
 });
 
+test("multi-select fields can configure relation but cannot become title or primary key", () => {
+  const capabilities = computeFieldMenuCapabilities({
+    baseDisplayType: "Multi-select",
+    roleKind: "normal",
+  });
+
+  assert.equal(capabilities.canBeTitle, false);
+  assert.equal(capabilities.canBePrimaryKey, false);
+  assert.equal(capabilities.canConfigureRelation, true);
+  assert.equal(capabilities.canConfigureDocument, false);
+});
+
 test("relation and backlink fields suppress structural menu capabilities", () => {
   const relationCapabilities = computeFieldMenuCapabilities({
     baseDisplayType: "Text",

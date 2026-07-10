@@ -101,6 +101,88 @@ test("buildPrimaryKeySyncSaveSnapshot loads each external source once and applie
   assert.equal(sourceModel.root[0].skill_id, "slash");
 });
 
+test("buildPrimaryKeySyncSaveSnapshot rewrites same-file top-level multi relation arrays inside the current pending save", async () => {
+  const currentModel = buildDocumentModel([
+    { id: "a", target_ids: ["b", "c"], name: "Alpha" },
+    { id: "b2", target_ids: [], name: "Beta" },
+  ], "json", "data/items.json");
+
+  const snapshot = await buildPrimaryKeySyncSaveSnapshot({
+    plan: {
+      targetFile: "data/items.json",
+      targetCollection: "$",
+      targetKey: "id",
+      targetRowLabel: "Beta",
+      oldValue: "b",
+      newValue: "b2",
+      sourceFiles: ["data/items.json"],
+      matchedBacklinks: [],
+      rewrites: [{
+        relationKey: "data/items.json:$:target_ids",
+        sourceFile: "data/items.json",
+        sourceCollection: "$",
+        fieldPath: ["target_ids"],
+        rowIndex: 0,
+        rowLabel: "Alpha",
+        oldValue: "b",
+        newValue: "b2",
+      }],
+      skipped: [],
+      blockingIssues: [],
+      warnings: [],
+    },
+    currentModel,
+    currentPath: "data/items.json",
+    loadDocument: async () => {
+      throw new Error("should not load current document");
+    },
+  });
+
+  assert.deepEqual(snapshot.pendingSaves[0].root[0].target_ids, ["b2", "c"]);
+  assert.deepEqual(currentModel.root[0].target_ids, ["b", "c"]);
+});
+
+test("buildPrimaryKeySyncSaveSnapshot rewrites external top-level multi relation arrays", async () => {
+  const currentModel = buildDocumentModel([
+    { skill_id: "slash_2", name: "Slash" },
+  ], "json", "data/skills.json");
+  const sourceModel = buildDocumentModel([
+    { id: "enemy_a", skill_ids: ["slash", "guard"], name: "Enemy A" },
+  ], "json", "data/enemies.json");
+
+  const snapshot = await buildPrimaryKeySyncSaveSnapshot({
+    plan: {
+      targetFile: "data/skills.json",
+      targetCollection: "$",
+      targetKey: "skill_id",
+      targetRowLabel: "Slash",
+      oldValue: "slash",
+      newValue: "slash_2",
+      sourceFiles: ["data/enemies.json"],
+      matchedBacklinks: [],
+      rewrites: [{
+        relationKey: "data/enemies.json:$:skill_ids",
+        sourceFile: "data/enemies.json",
+        sourceCollection: "$",
+        fieldPath: ["skill_ids"],
+        rowIndex: 0,
+        rowLabel: "Enemy A",
+        oldValue: "slash",
+        newValue: "slash_2",
+      }],
+      skipped: [],
+      blockingIssues: [],
+      warnings: [],
+    },
+    currentModel,
+    currentPath: "data/skills.json",
+    loadDocument: async () => sourceModel,
+  });
+
+  assert.deepEqual(snapshot.pendingSaves[1].root[0].skill_ids, ["slash_2", "guard"]);
+  assert.deepEqual(sourceModel.root[0].skill_ids, ["slash", "guard"]);
+});
+
 test("primary key sync description helpers expose shared dialog and status copy", () => {
   assert.equal(describePrimaryKeySyncBlockingIssues({
     blockingIssues: ["duplicate-primary-key", "source-document-load-failed"],

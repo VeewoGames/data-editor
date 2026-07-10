@@ -275,10 +275,13 @@ type AutomationModelOption = { value: string; label: string };
 type DeviceEntryActionBindingStatus = NonNullable<DeviceEntryActionBindings["bindingStatuses"]>[string];
 const automationRuntimeInheritValue = "__inherit__";
 const automationModelOptions: AutomationModelOption[] = [
-  { value: "gpt-5.5", label: "gpt-5.5" },
-  { value: "gpt-5.4", label: "gpt-5.4" },
-  { value: "gpt-5.4-mini", label: "gpt-5.4-mini" },
-  { value: "gpt-5.3-codex-spark", label: "gpt-5.3-codex-spark" },
+  { value: "gpt-5.5", label: "5.5" },
+  { value: "gpt-5.6-sol", label: "5.6 Sol" },
+  { value: "gpt-5.6-terra", label: "5.6 Terra" },
+  { value: "gpt-5.6-luna", label: "5.6 Luna" },
+  { value: "gpt-5.4", label: "5.4" },
+  { value: "gpt-5.4-mini", label: "5.4 Mini" },
+  { value: "gpt-5.3-codex-spark", label: "5.3 Codex Spark" },
 ];
 
 function markPerf(name: string) {

@@ -4901,7 +4901,8 @@ test("unsupported nested items fall back to read-only JSON while scratch data ke
   await expect(page.locator(".nested-item-list button")).toHaveCount(2);
   await page.locator(".nested-item-list button").nth(1).click();
   await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toBeVisible();
-  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toContainText("Unsupported nested structure.");
+  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toContainText("Read-only fallback");
+  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toContainText("当前结构暂未进入节点编辑器");
   await expect(page.locator(".detail-panel.secondary .json-editor")).toContainText('"nested": true');
   await expect(page.locator(".detail-panel.secondary .detail-input")).toHaveCount(0);
 
@@ -5623,6 +5624,7 @@ test("table nested cell replaces the current nested target on the same row", asy
 
   await tableRow(page, 0).locator('td[data-column-field="starting_stats"] .nested-summary').click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await expect(page.locator(".detail-panel.tertiary.open")).toHaveCount(0);
   await expect(page.locator(".detail-panel.secondary")).toContainText("speed");
   await expect(page.locator(".detail-panel.secondary")).not.toContainText("attack");
 });
@@ -5646,8 +5648,10 @@ test("schema-driven object node shows summary and reset restores default values"
 
   await tableRow(page, 0).locator('td[data-column-field="starting_equipments"] .nested-summary').click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
-  await expect(page.locator(".detail-panel.secondary .property-block--node-summary")).toContainText("starting_equipments");
-  await expect(page.locator(".detail-panel.secondary .property-block--node-summary")).toContainText("已填写");
+  await expect(page.locator(".detail-panel.secondary .node-summary-card")).toHaveCount(0);
+  await expect(page.locator('.detail-panel.secondary [data-node-section="weapons"]')).toContainText("武器位");
+  await expect(page.locator('.detail-panel.secondary [data-node-section="armor"]')).toContainText("防具位");
+  await expect(page.locator('.detail-panel.secondary [data-node-section="accessories"]')).toContainText("饰品位");
 
   const helmInput = page.locator(".detail-panel.secondary .property-block").filter({ hasText: "helm" }).locator("input");
   const offHandInput = page.locator(".detail-panel.secondary .property-block").filter({ hasText: "off_hand" }).locator("input");
@@ -5671,7 +5675,13 @@ test("nested collection panel supports duplicate move and delete actions", async
 
   await tableRow(page, 0).locator('td[data-column-field="effects"] .nested-summary').click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await expect(page.getByRole("button", { name: "增加项目" })).toBeVisible();
+  await expect(page.getByTitle("Duplicate item")).toHaveCount(0);
+  await expect(page.locator(".nested-item-list button").first()).toContainText("Item 1");
+  await expect(page.locator(".nested-item-list button").first()).toContainText("Read-only fallback");
   await page.locator(".nested-item-list button").first().click();
+  await expect(page.locator(".detail-panel.tertiary.open")).toBeVisible();
+  await expect(page.getByTitle("Duplicate item")).toBeVisible();
 
   await page.locator('.detail-panel.secondary .ghost-button[title="Duplicate item"]').click();
   await expect(page.locator(".nested-item-list button")).toHaveCount(3);
@@ -5685,7 +5695,8 @@ test("nested collection panel supports duplicate move and delete actions", async
   await expect(page.locator(".nested-item-list button strong")).toHaveText(["trigger_re", "counter_c"]);
 });
 
-test("unsupported nested collection item falls back to read-only JSON", async ({ page }) => {
+test("unsupported nested collection item falls back to read-only JSON", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_mixed.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
@@ -5693,11 +5704,15 @@ test("unsupported nested collection item falls back to read-only JSON", async ({
   await tableRow(page, 0).locator('td[data-column-field="mixed"] .nested-summary').click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
   await page.locator(".nested-item-list button").nth(1).click();
+  await expect(page.locator(".detail-panel.tertiary.open")).toBeVisible();
 
-  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toBeVisible();
-  await expect(page.locator(".detail-panel.secondary .property-block--fallback")).toContainText("Unsupported nested structure.");
-  await expect(page.locator(".detail-panel.secondary .json-editor")).toContainText('"nested": true');
-  await expect(page.locator(".detail-panel.secondary .detail-input")).toHaveCount(0);
+  await expect(page.locator(".detail-panel.tertiary .property-block--fallback")).toBeVisible();
+  await expect(page.locator(".detail-panel.tertiary .property-block--fallback")).toContainText("Read-only fallback");
+  await expect(page.locator(".detail-panel.tertiary .property-block--fallback")).toContainText("当前结构暂未进入节点编辑器");
+  await page.getByRole("button", { name: "复制 JSON" }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('"nested": true');
+  await expect(page.locator(".detail-panel.tertiary .json-editor")).toContainText('"nested": true');
+  await expect(page.locator(".detail-panel.tertiary .detail-input")).toHaveCount(0);
 });
 
 test("skills nested nodes support discriminator switching and recursive child arrays", async ({ page }) => {
@@ -5708,23 +5723,31 @@ test("skills nested nodes support discriminator switching and recursive child ar
   await tableRow(page, 0).locator('td[data-column-field="nodes"] .nested-summary').click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
   await page.locator(".nested-item-list button").first().click();
+  await expect(page.locator(".detail-panel.tertiary.open")).toBeVisible();
+  await expect(page.locator('.detail-panel.tertiary [data-node-section="base"]')).toContainText("基础目标");
+  await expect(page.locator('.detail-panel.tertiary [data-node-section="area"]')).toContainText("区域形态");
+  await expect(page.locator('.detail-panel.tertiary [data-node-section="limits"]')).toContainText("目标限制");
+  await expect(page.locator('.detail-panel.tertiary [data-advanced-block="unknown-fields"]')).toContainText("高级信息");
+  await page.locator('.detail-panel.tertiary [data-advanced-block="unknown-fields"] summary').click();
+  await expect(page.locator('.detail-panel.tertiary [data-advanced-block="unknown-fields"] .json-editor')).toContainText('"type": "targeting"');
 
-  const typeSelect = page.locator(".detail-panel.secondary .property-block--node-summary select").first();
-  await expect(typeSelect).toHaveValue("targeting");
-  await typeSelect.selectOption("condition");
-  await expect(typeSelect).toHaveValue("condition");
-  await expect(page.locator(".detail-panel.secondary")).toContainText("condition_type");
-  await expect(page.locator(".detail-panel.secondary")).toContainText("then_nodes");
+  const typeSelect = page.getByRole("combobox", { name: "type" });
+  await expect(typeSelect).toContainText("targeting");
+  await typeSelect.click();
+  await page.getByRole("textbox", { name: "筛选 type" }).fill("condition");
+  await page.getByRole("button", { name: "condition" }).click();
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("condition_type");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("then_nodes");
 
-  await page.locator(".detail-panel.secondary .property-block").filter({
+  await page.locator(".detail-panel.tertiary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "then_nodes" }),
   }).locator(".nested-entry-button").click();
 
-  await expect(page.getByRole("button", { name: "Add item" })).toBeVisible();
-  await page.getByRole("button", { name: "Add item" }).click();
-  await page.locator(".nested-item-list button").first().click();
-  await expect(page.locator(".detail-panel.secondary .property-block--node-summary select").first()).toHaveValue("targeting");
-  await expect(page.locator(".detail-panel.secondary")).toContainText("range_type");
+  await expect(page.getByRole("button", { name: "增加项目" })).toBeVisible();
+  await page.getByRole("button", { name: "增加项目" }).click();
+  await page.locator(".detail-panel.secondary .nested-item-list button").first().click();
+  await expect(page.getByRole("combobox", { name: "type" })).toContainText("targeting");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("range_type");
 });
 
 test("rune params nested detail resolves discriminator from parent effect context", async ({ page }) => {
@@ -5735,16 +5758,39 @@ test("rune params nested detail resolves discriminator from parent effect contex
   await tableRow(page, 0).locator('td[data-column-field="effects"] .nested-summary').click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
   await page.locator(".nested-item-list button").first().click();
+  await expect(page.locator(".detail-panel.tertiary.open")).toBeVisible();
 
-  const effectTypeSelect = page.locator(".detail-panel.secondary .property-block--node-summary select").first();
-  await expect(effectTypeSelect).toHaveValue("trigger_on_cast");
-  await page.locator(".detail-panel.secondary .property-block").filter({
+  const effectTypeSelect = page.getByRole("combobox", { name: "effect_type" });
+  await expect(effectTypeSelect).toContainText("trigger_on_cast");
+  await page.locator(".detail-panel.tertiary .property-block").filter({
     has: page.locator(".property-heading span", { hasText: "params" }),
   }).locator(".nested-entry-button").click();
 
-  await expect(page.locator(".detail-panel.secondary")).toContainText("energy_per_event");
-  await expect(page.locator(".detail-panel.secondary")).toContainText("skill_filter");
-  await expect(page.locator(".detail-panel.secondary .property-block--node-summary select")).toHaveCount(0);
+  await expect(page.locator(".detail-panel.tertiary .node-summary-card")).toHaveCount(0);
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("energy_per_event");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("skill_filter");
+  await expect(page.locator('.detail-panel.tertiary [role="combobox"][aria-label="type"]')).toHaveCount(0);
+});
+
+test("affixes mechanic effect_spec uses template sections and nested value_model summary", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/affixes_mechanic.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+
+  await tableRow(page, 0).locator('td[data-column-field="effect_spec"] .nested-summary').click();
+  await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
+  await expect(page.locator('.detail-panel.secondary .node-summary-card')).toHaveCount(0);
+  await expect(page.locator('.detail-panel.secondary [data-node-section="scope"]')).toContainText("机制范围");
+  await expect(page.locator('.detail-panel.secondary [data-node-section="trigger"]')).toContainText("触发规则");
+  await expect(page.locator('.detail-panel.secondary [data-node-section="value"]')).toContainText("数值模型");
+
+  await page.locator(".detail-panel.secondary .property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "value_model" }),
+  }).locator(".nested-entry-button").click();
+
+  await expect(page.locator('.detail-panel.secondary .node-summary-card')).toHaveCount(0);
+  await expect(page.locator('.detail-panel.secondary [data-node-section="range"]')).toContainText("数值范围");
+  await expect(page.locator('.detail-panel.secondary [data-node-section="precision"]')).toContainText("修正规则");
 });
 
 test("detail panel profile layout persists reorder and nested table widths", async ({ page }) => {
@@ -8760,6 +8806,31 @@ test("detail panel option field drag reorder commits only after parent close", a
   await expect(page.locator(".dirty-pill")).toHaveCount(0);
   await closePopoverByClickingOutside(page);
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
+});
+
+test("selecting a detail option keeps the detail panel open", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
+  await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
+
+  const detailPanel = page.locator(".detail-panel.primary");
+  const categoryBlock = detailPanel.locator(".property-block").filter({
+    has: page.locator(".property-heading span", { hasText: "category" }),
+  });
+  const trigger = categoryBlock.locator(".multi-select-trigger");
+  await trigger.click();
+  const popover = page.locator(".multi-select-popover.option-field-popover-shell");
+  await expect(popover).toBeVisible();
+
+  const option = popover.locator(".multi-select-option-row").first();
+  await option.locator(".multi-select-option").click();
+
+  await expect(detailPanel).toBeVisible();
+  await expect(popover).toBeVisible();
 });
 
 test("detail panel option field draft stays bound to the original row when navigating records", async ({ page }) => {

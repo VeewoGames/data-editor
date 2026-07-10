@@ -3,9 +3,11 @@ import * as Dialog from "@radix-ui/react-dialog";
 import * as Select from "@radix-ui/react-select";
 import { loadDocument, type DataFile } from "../api/client";
 import { icons } from "./icons";
+import { SearchablePicker } from "./SearchablePicker";
 import type { CollectionInfo, DataRecord, DocumentModel } from "../model/documentModel";
 import { getMainColumns, getRows } from "../model/documentModel";
 import type { RelationConfig, RelationMode } from "../model/viewConfig";
+import { describeFileBasename, matchesFileSearchQuery } from "../searchable-picker-utils.mjs";
 
 type RelationConfigDialogProps = {
   open: boolean;
@@ -30,6 +32,8 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
   const [loadError, setLoadError] = useState("");
   const [pendingCollection, setPendingCollection] = useState("");
   const [pendingKey, setPendingKey] = useState("");
+  const [targetFilePickerOpen, setTargetFilePickerOpen] = useState(false);
+  const [targetFileQuery, setTargetFileQuery] = useState("");
 
   useEffect(() => {
     if (!props.open) return;
@@ -43,7 +47,15 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
     setMode(props.config?.mode ?? "single");
     setTitleFields(props.config?.titleFields?.length ? props.config.titleFields.join(", ") : defaultTitleFields);
     setAllowMissing(props.config?.allowMissing ?? true);
+    setTargetFilePickerOpen(false);
+    setTargetFileQuery("");
   }, [props.open, props.config, props.files]);
+
+  useEffect(() => {
+    if (props.open) return;
+    setTargetFilePickerOpen(false);
+    setTargetFileQuery("");
+  }, [props.open]);
 
   useEffect(() => {
     if (!props.open || !targetFile) {
@@ -82,8 +94,12 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
     if (!targetModel) return [];
     const rows = getRows(targetModel, targetCollection);
     return getMainColumns(targetModel, targetCollection)
-      .filter((field) => (rows as DataRecord[]).some((row) => Object.hasOwn(row, field)));
+      .filter((field: string) => (rows as DataRecord[]).some((row) => Object.hasOwn(row, field)));
   }, [targetModel, targetCollection]);
+  const visibleTargetFiles = useMemo(
+    () => props.files.filter((file) => matchesFileSearchQuery(file.path, targetFileQuery)),
+    [props.files, targetFileQuery],
+  );
 
   useEffect(() => {
     if (!props.open || loadingTarget) return;
@@ -127,27 +143,51 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
           </div>
           <label className="dialog-field">
             <span>目标文件</span>
-            <Select.Root
-              value={targetFile}
-              onValueChange={(value) => {
-                setPendingCollection("");
-                setPendingKey("");
-                setTargetCollection("");
-                setTargetKey("");
-                setTargetFile(value);
-              }}
+            <SearchablePicker
+              open={targetFilePickerOpen}
+              onOpenChange={setTargetFilePickerOpen}
+              query={targetFileQuery}
+              onQueryChange={setTargetFileQuery}
+              searchAriaLabel="筛选目标文件"
+              searchPlaceholder="筛选文件..."
+              listAriaLabel="目标文件候选列表"
+              contentClassName="relation-target-file-picker-content"
+              emptyContent={<div className="searchable-picker-empty">没有匹配的文件。</div>}
+              trigger={(
+                <button
+                  type="button"
+                  role="combobox"
+                  aria-expanded={targetFilePickerOpen}
+                  className="select-trigger relation-target-file-picker-trigger"
+                  title={targetFile}
+                >
+                  <span className="relation-target-file-picker-trigger__value">
+                    {targetFile ? describeFileBasename(targetFile) : "选择目标文件"}
+                  </span>
+                  <icons.chevronDown size={16} />
+                </button>
+              )}
             >
-              <Select.Trigger className="select-trigger"><Select.Value placeholder="选择目标文件" /><Select.Icon asChild><icons.chevronDown size={16} /></Select.Icon></Select.Trigger>
-              <Select.Portal>
-                <Select.Content className="menu-content select-content relation-config-select-content" position="popper" sideOffset={6}>
-                  <Select.Viewport>
-                    {props.files.map((file) => (
-                      <Select.Item className="menu-item" key={file.path} value={file.path}><Select.ItemText>{file.path}</Select.ItemText></Select.Item>
-                    ))}
-                  </Select.Viewport>
-                </Select.Content>
-              </Select.Portal>
-            </Select.Root>
+              {visibleTargetFiles.map((file) => (
+                <button
+                  key={file.path}
+                  type="button"
+                  className={`searchable-picker-option ${file.path === targetFile ? "is-selected" : ""}`}
+                  onClick={() => {
+                    setPendingCollection("");
+                    setPendingKey("");
+                    setTargetCollection("");
+                    setTargetKey("");
+                    setTargetFile(file.path);
+                    setTargetFilePickerOpen(false);
+                    setTargetFileQuery("");
+                  }}
+                  title={file.path}
+                >
+                  <span className="searchable-picker-option__title">{describeFileBasename(file.path)}</span>
+                </button>
+              ))}
+            </SearchablePicker>
           </label>
           <label className="dialog-field">
             <span>目标集合</span>
@@ -171,7 +211,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
               <Select.Portal>
                 <Select.Content className="menu-content select-content relation-config-select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
-                    {targetFields.map((field) => (
+                    {targetFields.map((field: string) => (
                       <Select.Item className="menu-item" key={field} value={field}><Select.ItemText>{field}</Select.ItemText></Select.Item>
                     ))}
                   </Select.Viewport>

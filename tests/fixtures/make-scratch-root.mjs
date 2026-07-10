@@ -14,9 +14,29 @@ await mkdir(scratchData, { recursive: true });
 await mkdir(scratchToolConfigDir, { recursive: true });
 await writeFile(path.join(scratchToolConfigDir, "view-config.json"), JSON.stringify({ fields: {} }, null, 2));
 
-for (const fileName of ["runes.json", "keywords.json", "skills.json", "enemies.json", "traits.json", "affixes.json", "status_effects.json"]) {
+for (const fileName of ["runes.json", "keywords.json", "skills.json", "enemies.json", "traits.json", "affixes.json", "status_effects.json", "classes.json"]) {
   await cp(path.join(fixtureProjectRoot, "data", fileName), path.join(scratchData, fileName));
 }
+
+await writeFile(path.join(scratchData, "affixes_mechanic.json"), JSON.stringify([
+  {
+    id: "mechanic_1",
+    name: "Mechanic One",
+    effect_spec: {
+      mechanic_scope: "weapon_hit",
+      timing: "on_hit",
+      target: "enemy",
+      trigger: "crit_only",
+      threshold: 2,
+      value_model: {
+        min: 4,
+        max: 8,
+        is_percent: false,
+        roll_precision: 0
+      }
+    }
+  }
+], null, 2));
 
 await writeFile(path.join(scratchData, "e2e_mixed.json"), JSON.stringify([
   {
@@ -68,6 +88,27 @@ await writeFile(path.join(scratchData, "e2e_nested_panel.json"), JSON.stringify(
         timing: "execute"
       }
     ]
+  }
+], null, 2));
+
+await writeFile(path.join(scratchData, "e2e_nested_entry.json"), JSON.stringify([
+  {
+    id: "nested_entry_1",
+    name: "Nested Entry One",
+    stat_growth: {
+      hp: 12,
+      attack: 3
+    },
+    starting_stats: {
+      hp: 100,
+      speed: 8
+    }
+  },
+  {
+    id: "nested_entry_2",
+    name: "Nested Entry Empty",
+    stat_growth: null,
+    starting_stats: null
   }
 ], null, 2));
 

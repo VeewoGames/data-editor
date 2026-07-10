@@ -126,10 +126,6 @@ export function buildPrimaryKeySyncPlan({
         newValue: normalizedNewValue,
       };
       matchedBacklinks.push(item);
-      if (config.mode !== "single") {
-        skipped.push({ ...item, reason: "unsupported-multi" });
-        return;
-      }
       if (parsed.fieldPath.length !== 1) {
         skipped.push({ ...item, reason: "unsupported-nested-path" });
         return;

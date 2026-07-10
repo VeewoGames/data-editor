@@ -9,11 +9,11 @@ import type { RelationOption } from "../model/relations";
 import { buildRelationKey } from "../model/relationPath";
 import { getRecordTitle } from "../model/titleField";
 import type { ValidationIssue } from "../model/validation";
-import { NestedEditor } from "./NestedEditor";
 import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
 import { forwardOptionFieldSurfaceClick, type OptionFieldDraftCommit } from "../table/OptionFieldEditor";
 import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
+import { chipStyleForValue } from "../table/chipColors";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
 import { buildMultiSelectFieldConfigFromRows } from "../multiselect-config.mjs";
@@ -23,6 +23,8 @@ import type { ValidationSnapshot } from "../validation/issue-map";
 import { StableTextInput, StableTextarea, type ActiveTextEditorHandle, type ActiveTextEditorRegistrar, type StableTextInputHandle } from "../editing";
 import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { DocumentPanel, type DocumentPanelSnapshot } from "./DocumentPanel";
+import { NodeEditorHost } from "./NodeEditorHost";
+import { resolveNestedNodeSchema } from "./node-schema-registry.mjs";
 import { mergeDetailFieldOrder } from "../model/document-field-state.mjs";
 import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 import { isPersistentEntryIdField } from "../model/persistent-entry-id.mjs";
@@ -69,6 +71,11 @@ export type DetailEntryActionStatus = NonNullable<DetailSnapshot["entryActionSta
 
 type DetailPanelProps = {
   snapshot: DetailSnapshot;
+  initialNestedTarget: {
+    fieldName: string;
+    requestKey: number;
+  } | null;
+  onConsumeInitialNestedTarget: (requestKey: number) => void;
   onCommitMultiSelectDraft: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onCommitSelectDraft: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
@@ -95,10 +102,13 @@ type NestedPanelState = {
   path: Array<string | number>;
   title: string;
   selectedIndex: number | null;
+  schemaContextValue?: Record<string, unknown> | null;
 };
 
 export function DetailPanel({
   snapshot,
+  initialNestedTarget,
+  onConsumeInitialNestedTarget,
   onCommitMultiSelectDraft,
   onCommitSelectDraft,
   onOpenBacklink,
@@ -152,6 +162,8 @@ export function DetailPanel({
   const panelRef = useRef<HTMLElement | null>(null);
   const documentPanelRef = useRef<HTMLElement | null>(null);
   const nestedPanelRef = useRef<HTMLElement | null>(null);
+  const tertiaryPanelRef = useRef<HTMLElement | null>(null);
+  const consumedInitialNestedRequestKeyRef = useRef<number | null>(null);
   const propertyItemRefs = useRef<Record<string, HTMLElement | null>>({});
   const [nestedStack, setNestedStack] = useState<NestedPanelState[]>([]);
   const [pressedField, setPressedField] = useState<string | null>(null);
@@ -176,6 +188,36 @@ export function DetailPanel({
   }, [rowId, open]);
 
   useEffect(() => {
+    if (!initialNestedTarget) return;
+    if (!open || !row) return;
+    if (consumedInitialNestedRequestKeyRef.current === initialNestedTarget.requestKey) return;
+    consumedInitialNestedRequestKeyRef.current = initialNestedTarget.requestKey;
+    const nestedValue = row[initialNestedTarget.fieldName];
+    if (Array.isArray(nestedValue)) {
+      setNestedStack([{
+        rootField: initialNestedTarget.fieldName,
+        path: [],
+        title: `${initialNestedTarget.fieldName} - ${nestedValue.length} 条`,
+        selectedIndex: null,
+      }]);
+      onConsumeInitialNestedTarget(initialNestedTarget.requestKey);
+      return;
+    }
+    if (isPlainObjectValue(nestedValue)) {
+      setNestedStack([{
+        rootField: initialNestedTarget.fieldName,
+        path: [],
+        title: `${initialNestedTarget.fieldName} - ${Object.keys(nestedValue).length} 字段`,
+        selectedIndex: null,
+      }]);
+      onConsumeInitialNestedTarget(initialNestedTarget.requestKey);
+      return;
+    }
+    setNestedStack([]);
+    onConsumeInitialNestedTarget(initialNestedTarget.requestKey);
+  }, [initialNestedTarget, onConsumeInitialNestedTarget, open, row]);
+
+  useEffect(() => {
     setPressedField(null);
     setDragState(null);
   }, [rowId, detailOrder]);
@@ -193,6 +235,8 @@ export function DetailPanel({
       if (panelRef.current?.contains(target)) return;
       if (documentPanelRef.current?.contains(target)) return;
       if (nestedPanelRef.current?.contains(target)) return;
+      if (tertiaryPanelRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest(".searchable-picker-content, .select-content, .option-field-popover-shell")) return;
       onClose();
     }
 
@@ -203,13 +247,51 @@ export function DetailPanel({
   }, [open, onClose]);
 
   const activeNested = nestedStack.at(-1) ?? null;
+  const activeArrayNestedIndex = useMemo(() => {
+    if (!row || nestedStack.length === 0) return -1;
+    for (let index = nestedStack.length - 1; index >= 0; index -= 1) {
+      const entry = nestedStack[index];
+      const value = getValueAtPath(row[entry.rootField], entry.path);
+      if (Array.isArray(value)) return index;
+    }
+    return -1;
+  }, [nestedStack, row]);
+  const activeArrayNested = activeArrayNestedIndex >= 0 ? nestedStack[activeArrayNestedIndex] ?? null : null;
+  const activeArrayValue = useMemo(() => {
+    if (!row || !activeArrayNested) return null;
+    const value = getValueAtPath(row[activeArrayNested.rootField], activeArrayNested.path);
+    return Array.isArray(value) ? value : null;
+  }, [activeArrayNested, row]);
+  const activeArraySelectedItem = activeArrayNested && activeArrayValue && activeArrayNested.selectedIndex != null
+    ? activeArrayValue[activeArrayNested.selectedIndex] ?? null
+    : null;
+  const activeArraySelectedItemSchema = activeArrayNested
+    && activeArrayValue
+    && activeArrayNested.selectedIndex != null
+    && isPlainObjectValue(activeArraySelectedItem)
+    ? resolveNestedNodeSchema({
+      sourcePath,
+      collectionPath,
+      rootField: activeArrayNested.rootField,
+      nestedPath: [...activeArrayNested.path, activeArrayNested.selectedIndex],
+      value: activeArraySelectedItem,
+      contextValue: null,
+    })
+    : null;
+  const activeNestedIsArrayRail = activeArrayNestedIndex >= 0 && activeArrayNestedIndex === nestedStack.length - 1;
+  const tertiaryNested = activeArrayNestedIndex >= 0 && !activeNestedIsArrayRail ? activeNested : null;
+  const tertiaryPanelOpen = Boolean(
+    tertiaryNested
+    || (activeArrayNested && activeArrayNested.selectedIndex != null && activeArraySelectedItem != null),
+  );
   const primaryPanelStyle = useMemo(
     () => ({
       "--detail-panel-width": `${panelWidth}px`,
       "--detail-document-panel-width": `${documentPanel.width}px`,
       "--detail-secondary-width": `${activeNested ? 360 : 0}px`,
+      "--detail-tertiary-width": `${tertiaryPanelOpen ? 360 : 0}px`,
     }) as CSSProperties,
-    [panelWidth, documentPanel.width, activeNested],
+    [panelWidth, documentPanel.width, activeNested, tertiaryPanelOpen],
   );
   const activeNestedValue = useMemo(() => {
     if (!row || !activeNested) return null;
@@ -220,8 +302,11 @@ export function DetailPanel({
   const canGoPrevious = previousRowTarget != null;
   const canGoNext = nextRowTarget != null;
   const entryActionsBusy = entryActionRunningId != null;
-  const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""} ${documentPanel.open ? "with-document" : ""}`;
-  const naturalFieldOrder = useMemo(() => row ? mergeDetailFieldOrder(row, displayTypes) : [], [row, displayTypes]);
+  const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""} ${tertiaryPanelOpen ? "with-tertiary" : ""} ${documentPanel.open ? "with-document" : ""}`;
+  const naturalFieldOrder = useMemo(
+    () => row ? mergeDetailFieldOrder(row, Object.keys(fieldViewConfigs), displayTypes) : [],
+    [displayTypes, fieldViewConfigs, row],
+  );
   const orderedFields = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
   const selectOptionsByField = useMemo<SelectOptionsByField>(() => {
     if (!row) return {};
@@ -237,7 +322,8 @@ export function DetailPanel({
         const value = sourceRow?.[key];
         if (value == null) continue;
         const normalized = String(value).trim();
-        if (normalized) options.set(normalized, { value: normalized, label: normalized, color: null });
+        if (!normalized || options.has(normalized)) continue;
+        options.set(normalized, { value: normalized, label: normalized, color: null });
       }
       result[key] = [...options.values()];
     }
@@ -301,18 +387,25 @@ export function DetailPanel({
           <div className="panel-kicker">Record detail</div>
           <div className="panel-title">No record selected</div>
         </aside>
-        <aside className="detail-panel secondary" ref={nestedPanelRef} />
+        <aside className="detail-panel secondary" ref={nestedPanelRef} style={primaryPanelStyle} />
       </>
     );
   }
 
-  function openNestedField(fieldName: string, value: unknown, path: Array<string | number> = [], customTitle?: string) {
+  function openNestedField(
+    fieldName: string,
+    value: unknown,
+    path: Array<string | number> = [],
+    customTitle?: string,
+    schemaContextValue?: Record<string, unknown> | null,
+  ) {
     const itemCount = Array.isArray(value) ? value.length : 0;
     setNestedStack((current) => [...current, {
       rootField: fieldName,
       path,
       title: customTitle ?? `${fieldName} - ${itemCount} 条`,
       selectedIndex: null,
+      schemaContextValue: schemaContextValue ?? null,
     }]);
   }
 
@@ -529,42 +622,78 @@ export function DetailPanel({
           onRequestSyncSave={onRequestSyncSave}
         />
       </aside>
-      <aside className={`detail-panel secondary ${activeNested ? "open" : ""}`} ref={nestedPanelRef}>
-        {activeNested && Array.isArray(activeNestedValue) ? (
+      <aside
+        className={`detail-panel secondary ${activeNested ? "open" : ""} ${tertiaryPanelOpen ? "with-tertiary" : ""}`}
+        ref={nestedPanelRef}
+        style={primaryPanelStyle}
+      >
+        {activeArrayNested && activeArrayValue ? (
           <NestedCollectionPanel
             relationOptions={relationOptions}
             relationConfigs={relationConfigs}
             sourcePath={sourcePath}
             collectionPath={collectionPath}
-            title={activeNested.title}
-            items={activeNestedValue}
-            rootField={activeNested.rootField}
-            basePath={activeNested.path}
-            selectedIndex={activeNested.selectedIndex}
-            onBack={closeNestedPanel}
+            title={activeArrayNested.title}
+            items={activeArrayValue}
+            rootField={activeArrayNested.rootField}
+            basePath={activeArrayNested.path}
+            selectedIndex={activeArrayNested.selectedIndex}
+            onBack={() => {
+              setNestedStack((current) => current.slice(0, activeArrayNestedIndex));
+            }}
             onCloseAll={() => setNestedStack([])}
             onSelectItem={(selectedIndex) => {
-              setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? { ...entry, selectedIndex } : entry));
+              setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? { ...entry, selectedIndex } : entry));
             }}
             onAddItem={() => {
-              const nextItem = makeEmptyNestedItem(activeNestedValue[0]);
-              updateNestedValue(activeNested.rootField, activeNested.path, [...activeNestedValue, nextItem]);
-              setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? { ...entry, selectedIndex: activeNestedValue.length } : entry));
+              const schemaDefault = resolveNestedNodeSchema({
+                sourcePath,
+                collectionPath,
+                rootField: activeArrayNested.rootField,
+                nestedPath: [...activeArrayNested.path, activeArrayValue.length],
+                value: {},
+                contextValue: null,
+              });
+              const nextItem = schemaDefault.kind === "supported"
+                ? cloneNestedValue(schemaDefault.schema.defaultValue)
+                : makeEmptyNestedItem(activeArrayValue[0]);
+              updateNestedValue(activeArrayNested.rootField, activeArrayNested.path, [...activeArrayValue, nextItem]);
+              setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? { ...entry, selectedIndex: activeArrayValue.length } : entry));
             }}
-            onEditItem={(selectedIndex, nextValue) => updateNestedValue(activeNested.rootField, [...activeNested.path, selectedIndex], nextValue)}
-            onOpenNested={(selectedIndex, pathSuffix, nestedValue) => {
+            onDuplicateItem={(selectedIndex) => {
+              const nextItems = [...activeArrayValue];
+              nextItems.splice(selectedIndex + 1, 0, cloneNestedValue(activeArrayValue[selectedIndex]));
+              updateNestedValue(activeArrayNested.rootField, activeArrayNested.path, nextItems);
+              setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? { ...entry, selectedIndex: selectedIndex + 1 } : entry));
+            }}
+            onMoveItem={(selectedIndex, direction) => {
+              const targetIndex = direction === "up" ? selectedIndex - 1 : selectedIndex + 1;
+              if (targetIndex < 0 || targetIndex >= activeArrayValue.length) return;
+              updateNestedValue(activeArrayNested.rootField, activeArrayNested.path, moveArrayItem(activeArrayValue, selectedIndex, targetIndex));
+              setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? { ...entry, selectedIndex: targetIndex } : entry));
+            }}
+            onDeleteItem={(selectedIndex) => {
+              updateNestedValue(activeArrayNested.rootField, activeArrayNested.path, activeArrayValue.filter((_, index) => index !== selectedIndex));
+              setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? {
+                ...entry,
+                selectedIndex: activeArrayValue.length <= 1 ? null : Math.max(0, selectedIndex - 1),
+              } : entry));
+            }}
+            onEditItem={(selectedIndex, nextValue) => updateNestedValue(activeArrayNested.rootField, [...activeArrayNested.path, selectedIndex], nextValue)}
+            onOpenNested={(selectedIndex, pathSuffix, nestedValue, schemaContextValue) => {
               const tail = pathSuffix.at(-1);
               const segmentLabel = typeof tail === "string" && tail ? tail : `item ${selectedIndex + 1}`;
               openNestedField(
-                activeNested.rootField,
+                activeArrayNested.rootField,
                 nestedValue,
-                [...activeNested.path, selectedIndex, ...pathSuffix],
+                [...activeArrayNested.path, selectedIndex, ...pathSuffix],
                 `${segmentLabel} - ${Array.isArray(nestedValue) ? nestedValue.length : 0} 条`,
+                schemaContextValue,
               );
             }}
           />
         ) : activeNested && isPlainObjectValue(activeNestedValue) ? (
-          <NestedObjectPanel
+          <NodeEditorHost
             title={activeNested.title}
             value={activeNestedValue}
             rootField={activeNested.rootField}
@@ -573,10 +702,11 @@ export function DetailPanel({
             relationConfigs={relationConfigs}
             sourcePath={sourcePath}
             collectionPath={collectionPath}
+            schemaContextValue={activeNested.schemaContextValue ?? null}
             onBack={closeNestedPanel}
             onCloseAll={() => setNestedStack([])}
             onEditValue={(path, nextValue) => updateNestedValue(activeNested.rootField, [...activeNested.path, ...path], nextValue)}
-            onOpenNested={(pathSuffix, nestedValue) => {
+            onOpenNested={(pathSuffix, nestedValue, schemaContextValue) => {
               const tail = pathSuffix.at(-1);
               const segmentLabel = typeof tail === "string" && tail ? tail : activeNested.rootField;
               openNestedField(
@@ -584,9 +714,165 @@ export function DetailPanel({
                 nestedValue,
                 [...activeNested.path, ...pathSuffix],
                 `${segmentLabel} - ${Array.isArray(nestedValue) ? nestedValue.length : Object.keys(nestedValue ?? {}).length} 条`,
+                schemaContextValue,
               );
             }}
           />
+        ) : null}
+      </aside>
+      <aside
+        className={`detail-panel tertiary ${tertiaryPanelOpen ? "open" : ""}`}
+        ref={tertiaryPanelRef}
+        style={primaryPanelStyle}
+      >
+        {tertiaryNested && Array.isArray(activeNestedValue) ? (
+          <NestedCollectionPanel
+            relationOptions={relationOptions}
+            relationConfigs={relationConfigs}
+            sourcePath={sourcePath}
+            collectionPath={collectionPath}
+            title={tertiaryNested.title}
+            items={activeNestedValue}
+            rootField={tertiaryNested.rootField}
+            basePath={tertiaryNested.path}
+            selectedIndex={tertiaryNested.selectedIndex}
+            onBack={closeNestedPanel}
+            onCloseAll={() => setNestedStack([])}
+            onSelectItem={(selectedIndex) => {
+              setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? { ...entry, selectedIndex } : entry));
+            }}
+            onAddItem={() => {
+              const schemaDefault = resolveNestedNodeSchema({
+                sourcePath,
+                collectionPath,
+                rootField: tertiaryNested.rootField,
+                nestedPath: [...tertiaryNested.path, activeNestedValue.length],
+                value: {},
+                contextValue: null,
+              });
+              const nextItem = schemaDefault.kind === "supported"
+                ? cloneNestedValue(schemaDefault.schema.defaultValue)
+                : makeEmptyNestedItem(activeNestedValue[0]);
+              updateNestedValue(tertiaryNested.rootField, tertiaryNested.path, [...activeNestedValue, nextItem]);
+              setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? { ...entry, selectedIndex: activeNestedValue.length } : entry));
+            }}
+            onDuplicateItem={(selectedIndex) => {
+              const nextItems = [...activeNestedValue];
+              nextItems.splice(selectedIndex + 1, 0, cloneNestedValue(activeNestedValue[selectedIndex]));
+              updateNestedValue(tertiaryNested.rootField, tertiaryNested.path, nextItems);
+              setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? { ...entry, selectedIndex: selectedIndex + 1 } : entry));
+            }}
+            onMoveItem={(selectedIndex, direction) => {
+              const targetIndex = direction === "up" ? selectedIndex - 1 : selectedIndex + 1;
+              if (targetIndex < 0 || targetIndex >= activeNestedValue.length) return;
+              updateNestedValue(tertiaryNested.rootField, tertiaryNested.path, moveArrayItem(activeNestedValue, selectedIndex, targetIndex));
+              setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? { ...entry, selectedIndex: targetIndex } : entry));
+            }}
+            onDeleteItem={(selectedIndex) => {
+              updateNestedValue(tertiaryNested.rootField, tertiaryNested.path, activeNestedValue.filter((_, index) => index !== selectedIndex));
+              setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? {
+                ...entry,
+                selectedIndex: activeNestedValue.length <= 1 ? null : Math.max(0, selectedIndex - 1),
+              } : entry));
+            }}
+            onEditItem={(selectedIndex, nextValue) => updateNestedValue(tertiaryNested.rootField, [...tertiaryNested.path, selectedIndex], nextValue)}
+            onOpenNested={(selectedIndex, pathSuffix, nestedValue, schemaContextValue) => {
+              const tail = pathSuffix.at(-1);
+              const segmentLabel = typeof tail === "string" && tail ? tail : `item ${selectedIndex + 1}`;
+              openNestedField(
+                tertiaryNested.rootField,
+                nestedValue,
+                [...tertiaryNested.path, selectedIndex, ...pathSuffix],
+                `${segmentLabel} - ${Array.isArray(nestedValue) ? nestedValue.length : 0} 条`,
+                schemaContextValue,
+              );
+            }}
+          />
+        ) : tertiaryNested && isPlainObjectValue(activeNestedValue) ? (
+          <NodeEditorHost
+            title={tertiaryNested.title}
+            value={activeNestedValue}
+            rootField={tertiaryNested.rootField}
+            basePath={tertiaryNested.path}
+            relationOptions={relationOptions}
+            relationConfigs={relationConfigs}
+            sourcePath={sourcePath}
+            collectionPath={collectionPath}
+            schemaContextValue={tertiaryNested.schemaContextValue ?? null}
+            onBack={closeNestedPanel}
+            onCloseAll={() => setNestedStack([])}
+            onEditValue={(path, nextValue) => updateNestedValue(tertiaryNested.rootField, [...tertiaryNested.path, ...path], nextValue)}
+            onOpenNested={(pathSuffix, nestedValue, schemaContextValue) => {
+              const tail = pathSuffix.at(-1);
+              const segmentLabel = typeof tail === "string" && tail ? tail : tertiaryNested.rootField;
+              openNestedField(
+                tertiaryNested.rootField,
+                nestedValue,
+                [...tertiaryNested.path, ...pathSuffix],
+                `${segmentLabel} - ${Array.isArray(nestedValue) ? nestedValue.length : Object.keys(nestedValue ?? {}).length} 条`,
+                schemaContextValue,
+              );
+            }}
+          />
+        ) : activeArrayNested && activeArrayNested.selectedIndex != null ? (
+          activeArraySelectedItemSchema?.kind === "supported" && isPlainObjectValue(activeArraySelectedItem) ? (
+            <NodeEditorHost
+              title={String(buildNestedItemCard(activeArraySelectedItem, activeArrayNested.selectedIndex, activeArraySelectedItemSchema).title)}
+              value={activeArraySelectedItem}
+              rootField={activeArrayNested.rootField}
+              basePath={[...activeArrayNested.path, activeArrayNested.selectedIndex]}
+              relationOptions={relationOptions}
+              relationConfigs={relationConfigs}
+              sourcePath={sourcePath}
+              collectionPath={collectionPath}
+              onBack={() => {
+                setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? { ...entry, selectedIndex: null } : entry));
+              }}
+              onCloseAll={() => setNestedStack([])}
+              onEditValue={(path, nextValue) => updateNestedValue(activeArrayNested.rootField, [...activeArrayNested.path, activeArrayNested.selectedIndex!, ...path], nextValue)}
+              onOpenNested={(pathSuffix, nestedValue, schemaContextValue) => {
+                const tail = pathSuffix.at(-1);
+                const segmentLabel = typeof tail === "string" && tail ? tail : `item ${activeArrayNested.selectedIndex! + 1}`;
+                openNestedField(
+                  activeArrayNested.rootField,
+                  nestedValue,
+                  [...activeArrayNested.path, activeArrayNested.selectedIndex!, ...pathSuffix],
+                  `${segmentLabel} - ${Array.isArray(nestedValue) ? nestedValue.length : Object.keys(nestedValue ?? {}).length} 条`,
+                  schemaContextValue,
+                );
+              }}
+            />
+          ) : (
+            <>
+              <div className="detail-header">
+                <div className="detail-title-block">
+                  <div className="panel-kicker">Nested detail</div>
+                  <div className="panel-title">{`${activeArrayNested.rootField}[${activeArrayNested.selectedIndex + 1}]`}</div>
+                  <div className="panel-subtitle">Schema fallback</div>
+                </div>
+                <div className="detail-nav">
+                  <button
+                    className="icon-button"
+                    onClick={() => {
+                      setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? { ...entry, selectedIndex: null } : entry));
+                    }}
+                    title="Back"
+                  >
+                    <icons.previous size={16} />
+                  </button>
+                  <button className="icon-button" onClick={() => setNestedStack([])} title="Close nested detail">
+                    <icons.close size={16} />
+                  </button>
+                </div>
+              </div>
+              {renderUnsupportedNestedItem(
+                activeArraySelectedItem,
+                activeArrayNested.rootField,
+                activeArrayNested.selectedIndex,
+                (index, nextValue) => updateNestedValue(activeArrayNested.rootField, [...activeArrayNested.path, index], nextValue),
+              )}
+            </>
+          )
         ) : null}
       </aside>
       {dragState ? (
@@ -627,10 +913,30 @@ function NestedCollectionPanel(props: {
   onCloseAll: () => void;
   onSelectItem: (index: number) => void;
   onAddItem: () => void;
+  onDuplicateItem: (index: number) => void;
+  onMoveItem: (index: number, direction: "up" | "down") => void;
+  onDeleteItem: (index: number) => void;
   onEditItem: (index: number, value: unknown) => void;
-  onOpenNested: (selectedIndex: number, pathSuffix: Array<string | number>, nestedValue: unknown[]) => void;
+  onOpenNested: (
+    selectedIndex: number,
+    pathSuffix: Array<string | number>,
+    nestedValue: unknown,
+    schemaContextValue?: Record<string, unknown> | null,
+  ) => void;
 }) {
-  const selectedItem = props.selectedIndex == null ? null : props.items[props.selectedIndex] ?? null;
+  const itemCards = props.items.map((item, index) => {
+    const resolved = isPlainObjectValue(item)
+      ? resolveNestedNodeSchema({
+        sourcePath: props.sourcePath,
+        collectionPath: props.collectionPath,
+        rootField: props.rootField,
+        nestedPath: [...props.basePath, index],
+        value: item,
+        contextValue: null,
+      })
+      : null;
+    return buildNestedItemCard(item, index, resolved);
+  });
 
   return (
     <>
@@ -649,167 +955,102 @@ function NestedCollectionPanel(props: {
           </button>
         </div>
       </div>
-      <div className="nested-item-list">
-        {props.items.map((item, index) => (
+      <section className="nested-collection-rail">
+        <div className="nested-panel-toolbar">
+          <button className="ghost-button ghost-button--primary nested-toolbar-button" onClick={props.onAddItem} type="button">
+            <icons.addField size={15} />
+            <span>增加项目</span>
+          </button>
+          {props.selectedIndex != null ? (
+            <div className="nested-panel-toolbar-group" aria-label="Selected item actions">
+              <button
+                className="ghost-button nested-toolbar-button nested-toolbar-button--icon"
+                onClick={() => props.onDuplicateItem(props.selectedIndex!)}
+                title="Duplicate item"
+                aria-label="Duplicate item"
+                type="button"
+              >
+                <icons.copy size={15} />
+              </button>
+              <button
+                className="ghost-button nested-toolbar-button nested-toolbar-button--icon"
+                onClick={() => props.onMoveItem(props.selectedIndex!, "up")}
+                disabled={props.selectedIndex <= 0}
+                title="Move item up"
+                aria-label="Move item up"
+                type="button"
+              >
+                <icons.up size={15} />
+              </button>
+              <button
+                className="ghost-button nested-toolbar-button nested-toolbar-button--icon"
+                onClick={() => props.onMoveItem(props.selectedIndex!, "down")}
+                disabled={props.selectedIndex >= props.items.length - 1}
+                title="Move item down"
+                aria-label="Move item down"
+                type="button"
+              >
+                <icons.down size={15} />
+              </button>
+              <button
+                className="ghost-button ghost-button--danger nested-toolbar-button nested-toolbar-button--icon"
+                onClick={() => props.onDeleteItem(props.selectedIndex!)}
+                title="Delete item"
+                aria-label="Delete item"
+                type="button"
+              >
+                <icons.delete size={15} />
+              </button>
+            </div>
+          ) : null}
+        </div>
+        <div className="nested-item-list">
+        {itemCards.map((card, index) => (
           <button
             className={`nested-item-button ${props.selectedIndex === index ? "selected" : ""}`}
             key={index}
             onClick={() => props.onSelectItem(index)}
+            type="button"
           >
-            <strong>{getNestedItemSummary(item, index)}</strong>
-            <span>{getNestedItemMeta(item)}</span>
+            <span className="nested-item-button-meta">{card.meta}</span>
+            <strong>{card.title}</strong>
+            <span className="nested-item-button-summary">{card.summary}</span>
+            <span className="nested-item-button-status">{card.status}</span>
           </button>
         ))}
-      </div>
-      <div className="nested-panel-actions">
-        <button className="ghost-button" onClick={props.onAddItem}>Add item</button>
-      </div>
-      {props.selectedIndex != null ? (
-        <div className="property-list nested-property-list">
-          {renderNestedItemEditor(
-            selectedItem,
-            props.rootField,
-            props.selectedIndex,
-            props.basePath,
-            props.relationOptions,
-            props.relationConfigs,
-            props.sourcePath,
-            props.collectionPath,
-            props.onEditItem,
-            props.onOpenNested,
-          )}
         </div>
-      ) : null}
+      </section>
     </>
   );
 }
 
-function NestedObjectPanel(props: {
-  title: string;
-  value: Record<string, unknown>;
-  rootField: string;
-  basePath: Array<string | number>;
-  relationOptions: Record<string, RelationOption[]>;
-  relationConfigs?: Record<string, RelationConfig>;
-  sourcePath?: string | null;
-  collectionPath?: string;
-  onBack: () => void;
-  onCloseAll: () => void;
-  onEditValue: (path: Array<string | number>, value: unknown) => void;
-  onOpenNested: (path: Array<string | number>, nestedValue: unknown[] | Record<string, unknown>) => void;
-}) {
-  return (
-    <>
-      <div className="detail-header">
-        <div className="detail-title-block">
-          <div className="panel-kicker">Nested detail</div>
-          <div className="panel-title">{props.title}</div>
-          <div className="panel-subtitle">{Object.keys(props.value).length} fields</div>
-        </div>
-        <div className="detail-nav">
-          <button className="icon-button" onClick={props.onBack} title="Back">
-            <icons.previous size={16} />
-          </button>
-          <button className="icon-button" onClick={props.onCloseAll} title="Close nested detail">
-            <icons.close size={16} />
-          </button>
-        </div>
-      </div>
-      <div className="property-list nested-property-list">
-        {Object.entries(props.value).map(([key, value]) => (
-          <section className="property-block" key={`${props.rootField}:${key}`} onClick={forwardOptionFieldSurfaceClick}>
-            <PropertyHeading fieldName={key} fieldType={defaultTypeFor(value)} />
-            {renderValueEditor({
-              cellId: `nested-object:${props.rootField}:${key}`,
-              pathParts: [props.rootField, ...props.basePath, key],
-              fieldName: key,
-              primaryKeyField: null,
-              displayType: defaultTypeFor(value),
-              value,
-              multiSelectOptions: [],
-              selectOptions: [],
-              relationOptions: props.relationOptions,
-              relationConfigs: props.relationConfigs,
-              sourcePath: props.sourcePath,
-              collectionPath: props.collectionPath,
-              onEditField: (_fieldName, nextValue) => props.onEditValue([key], nextValue),
-              onOpenNested: (nestedValue, path, customTitle) => props.onOpenNested([key, ...path], Array.isArray(nestedValue) ? nestedValue : nestedValue as Record<string, unknown>),
-            })}
-          </section>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function renderNestedItemEditor(
+function renderUnsupportedNestedItem(
   item: unknown,
   rootField: string,
   index: number,
-  basePath: Array<string | number>,
-  relationOptions: Record<string, RelationOption[]>,
-  relationConfigs: Record<string, RelationConfig> | undefined,
-  sourcePath: string | null | undefined,
-  collectionPath: string | undefined,
   onEditItem: (index: number, value: unknown) => void,
-  onOpenNested: (selectedIndex: number, pathSuffix: Array<string | number>, nestedValue: unknown[]) => void,
 ) {
-  if (Array.isArray(item)) {
+  if (Array.isArray(item) || isPlainObjectValue(item)) {
+    const handleCopyJson = async () => {
+      if (typeof navigator === "undefined" || !navigator.clipboard) return;
+      await navigator.clipboard.writeText(JSON.stringify(item, null, 2));
+    };
+
     return (
-      <section className="property-block" onClick={forwardOptionFieldSurfaceClick}>
-        <PropertyHeading fieldName="value" fieldType="Nested" />
-        <button className="nested-entry-button" onClick={() => onOpenNested(index, [], item)}>
-          <icons.nested size={15} />
-          <span>{summarizeArrayValue(item)}</span>
-        </button>
+      <section className="property-block property-block--fallback" onClick={forwardOptionFieldSurfaceClick}>
+        <div className="fallback-state-kicker">Read-only fallback</div>
+        <div className="fallback-state-title">当前结构暂未进入节点编辑器</div>
+        <div className="fallback-state-description">Unsupported nested structure.</div>
+        <div className="fallback-state-subtitle">{`${rootField}[${index}]`}</div>
+        <div className="json-actions">
+          <button className="ghost-button nested-toolbar-button" onClick={() => void handleCopyJson()} type="button">
+            <icons.copy size={15} />
+            <span>复制 JSON</span>
+          </button>
+        </div>
+        <pre className="json-editor">{JSON.stringify(item, null, 2)}</pre>
       </section>
     );
-  }
-
-  if (item && typeof item === "object") {
-    return Object.entries(item as Record<string, unknown>).map(([key, value]) => {
-      const relation = getRelationConfig([rootField, ...basePath, index, key], relationOptions, relationConfigs, sourcePath, collectionPath);
-      const nextPath = [key];
-      return (
-        <section className="property-block" key={`${index}:${key}`} onClick={forwardOptionFieldSurfaceClick}>
-          <PropertyHeading fieldName={key} fieldType={defaultTypeFor(value)} />
-          {relation && isRelationValue(value) ? (
-            <RelationCellEditor
-              cellId={`nested:${rootField}:${index}:${key}`}
-              configured={relation.configured}
-              mode={relation.mode}
-              options={relation.options}
-              surface="detail"
-              value={value as string | number | null | Array<string | number>}
-              onEdit={(next) => onEditItem(index, { ...(item as Record<string, unknown>), [key]: next })}
-            />
-          ) : Array.isArray(value) ? (
-            <button className="nested-entry-button" onClick={() => onOpenNested(index, nextPath, value)}>
-              <icons.nested size={15} />
-              <span>{summarizeArrayValue(value)}</span>
-            </button>
-          ) : value && typeof value === "object" ? (
-            <NestedEditor
-              value={value}
-              onChange={(next) => onEditItem(index, { ...(item as Record<string, unknown>), [key]: next })}
-              onOpenNestedArray={(path, nestedValue) => onOpenNested(index, [key, ...path], nestedValue)}
-            />
-          ) : shouldUseMultilineEditor(key, value) ? (
-            <AutoSizeTextarea
-              className="detail-input detail-textarea"
-              value={value == null ? "" : String(value)}
-              onChange={(event) => onEditItem(index, { ...(item as Record<string, unknown>), [key]: event.target.value })}
-            />
-          ) : (
-            <input
-              className="detail-input"
-              value={value == null ? "" : String(value)}
-              onChange={(event) => onEditItem(index, { ...(item as Record<string, unknown>), [key]: event.target.value })}
-            />
-          )}
-        </section>
-      );
-    });
   }
 
   return (
@@ -907,7 +1148,11 @@ function renderValueEditor(props: {
         <div className="chips-cell">
           {props.value == null || props.value === ""
             ? <span className="select-placeholder">未设置</span>
-            : <span className="chip">{selectedOption?.label ?? String(props.value)}</span>}
+            : (
+              <span className="chip" style={chipStyleForValue(props.value, selectedOption?.color ?? null)}>
+                {selectedOption?.label ?? String(props.value)}
+              </span>
+            )}
         </div>
       );
     }
@@ -931,7 +1176,7 @@ function renderValueEditor(props: {
           {(props.value as Array<string | number>).map((item, index) => {
             const option = props.multiSelectOptions.find((candidate) => String(candidate.value) === String(item));
             return (
-              <span className="chip" key={`${item}-${index}`}>
+              <span className="chip" key={`${item}-${index}`} style={chipStyleForValue(item, option?.color ?? null)}>
                 {option?.label ?? String(item)}
               </span>
             );
@@ -1217,4 +1462,82 @@ function shouldUseMultilineEditor(fieldName: string, value: unknown) {
 
 function isPlainObjectValue(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isMeaningfullyFilled(value: unknown) {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+}
+
+function buildNestedItemCard(
+  item: unknown,
+  index: number,
+  resolved: ReturnType<typeof resolveNestedNodeSchema> | null,
+) {
+  if (resolved?.kind === "supported" && isPlainObjectValue(item)) {
+    const record = item as Record<string, unknown>;
+    const schemaFields = resolved.schema.fields as Array<{ fieldName: string }>;
+    const unknownFieldCount = Object.keys(record).filter((fieldName) => !schemaFields.some((field) => field.fieldName === fieldName)).length;
+    const filledFieldCount = schemaFields.reduce((count, field) => count + (isMeaningfullyFilled(record[field.fieldName]) ? 1 : 0), 0);
+    const summarySegments = schemaFields
+      .filter((field) => field.fieldName !== resolved.discriminatorField)
+      .map((field) => formatNestedSummaryField(field.fieldName, record[field.fieldName]))
+      .filter((value): value is string => value != null)
+      .slice(0, 3);
+    const discriminatorValue = resolved.discriminatorField ? record[resolved.discriminatorField] : null;
+    const title = discriminatorValue != null && discriminatorValue !== ""
+      ? String(discriminatorValue)
+      : getNestedItemSummary(item, index);
+    const statusParts = [`${filledFieldCount}/${schemaFields.length} filled`];
+    if (unknownFieldCount > 0) statusParts.push(`${unknownFieldCount} unknown`);
+    return {
+      title,
+      summary: summarySegments.join(" · ") || getNestedItemMeta(item),
+      status: statusParts.join(" · "),
+      meta: `Item ${index + 1} · ${resolved.schema.title}`,
+    };
+  }
+
+  if (Array.isArray(item) || isPlainObjectValue(item)) {
+    return {
+      title: getNestedItemSummary(item, index),
+      summary: getNestedItemMeta(item) || "Unsupported nested structure.",
+      status: "Read-only fallback",
+      meta: `Item ${index + 1}`,
+    };
+  }
+
+  return {
+    title: getNestedItemSummary(item, index),
+    summary: getNestedItemMeta(item) || "Primitive item",
+    status: "Direct value",
+    meta: `Item ${index + 1}`,
+  };
+}
+
+function formatNestedSummaryField(fieldName: string, value: unknown) {
+  if (!isMeaningfullyFilled(value)) return null;
+  if (typeof value === "string" || typeof value === "number") return `${fieldName}: ${String(value)}`;
+  if (Array.isArray(value)) return `${fieldName}: ${value.length}`;
+  if (isPlainObjectValue(value)) return `${fieldName}: ${Object.keys(value).length} fields`;
+  if (typeof value === "boolean") return `${fieldName}: ${value ? "yes" : "no"}`;
+  return `${fieldName}: ${String(value)}`;
+}
+
+function cloneNestedValue<T>(value: T): T {
+  if (Array.isArray(value)) return value.map((item) => cloneNestedValue(item)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneNestedValue(item)])) as T;
+  }
+  return value;
+}
+
+function moveArrayItem<T>(items: T[], fromIndex: number, toIndex: number) {
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
 }

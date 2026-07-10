@@ -114,6 +114,7 @@ type DataTableProps = {
   onScrollPositionChange: (position: { scrollTop: number; scrollLeft: number }) => void;
   onSelectRow: (rowIndex: number, rowId: string | null) => void;
   onOpenDetail: (rowIndex: number, rowId: string | null) => void;
+  onOpenNestedDetail: (rowIndex: number, rowId: string | null, fieldName: string) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
   onEditCell: (rowIndex: number, rowId: string | null, fieldName: string, value: unknown) => void;
   onCommitMultiSelectDraft: (rowIndex: number, rowId: string | null, fieldName: string, patch: OptionFieldDraftCommit) => void;
@@ -190,6 +191,7 @@ function DataTableComponent(props: DataTableProps) {
     onOpenRelationTarget: props.onOpenRelationTarget,
     onSelectRow: props.onSelectRow,
     onOpenDetail: props.onOpenDetail,
+    onOpenNestedDetail: props.onOpenNestedDetail,
     onOpenBacklink: props.onOpenBacklink,
     onEditCell: props.onEditCell,
     onCommitMultiSelectDraft: props.onCommitMultiSelectDraft,
@@ -204,8 +206,8 @@ function DataTableComponent(props: DataTableProps) {
   const rows = useMemo(() => rowViews.map((view) => view.row), [rowViews]);
   const optionRows = snapshot.allRows ?? rows;
   const schemaModel = snapshot.schemaModel;
-  const nestedFieldSet = useMemo(
-    () => new Set(getNestedFields(schemaModel, snapshot.collectionPath)),
+  const nestedFieldSet = useMemo<Set<string>>(
+    () => new Set<string>(getNestedFields(schemaModel, snapshot.collectionPath)),
     [schemaModel, snapshot.collectionPath],
   );
 
@@ -342,6 +344,7 @@ function DataTableComponent(props: DataTableProps) {
       onOpenRelationTarget: props.onOpenRelationTarget,
       onSelectRow: props.onSelectRow,
       onOpenDetail: props.onOpenDetail,
+      onOpenNestedDetail: props.onOpenNestedDetail,
       onOpenBacklink: props.onOpenBacklink,
       onEditCell: props.onEditCell,
       onCommitMultiSelectDraft: props.onCommitMultiSelectDraft,
@@ -366,6 +369,7 @@ function DataTableComponent(props: DataTableProps) {
     props.onOpenRelationTarget,
     props.onSelectRow,
     props.onOpenDetail,
+    props.onOpenNestedDetail,
     props.onOpenBacklink,
     props.onEditCell,
     props.onCommitMultiSelectDraft,
@@ -521,6 +525,10 @@ function DataTableComponent(props: DataTableProps) {
     runtimeActionRef.current.onOpenDetail(rowIndex, rowId);
   }, []);
 
+  const openNestedDetailByRuntime = useCallback((rowIndex: number, rowId: string | null, fieldName: string) => {
+    runtimeActionRef.current.onOpenNestedDetail(rowIndex, rowId, fieldName);
+  }, []);
+
   const selectRow = useCallback((event: ReactMouseEvent<HTMLTableRowElement>, rowIndex: number, rowId: string | null) => {
     const rowElement = event.currentTarget;
     rowElement.closest("tbody")?.querySelectorAll("tr.selected-row").forEach((row) => row.classList.remove("selected-row"));
@@ -633,6 +641,7 @@ function DataTableComponent(props: DataTableProps) {
     onOpenRelationTarget: handleOpenRelationTarget,
     onSelectRow: selectRowByRuntime,
     onOpenDetail: openDetailByRuntime,
+    onOpenNestedDetail: openNestedDetailByRuntime,
     onOpenBacklink: handleOpenBacklink,
     onEditCell: handleEditCell,
     onCommitMultiSelectDraft: handleCommitMultiSelectDraft,
@@ -672,6 +681,7 @@ function DataTableComponent(props: DataTableProps) {
     handleOpenRelationTarget,
     selectRowByRuntime,
     openDetailByRuntime,
+    openNestedDetailByRuntime,
     handleOpenBacklink,
     handleEditCell,
     handleCommitMultiSelectDraft,
@@ -713,6 +723,7 @@ function DataTableComponent(props: DataTableProps) {
         rowIndex: rowView.sourceIndex,
         fieldName,
         displayType: columnModel.effectiveDisplayType,
+        relationMode: columnModel.relationConfig?.mode ?? null,
         value: rowView.row[fieldName],
         selectOptions: columnModel.selectConfig?.options ?? [],
         multiSelectOptions: columnModel.multiSelectConfig?.options ?? [],
@@ -750,7 +761,7 @@ function DataTableComponent(props: DataTableProps) {
         );
         continue;
       }
-      const nextValue = resolveClearValueByDisplayType(cell.displayType);
+      const nextValue = resolveClearValueByDisplayType(cell.displayType, cell.relationMode);
       if (nextValue !== undefined) {
         runtimeActionRef.current.onEditCell(cell.rowIndex, cell.rowId, cell.fieldName, nextValue);
       }

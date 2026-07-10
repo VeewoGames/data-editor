@@ -26,6 +26,7 @@ import {
 import { loadAutomationBindings, saveAutomationBindings } from "./src/automation-bindings.mjs";
 import { loadAutomationSkillCatalog } from "./src/automation-skill-catalog.mjs";
 import { loadAutomationProfile, saveAutomationProfile } from "./src/automation-profile.mjs";
+import { resolveAutomationExecutionConfig } from "./src/automation-runtime.mjs";
 import { resolveCodexBindingStatus } from "./src/codex-runtime.mjs";
 import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
@@ -131,7 +132,8 @@ async function handleDocumentIndex(url, res) {
   if (!relativePath) throw new Error("Missing document path");
   const projectContext = await projectContextForUrl(url);
   const viewConfig = await loadViewConfig(projectContext);
-  sendJson(res, await buildDocumentIndex(projectContext, viewConfig.documentFiles, relativePath));
+  const forceRefresh = url.searchParams.get("refresh") === "1";
+  sendJson(res, await buildDocumentIndex(projectContext, viewConfig.documentFiles, relativePath, { forceRefresh }));
 }
 
 async function handleDocumentContent(url, res) {
@@ -141,7 +143,8 @@ async function handleDocumentContent(url, res) {
   if (!documentId) throw new Error("Missing document id");
   const projectContext = await projectContextForUrl(url);
   const viewConfig = await loadViewConfig(projectContext);
-  sendJson(res, await readResolvedDocument(projectContext, viewConfig.documentFiles, relativePath, documentId));
+  const forceRefresh = url.searchParams.get("refresh") === "1";
+  sendJson(res, await readResolvedDocument(projectContext, viewConfig.documentFiles, relativePath, documentId, { forceRefresh }));
 }
 
 async function handleSaveViewConfig(req, res) {
@@ -303,12 +306,18 @@ async function handleRunEntryAction(req, res) {
   const parsed = ext === ".csv" ? { data: parseCsv(text), format: "csv" } : parseJson(text);
   const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
   const { row, previousRow, nextRow, rowCount, sourceRowIndex: resolvedSourceRowIndex } = resolveEntryActionRow(model, collectionPath, sourceRowIndex, rowId);
+  const executionConfig = resolveAutomationExecutionConfig({
+    rule: action,
+    binding,
+    defaults: bindings.defaults,
+  });
   const runId = createEntryActionRunId();
   const handoff = buildEntryActionHandoff({
     runId,
     project,
     action,
     binding,
+    runtime: executionConfig.runtime,
     sourcePath,
     collectionPath,
     rowId,

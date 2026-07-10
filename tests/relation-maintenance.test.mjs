@@ -164,7 +164,7 @@ test("analyzePrimaryKeyChange reports impact without mutating documents", () => 
   assert.equal(source[0].skill_id, "slash");
 });
 
-test("buildPrimaryKeySyncPlan rewrites only top-level single relations", () => {
+test("buildPrimaryKeySyncPlan rewrites top-level single and multi relations while skipping nested paths", () => {
   const relations = {
     "data/enemies.json:$:skill_id": {
       targetFile: "data/skills.json",
@@ -219,11 +219,11 @@ test("buildPrimaryKeySyncPlan rewrites only top-level single relations", () => {
     documentsByPath,
   });
 
-  assert.equal(plan.rewrites.length, 1);
+  assert.equal(plan.rewrites.length, 2);
   assert.equal(plan.rewrites[0].relationKey, "data/enemies.json:$:skill_id");
-  assert.equal(plan.skipped.length, 2);
+  assert.equal(plan.rewrites[1].relationKey, "data/enemies.json:$:skills");
+  assert.equal(plan.skipped.length, 1);
   assert.deepEqual(plan.skipped.map((item) => [item.relationKey, item.reason]), [
-    ["data/enemies.json:$:skills", "unsupported-multi"],
     ["data/status_effects.json:$:effects.*.trigger_skill_id", "unsupported-nested-path"],
   ]);
 });

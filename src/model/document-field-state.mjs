@@ -77,12 +77,27 @@ export function shouldOpenDetailDocumentPanel({
   );
 }
 
-export function mergeDetailFieldOrder(row, displayTypes) {
-  const ordered = Object.keys(row ?? {}).filter((fieldName) => fieldName !== "__rowIndex");
-  for (const [fieldName, displayType] of Object.entries(displayTypes)) {
-    if (displayType !== "Document") continue;
-    if (ordered.includes(fieldName)) continue;
+export function mergeDetailFieldOrder(row, knownFields = [], displayTypes = {}) {
+  const ordered = [];
+  const seen = new Set();
+
+  for (const fieldName of Object.keys(row ?? {})) {
+    if (fieldName === "__rowIndex" || seen.has(fieldName)) continue;
+    seen.add(fieldName);
     ordered.push(fieldName);
   }
+
+  for (const fieldName of knownFields) {
+    if (!fieldName || fieldName === "__rowIndex" || seen.has(fieldName)) continue;
+    seen.add(fieldName);
+    ordered.push(fieldName);
+  }
+
+  for (const fieldName of Object.keys(displayTypes)) {
+    if (fieldName === "__rowIndex" || seen.has(fieldName)) continue;
+    seen.add(fieldName);
+    ordered.push(fieldName);
+  }
+
   return ordered;
 }
