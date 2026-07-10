@@ -10,7 +10,7 @@ import http from "node:http";
 import net from "node:net";
 import { EventEmitter } from "node:events";
 import { promisify } from "node:util";
-import { loadControllerState, loadServiceState, saveServiceState } from "../src/runtime-state.mjs";
+import { loadControllerState, loadRecoveryBridgeState, loadServiceState, saveServiceState } from "../src/runtime-state.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
 import { runtimeHome } from "../src/project-registry.mjs";
 import { openService } from "../open.mjs";
@@ -32,10 +32,15 @@ const serverScriptPath = path.join(repoRoot, "server.mjs");
 const serviceFinalizeScriptPath = path.join(repoRoot, "scripts", "service-finalize.mjs");
 const projectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(repoRoot, "..", "Nocturnel"));
 const execFileAsync = promisify(execFile);
+const activeOpenToolRoots = new Set();
 
 async function makeToolRoot(t) {
   const toolRoot = await mkdtemp(path.join(os.tmpdir(), "data-editor-stop-"));
   t.after(async () => {
+    if (activeOpenToolRoots.has(toolRoot)) {
+      const stopResult = await runStop(toolRoot);
+      assert.equal(stopResult.code, 0, stopResult.stderr || stopResult.stdout);
+    }
     await rm(toolRoot, { recursive: true, force: true });
   });
   return toolRoot;
@@ -65,12 +70,14 @@ function runStop(toolRoot) {
     });
     child.on("error", reject);
     child.on("exit", (code, signal) => {
+      if (code === 0) activeOpenToolRoots.delete(toolRoot);
       resolve({ code, signal, stdout, stderr });
     });
   });
 }
 
 function runOpen(toolRoot, extraArgs = []) {
+  activeOpenToolRoots.add(toolRoot);
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [openScriptPath, "--tool-root", toolRoot, ...runtimeArgs(toolRoot), ...extraArgs], {
       cwd: repoRoot,
@@ -438,6 +445,52 @@ async function waitForPidExit(pid, timeoutMs = 10000) {
     await delay(100);
   }
   assert.equal(await inspectProcess(pid), null);
+}
+
+async function runOpenInsideKillOnCloseJob(toolRoot, extraArgs = []) {
+  activeOpenToolRoots.add(toolRoot);
+  const openArgs = [openScriptPath, "--tool-root", toolRoot, ...runtimeArgs(toolRoot), ...extraArgs];
+  const quotePowerShellLiteral = (value) => `'${String(value).replaceAll("'", "''")}'`;
+  const nestedScript = [
+    "Start-Sleep -Milliseconds 500",
+    `& ${quotePowerShellLiteral(process.execPath)} ${openArgs.map(quotePowerShellLiteral).join(" ")}`,
+    "exit $LASTEXITCODE",
+  ].join("\n");
+  const nestedEncodedCommand = Buffer.from(nestedScript, "utf16le").toString("base64");
+  const hostScript = [
+    "Add-Type -TypeDefinition @'",
+    "using System;",
+    "using System.Runtime.InteropServices;",
+    "public static class DataEditorKillOnCloseJob {",
+    "  [StructLayout(LayoutKind.Sequential)] public struct IoCounters { public ulong ReadOperationCount, WriteOperationCount, OtherOperationCount, ReadTransferCount, WriteTransferCount, OtherTransferCount; }",
+    "  [StructLayout(LayoutKind.Sequential)] public struct BasicLimits { public long PerProcessUserTimeLimit, PerJobUserTimeLimit; public uint LimitFlags; public UIntPtr MinimumWorkingSetSize, MaximumWorkingSetSize; public uint ActiveProcessLimit; public UIntPtr Affinity; public uint PriorityClass, SchedulingClass; }",
+    "  [StructLayout(LayoutKind.Sequential)] public struct ExtendedLimits { public BasicLimits BasicLimitInformation; public IoCounters IoInfo; public UIntPtr ProcessMemoryLimit, JobMemoryLimit, PeakProcessMemoryUsed, PeakJobMemoryUsed; }",
+    "  [DllImport(\"kernel32.dll\", CharSet = CharSet.Unicode, SetLastError = true)] public static extern IntPtr CreateJobObject(IntPtr attributes, string name);",
+    "  [DllImport(\"kernel32.dll\", SetLastError = true)] public static extern bool SetInformationJobObject(IntPtr job, int infoClass, ref ExtendedLimits info, uint length);",
+    "  [DllImport(\"kernel32.dll\", SetLastError = true)] public static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);",
+    "  [DllImport(\"kernel32.dll\")] public static extern bool CloseHandle(IntPtr handle);",
+    "}",
+    "'@",
+    "$job = [DataEditorKillOnCloseJob]::CreateJobObject([IntPtr]::Zero, $null)",
+    "if ($job -eq [IntPtr]::Zero) { throw \"CreateJobObject failed: $([Runtime.InteropServices.Marshal]::GetLastWin32Error())\" }",
+    "$limits = New-Object DataEditorKillOnCloseJob+ExtendedLimits",
+    "$limits.BasicLimitInformation.LimitFlags = 0x00002000",
+    "$length = [Runtime.InteropServices.Marshal]::SizeOf([type][DataEditorKillOnCloseJob+ExtendedLimits])",
+    "if (-not [DataEditorKillOnCloseJob]::SetInformationJobObject($job, 9, [ref]$limits, $length)) { throw \"SetInformationJobObject failed: $([Runtime.InteropServices.Marshal]::GetLastWin32Error())\" }",
+    `$child = Start-Process powershell.exe -ArgumentList @('-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand','${nestedEncodedCommand}') -WindowStyle Hidden -PassThru`,
+    "if (-not [DataEditorKillOnCloseJob]::AssignProcessToJobObject($job, $child.Handle)) { $child.Kill(); throw \"AssignProcessToJobObject failed: $([Runtime.InteropServices.Marshal]::GetLastWin32Error())\" }",
+    "$child.WaitForExit()",
+    "$exitCode = $child.ExitCode",
+    "[DataEditorKillOnCloseJob]::CloseHandle($job) | Out-Null",
+    "[pscustomobject]@{ exitCode = $exitCode } | ConvertTo-Json -Compress",
+  ].join("\n");
+  const encodedHostCommand = Buffer.from(hostScript, "utf16le").toString("base64");
+  const { stdout } = await execFileAsync(
+    "powershell.exe",
+    ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedHostCommand],
+    { cwd: repoRoot, maxBuffer: 1024 * 1024, windowsHide: true },
+  );
+  return JSON.parse(stdout.trim());
 }
 
 async function waitForFileText(targetPath, timeoutMs = 10000) {
@@ -1383,6 +1436,32 @@ test("server registers project and lists files by projectId", async (t) => {
 
   const files = await waitForJsonOk(port, `/api/files?projectId=${encodeURIComponent(projects.activeProjectId)}`);
   assert.deepEqual(files.map((file) => file.path), ["data/api.json"]);
+});
+
+test("Windows recovery bridge survives closing the caller kill-on-close job", { skip: process.platform !== "win32" }, async (t) => {
+  const toolRoot = await makeToolRoot(t);
+  const runtimeTarget = runtimeTargetFor(toolRoot);
+  const port = await findAvailablePort();
+  const bridgePort = await findAvailablePortExcluding([port, port + 1]);
+  const result = await runOpenInsideKillOnCloseJob(toolRoot, [
+    "--root",
+    projectRoot,
+    "--port",
+    String(port),
+    "--bridge-port",
+    String(bridgePort),
+  ]);
+  assert.equal(result.exitCode, 0);
+
+  const bridgeState = await loadRecoveryBridgeState(runtimeTarget);
+  assert.ok(bridgeState?.pid, "expected the recovery bridge pid to be recorded");
+  await waitForHttpOk(port);
+  await waitForJsonOk(bridgePort, "/health");
+
+  const stopResult = await runStop(toolRoot);
+  assert.equal(stopResult.code, 0, stopResult.stderr || stopResult.stdout);
+  await waitForHttpDown(port);
+  await waitForHttpDown(bridgePort);
 });
 
 test("server saves and loads automation profile and machine-local bindings", async (t) => {

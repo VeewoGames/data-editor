@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -10,6 +9,7 @@ import {
 } from "./src/runtime-state.mjs";
 import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import { runtimeHome } from "./src/project-registry.mjs";
+import { spawnPersistentProcess } from "./src/persistent-process.mjs";
 import { inspectProcess, matchesRecoveryBridgeIdentity } from "./stop.mjs";
 
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -40,7 +40,7 @@ export async function openService(options, deps = {}) {
 
 export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
   const {
-    spawnImpl = spawn,
+    spawnPersistentProcessImpl = spawnPersistentProcess,
     isPortRespondingImpl = isPortResponding,
     waitForBridgeReadyImpl = waitForBridgeReady,
     loadRecoveryBridgeStateImpl = loadRecoveryBridgeState,
@@ -83,10 +83,10 @@ export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
     throw new Error(`Recovery bridge port ${requested.bridgePort} is already in use by another service.`);
   }
 
-  const child = spawnImpl(
+  await spawnPersistentProcessImpl(
     process.execPath,
     [
-      "recovery-bridge.mjs",
+      path.join(scriptRoot, "recovery-bridge.mjs"),
       "--tool-root",
       requested.toolRoot,
       "--project",
@@ -108,13 +108,10 @@ export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
     ],
     {
       cwd: scriptRoot,
-      detached: true,
-      shell: false,
-      stdio: "ignore",
-      windowsHide: true,
+      env: process.env,
     },
+    deps,
   );
-  child.unref();
   await waitForBridgeReadyImpl(requested.bridgePort);
   return { message: `Recovery bridge is running at http://127.0.0.1:${requested.bridgePort}/` };
 }
