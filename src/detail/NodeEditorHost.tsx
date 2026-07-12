@@ -213,9 +213,6 @@ function ObjectNodeEditor(props: {
                 }}
               >
                 <span className="searchable-picker-option__title">{option}</span>
-                {option === props.currentDiscriminator ? (
-                  <span className="node-discriminator-option__check"><icons.check size={14} /></span>
-                ) : null}
               </button>
             ))}
           </SearchablePicker>

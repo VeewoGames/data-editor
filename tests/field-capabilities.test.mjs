@@ -32,20 +32,23 @@ test("title or primary key text field can no longer configure relation", () => {
   assert.equal(primaryKeyCapabilities.canConfigureRelation, false);
 });
 
-test("select and document fields cannot become title, primary key, or relation", () => {
+test("select fields can configure relation but cannot become title or primary key", () => {
   const selectCapabilities = computeFieldMenuCapabilities({
     baseDisplayType: "Select",
-    roleKind: "normal",
-  });
-  const documentCapabilities = computeFieldMenuCapabilities({
-    baseDisplayType: "Document",
     roleKind: "normal",
   });
 
   assert.equal(selectCapabilities.canBeTitle, false);
   assert.equal(selectCapabilities.canBePrimaryKey, false);
-  assert.equal(selectCapabilities.canConfigureRelation, false);
+  assert.equal(selectCapabilities.canConfigureRelation, true);
   assert.equal(selectCapabilities.canConfigureDocument, false);
+});
+
+test("document fields cannot become title, primary key, or relation", () => {
+  const documentCapabilities = computeFieldMenuCapabilities({
+    baseDisplayType: "Document",
+    roleKind: "normal",
+  });
 
   assert.equal(documentCapabilities.canBeTitle, false);
   assert.equal(documentCapabilities.canBePrimaryKey, false);

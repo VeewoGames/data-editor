@@ -1,4 +1,4 @@
-# relation 多值语义与主键改名同步实现收尾
+# relation 字段资格、多值语义与主键改名同步实现收尾
 
 status: accepted
 
@@ -11,7 +11,7 @@ status: accepted
 - `Multi-select` 只是运行时显示类型，不是 `view-config` 中可持久化的正式字段类型
 - nested path relation rewrite 不在本轮范围内
 
-本轮需要固定的是实现完成后的正式支持面：多值外键字段的运行时真值、顶层 multi relation 的主键改名同步链，以及 relation 激活后的历史配置边界。
+本轮需要固定的是实现完成后的正式支持面：`Text`、`Select` 与运行时 `Multi-select` 的 relation 配置资格，多值外键字段的运行时真值、顶层 multi relation 的主键改名同步链，以及 relation 激活后的历史配置边界。
 
 ## decision
 
@@ -21,11 +21,19 @@ status: accepted
 
 relation 激活后，主表、详情、筛选和校验链路统一按 `Relation` 角色处理；业务 JSON 继续只保存目标主键值数组。
 
-### 2. relation 配置资格正式放宽到 `Text` 与运行时 `Multi-select`
+### 2. relation 配置资格统一为 `Text`、`Select` 与运行时 `Multi-select`
 
-relation 配置资格不再只限于 `Text` 字段，也允许当前值形状被推断为 `Multi-select` 的顶层数组字段进入 relation 配置入口。
+顶层普通字段的 relation 配置资格统一接受：
 
-但标题字段和主键字段的正式约束不变，它们仍然必须保持 `Text` 语义，不能借此扩散。
+- `Text`
+- `Select`
+- 当前值形状被推断为 `Multi-select` 的顶层数组字段
+
+`Select` 只扩展既有 relation 配置入口，不新增 relation 类型。配置完成后仍通过既有 `relationConfigured -> effectiveDisplayType: Relation` 链路切换为 `Relation` 角色，并继续使用现有 `RelationConfig`、目标解析、lookup、渲染与保存语义。
+
+菜单能力层 `src/table/field-capabilities.mjs` 与 App 命令层 `src/App.tsx::canConfigureRelationForField(...)` 必须保持同一资格集合；前者负责入口可见性，后者负责打开和确认配置时的真实放行，后续不得只修改其中一层。
+
+标题、主键、nested、backlink 与已启用 `documentField` 的字段仍不可配置 relation。标题字段和主键字段继续保持 `Text` 语义，不能因 relation 资格扩展而放宽。
 
 ### 3. 顶层 multi relation 正式进入主键改名同步链
 
@@ -63,9 +71,16 @@ relation 配置资格不再只限于 `Text` 字段，也允许当前值形状被
 
 nested path relation rewrite 继续保持未支持，并应继续以 `unsupported-nested-path` 的显式结果暴露，而不是静默跳过后假装同步成功。
 
+## alternatives considered
+
+- 为 `Select` 新增独立 relation 类型：不采用。`Select` 与现有字段在配置后共享同一 `Relation` 角色和运行时语义，新增类型只会制造重复的数据模型与分支。
+- 只放宽菜单入口或只放宽 App 命令校验：不采用。两层资格不一致会造成“入口可见但无法执行”或“命令可执行但入口缺失”的双标行为。
+
 ## consequences
 
 - 多值外键字段和普通多选 option 字段的语义边界被正式拆开，relation 成为唯一业务真值源。
+- `Select` 可以直接配置 relation，但配置后不再以普通单选 option 角色运行，而是统一进入既有 `Relation` 角色。
+- relation 字段资格新增或收缩时，菜单能力层与 App 命令层必须同步变更并共同回归。
 - 顶层 multi relation 的主键改名同步从“命中但跳过”升级为“命中、可见、可保存”。
 - 历史 `multiSelectOptions` 仍可作为撤销 relation 后的显示配置，但不会污染 relation 运行时语义。
 - nested path rewrite 仍然是明确缺口，后续若要支持，必须作为单独决策处理。
@@ -90,7 +105,12 @@ nested path relation rewrite 继续保持未支持，并应继续以 `unsupporte
 
 - `relation mode = multi`
 - `Multi-select`
+- `Select`
 - `multiSelectOptions`
+- `canConfigureRelation`
+- `canConfigureRelationForField`
+- `relationConfigured`
+- `effectiveDisplayType`
 - `buildPrimaryKeySyncPlan`
 - `buildMaintenanceLookupState`
 - `buildPrimaryKeySyncSaveSnapshot`

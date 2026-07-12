@@ -3296,7 +3296,7 @@ export function App() {
   function handleConfigureRelation(fieldName: string) {
     if (!selectedPath) return;
     if (!canConfigureRelationForField(fieldName)) {
-      setStatus(`只有非标题、非主键的 Text 字段可以设为关联字段`);
+      setStatus(`只有非标题、非主键且未启用关联文档的 Text、Select 或 Multi-select 字段可以设为关联字段`);
       return;
     }
     setRelationConfigField(fieldName);
@@ -3399,7 +3399,7 @@ export function App() {
   function confirmRelationConfig(config: RelationConfig) {
     if (!selectedPath || !relationConfigField) return;
     if (!canConfigureRelationForField(relationConfigField)) {
-      setStatus(`只有非标题、非主键的 Text 字段可以设为关联字段`);
+      setStatus(`只有非标题、非主键且未启用关联文档的 Text、Select 或 Multi-select 字段可以设为关联字段`);
       setRelationConfigField(null);
       return;
     }
@@ -3495,7 +3495,7 @@ export function App() {
     const collectionKey = buildCollectionKey(selectedPath, collectionPath);
     const documentKey = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
     const baseType = getCurrentBaseFieldType(fieldName);
-    return (baseType === "Text" || baseType === "Multi-select")
+    return (baseType === "Text" || baseType === "Select" || baseType === "Multi-select")
       && viewConfig.titleFields[collectionKey] !== fieldName
       && viewConfig.primaryKeys[collectionKey] !== fieldName
       && !viewConfig.documentFields[documentKey]?.enabled;
@@ -6674,16 +6674,25 @@ function AutomationSettingsDialog(props: {
                               <label className="dialog-field">
                                 <span>技能</span>
                                 <div className="automation-skill-field-row">
-                                  <Popover.Root
+                                  <SearchablePicker
                                     open={skillPickerOpenRuleId === selectedRule.id}
                                     onOpenChange={(open) => {
                                       setSkillPickerOpenRuleId(open ? selectedRule.id : null);
-                                      setSkillPickerQuery("");
                                     }}
-                                  >
-                                    <Popover.Trigger asChild>
+                                    query={skillPickerQuery}
+                                    onQueryChange={setSkillPickerQuery}
+                                    searchAriaLabel="筛选技能"
+                                    searchPlaceholder="筛选技能..."
+                                    listAriaLabel="技能候选列表"
+                                    contentClassName="automation-skill-picker-content"
+                                    shellClassName="automation-skill-picker-shell"
+                                    listClassName="automation-skill-picker-list"
+                                    emptyContent={<div className="automation-skill-picker-empty">没有匹配的技能。</div>}
+                                    trigger={(
                                       <button
                                         type="button"
+                                        role="combobox"
+                                        aria-expanded={skillPickerOpenRuleId === selectedRule.id}
                                         className={`select-trigger automation-skill-select-trigger automation-skill-select-trigger--${resolveAutomationSkillTone(skillUiState.kind)}`}
                                         aria-label="技能"
                                       >
@@ -6694,29 +6703,10 @@ function AutomationSettingsDialog(props: {
                                         </span>
                                         <icons.chevronDown size={16} />
                                       </button>
-                                    </Popover.Trigger>
-                                    <Popover.Portal>
-                                      <Popover.Content
-                                        className="menu-content automation-skill-picker-content"
-                                        sideOffset={6}
-                                        align="start"
-                                      >
-                                        <div className="automation-skill-picker-shell">
-                                          <input
-                                            aria-label="筛选技能"
-                                            className="automation-skill-picker-search"
-                                            onChange={(event) => setSkillPickerQuery(event.target.value)}
-                                            placeholder="筛选技能..."
-                                            value={skillPickerQuery}
-                                          />
-                                          <div
-                                            className="automation-skill-picker-list"
-                                            role="listbox"
-                                            aria-label="技能候选列表"
-                                            onWheelCapture={(event) => event.stopPropagation()}
-                                          >
+                                    )}
+                                  >
                                             <button
-                                              className="automation-skill-picker-option"
+                                              className="searchable-picker-option automation-skill-picker-option"
                                               type="button"
                                               onClick={() => {
                                                 updateBinding(selectedRule.id, { ...binding, skill: "" });
@@ -6731,7 +6721,7 @@ function AutomationSettingsDialog(props: {
                                               .filter((item) => matchesAutomationSkillQuery(item, skillPickerQuery))
                                               .map((item) => (
                                                 <button
-                                                  className={`automation-skill-picker-option ${item.id === skillSelectValue ? "is-selected" : ""}`}
+                                                  className={`searchable-picker-option automation-skill-picker-option ${item.id === skillSelectValue ? "is-selected" : ""}`}
                                                   key={item.id}
                                                   type="button"
                                                   onClick={() => {
@@ -6744,14 +6734,7 @@ function AutomationSettingsDialog(props: {
                                                   <span className="automation-skill-picker-option__meta">{describeAutomationSkillCatalogSource(item)}</span>
                                                 </button>
                                               ))}
-                                            {!skillCatalog.skills.some((item) => matchesAutomationSkillQuery(item, skillPickerQuery)) ? (
-                                              <div className="automation-skill-picker-empty">没有匹配的技能。</div>
-                                            ) : null}
-                                          </div>
-                                        </div>
-                                      </Popover.Content>
-                                    </Popover.Portal>
-                                  </Popover.Root>
+                                  </SearchablePicker>
                                   <button
                                     aria-label="刷新技能列表"
                                     className="ghost-button automation-skill-refresh-icon"
@@ -6842,16 +6825,25 @@ function AutomationSettingsDialog(props: {
                                       </label>
                                       <label className="dialog-field">
                                         <span>目标集合 {targetIndex + 1}</span>
-                                        <Popover.Root
+                                        <SearchablePicker
                                           open={targetPickerOpenId === collectionPickerId}
                                           onOpenChange={(open) => {
                                             setTargetPickerOpenId(open ? collectionPickerId : null);
-                                            setTargetPickerQuery("");
                                           }}
-                                        >
-                                          <Popover.Trigger asChild>
+                                          query={targetPickerQuery}
+                                          onQueryChange={setTargetPickerQuery}
+                                          searchAriaLabel="筛选目标集合"
+                                          searchPlaceholder="筛选集合..."
+                                          listAriaLabel="目标集合候选列表"
+                                          contentClassName="automation-target-picker-content"
+                                          shellClassName="automation-skill-picker-shell"
+                                          listClassName="automation-target-picker-list"
+                                          emptyContent={<div className="automation-skill-picker-empty">没有匹配的集合。</div>}
+                                          trigger={(
                                             <button
                                               type="button"
+                                              role="combobox"
+                                              aria-expanded={targetPickerOpenId === collectionPickerId}
                                               className="select-trigger automation-target-picker-trigger"
                                               aria-label={`目标集合 ${targetIndex + 1}`}
                                               disabled={!target.file}
@@ -6861,30 +6853,11 @@ function AutomationSettingsDialog(props: {
                                               </span>
                                               <icons.chevronDown size={16} />
                                             </button>
-                                          </Popover.Trigger>
-                                          <Popover.Portal>
-                                            <Popover.Content
-                                              className="menu-content automation-skill-picker-content automation-target-picker-content"
-                                              sideOffset={6}
-                                              align="start"
-                                            >
-                                              <div className="automation-skill-picker-shell">
-                                                <input
-                                                  aria-label="筛选目标集合"
-                                                  className="automation-skill-picker-search"
-                                                  onChange={(event) => setTargetPickerQuery(event.target.value)}
-                                                  placeholder="筛选集合..."
-                                                  value={targetPickerQuery}
-                                                />
-                                                <div
-                                                  className="automation-skill-picker-list automation-target-picker-list"
-                                                  role="listbox"
-                                                  aria-label="目标集合候选列表"
-                                                  onWheelCapture={(event) => event.stopPropagation()}
-                                                >
+                                          )}
+                                        >
                                                   {visibleCollectionOptions.length ? visibleCollectionOptions.map((collection) => (
                                                     <button
-                                                      className={`automation-skill-picker-option automation-target-picker-option ${collection === target.collection ? "is-selected" : ""}`}
+                                                      className={`searchable-picker-option automation-skill-picker-option automation-target-picker-option ${collection === target.collection ? "is-selected" : ""}`}
                                                       key={collection}
                                                       type="button"
                                                       onClick={() => {
@@ -6895,14 +6868,8 @@ function AutomationSettingsDialog(props: {
                                                     >
                                                       <span className="automation-skill-picker-option__title">{describeCollectionPath(collection)}</span>
                                                     </button>
-                                                  )) : (
-                                                    <div className="automation-skill-picker-empty">没有匹配的集合。</div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </Popover.Content>
-                                          </Popover.Portal>
-                                        </Popover.Root>
+                                                  )) : null}
+                                        </SearchablePicker>
                                       </label>
                                       <div className="automation-target-remove-slot">
                                         <span className="automation-target-remove-slot__spacer" aria-hidden="true">操作</span>

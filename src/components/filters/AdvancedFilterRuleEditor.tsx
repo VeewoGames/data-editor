@@ -11,6 +11,8 @@ import { icons } from "../icons";
 import { AdvancedFilterNodeMenu } from "./AdvancedFilterNodeMenu";
 import { AdvancedFilterSelect } from "./AdvancedFilterSelect";
 import type { CreateFilterOptionInput } from "./MultiSelectFilterPopover";
+import { isListboxNavigationKey, resolveListboxNavigationIndex } from "../listbox-keyboard-navigation.mjs";
+import { useListboxPointerNavigation } from "../useListboxPointerNavigation";
 import {
   checkboxOperatorOptions,
   discreteOperatorOptions,
@@ -48,7 +50,13 @@ export function AdvancedFilterRuleEditor({
 }: AdvancedFilterRuleEditorProps) {
   const [search, setSearch] = useState("");
   const [localOptionsOverride, setLocalOptionsOverride] = useState<MultiSelectOptionView[] | null>(null);
+  const [activeOptionIndex, setActiveOptionIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const optionRefs = useRef<Array<HTMLLabelElement | null>>([]);
+  const handleOptionPointerMove = useListboxPointerNavigation({
+    itemSelector: "[data-picker-option-row]",
+    setActiveIndex: setActiveOptionIndex,
+  });
   const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
   const operatorOptions = operatorsForFieldType(fieldType);
   const fieldOptions = fields.map((field) => ({
@@ -78,6 +86,15 @@ export function AdvancedFilterRuleEditor({
     () => resolveDefaultCandidate({ filteredOptions, selectedValues, mode: "multi" }),
     [filteredOptions, selectedValues],
   );
+
+  useEffect(() => {
+    const preferredIndex = filteredOptions.findIndex((option) => option.value === defaultCandidate?.value);
+    setActiveOptionIndex(preferredIndex >= 0 ? preferredIndex : (filteredOptions.length ? 0 : -1));
+  }, [defaultCandidate?.value, filteredOptions.length, search]);
+
+  useEffect(() => {
+    optionRefs.current[activeOptionIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionIndex]);
 
   useEffect(() => {
     setLocalOptionsOverride(null);
@@ -244,20 +261,34 @@ export function AdvancedFilterRuleEditor({
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                       onKeyDown={(event) => {
+                        if (isListboxNavigationKey(event.key)) {
+                          event.preventDefault();
+                          setActiveOptionIndex(resolveListboxNavigationIndex({ currentIndex: activeOptionIndex, itemCount: filteredOptions.length, key: event.key }));
+                          return;
+                        }
                         if (event.key !== "Enter") return;
                         event.preventDefault();
+                        const activeOption = filteredOptions[activeOptionIndex];
+                        if (activeOption) {
+                          if (selectedValues.includes(activeOption.value)) toggleValue(activeOption.value);
+                          else confirmValue(activeOption.value);
+                          return;
+                        }
                         void handleEnter();
                       }}
                       placeholder="搜索选项"
                       ref={inputRef}
+                      role="combobox"
+                      aria-controls={`advanced-filter-options-${rule.id}`}
+                      aria-expanded="true"
+                      aria-activedescendant={activeOptionIndex >= 0 ? `advanced-filter-option-${rule.id}-${activeOptionIndex}` : undefined}
                     />
                   </div>
-                  <div className="filter-option-list advanced-filter-option-list">
-                    {filteredOptions.length ? filteredOptions.map((option) => {
+                  <div className="filter-option-list advanced-filter-option-list" id={`advanced-filter-options-${rule.id}`} role="listbox" aria-multiselectable="true" onPointerMove={handleOptionPointerMove}>
+                    {filteredOptions.length ? filteredOptions.map((option, index) => {
                       const selected = selectedValues.includes(option.value);
-                      const defaultSelected = defaultCandidate?.value === option.value;
                       return (
-                        <label className={`filter-option-row${selected ? " selected" : ""}${defaultSelected ? " default-candidate" : ""}`} data-filter-option-value={option.value} key={option.value}>
+                        <label className={`filter-option-row${selected ? " is-selected" : ""}${activeOptionIndex === index ? " is-active-target" : ""}`} data-filter-option-value={option.value} data-picker-option-row key={option.value} id={`advanced-filter-option-${rule.id}-${index}`} role="option" aria-selected={selected} ref={(node) => { optionRefs.current[index] = node; }}>
                           <input
                             className="filter-option-checkbox"
                             type="checkbox"

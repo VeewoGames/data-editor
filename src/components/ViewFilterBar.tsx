@@ -5,6 +5,7 @@ import type { FieldDisplayType } from "../model/fieldTypes";
 import type { FieldViewConfig, MultiSelectOptionView } from "../model/viewConfig";
 import { mergeTopLevelRuleIntoAdvancedRoot } from "../view/filter-tree.mjs";
 import { FieldTypeIcon } from "./FieldTypeIcon";
+import { isListboxNavigationKey, resolveListboxNavigationIndex } from "./listbox-keyboard-navigation.mjs";
 import { icons } from "./icons";
 import { AdvancedFilterPanel } from "./filters/AdvancedFilterPanel";
 import { BooleanFilterPopover } from "./filters/BooleanFilterPopover";
@@ -13,6 +14,7 @@ import { MultiSelectFilterPopover, type CreateFilterOptionInput } from "./filter
 import { TextFilterPopover } from "./filters/TextFilterPopover";
 import { SortPopover } from "./sort/SortPopover";
 import { createDefaultFilterRule } from "../view/filter-rules.mjs";
+import { useListboxPointerNavigation } from "./useListboxPointerNavigation";
 
 export type ViewFilterBarProps = {
   snapshot: ViewFilterBarSnapshot;
@@ -61,10 +63,15 @@ export function ViewFilterBar({
     autoOpenRuleId,
   } = snapshot;
   const [addFilterOpen, setAddFilterOpen] = useState(false);
+  const [addFilterActiveIndex, setAddFilterActiveIndex] = useState(-1);
   const [openRuleId, setOpenRuleId] = useState<string | null>(null);
   const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const handledAutoOpenRuleIdRef = useRef<string | null>(null);
   const recentValueCacheRef = useRef(new Map<string, string[]>());
+  const handleAddFilterPointerMove = useListboxPointerNavigation({
+    itemSelector: '[role="menuitem"]:not(:disabled)',
+    setActiveIndex: setAddFilterActiveIndex,
+  });
 
   if (!view) return null;
 
@@ -131,7 +138,13 @@ export function ViewFilterBar({
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
-      <Popover.Root open={addFilterOpen} onOpenChange={setAddFilterOpen}>
+      <Popover.Root
+        open={addFilterOpen}
+        onOpenChange={(open) => {
+          setAddFilterOpen(open);
+          setAddFilterActiveIndex(open && availableFilterFields.length ? 0 : -1);
+        }}
+      >
         <Popover.Trigger asChild>
           <button className="ghost-button compact" disabled={!availableFilterFields.length} type="button">
             <icons.filter size={15} />
@@ -140,9 +153,24 @@ export function ViewFilterBar({
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content className="menu-content add-filter-popover-content" sideOffset={6} align="start">
-            <div className="add-filter-popover" role="menu" aria-label="选择筛选字段">
-              {availableFilterFields.map((field) => (
-                <button className="add-filter-field-option" key={field} onClick={() => addFilter(field)} type="button" role="menuitem">
+            <div
+              className="add-filter-popover"
+              role="menu"
+              aria-label="选择筛选字段"
+              onPointerMove={handleAddFilterPointerMove}
+              onKeyDown={(event) => {
+                if (!isListboxNavigationKey(event.key)) return;
+                const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'));
+                const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+                const nextIndex = resolveListboxNavigationIndex({ currentIndex, itemCount: items.length, key: event.key });
+                if (nextIndex < 0) return;
+                event.preventDefault();
+                setAddFilterActiveIndex(nextIndex);
+                items[nextIndex].focus();
+              }}
+            >
+              {availableFilterFields.map((field, index) => (
+                <button className={`add-filter-field-option${addFilterActiveIndex === index ? " is-active-target" : ""}`} key={field} onClick={() => addFilter(field)} type="button" role="menuitem">
                   <span className="add-filter-field-icon" data-field-icon={resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes)}>
                     <FieldTypeIcon fieldType={resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes)} size={14} strokeWidth={2.2} />
                   </span>

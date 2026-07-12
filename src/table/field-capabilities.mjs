@@ -37,7 +37,9 @@ export function computeFieldMenuCapabilities({
   const isRelationRole = roleKind === "relation" || relationConfigured;
   const lockedByStructure = isNested || isBacklink || roleKind === "backlink";
   const isText = baseDisplayType === "Text";
-  const isRelationEligibleBaseType = baseDisplayType === "Text" || baseDisplayType === "Multi-select";
+  const isRelationEligibleBaseType = baseDisplayType === "Text"
+    || baseDisplayType === "Select"
+    || baseDisplayType === "Multi-select";
   const canChangeType = !lockedByStructure && !isRelationRole && changeableFieldTypes.includes(baseDisplayType);
 
   return {

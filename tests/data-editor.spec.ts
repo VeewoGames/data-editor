@@ -102,8 +102,10 @@ async function chooseDialogSelect(page: Page, label: string, option: string) {
 async function chooseRelationTargetFile(page: Page, optionLabel: string, query: string) {
   const field = page.locator(".relation-config-dialog .dialog-field").filter({ hasText: "目标文件" });
   await field.getByRole("combobox").first().click();
-  await page.getByRole("textbox", { name: "筛选目标文件" }).fill(query);
-  await page.getByRole("button", { name: optionLabel }).first().click();
+  const search = page.getByRole("combobox", { name: "筛选目标文件" });
+  await search.fill(query);
+  await expect(page.getByRole("option", { name: optionLabel }).first()).toHaveClass(/is-active-target/);
+  await search.press("Enter");
 }
 
 function columnHeaderCell(page: Page, fieldName: string) {
@@ -1340,6 +1342,26 @@ test("column header menu shows relation action but not title or primary key for 
   await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-title"]')).toHaveCount(0);
   await expect(page.locator('.column-menu-popup .menu-item[data-column-action="set-primary-key"]')).toHaveCount(0);
   await expect(page.locator('.column-menu-popup [data-relation-action="create"]')).toBeVisible();
+});
+
+test("select field can configure relation directly", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
+
+  await configureRelation(page, "category", {
+    targetFile: "data/e2e_select.json",
+    targetCollection: "$",
+    targetKey: "category",
+    mode: "single",
+  });
+
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"targetKey": "category"'));
+  await expect(tableCell(page, 0, "category").locator(".relation-trigger")).toBeVisible();
 });
 
 test("relation-configured fields hide type change, title, and primary key actions", async ({ page }) => {
@@ -3230,6 +3252,9 @@ test("multi-select filter popover supports operator text, selected chips, search
   await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
 
   const filterPopover = page.locator(".filter-popover-content");
+  if (!(await filterPopover.isVisible().catch(() => false))) {
+    await page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" }).click();
+  }
   await expect(filterPopover).toBeVisible();
   await expect(tableRows(page)).toHaveCount(2);
   await expect(filterPopover.locator(".filter-option-search-input")).toBeVisible();
@@ -3241,7 +3266,7 @@ test("multi-select filter popover supports operator text, selected chips, search
   await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("padding-top", "0px");
   await expect(filterPopover.locator(".filter-selected-chip-list")).toHaveCSS("padding-bottom", "0px");
   await expect(filterPopover.locator(".filter-option-list")).toHaveCSS("row-gap", "0px");
-  await expect(filterPopover.locator(".filter-option-row").first()).toHaveClass(/default-candidate/);
+  await expect(filterPopover.locator(".filter-option-row").first()).toHaveClass(/is-active-target/);
   expect(await filterPopover.locator(".filter-option-row input[type='checkbox']").count()).toBeGreaterThan(0);
 
   await filterPopover.locator(".filter-option-search-input").fill("spe");
@@ -4373,7 +4398,49 @@ test("option field enter selects default candidate and clears search", async ({ 
   await expect(searchInput).toBeFocused();
 });
 
-test("relation enter selects default candidate but does not create", async ({ page }) => {
+test("option field arrow keys move the active option and enter confirms it", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+  const trigger = tableRow(page, 1).locator('td[data-column-field="features"] .multi-select-trigger').first();
+  await trigger.click();
+
+  const searchInput = page.locator(".option-field-popover-shell .multi-select-input");
+  const optionRows = page.locator(".option-field-popover-shell .multi-select-option-row");
+  await expect(optionRows.first()).toHaveClass(/is-active-target/);
+  await searchInput.press("ArrowDown");
+  await expect(optionRows.nth(1)).toHaveClass(/is-active-target/);
+  await optionRows.first().dispatchEvent("pointermove", { pointerType: "touch", clientX: 12, clientY: 12 });
+  await expect(optionRows.nth(1)).toHaveClass(/is-active-target/);
+  await optionRows.first().dispatchEvent("pointermove", { pointerType: "mouse", clientX: 16, clientY: 16, movementX: 0, movementY: 0 });
+  await expect(optionRows.first()).toHaveClass(/is-active-target/);
+  await optionRows.first().hover();
+  await expect(optionRows.first()).toHaveClass(/is-active-target/);
+  await expect(page.locator(".option-field-popover-shell .is-active-target")).toHaveCount(1);
+  const activeOption = optionRows.first().locator("[role='option']");
+  await expect(searchInput).toHaveAttribute("aria-activedescendant", await activeOption.getAttribute("id") ?? "");
+  const chosenLabel = (await activeOption.innerText()).trim();
+  const wasSelected = await activeOption.getAttribute("aria-selected") === "true";
+  await searchInput.press("Enter");
+  const selectedChip = page.locator(".option-field-popover-shell .selected-chip").filter({ hasText: chosenLabel });
+  if (wasSelected) await expect(selectedChip).toHaveCount(0);
+  else {
+    await expect(selectedChip).toBeVisible();
+    const selectedRow = optionRows.filter({ hasText: chosenLabel }).first();
+    await selectedRow.hover();
+    await expect(selectedRow).toHaveClass(/is-selected/);
+    await expect(selectedRow).toHaveClass(/is-active-target/);
+    await expect(selectedRow.locator(".picker-option-selected-check")).toBeVisible();
+    await expect(selectedRow).toHaveCSS("background-color", "rgb(238, 242, 247)");
+    await expect(selectedRow).toHaveCSS("border-color", "rgb(200, 212, 227)");
+    await expect(selectedRow).toHaveCSS("box-shadow", "none");
+  }
+  await expect(page.locator(".option-field-popover-shell .default-candidate, .option-field-popover-shell .is-keyboard-active")).toHaveCount(0);
+});
+
+test("single relation enter selects the active candidate and closes the popover", async ({ page }) => {
   const originalConfig = await readScratchViewConfigText();
   try {
     await writeScratchViewConfig({
@@ -4416,14 +4483,40 @@ test("relation enter selects default candidate but does not create", async ({ pa
     await searchInput.fill("slash");
     await searchInput.press("Enter");
 
-    await expect(page.locator(".relation-popover .selected-chip").filter({ hasText: "斩击" })).toBeVisible();
-    await expect(searchInput).toHaveValue("");
-    await expect(searchInput).toBeFocused();
+    await expect(page.locator(".relation-popover")).toHaveCount(0);
+    await expect(relationCell).toContainText("斩击");
+    await expect(relationCell).toBeFocused();
   } finally {
     if (originalConfig) {
       await writeFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), originalConfig, "utf8");
     }
   }
+});
+
+test("select filter arrow keys move the active option and enter toggles it", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await columnHeaderTrigger(page, "category").click();
+  await page.locator('.column-menu-popup [data-field-type="Select"]').click();
+  await waitForProjectConfigWrite(page, (text) => text.includes('"data/e2e_select.json:$:category"') && text.includes('"type": "Select"'));
+
+  await page.getByRole("button", { name: "+ 筛选" }).click();
+  await page.locator(".add-filter-field-option").filter({ hasText: "category" }).click();
+  const popover = page.locator(".filter-popover-content");
+  await expect(popover).toHaveCount(0);
+  await page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" }).click();
+  const searchInput = popover.locator(".filter-option-search-input");
+  const rows = popover.locator(".filter-option-row");
+  await expect(rows.first()).toHaveClass(/is-active-target/);
+  await searchInput.press("End");
+  await expect(rows.last()).toHaveClass(/is-active-target/);
+  const chosenLabel = (await rows.last().innerText()).trim();
+  await searchInput.press("Enter");
+  await expect(popover.locator(".selected-chip").filter({ hasText: chosenLabel })).toBeVisible();
+  await expect(searchInput).toBeFocused();
 });
 
 test("select filter enter creates formal option and persists to field config", async ({ page }) => {
@@ -4461,6 +4554,8 @@ test("advanced filter enter creates formal multi-select option and persists", as
   await expect(page.locator(".data-table")).toBeVisible();
   await page.getByRole("button", { name: "+ 筛选" }).click();
   await page.locator(".add-filter-field-option").filter({ hasText: "features" }).click();
+  await expect(page.locator(".filter-popover-content")).toHaveCount(0);
+  await page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" }).click();
   await page.locator(".filter-action-trigger").click();
   await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
 
@@ -5734,7 +5829,7 @@ test("skills nested nodes support discriminator switching and recursive child ar
   const typeSelect = page.getByRole("combobox", { name: "type" });
   await expect(typeSelect).toContainText("targeting");
   await typeSelect.click();
-  await page.getByRole("textbox", { name: "筛选 type" }).fill("condition");
+  await page.getByRole("combobox", { name: "筛选 type" }).fill("condition");
   await page.getByRole("button", { name: "condition" }).click();
   await expect(page.locator(".detail-panel.tertiary")).toContainText("condition_type");
   await expect(page.locator(".detail-panel.tertiary")).toContainText("then_nodes");
@@ -11174,8 +11269,8 @@ test("automation target file picker still filters visible files after shared pic
   await expect(dialog).toBeVisible();
   const card = dialog.locator(".automation-rule-card").first();
   await card.getByRole("combobox", { name: "目标文件 1" }).click();
-  await page.getByRole("textbox", { name: "筛选目标文件" }).fill("e2e_select");
-  await expect(page.getByRole("button", { name: "e2e_select.json" })).toBeVisible();
+  await page.getByRole("combobox", { name: "筛选目标文件" }).fill("e2e_select");
+  await expect(page.getByRole("option", { name: "e2e_select.json" })).toBeVisible();
 });
 
 test("automation settings shows local validation issues before save", async ({ page }) => {

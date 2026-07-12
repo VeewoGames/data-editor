@@ -9,6 +9,8 @@ import { removeNodeFromFilters, replaceNodeInFilters } from "../../view/filter-t
 import { icons } from "../icons";
 import { discreteOperatorOptions, filterOptions, mergeSelectedOptions, normalizeSelectedValues, optionForValue } from "./filter-rule-ui";
 import { FilterActionMenu } from "./FilterActionMenu";
+import { isListboxNavigationKey, resolveListboxNavigationIndex } from "../listbox-keyboard-navigation.mjs";
+import { useListboxPointerNavigation } from "../useListboxPointerNavigation";
 
 export type CreateFilterOptionInput = {
   field: string;
@@ -44,7 +46,13 @@ export function MultiSelectFilterPopover({
 }: MultiSelectFilterPopoverProps) {
   const [search, setSearch] = useState("");
   const [localOptionsOverride, setLocalOptionsOverride] = useState<MultiSelectOptionView[] | null>(null);
+  const [activeOptionIndex, setActiveOptionIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const optionRefs = useRef<Array<HTMLLabelElement | null>>([]);
+  const handleOptionPointerMove = useListboxPointerNavigation({
+    itemSelector: "[data-picker-option-row]",
+    setActiveIndex: setActiveOptionIndex,
+  });
   const activeOperator = discreteOperatorOptions.some((item) => item.value === rule.operator) ? rule.operator : "contains";
   const operatorConfig = discreteOperatorOptions.find((item) => item.value === activeOperator) ?? discreteOperatorOptions[0];
   const selectedValues = normalizeSelectedValues(rule.value);
@@ -55,6 +63,15 @@ export function MultiSelectFilterPopover({
     () => resolveDefaultCandidate({ filteredOptions, selectedValues, mode }),
     [filteredOptions, mode, selectedValues],
   );
+
+  useEffect(() => {
+    const preferredIndex = filteredOptions.findIndex((option) => option.value === defaultCandidate?.value);
+    setActiveOptionIndex(preferredIndex >= 0 ? preferredIndex : (filteredOptions.length ? 0 : -1));
+  }, [defaultCandidate?.value, filteredOptions.length, search]);
+
+  useEffect(() => {
+    optionRefs.current[activeOptionIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionIndex]);
 
   useEffect(() => {
     setLocalOptionsOverride(null);
@@ -191,21 +208,35 @@ export function MultiSelectFilterPopover({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => {
+                  if (isListboxNavigationKey(event.key)) {
+                    event.preventDefault();
+                    setActiveOptionIndex(resolveListboxNavigationIndex({ currentIndex: activeOptionIndex, itemCount: filteredOptions.length, key: event.key }));
+                    return;
+                  }
                   if (event.key !== "Enter") return;
                   event.preventDefault();
+                  const activeOption = filteredOptions[activeOptionIndex];
+                  if (activeOption) {
+                    if (selectedValues.includes(activeOption.value)) toggleValue(activeOption.value);
+                    else confirmValue(activeOption.value);
+                    return;
+                  }
                   void handleEnter();
                 }}
                 placeholder="搜索选项"
+                role="combobox"
+                aria-controls={`filter-options-${rule.id}`}
+                aria-expanded="true"
+                aria-activedescendant={activeOptionIndex >= 0 ? `filter-option-${rule.id}-${activeOptionIndex}` : undefined}
               />
             </div>
           </div>
           <div className="filter-popover-section filter-popover-section-scroll">
-            <div className="filter-option-list">
-              {filteredOptions.length ? filteredOptions.map((option) => {
+            <div className="filter-option-list" id={`filter-options-${rule.id}`} role="listbox" aria-multiselectable={mode === "multi"} onPointerMove={handleOptionPointerMove}>
+              {filteredOptions.length ? filteredOptions.map((option, index) => {
                 const selected = selectedValues.includes(option.value);
-                const defaultSelected = defaultCandidate?.value === option.value;
                 return (
-                  <label className={`filter-option-row${selected ? " selected" : ""}${defaultSelected ? " default-candidate" : ""}`} data-filter-option-value={option.value} key={option.value}>
+                  <label className={`filter-option-row${selected ? " is-selected" : ""}${activeOptionIndex === index ? " is-active-target" : ""}`} data-filter-option-value={option.value} data-picker-option-row key={option.value} id={`filter-option-${rule.id}-${index}`} role="option" aria-selected={selected} ref={(node) => { optionRefs.current[index] = node; }}>
                     <input
                       className="filter-option-checkbox"
                       type="checkbox"

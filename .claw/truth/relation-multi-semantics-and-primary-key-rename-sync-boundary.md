@@ -18,13 +18,13 @@ status: accepted
 
 这意味着当前多选语义是“值形态驱动的显示结果”，不是 `view-config` 中的正式 schema type。
 
-### 2. relation 配置资格当前由两层共同约束
+### 2. relation 配置资格由两层共同约束，扩展字段类型时必须同步修改
 
-菜单能力层在 `src/table/field-capabilities.mjs`：`canConfigureRelation` 只对非 nested、非 backlink、非标题、非主键、且 base type 为 `Text` 的字段开放。
+菜单能力层在 `src/table/field-capabilities.mjs`：`canConfigureRelation` 当前只对非 nested、非 backlink、非标题、非主键，且 base type 为 `Text`、`Select` 或 `Multi-select` 的字段开放。
 
-命令处理层在 `src/App.tsx`：`canConfigureRelationForField(...)` 额外要求当前字段不是 `title`、不是 `primary key`，且没有启用 `documentField`。
+命令处理层在 `src/App.tsx`：`canConfigureRelationForField(...)` 同样只接受 `Text`、`Select` 或 `Multi-select`，并额外要求当前字段不是 `title`、不是 `primary key`，且没有启用 `documentField`。
 
-因此后续如果要放宽 relation 配置资格，必须同时修改菜单能力层和 `App.tsx` 命令处理层；只改一边会出现 UI 可见性和真实执行资格不一致的双标。
+因此后续如果要放宽 relation 配置资格，必须同时修改菜单能力层和 `App.tsx` 命令处理层；只改一边会出现 UI 可见性和真实执行资格不一致的双标。菜单能力层决定列头入口是否可见，命令处理层决定打开与确认 relation 配置时是否真正放行。
 
 ### 3. 字段一旦配置 relation，显示链会整体切到 `Relation`
 
@@ -56,6 +56,32 @@ status: accepted
 
 因此保留历史 `multiSelectOptions` 是安全的：relation 打开期间它们只是惰性历史配置；清除 relation 后，字段可以自然回到普通多选显示配置，而不需要重新补回 option 元数据。
 
+### 7. `Select` relation 已按最小边界落地
+
+`Select` 字段配置 relation 已在上述两层资格判断中同步放行：菜单能力层的 eligible base type 与 `App.tsx::canConfigureRelationForField(...)` 现在都接受 `Text`、`Select`、`Multi-select`，不会再出现菜单可见性与命令执行资格不一致。
+
+现有互斥和结构约束保持不变：
+
+- 标题字段仍不可配置 relation
+- 主键字段仍不可配置 relation
+- nested 字段仍不可配置 relation
+- backlink 字段仍不可配置 relation
+- 已启用 `documentField` 的字段仍不可配置 relation
+
+这项扩展没有修改 `RelationConfig` 数据模型、relation key/path 解析、lookup、渲染或保存语义。字段一旦配置 relation，仍沿用现有 `relationConfigured -> effectiveDisplayType: Relation` 链路；`Select` 只增加配置入口资格，不形成新的 relation 类型。
+
+`src/App.tsx` 中打开和确认 relation 配置失败时的提示文案也已同步为 `Text、Select 或 Multi-select`，并继续明确标题、主键和 `documentField` 互斥条件。
+
+`tests/field-capabilities.test.mjs` 中的 `select fields can configure relation but cannot become title or primary key` 是菜单能力层的定向回归锚点：它在实施前以 `false !== true` 建立红灯基线，实施后已通过，并继续断言 `Select` 不能成为标题或主键。当前定向验证结果为该文件 6/6 通过，`npm run typecheck` 通过。
+
+`tests/data-editor.spec.ts` 还固定了三条真实 UI 链路，定向运行结果为 3/3 通过：
+
+- `select field can configure relation directly`：把字段设为 `Select` 后，可直接配置并持久化 relation，单元格随后进入 `.relation-trigger` 渲染
+- `column header menu shows relation action but not title or primary key for eligible multi-select fields`：证明新增 `Select` 资格没有让既有 `Multi-select` 资格回退
+- `relation-configured fields hide type change, title, and primary key actions`：证明 relation 激活后仍锁定字段类型、标题和主键等结构菜单，只保留 relation 编辑与清除入口
+
+这三条用例共同覆盖“配置入口 -> 配置写入 -> Relation 角色激活后的结构锁定”，是后续修改 relation 字段资格时应保留的端到端回归面。
+
 ## 主代码锚点
 
 - `src/model/viewConfig.ts`
@@ -68,6 +94,8 @@ status: accepted
 - `src/detail/DetailPanel.tsx`
 - `src/model/relation-maintenance.mjs`
 - `src/model/primary-key-sync-save.mjs`
+- `tests/field-capabilities.test.mjs`
+- `tests/data-editor.spec.ts`
 
 ## 关键检索词
 
@@ -76,6 +104,7 @@ status: accepted
 - `multiSelectOptions`
 - `canConfigureRelation`
 - `canConfigureRelationForField`
+- `Select`
 - `relationConfigured`
 - `effectiveDisplayType`
 - `unsupported-multi`

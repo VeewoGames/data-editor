@@ -7,6 +7,8 @@ import { focusWithoutScroll } from "../editing/focus-without-scroll.mjs";
 import { namedChipPalette, chipStyleForValue } from "./chipColors";
 import { confirmNextSelectedValues, resolveDefaultCandidate, resolveEnterAction } from "./discrete-value-picker.mjs";
 import { useOptionFieldDragReorder } from "./useOptionFieldDragReorder";
+import { isListboxNavigationKey, resolveListboxNavigationIndex } from "../components/listbox-keyboard-navigation.mjs";
+import { useListboxPointerNavigation } from "../components/useListboxPointerNavigation";
 
 export type OptionFieldDraftCommit = {
   createdOptionValues: string[];
@@ -143,6 +145,7 @@ export function OptionFieldEditor({
   const [selectedValues, setSelectedValues] = useState<Array<string | number>>(() => buildDraftSession(value, options).selectedValues);
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [localOptions, setLocalOptions] = useState<DraftOptionView[]>(() => buildDraftSession(value, options).options);
+  const [activeOptionIndex, setActiveOptionIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -156,6 +159,10 @@ export function OptionFieldEditor({
   const openRef = useRef(false);
   const sessionCommitRef = useRef(onCommitDraft);
   const settledCloseRef = useRef(false);
+  const handleOptionPointerMove = useListboxPointerNavigation({
+    itemSelector: "[data-picker-option-row]",
+    setActiveIndex: setActiveOptionIndex,
+  });
 
   function focusSearchInputOnOpen() {
     queueMicrotask(() => {
@@ -247,6 +254,17 @@ export function OptionFieldEditor({
     () => resolveDefaultCandidate({ filteredOptions, selectedValues, mode }),
     [filteredOptions, mode, selectedValues],
   );
+
+  useEffect(() => {
+    const preferredIndex = renderedOptions.findIndex((option) => option.value === defaultCandidate?.value);
+    setActiveOptionIndex(preferredIndex >= 0 ? preferredIndex : (renderedOptions.length ? 0 : -1));
+  }, [defaultCandidate?.value, draft, open, renderedOptions]);
+
+  useEffect(() => {
+    if (activeOptionIndex < 0) return;
+    const option = renderedOptions[activeOptionIndex];
+    optionRowRefs.current[option?.value]?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionIndex, renderedOptions]);
 
   useLayoutEffect(() => {
     const nextRowTops: Record<string, number> = {};
@@ -369,7 +387,7 @@ export function OptionFieldEditor({
       const nextSelectedValues = exists ? [] : [optionValue];
       selectedValuesRef.current = nextSelectedValues;
       setSelectedValues(nextSelectedValues);
-      restoreInputFocus();
+      commitDraftAndClose();
       return;
     }
     const nextSelectedValues = exists
@@ -389,6 +407,10 @@ export function OptionFieldEditor({
     selectedValuesRef.current = nextSelectedValues;
     setSelectedValues(nextSelectedValues);
     setDraft("");
+    if (mode === "single") {
+      commitDraftAndClose();
+      return;
+    }
     restoreInputFocus();
   }
 
@@ -566,8 +588,23 @@ export function OptionFieldEditor({
               className="multi-select-input"
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
+                if (isListboxNavigationKey(event.key)) {
+                  event.preventDefault();
+                  setActiveOptionIndex(resolveListboxNavigationIndex({
+                    currentIndex: activeOptionIndex,
+                    itemCount: renderedOptions.length,
+                    key: event.key,
+                  }));
+                  return;
+                }
                 if (event.key === "Enter") {
                   event.preventDefault();
+                  const activeOption = renderedOptions[activeOptionIndex];
+                  if (activeOption) {
+                    if (selectedValues.some((item) => String(item) === activeOption.value)) toggleOption(activeOption.value);
+                    else confirmOption(activeOption.value);
+                    return;
+                  }
                   const action = resolveEnterAction({
                     search: draft,
                     defaultCandidate,
@@ -582,17 +619,21 @@ export function OptionFieldEditor({
               }}
               placeholder="选择或创建一个选项"
               ref={inputRef}
+              role="combobox"
+              aria-controls={`option-list-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}`}
+              aria-expanded={open}
+              aria-activedescendant={activeOptionIndex >= 0 ? `option-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${activeOptionIndex}` : undefined}
               value={draft}
             />
           </div>
-          <div className="multi-select-options option-field-popover-section option-field-popover-section-scroll">
+          <div className="multi-select-options option-field-popover-section option-field-popover-section-scroll" id={`option-list-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}`} role="listbox" aria-multiselectable={mode === "multi"} onPointerMove={handleOptionPointerMove}>
             {renderedOptions.map((option, index) => {
               const selected = selectedValues.some((item) => String(item) === option.value);
-              const defaultSelected = defaultCandidate?.value === option.value;
               const row = (
                 <div
-                  className={`multi-select-option-row ${selected ? " selected" : ""}${defaultSelected ? " default-candidate" : ""}`}
+                  className={`multi-select-option-row${selected ? " is-selected" : ""}${activeOptionIndex === index ? " is-active-target" : ""}`}
                   data-option-value={option.value}
+                  data-picker-option-row
                   key={option.value}
                   ref={(node) => {
                     optionRowRefs.current[option.value] = node;
@@ -609,7 +650,7 @@ export function OptionFieldEditor({
                     <icons.dragHandle size={14} />
                   </button>
                   <button
-                    className={`multi-select-option ${selected ? "selected" : ""}${defaultSelected ? " default-candidate" : ""}`}
+                    className={`multi-select-option${selected ? " is-selected" : ""}`}
                     onPointerDown={(event) => {
                       event.preventDefault();
                       if (selected) {
@@ -619,8 +660,12 @@ export function OptionFieldEditor({
                       confirmOption(option.value);
                     }}
                     type="button"
+                    id={`option-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${index}`}
+                    role="option"
+                    aria-selected={selected}
                   >
                     <span className="chip" style={chipStyleForValue(option.value, option.color)}>{option.label}</span>
+                    {selected ? <span className="picker-option-selected-check" aria-hidden="true"><icons.check size={14} /></span> : null}
                   </button>
                   <Popover.Root open={editing?.value === option.value} onOpenChange={(nextOpen) => setEditing(nextOpen ? { value: option.value, label: option.label } : null)}>
                     <Popover.Trigger asChild>

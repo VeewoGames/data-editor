@@ -7,6 +7,8 @@ import { getRelationOptionLabel } from "../model/relations";
 import { focusWithoutScroll } from "../editing/focus-without-scroll.mjs";
 import { chipStyleForValue } from "./chipColors";
 import { confirmNextSelectedValues, resolveDefaultCandidate, resolveEnterAction } from "./discrete-value-picker.mjs";
+import { isListboxNavigationKey, resolveListboxNavigationIndex } from "../components/listbox-keyboard-navigation.mjs";
+import { useListboxPointerNavigation } from "../components/useListboxPointerNavigation";
 
 type RelationCellEditorProps = {
   cellId: string;
@@ -29,7 +31,13 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
   const [open, setOpen] = useState(() => stickyOpenCellId === cellId);
   const [draft, setDraft] = useState("");
   const [selectedValues, setSelectedValues] = useState<Array<string | number>>(() => stickyValuesByCellId.get(cellId) ?? normalizedValue);
+  const [activeOptionIndex, setActiveOptionIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const handleOptionPointerMove = useListboxPointerNavigation({
+    itemSelector: "[data-picker-option-row]",
+    setActiveIndex: setActiveOptionIndex,
+  });
 
   function restoreInputFocus() {
     queueMicrotask(() => focusWithoutScroll(inputRef.current));
@@ -46,6 +54,15 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
     () => resolveDefaultCandidate({ filteredOptions, selectedValues, mode: multiple ? "multi" : "single" }),
     [filteredOptions, multiple, selectedValues],
   );
+
+  useEffect(() => {
+    const preferredIndex = filteredOptions.findIndex((option) => option.value === defaultCandidate?.value);
+    setActiveOptionIndex(preferredIndex >= 0 ? preferredIndex : (filteredOptions.length ? 0 : -1));
+  }, [defaultCandidate?.value, draft, filteredOptions, open]);
+
+  useEffect(() => {
+    optionRefs.current[activeOptionIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionIndex]);
 
   useEffect(() => {
     if (!open) {
@@ -74,6 +91,8 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
       return;
     }
     commit(exists ? [] : [option.value]);
+    stickyOpenCellId = null;
+    setOpen(false);
   }
 
   function clearValue(optionValue: string | number) {
@@ -88,6 +107,11 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
     });
     commit(nextValues);
     setDraft("");
+    if (!multiple) {
+      stickyOpenCellId = null;
+      setOpen(false);
+      return;
+    }
     restoreInputFocus();
   }
 
@@ -157,8 +181,19 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
+                  if (isListboxNavigationKey(event.key)) {
+                    event.preventDefault();
+                    setActiveOptionIndex(resolveListboxNavigationIndex({ currentIndex: activeOptionIndex, itemCount: filteredOptions.length, key: event.key }));
+                    return;
+                  }
                   if (event.key !== "Enter") return;
                   event.preventDefault();
+                  const activeOption = filteredOptions[activeOptionIndex];
+                  if (activeOption) {
+                    if (selectedValues.some((item) => String(item) === activeOption.value)) toggleOption(activeOption);
+                    else confirmRelationOption(activeOption.value);
+                    return;
+                  }
                   const action = resolveEnterAction({
                     search: draft,
                     defaultCandidate,
@@ -167,21 +202,29 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
                   if (action.type === "select") confirmRelationOption(action.value);
                 }}
                 placeholder="搜索关联记录"
+                role="combobox"
+                aria-controls={`relation-list-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}`}
+                aria-expanded={open}
+                aria-activedescendant={activeOptionIndex >= 0 ? `relation-option-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${activeOptionIndex}` : undefined}
               />
             ) : null}
           </div>
           {!configured ? (
             <div className="relation-empty">当前字段未配置 relation 目标</div>
           ) : (
-            <div className="multi-select-options">
-              {filteredOptions.map((option) => {
+            <div className="multi-select-options" id={`relation-list-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}`} role="listbox" aria-multiselectable={multiple} onPointerMove={handleOptionPointerMove}>
+              {filteredOptions.map((option, index) => {
                 const selected = selectedValues.some((item) => String(item) === option.value);
-                const defaultSelected = defaultCandidate?.value === option.value;
                 return (
                   <button
-                    className={`multi-select-option relation-option ${selected ? "selected" : ""}${defaultSelected ? " default-candidate" : ""}`}
+                    className={`multi-select-option relation-option${selected ? " is-selected" : ""}${activeOptionIndex === index ? " is-active-target" : ""}`}
                     data-relation-value={String(option.value)}
+                    data-picker-option-row
                     key={option.value}
+                    id={`relation-option-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${index}`}
+                    role="option"
+                    aria-selected={selected}
+                    ref={(node) => { optionRefs.current[index] = node; }}
                     onPointerDown={(event) => {
                       event.preventDefault();
                       if (selected) {
@@ -194,6 +237,7 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
                   >
                     <span className="chip" style={chipStyleForValue(option.value, "gray")}>{option.label}</span>
                     {option.description ? <small>{option.description}</small> : null}
+                    {selected ? <span className="picker-option-selected-check" aria-hidden="true"><icons.check size={14} /></span> : null}
                     {onOpenTarget ? (
                       <span
                         className="relation-open-target"
