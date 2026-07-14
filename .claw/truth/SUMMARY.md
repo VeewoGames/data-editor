@@ -1,5 +1,6 @@
 ﻿# data-editor Truth Summary
 
+- [正式产品文档集与历史材料收口：`docs/README.md` 加 `01` 至 `09`，验证事实归档后清理方案、规格与原型](./formal-documentation-corpus-boundary.md)
 - [skills Targeting 项目级合同与保存门禁：`skill_nodes` 单一真值、`selection/area/affects` 正式结构、只读失配策略、`version + ETag + token` 校验与双接入测试路径](./adr/skill-targeting-project-contract-and-save-gate.md)
 - [技能 Targeting 合同完成态：`4539067f` 脏工作树增量合入、项目级 `skill_nodes` 单一真值、`selection/area/affects` 正式结构、失败关闭、ETag/save token 门禁、派生字段与视图迁移](./skill-targeting-contract-commit-integration-boundary.md)
 - [项目注册表与 view profile 清理边界：三重有效性校验、API 语义与精确文件清理](./project-registry-and-view-profile-cleanup-boundary.md)
