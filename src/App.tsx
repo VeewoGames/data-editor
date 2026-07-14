@@ -13,6 +13,7 @@ import {
   loadAutomationBindings,
   loadAutomationProfile,
   loadAutomationSkillCatalog,
+  loadSkillNodeContract,
   listViewProfiles,
   loadDocument,
   loadDocumentContent,
@@ -77,6 +78,9 @@ import { collectProtectedIconPackIdsFromIcons, icons, isSharedViewIconPackLoaded
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
 import { DataTable, type FieldConfig, type TableFieldConfig, type TableSnapshot } from "./table/DataTable";
 import { DetailPanel, type DetailEntryActionStatus, type DetailSnapshot } from "./detail/DetailPanel";
+import { createSkillNodeContractEditorState, validateSkillNodeContractSaveToken } from "./detail/skill-node-contract-state";
+import type { SkillNodeContractEditorState } from "./detail/skill-node-contract-state";
+import { createSkillNodeContractFormModel } from "./detail/skill-node-contract-form-model";
 import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
 import { defaultAutomationRuntime } from "./automation-runtime.mjs";
@@ -180,6 +184,12 @@ import { createDefaultFilterRule, withRules } from "./view/filter-rules.mjs";
 import { deriveNewRowSeedValues } from "./view/new-row-seeding.mjs";
 import { updateHeaderSorts } from "./view/sorting.mjs";
 import { runView } from "./view/view-engine.mjs";
+import {
+  derivedFieldTypes,
+  discoverProjectedFields,
+  isDerivedField,
+  projectDerivedFields,
+} from "./view/derived-field-projection.mjs";
 import type { ViewEngineRow, ViewInput, ViewResult } from "./view/contracts";
 import { applyValidationIssueOverrides, buildIssueKey, buildValidationSnapshot, patchValidationSnapshotForField, patchValidationSnapshotForRowField } from "./validation/issue-map.mjs";
 import type { ValidationFieldConfig as ValidationFieldConfigType, ValidationRuleConfig as ValidationRuleConfigType, ValidationSnapshot as ValidationSnapshotType } from "./validation/issue-map";
@@ -570,6 +580,9 @@ export function App() {
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [model, setModel] = useState<DocumentModel | null>(null);
+  const [skillNodeContractEditorState, setSkillNodeContractEditorState] = useState<SkillNodeContractEditorState>(() => (
+    createSkillNodeContractEditorState({ status: "loading" })
+  ));
   const [collectionPath, setCollectionPath] = useState("$");
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [selectedRowIdState, setSelectedRowIdState] = useState<string | null>(null);
@@ -652,6 +665,7 @@ export function App() {
   const filesRef = useRef<DataFile[]>([]);
   const activeProjectIdRef = useRef<string | null>(null);
   const modelRef = useRef<DocumentModel | null>(null);
+  const skillNodeContractEditorStateRef = useRef<SkillNodeContractEditorState>(skillNodeContractEditorState);
   const savedDocumentRootRef = useRef<unknown | null>(null);
   const selectedPathRef = useRef<string | null>(null);
   const pendingSharedViewUrlLocationRef = useRef<SharedViewUrlLocationState | null>(
@@ -720,6 +734,24 @@ export function App() {
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) ?? null,
     [projects, activeProjectId],
+  );
+  const activeSkillNodeContractEditorState = useMemo(() => {
+    if (!isFormalSkillsDocumentPath(selectedPath) || !model || !skillNodeContractEditorState.canEdit) {
+      return skillNodeContractEditorState;
+    }
+    const rootVersion = readSkillNodeContractVersion(model.root);
+    if (rootVersion === skillNodeContractEditorState.version) return skillNodeContractEditorState;
+    return createSkillNodeContractEditorState({
+      status: "version_mismatch",
+      error: {
+        code: "SKILL_NODE_CONTRACT_DOCUMENT_VERSION_MISMATCH",
+        message: `技能文档合同版本 ${String(rootVersion ?? "缺失")} 与项目合同版本 ${String(skillNodeContractEditorState.version)} 不一致，节点只读且禁止保存。`,
+      },
+    });
+  }, [model, selectedPath, skillNodeContractEditorState]);
+  const skillNodeContractFormModel = useMemo(
+    () => createSkillNodeContractFormModel(activeSkillNodeContractEditorState),
+    [activeSkillNodeContractEditorState],
   );
   const detailReorderPerfRef = useRef({
     active: false,
@@ -791,6 +823,9 @@ export function App() {
   }, [activeSidebarPreferences.sidebarTree, files]);
 
   useEffect(() => { modelRef.current = model; }, [model]);
+  useEffect(() => {
+    skillNodeContractEditorStateRef.current = skillNodeContractEditorState;
+  }, [skillNodeContractEditorState]);
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => {
     setValidationIssueOverrides({});
@@ -884,6 +919,36 @@ export function App() {
     if (!activeProjectId) return;
     const resetProfile = loadedProjectIdRef.current !== null && loadedProjectIdRef.current !== activeProjectId;
     void reloadProjectWorkspace(activeProjectId, { resetProfile });
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status: "loading" }));
+      return;
+    }
+    let cancelled = false;
+    setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status: "loading" }));
+    loadSkillNodeContract(activeProjectId)
+      .then((loaded) => {
+        if (cancelled) return;
+        setSkillNodeContractEditorState(createSkillNodeContractEditorState({
+          status: "ready",
+          contract: loaded.contract,
+          version: loaded.version,
+          etag: loaded.etag,
+        }));
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const status: SkillNodeContractEditorState["status"] = error && typeof error === "object"
+          && "code" in error && error.code === "SKILL_NODE_CONTRACT_VERSION_UNSUPPORTED"
+          ? "version_mismatch"
+          : "error";
+        setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status, error }));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [activeProjectId]);
 
   useEffect(() => {
@@ -2057,8 +2122,15 @@ export function App() {
     return { type: "row-field" as const, rowId, rowIndex, fieldName };
   }
   const allFields = useMemo(
-    () => model ? getOrderedFields(model, collectionPath, tableFieldConfig.order, backlinkColumns.map((column) => column.fieldName)) : [],
-    [model, collectionPath, tableFieldConfig.order, backlinkColumns],
+    () => model ? discoverProjectedFields(
+      getOrderedFields(model, collectionPath, tableFieldConfig.order, backlinkColumns.map((column) => column.fieldName)),
+      { sourcePath: selectedPath, collectionPath },
+    ) : [],
+    [model, selectedPath, collectionPath, tableFieldConfig.order, backlinkColumns],
+  );
+  const projectedRows = useMemo(
+    () => rows.map((row) => projectDerivedFields(row, { sourcePath: selectedPath, collectionPath })),
+    [rows, selectedPath, collectionPath],
   );
   const fieldViewConfigs = useMemo(
     () => model ? buildFieldViewConfigs(selectedPath, collectionPath, model, viewConfig) : {},
@@ -2067,11 +2139,11 @@ export function App() {
   const viewFilterFieldTypes = useMemo(
     () => Object.fromEntries(allFields.map((field) => [
       field,
-      selectedPath && viewConfig.relations[buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [field] })]
+      derivedFieldTypes[field as keyof typeof derivedFieldTypes] ?? (selectedPath && viewConfig.relations[buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [field] })]
         ? "Relation"
-        : inferViewFilterFieldType(field, rows, tableFieldConfig.displayTypes),
+        : inferViewFilterFieldType(field, projectedRows, tableFieldConfig.displayTypes)),
     ])) as Record<string, FieldDisplayType>,
-    [allFields, rows, tableFieldConfig.displayTypes, selectedPath, collectionPath, viewConfig.relations],
+    [allFields, projectedRows, tableFieldConfig.displayTypes, selectedPath, collectionPath, viewConfig.relations],
   );
   const viewFilterOptions = useMemo(
     () => {
@@ -2089,12 +2161,12 @@ export function App() {
         }
         const fieldType = viewFilterFieldTypes[field];
         if (fieldType === "Multi-select" || fieldType === "Select") {
-          options[field] = buildValueFilterOptions(field, rows, fieldViewConfigs[field], fieldType);
+          options[field] = buildValueFilterOptions(field, projectedRows, fieldViewConfigs[field], fieldType);
         }
       }
       return options;
     },
-    [allFields, selectedPath, collectionPath, viewConfig.relations, relationOptions, viewFilterFieldTypes, rows, fieldViewConfigs],
+    [allFields, selectedPath, collectionPath, viewConfig.relations, relationOptions, viewFilterFieldTypes, projectedRows, fieldViewConfigs],
   );
   const viewSortOptionOrders = useMemo(
     () => Object.fromEntries(
@@ -2121,6 +2193,7 @@ export function App() {
       sorts: activeViewRenderState.sorts,
       fieldTypes: viewFilterFieldTypes,
       optionOrdersByField: viewSortOptionOrders,
+      derivedFieldProjection: { sourcePath: selectedPath, collectionPath },
     });
     if (perfState.active && perfState.awaitingViewRows) {
       markPerf("detail-reorder:after-view-rows");
@@ -2149,6 +2222,13 @@ export function App() {
     previousRowTarget: previousVisibleRowTarget,
     nextRowTarget: nextVisibleRowTarget,
   } = detailSelectionState;
+  const projectedVisibleRowViews = useMemo(
+    () => visibleRowViews.map((view) => ({
+      ...view,
+      row: projectDerivedFields(view.row, { sourcePath: selectedPath, collectionPath }),
+    })),
+    [visibleRowViews, selectedPath, collectionPath],
+  );
   const selectedDocumentFields = useMemo(() => {
     return buildSelectedDocumentFields({
       sourcePath: selectedPath,
@@ -2400,8 +2480,8 @@ export function App() {
     schemaModel: model!,
     sourcePath: selectedPath,
     collectionPath,
-    rowViews: visibleRowViews,
-    allRows: rows,
+    rowViews: projectedVisibleRowViews,
+    allRows: projectedRows,
     fieldConfig: tableFieldConfig,
     fieldViewConfigs,
     backlinkColumns,
@@ -2424,8 +2504,8 @@ export function App() {
     model,
     selectedPath,
     collectionPath,
-    visibleRowViews,
-    rows,
+    projectedVisibleRowViews,
+    projectedRows,
     tableFieldConfig,
     fieldViewConfigs,
     backlinkColumns,
@@ -3248,7 +3328,7 @@ export function App() {
   }
 
   function handleEditCell(rowIndex: number, fieldName: string, value: unknown) {
-    if (!model) return;
+    if (!model || isDerivedField(fieldName)) return;
     const nextEdit = resolveCellEditWrite(rowIndex, null, fieldName, value);
     updateValidationIssueOverride(rowIndex, null, fieldName, nextEdit.issue);
     validationInvalidationRef.current = resolveValidationInvalidation(fieldName, null, rowIndex);
@@ -3256,7 +3336,7 @@ export function App() {
   }
 
   function handleEditCellByRowId(rowId: string, fieldName: string, value: unknown) {
-    if (!model || !documentStore) return;
+    if (!model || !documentStore || isDerivedField(fieldName)) return;
     const nextEdit = resolveCellEditWrite(null, rowId, fieldName, value);
     updateValidationIssueOverride(null, rowId, fieldName, nextEdit.issue);
     validationInvalidationRef.current = resolveValidationInvalidation(fieldName, rowId, null);
@@ -5004,6 +5084,30 @@ export function App() {
     let currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
     if (!dirtyDomains.length) return { outcome: "idle" } as const;
     if (commandSavingRef.current || closingRef.current || rebuildingRef.current || restartingRef.current) return { outcome: "deferred" } as const;
+    if (dirtyDomains.includes("document") && currentDataDirty && currentModel && isFormalSkillsDocumentPath(currentSelectedPath)) {
+      const contractState = skillNodeContractEditorStateRef.current;
+      const saveCheck = contractState.canEdit && contractState.version != null && contractState.etag
+        ? validateSkillNodeContractSaveToken({
+          token: { version: contractState.version, etag: contractState.etag },
+          documentRoot: currentModel.root,
+          expectedVersion: contractState.version,
+          expectedEtag: contractState.etag,
+        })
+        : {
+          ok: false as const,
+          code: "SKILL_NODE_CONTRACT_SAVE_BLOCKED",
+          message: readErrorMessage(contractState.error) ?? `技能节点合同状态为 ${contractState.status}，禁止保存技能文档。`,
+        };
+      if (!saveCheck.ok) {
+        const message = "message" in saveCheck ? String(saveCheck.message) : "技能节点合同校验失败。";
+        const blockingMessage = `技能节点合同阻断保存：${message}`;
+        setStatus(blockingMessage);
+        return {
+          outcome: "blocked-confirmation",
+          message: blockingMessage,
+        } as const;
+      }
+    }
     if (currentDataDirty && currentModel && currentSelectedPath && !currentPrimaryKeySyncPlan) {
       currentPrimaryKeySyncPlan = await resolvePrimaryKeySyncPlanForFlush(currentModel, currentSelectedPath, currentViewConfig);
     }
@@ -5500,6 +5604,7 @@ export function App() {
               <Profiler id="detail-panel" onRender={handleDetailReorderProfilerRender}>
                 <DetailPanel
                   snapshot={detailSnapshot}
+                  contractFormModel={skillNodeContractFormModel}
                   initialNestedTarget={initialNestedTarget}
                   onConsumeInitialNestedTarget={(requestKey) => {
                     setPendingNestedOpen((current) => current?.requestKey === requestKey ? null : current);
@@ -5610,6 +5715,7 @@ export function App() {
             />
             <DetailPanel
               snapshot={detailSnapshot}
+              contractFormModel={skillNodeContractFormModel}
               initialNestedTarget={initialNestedTarget}
               onConsumeInitialNestedTarget={(requestKey) => {
                 setPendingNestedOpen((current) => current?.requestKey === requestKey ? null : current);
@@ -8422,4 +8528,20 @@ function collectSingleSelectValues(rows: DataRecord[], fieldName: string) {
     values.push(value);
   }
   return values;
+}
+
+function isFormalSkillsDocumentPath(path: string | null | undefined) {
+  return String(path ?? "").replaceAll("\\", "/").toLocaleLowerCase("en-US").endsWith("data/content/skills.json");
+}
+
+function readSkillNodeContractVersion(root: unknown) {
+  if (!root || typeof root !== "object" || Array.isArray(root)) return null;
+  const version = (root as Record<string, unknown>).skill_node_contract_version;
+  return Number.isInteger(version) ? version as number : null;
+}
+
+function readErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message;
+  return null;
 }

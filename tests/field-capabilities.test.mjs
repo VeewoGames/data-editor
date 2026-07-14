@@ -93,3 +93,13 @@ test("relation and backlink fields suppress structural menu capabilities", () =>
   assert.equal(backlinkCapabilities.canConfigureRelation, false);
   assert.equal(backlinkCapabilities.canConfigureDocument, false);
 });
+
+test("readonly derived fields suppress all semantic and type mutations", () => {
+  const capabilities = computeFieldMenuCapabilities({ baseDisplayType: "Select", isReadonly: true });
+  assert.deepEqual(capabilities.allowedTypeTargets, []);
+  assert.equal(capabilities.canChangeType, false);
+  assert.equal(capabilities.canBeTitle, false);
+  assert.equal(capabilities.canBePrimaryKey, false);
+  assert.equal(capabilities.canConfigureRelation, false);
+  assert.equal(capabilities.canConfigureDocument, false);
+});

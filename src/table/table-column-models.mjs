@@ -1,5 +1,6 @@
 import { resolveCompatibleDisplayType } from "../model/fieldTypes.mjs";
 import { computeFieldMenuCapabilities } from "./field-capabilities.mjs";
+import { isDerivedField } from "../view/derived-field-projection.mjs";
 
 const emptyRelationOptions = [];
 
@@ -21,6 +22,7 @@ const emptyRelationOptions = [];
  *   isTitle: boolean;
  *   isPrimaryKey: boolean;
  *   isBacklink: boolean;
+ *   isReadonly: boolean;
  *   multiSelectConfig: { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> } | undefined;
  *   selectConfig: { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> } | undefined;
  *   documentLabels: Record<string, string> | undefined;
@@ -73,6 +75,7 @@ export function buildTableColumnModels({
     const relationOptions = relationOptionsByField[fieldName] ?? emptyRelationOptions;
     const isNested = nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
+    const isReadonly = isDerivedField(fieldName);
     const relationConfigured = Boolean(relationConfig);
     const documentConfigured = documentConfiguredFields.has(fieldName);
     const baseDisplayType = inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
@@ -93,6 +96,7 @@ export function buildTableColumnModels({
       documentConfigured,
       isTitle,
       isPrimaryKey,
+      isReadonly,
     });
     const nextModel = {
       fieldName,
@@ -111,6 +115,7 @@ export function buildTableColumnModels({
       isTitle,
       isPrimaryKey,
       isBacklink,
+      isReadonly,
       multiSelectConfig: fieldOptions[fieldName],
       selectConfig: selectOptions[fieldName],
       documentLabels: documentLabelsByField[fieldName],
@@ -155,6 +160,7 @@ function sameColumnModel(previous, next) {
     previous.isTitle === next.isTitle &&
     previous.isPrimaryKey === next.isPrimaryKey &&
     previous.isBacklink === next.isBacklink &&
+    previous.isReadonly === next.isReadonly &&
     previous.multiSelectConfig === next.multiSelectConfig &&
     previous.selectConfig === next.selectConfig &&
     previous.documentLabels === next.documentLabels &&

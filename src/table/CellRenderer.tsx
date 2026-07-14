@@ -17,6 +17,7 @@ import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 type CellRendererProps = {
   cellId?: string;
   value: unknown;
+  readonly?: boolean;
   displayType: FieldDisplayType;
   issue?: ValidationIssue | null;
   wrapped?: boolean;
@@ -42,6 +43,7 @@ type CellRendererProps = {
 function CellRendererComponent({
   cellId = "",
   value,
+  readonly = false,
   displayType,
   issue,
   wrapped = false,
@@ -65,6 +67,16 @@ function CellRendererComponent({
 }: CellRendererProps) {
   const shouldShowIssue = issue != null && !shouldSuppressRelationIssue(displayType, value);
   const issueNode = shouldShowIssue ? <Issue issue={issue} /> : null;
+  if (readonly) {
+    const displayValue = Array.isArray(value) ? value.join(", ") : value == null ? "" : String(value);
+    return (
+      <div className="table-cell-content-main">
+        <div className={`cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`} data-cell-readonly="true">
+          <span>{displayValue}</span>
+        </div>
+      </div>
+    );
+  }
   if (!isCompatible(displayType, value)) {
     return (
       <div className="table-cell-content-main">
@@ -235,6 +247,7 @@ function CellRendererComponent({
 export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.cellId === next.cellId &&
   previous.value === next.value &&
+  previous.readonly === next.readonly &&
   previous.displayType === next.displayType &&
   previous.issue === next.issue &&
   previous.wrapped === next.wrapped &&

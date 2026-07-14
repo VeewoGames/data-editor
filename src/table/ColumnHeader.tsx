@@ -42,6 +42,7 @@ type ColumnHeaderProps = {
   onConfigureDocument: () => void;
   onClearDocument: () => void;
   onDeleteField: () => void;
+  isReadonly?: boolean;
 };
 
 const minColumnWidth = 56;
@@ -344,7 +345,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
           <button className="menu-item" onClick={() => runAfterMenuClose(() => props.onSort(null))} type="button">
             <icons.close size={15} /> 清除排序
           </button>
-          {props.roleKind === "backlink" ? null : (
+          {props.roleKind === "backlink" || props.isReadonly ? null : (
             <button className="menu-item" data-column-action="add-filter" onClick={() => runAfterMenuClose(props.onAddFilter)} type="button">
               <icons.filter size={15} /> 添加筛选
             </button>

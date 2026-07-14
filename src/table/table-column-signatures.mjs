@@ -1,5 +1,6 @@
 import { resolveCompatibleDisplayType } from "../model/fieldTypes.mjs";
 import { computeFieldMenuCapabilities } from "./field-capabilities.mjs";
+import { isDerivedField } from "../view/derived-field-projection.mjs";
 
 /**
  * @param {{
@@ -44,6 +45,7 @@ export function buildTableColumnModelsSignature({
     const relationConfig = relationConfigByField[fieldName] ?? null;
     const isNested = nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
+    const isReadonly = isDerivedField(fieldName);
     const relationConfigured = Boolean(relationConfig);
     const baseDisplayType = inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
     const effectiveDisplayType = isBacklink
@@ -61,6 +63,7 @@ export function buildTableColumnModelsSignature({
       documentConfigured: documentConfiguredFields.has(fieldName),
       isTitle: fieldName === detectedTitleField,
       isPrimaryKey: fieldName === primaryKeyField,
+      isReadonly,
     });
     return [
       fieldName,
@@ -68,6 +71,7 @@ export function buildTableColumnModelsSignature({
       effectiveDisplayType,
       roleKind,
       isNested ? "nested" : "plain",
+      isReadonly ? "readonly" : "writable",
       fieldName === detectedTitleField ? "title" : "body",
       fieldName === primaryKeyField ? "primary-key" : "not-primary-key",
       wrappedFields.has(fieldName) ? "wrap" : "truncate",

@@ -27,6 +27,7 @@ export type TableColumnModel = {
   isTitle: boolean;
   isPrimaryKey: boolean;
   isBacklink: boolean;
+  isReadonly: boolean;
   multiSelectConfig?: OptionConfig;
   selectConfig?: OptionConfig;
   documentLabels?: Record<string, string>;

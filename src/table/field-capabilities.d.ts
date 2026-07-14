@@ -18,4 +18,5 @@ export function computeFieldMenuCapabilities(input: {
   documentConfigured?: boolean;
   isTitle?: boolean;
   isPrimaryKey?: boolean;
+  isReadonly?: boolean;
 }): FieldMenuCapabilities;

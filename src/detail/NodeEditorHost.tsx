@@ -12,7 +12,9 @@ import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
 import { forwardOptionFieldSurfaceClick } from "../table/OptionFieldEditor";
 import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
-import { resolveNestedNodeSchema } from "./node-schema-registry.mjs";
+import { matchesContractSkillSource, resolveNestedNodeSchema } from "./node-schema-registry.mjs";
+import type { SkillNodeContractFormModel } from "./skill-node-contract-form-model";
+import type { NodeFieldSchema, ObjectNodeSchema } from "./node-schema";
 
 type NodePathSegment = string | number;
 
@@ -26,6 +28,8 @@ type NodeEditorHostProps = {
   sourcePath?: string | null;
   collectionPath?: string;
   schemaContextValue?: Record<string, unknown> | null;
+  contractFormModel?: SkillNodeContractFormModel | null;
+  rootValue?: Record<string, unknown>;
   embedded?: boolean;
   onBack: () => void;
   onCloseAll: () => void;
@@ -34,14 +38,28 @@ type NodeEditorHostProps = {
 };
 
 export function NodeEditorHost(props: NodeEditorHostProps) {
-  const resolved = useMemo(() => resolveNestedNodeSchema({
+  const contractScope = matchesContractSkillSource({
     sourcePath: props.sourcePath,
     collectionPath: props.collectionPath,
     rootField: props.rootField,
-    nestedPath: props.basePath,
-    value: props.value,
-    contextValue: props.schemaContextValue ?? null,
-  }), [props.basePath, props.collectionPath, props.rootField, props.schemaContextValue, props.sourcePath, props.value]);
+  });
+  const resolved = useMemo(() => {
+    const context = {
+      sourcePath: props.sourcePath,
+      collectionPath: props.collectionPath,
+      rootField: props.rootField,
+      nestedPath: props.basePath,
+      value: props.value,
+      contextValue: props.schemaContextValue ?? null,
+    };
+    if (!contractScope) return resolveNestedNodeSchema(context);
+    return props.contractFormModel?.resolveNestedNodeSchema(context) ?? {
+      kind: "unsupported" as const,
+      lookupKey: "skill-node-contract:missing-form-model",
+      reason: "技能节点合同表单未加载，当前节点只读且禁止保存。",
+    };
+  }, [contractScope, props.basePath, props.collectionPath, props.contractFormModel, props.rootField, props.schemaContextValue, props.sourcePath, props.value]);
+  const canEdit = !contractScope || props.contractFormModel?.canEdit === true;
 
   const resetDefaultValue = resolved.kind === "supported"
     ? ensureDiscriminatorValue(
@@ -72,7 +90,7 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
             </div>
           </div>
           <div className="detail-nav">
-            {resolved.kind === "supported" && resetDefaultValue ? (
+            {canEdit && resolved.kind === "supported" && resetDefaultValue ? (
               <button
                 className="icon-button"
                 onClick={() => props.onEditValue([], cloneValue(resetDefaultValue))}
@@ -104,6 +122,9 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
           discriminatorOptions={resolved.discriminatorOptions ?? []}
           currentDiscriminator={resolved.currentDiscriminator ?? null}
           canSwitchDiscriminator={Boolean(resolved.canSwitchDiscriminator && resolved.discriminatorField && resolved.discriminatorOptions?.length)}
+          canEdit={canEdit}
+          contractFormModel={contractScope ? props.contractFormModel : null}
+          rootValue={props.rootValue}
           onSwitchDiscriminator={handleSwitchDiscriminator}
           onEditValue={props.onEditValue}
           onOpenNested={props.onOpenNested}
@@ -120,28 +141,7 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
 }
 
 function ObjectNodeEditor(props: {
-  schema: {
-    title: string;
-    fields: Array<{
-      fieldName: string;
-      displayType?: FieldDisplayType;
-      multiline?: boolean;
-      placeholder?: string;
-      options?: MultiSelectOptionView[];
-      nestedNodeKind?: "object" | "array";
-    }>;
-    allowUnknownFields?: boolean;
-    presentation?: {
-      sections?: Array<{
-        id: string;
-        title: string;
-        fieldNames: string[];
-      }>;
-      advancedFields?: string[];
-      summaryFields?: string[];
-      titleField?: string;
-    } | null;
-  };
+  schema: ObjectNodeSchema;
   value: Record<string, unknown>;
   rootField: string;
   basePath: NodePathSegment[];
@@ -153,6 +153,9 @@ function ObjectNodeEditor(props: {
   discriminatorOptions: string[];
   currentDiscriminator: string | null;
   canSwitchDiscriminator: boolean;
+  canEdit: boolean;
+  contractFormModel?: SkillNodeContractFormModel | null;
+  rootValue?: Record<string, unknown>;
   onSwitchDiscriminator: (nextDiscriminator: string) => void;
   onEditValue: (path: NodePathSegment[], nextValue: unknown) => void;
   onOpenNested: (pathSuffix: NodePathSegment[], nestedValue: unknown, schemaContextValue?: Record<string, unknown> | null) => void;
@@ -161,7 +164,14 @@ function ObjectNodeEditor(props: {
   const [discriminatorPickerOpen, setDiscriminatorPickerOpen] = useState(false);
   const [discriminatorQuery, setDiscriminatorQuery] = useState("");
   const visibleDiscriminatorOptions = props.discriminatorOptions.filter((option) => option.toLowerCase().includes(discriminatorQuery.trim().toLowerCase()));
-  const sections = buildNodeSections(props.schema.fields, props.schema.presentation?.sections ?? []);
+  const fieldStates = props.contractFormModel
+    ? props.contractFormModel.projectFieldStates(props.schema, props.value, { rootValue: props.rootValue })
+    : props.schema.fields.map((field) => ({ field, visible: true, disabled: false, readonly: false }));
+  const visibleFields = fieldStates.filter((state) => state.visible).map((state) => ({
+    ...state.field,
+    disabled: !props.canEdit || state.disabled,
+  }));
+  const sections = buildNodeSections(visibleFields, props.schema.presentation?.sections ?? []);
   const showUnknownAdvanced = !props.schema.allowUnknownFields && unknownFieldNames.length > 0;
   const unknownAdvancedLabel = `Unknown fields (${unknownFieldNames.length})`;
 
@@ -194,6 +204,7 @@ function ObjectNodeEditor(props: {
                 aria-label={props.discriminatorField}
                 aria-expanded={discriminatorPickerOpen}
                 className="select-trigger node-discriminator-trigger"
+                disabled={!props.canEdit}
                 title={props.currentDiscriminator ?? ""}
               >
                 <span className="node-discriminator-trigger__value">{props.currentDiscriminator ?? "选择类型"}</span>
@@ -269,13 +280,7 @@ function ObjectNodeEditor(props: {
 
 function NodeFieldEditor(props: {
   fieldName: string;
-  fieldSchema: {
-    displayType?: FieldDisplayType;
-    multiline?: boolean;
-    placeholder?: string;
-    options?: MultiSelectOptionView[];
-    nestedNodeKind?: "object" | "array";
-  };
+  fieldSchema: NodeFieldSchema & { disabled?: boolean };
   value: unknown;
   pathParts: NodePathSegment[];
   relationOptions: Record<string, RelationOption[]>;
@@ -285,6 +290,29 @@ function NodeFieldEditor(props: {
   onEditValue: (nextValue: unknown) => void;
   onOpenNested: (nestedValue: unknown) => void;
 }) {
+  if (props.fieldSchema.nestedNodeKind === "array" || Array.isArray(props.value)) {
+    return (
+      <button className="nested-entry-button" onClick={() => props.onOpenNested(Array.isArray(props.value) ? props.value : [])}>
+        <icons.nested size={15} />
+        <span>{Array.isArray(props.value) ? `${props.value.length} 条` : "0 条"}</span>
+      </button>
+    );
+  }
+
+  if (props.fieldSchema.nestedNodeKind === "object" || isPlainObjectValue(props.value)) {
+    const objectValue = isPlainObjectValue(props.value) ? props.value : {};
+    return (
+      <button className="nested-entry-button" onClick={() => props.onOpenNested(objectValue)}>
+        <icons.nested size={15} />
+        <span>{Object.keys(objectValue).length} 字段</span>
+      </button>
+    );
+  }
+
+  if (props.fieldSchema.disabled) {
+    return <input className="detail-input detail-input--readonly" readOnly value={formatReadonlyValue(props.value)} />;
+  }
+
   const relation = getRelationConfig(props.pathParts, props.relationOptions, props.relationConfigs, props.sourcePath, props.collectionPath);
   if (relation && isRelationValue(props.value)) {
     return (
@@ -318,7 +346,7 @@ function NodeFieldEditor(props: {
         <SelectCellEditor
           cellId={`nested-node:${props.pathParts.join(".")}`}
           onCommitDraft={(patch) => props.onEditValue(patch.nextSelectedValues[0] ?? null)}
-          options={props.fieldSchema.options ?? []}
+          options={normalizeNodeOptions(props.fieldSchema.options)}
           surface="detail"
           value={props.value as string | number | null}
         />
@@ -332,30 +360,11 @@ function NodeFieldEditor(props: {
         <MultiSelectCellEditor
           cellId={`nested-node:${props.pathParts.join(".")}`}
           onCommitDraft={(patch) => props.onEditValue(patch.nextSelectedValues)}
-          options={props.fieldSchema.options ?? []}
+          options={normalizeNodeOptions(props.fieldSchema.options)}
           surface="detail"
           value={props.value as Array<string | number>}
         />
       </div>
-    );
-  }
-
-  if (props.fieldSchema.nestedNodeKind === "array" || Array.isArray(props.value)) {
-    return (
-      <button className="nested-entry-button" onClick={() => props.onOpenNested(Array.isArray(props.value) ? props.value : [])}>
-        <icons.nested size={15} />
-        <span>{Array.isArray(props.value) ? `${props.value.length} 条` : "0 条"}</span>
-      </button>
-    );
-  }
-
-  if (props.fieldSchema.nestedNodeKind === "object" || isPlainObjectValue(props.value)) {
-    const objectValue = isPlainObjectValue(props.value) ? props.value : {};
-    return (
-      <button className="nested-entry-button" onClick={() => props.onOpenNested(objectValue)}>
-        <icons.nested size={15} />
-        <span>{Object.keys(objectValue).length} 字段</span>
-      </button>
     );
   }
 
@@ -390,6 +399,11 @@ function NodeFieldEditor(props: {
       onChange={(event) => props.onEditValue(event.target.value)}
     />
   );
+}
+
+function formatReadonlyValue(value: unknown) {
+  if (value == null) return "";
+  return typeof value === "object" ? JSON.stringify(value) : String(value);
 }
 
 function UnsupportedNodeFallback({ title, reason, value }: { title: string; reason: string; value: unknown }) {
@@ -451,14 +465,7 @@ function ensureDiscriminatorValue<T extends Record<string, unknown>>(value: T, d
 }
 
 function buildNodeSections(
-  fields: Array<{
-    fieldName: string;
-    displayType?: FieldDisplayType;
-    multiline?: boolean;
-    placeholder?: string;
-    options?: MultiSelectOptionView[];
-    nestedNodeKind?: "object" | "array";
-  }>,
+  fields: Array<NodeFieldSchema & { disabled?: boolean }>,
   configuredSections: Array<{ id: string; title: string; fieldNames: string[] }>,
 ) {
   const fieldMap = new Map(fields.map((field) => [field.fieldName, field]));
@@ -495,6 +502,10 @@ function buildNodeSections(
   }
 
   return sections;
+}
+
+function normalizeNodeOptions(options: NodeFieldSchema["options"]): MultiSelectOptionView[] {
+  return (options ?? []).map((option) => ({ value: String(option.value), label: option.label, color: null }));
 }
 
 function getRelationConfig(

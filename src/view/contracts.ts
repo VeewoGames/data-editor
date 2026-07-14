@@ -29,6 +29,7 @@ export type ViewInput = SearchInput & {
   sorts: SortRule[];
   fieldTypes?: Record<string, string>;
   optionOrdersByField?: Record<string, string[]>;
+  derivedFieldProjection?: { sourcePath?: string | null; collectionPath?: string } | null;
 };
 
 export type ViewResult = {

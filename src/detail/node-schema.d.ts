@@ -7,16 +7,64 @@ export type NodeFieldOption = {
   label: string;
 };
 
+export type NodeFieldCondition = {
+  fieldName: string;
+  operator: "equals" | "not_equals" | "in" | "not_in" | "truthy" | "falsy";
+  value?: unknown;
+  values?: unknown[];
+} | {
+  operator: "all" | "any" | "none";
+  conditions: NodeFieldCondition[];
+};
+
+export type NodeArrayItemSchema = {
+  valueType: "string" | "number" | "boolean" | "object" | "array";
+  numericType?: "int" | "float";
+  min?: number;
+  max?: number;
+  options?: NodeFieldOption[];
+  fields?: NodeFieldSchema[];
+  items?: NodeArrayItemSchema;
+  schemaRef?: "skill-node";
+};
+
+export type NodeSchemaConstraint = {
+  code: string;
+  kind: "required" | "forbidden" | "compare" | "custom";
+  fieldNames: string[];
+  when?: NodeFieldCondition | NodeFieldCondition[];
+  operator?: string;
+  value?: unknown;
+  message?: string;
+  sourceVariant?: string;
+};
+
+export type NodeSchemaPresentation = {
+  sections?: Array<{ id: string; title: string; fieldNames: string[] }>;
+  advancedFields?: string[];
+  summaryFields?: string[];
+  titleField?: string;
+};
+
 export type NodeFieldSchema = {
   fieldName: string;
+  valueType?: "int" | "float" | "string" | "bool" | "array" | "dict";
+  min?: number;
+  max?: number;
   displayType?: FieldDisplayType;
   required?: boolean;
+  readonly?: boolean;
   nullable?: boolean;
   defaultValue?: unknown;
+  omitWhenDefault?: boolean;
   multiline?: boolean;
   placeholder?: string;
   options?: NodeFieldOption[];
   nestedNodeKind?: "object" | "array";
+  nestedSchema?: ObjectNodeSchema | DiscriminatedObjectNodeSchema;
+  arrayItem?: NodeArrayItemSchema;
+  visibleWhen?: NodeFieldCondition | NodeFieldCondition[];
+  disabledWhen?: NodeFieldCondition | NodeFieldCondition[];
 };
 
 export type ObjectNodeSchema = {
@@ -25,6 +73,9 @@ export type ObjectNodeSchema = {
   fields: NodeFieldSchema[];
   defaultValue: Record<string, unknown>;
   allowUnknownFields?: boolean;
+  presentation?: NodeSchemaPresentation | null;
+  constraints?: NodeSchemaConstraint[];
+  omitDefaults?: boolean;
 };
 
 export type DiscriminatedObjectNodeSchema = {

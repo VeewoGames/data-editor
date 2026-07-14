@@ -2,6 +2,7 @@ import {
   emptySharedViewDraftState,
   normalizeSharedViewDraftState,
 } from "./view/shared-view-normalize.mjs";
+import { migrateTargetingViewLocalStorage } from "./view/targeting-view-field-migration.mjs";
 import { buildSidebarTreePreferences } from "./sidebar-tree.mjs";
 
 export function emptyCollectionViewState() {
@@ -137,6 +138,7 @@ export function readLocalViewState({ path, collectionPath, viewId, localStorage 
 }
 
 export function readLocalViewLayoutState({ path, collectionPath, viewId, localStorage }) {
+  migrateTargetingViewLocalStorage(localStorage, { apply: true });
   const state = emptyLocalViewState();
   const normalizedViewId = normalizeViewId(viewId);
   const prefix = normalizedViewId ? viewStoragePrefix(path, collectionPath, normalizedViewId) : null;
@@ -191,6 +193,7 @@ export function emptyLocalSharedViewDrafts() {
 }
 
 export function readLocalSharedViewDrafts(localStorage) {
+  migrateTargetingViewLocalStorage(localStorage, { apply: true });
   const rawValue = localStorage.getItem(sharedViewDraftsStorageKey);
   if (!rawValue) return emptyLocalSharedViewDrafts();
   try {

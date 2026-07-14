@@ -149,3 +149,24 @@ test("buildTableColumnModels ignores incompatible persisted Text override for bo
   assert.equal(models[0]?.baseDisplayType, "Checkbox");
   assert.equal(models[0]?.effectiveDisplayType, "Checkbox");
 });
+
+test("buildTableColumnModels marks derived projection columns readonly", () => {
+  const [model] = buildTableColumnModels({
+    visibleFields: ["@selection_type"],
+    rows: [{ "@selection_type": "entity" }],
+    nestedFieldSet: new Set(),
+    displayTypes: { "@selection_type": "Select" },
+    wrappedFields: new Set(),
+    detectedTitleField: null,
+    primaryKeyField: null,
+    backlinkColumns: [],
+    relationOptionsByField: {},
+    relationConfigByField: {},
+    fieldOptions: {},
+    selectOptions: {},
+    getColumnWidth: () => 180,
+  });
+  assert.equal(model.isReadonly, true);
+  assert.equal(model.allowTypeChange, false);
+  assert.equal(model.capabilities.canConfigureRelation, false);
+});

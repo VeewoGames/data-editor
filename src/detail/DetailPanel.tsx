@@ -24,7 +24,9 @@ import { StableTextInput, StableTextarea, type ActiveTextEditorHandle, type Acti
 import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { DocumentPanel, type DocumentPanelSnapshot } from "./DocumentPanel";
 import { NodeEditorHost } from "./NodeEditorHost";
-import { resolveNestedNodeSchema } from "./node-schema-registry.mjs";
+import { matchesContractSkillSource, resolveNestedNodeSchema } from "./node-schema-registry.mjs";
+import type { ResolveNestedNodeSchemaContext, ResolveNestedNodeSchemaResult } from "./node-schema";
+import type { SkillNodeContractFormModel } from "./skill-node-contract-form-model";
 import { mergeDetailFieldOrder } from "../model/document-field-state.mjs";
 import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 import { isPersistentEntryIdField } from "../model/persistent-entry-id.mjs";
@@ -71,6 +73,7 @@ export type DetailEntryActionStatus = NonNullable<DetailSnapshot["entryActionSta
 
 type DetailPanelProps = {
   snapshot: DetailSnapshot;
+  contractFormModel?: SkillNodeContractFormModel | null;
   initialNestedTarget: {
     fieldName: string;
     requestKey: number;
@@ -107,6 +110,7 @@ type NestedPanelState = {
 
 export function DetailPanel({
   snapshot,
+  contractFormModel,
   initialNestedTarget,
   onConsumeInitialNestedTarget,
   onCommitMultiSelectDraft,
@@ -159,6 +163,24 @@ export function DetailPanel({
     entryActionErrorMessage,
     entryActionStatus,
   } = snapshot;
+  const resolveNodeSchema = (context: ResolveNestedNodeSchemaContext): ResolveNestedNodeSchemaResult => (
+    matchesContractSkillSource({ sourcePath: context.sourcePath, collectionPath: context.collectionPath, rootField: context.rootField })
+      ? contractFormModel?.resolveNestedNodeSchema(context) ?? {
+        kind: "unsupported",
+        lookupKey: "skill-node-contract:missing-form-model",
+        reason: "技能节点合同表单未加载，当前节点只读且禁止保存。",
+      } as ResolveNestedNodeSchemaResult
+      : resolveNestedNodeSchema({
+        sourcePath: context.sourcePath,
+        collectionPath: context.collectionPath,
+        rootField: context.rootField,
+        nestedPath: context.nestedPath,
+        value: context.value,
+        contextValue: context.contextValue,
+      }) as ResolveNestedNodeSchemaResult
+  );
+  const contractNodesReadonly = matchesContractSkillSource({ sourcePath, collectionPath, rootField: "nodes" })
+    && contractFormModel?.canEdit !== true;
   const panelRef = useRef<HTMLElement | null>(null);
   const documentPanelRef = useRef<HTMLElement | null>(null);
   const nestedPanelRef = useRef<HTMLElement | null>(null);
@@ -269,7 +291,7 @@ export function DetailPanel({
     && activeArrayValue
     && activeArrayNested.selectedIndex != null
     && isPlainObjectValue(activeArraySelectedItem)
-    ? resolveNestedNodeSchema({
+    ? resolveNodeSchema({
       sourcePath,
       collectionPath,
       rootField: activeArrayNested.rootField,
@@ -414,6 +436,7 @@ export function DetailPanel({
   }
 
   function updateNestedValue(rootField: string, path: Array<string | number>, nextValue: unknown) {
+    if (rootField === "nodes" && contractNodesReadonly) return;
     const rootValue = currentRow[rootField];
     onEditField(rootField, updateValueAtPath(rootValue, path, nextValue));
   }
@@ -629,6 +652,8 @@ export function DetailPanel({
       >
         {activeArrayNested && activeArrayValue ? (
           <NestedCollectionPanel
+            editable={!contractNodesReadonly}
+            resolveNodeSchema={resolveNodeSchema}
             relationOptions={relationOptions}
             relationConfigs={relationConfigs}
             sourcePath={sourcePath}
@@ -646,7 +671,7 @@ export function DetailPanel({
               setNestedStack((current) => current.map((entry, index) => index === activeArrayNestedIndex ? { ...entry, selectedIndex } : entry));
             }}
             onAddItem={() => {
-              const schemaDefault = resolveNestedNodeSchema({
+              const schemaDefault = resolveNodeSchema({
                 sourcePath,
                 collectionPath,
                 rootField: activeArrayNested.rootField,
@@ -654,6 +679,8 @@ export function DetailPanel({
                 value: {},
                 contextValue: null,
               });
+              if (matchesContractSkillSource({ sourcePath, collectionPath, rootField: activeArrayNested.rootField })
+                && schemaDefault.kind !== "supported") return;
               const nextItem = schemaDefault.kind === "supported"
                 ? cloneNestedValue(schemaDefault.schema.defaultValue)
                 : makeEmptyNestedItem(activeArrayValue[0]);
@@ -694,6 +721,8 @@ export function DetailPanel({
           />
         ) : activeNested && isPlainObjectValue(activeNestedValue) ? (
           <NodeEditorHost
+            contractFormModel={contractFormModel}
+            rootValue={currentRow}
             title={activeNested.title}
             value={activeNestedValue}
             rootField={activeNested.rootField}
@@ -727,6 +756,8 @@ export function DetailPanel({
       >
         {tertiaryNested && Array.isArray(activeNestedValue) ? (
           <NestedCollectionPanel
+            editable={!contractNodesReadonly}
+            resolveNodeSchema={resolveNodeSchema}
             relationOptions={relationOptions}
             relationConfigs={relationConfigs}
             sourcePath={sourcePath}
@@ -742,7 +773,7 @@ export function DetailPanel({
               setNestedStack((current) => current.map((entry, index) => index === current.length - 1 ? { ...entry, selectedIndex } : entry));
             }}
             onAddItem={() => {
-              const schemaDefault = resolveNestedNodeSchema({
+              const schemaDefault = resolveNodeSchema({
                 sourcePath,
                 collectionPath,
                 rootField: tertiaryNested.rootField,
@@ -750,6 +781,8 @@ export function DetailPanel({
                 value: {},
                 contextValue: null,
               });
+              if (matchesContractSkillSource({ sourcePath, collectionPath, rootField: tertiaryNested.rootField })
+                && schemaDefault.kind !== "supported") return;
               const nextItem = schemaDefault.kind === "supported"
                 ? cloneNestedValue(schemaDefault.schema.defaultValue)
                 : makeEmptyNestedItem(activeNestedValue[0]);
@@ -790,6 +823,8 @@ export function DetailPanel({
           />
         ) : tertiaryNested && isPlainObjectValue(activeNestedValue) ? (
           <NodeEditorHost
+            contractFormModel={contractFormModel}
+            rootValue={currentRow}
             title={tertiaryNested.title}
             value={activeNestedValue}
             rootField={tertiaryNested.rootField}
@@ -817,6 +852,8 @@ export function DetailPanel({
         ) : activeArrayNested && activeArrayNested.selectedIndex != null ? (
           activeArraySelectedItemSchema?.kind === "supported" && isPlainObjectValue(activeArraySelectedItem) ? (
             <NodeEditorHost
+              contractFormModel={contractFormModel}
+              rootValue={currentRow}
               title={String(buildNestedItemCard(activeArraySelectedItem, activeArrayNested.selectedIndex, activeArraySelectedItemSchema).title)}
               value={activeArraySelectedItem}
               rootField={activeArrayNested.rootField}
@@ -902,6 +939,8 @@ function resolveDetailActionIcon(iconId: string) {
 function NestedCollectionPanel(props: {
   title: string;
   items: unknown[];
+  editable: boolean;
+  resolveNodeSchema: (context: ResolveNestedNodeSchemaContext) => ResolveNestedNodeSchemaResult;
   rootField: string;
   basePath: Array<string | number>;
   relationOptions: Record<string, RelationOption[]>;
@@ -926,7 +965,7 @@ function NestedCollectionPanel(props: {
 }) {
   const itemCards = props.items.map((item, index) => {
     const resolved = isPlainObjectValue(item)
-      ? resolveNestedNodeSchema({
+      ? props.resolveNodeSchema({
         sourcePath: props.sourcePath,
         collectionPath: props.collectionPath,
         rootField: props.rootField,
@@ -957,7 +996,7 @@ function NestedCollectionPanel(props: {
       </div>
       <section className="nested-collection-rail">
         <div className="nested-panel-toolbar">
-          <button className="ghost-button ghost-button--primary nested-toolbar-button" onClick={props.onAddItem} type="button">
+          <button className="ghost-button ghost-button--primary nested-toolbar-button" disabled={!props.editable} onClick={props.onAddItem} type="button">
             <icons.addField size={15} />
             <span>增加项目</span>
           </button>
@@ -966,6 +1005,7 @@ function NestedCollectionPanel(props: {
               <button
                 className="ghost-button nested-toolbar-button nested-toolbar-button--icon"
                 onClick={() => props.onDuplicateItem(props.selectedIndex!)}
+                disabled={!props.editable}
                 title="Duplicate item"
                 aria-label="Duplicate item"
                 type="button"
@@ -975,7 +1015,7 @@ function NestedCollectionPanel(props: {
               <button
                 className="ghost-button nested-toolbar-button nested-toolbar-button--icon"
                 onClick={() => props.onMoveItem(props.selectedIndex!, "up")}
-                disabled={props.selectedIndex <= 0}
+                disabled={!props.editable || props.selectedIndex <= 0}
                 title="Move item up"
                 aria-label="Move item up"
                 type="button"
@@ -985,7 +1025,7 @@ function NestedCollectionPanel(props: {
               <button
                 className="ghost-button nested-toolbar-button nested-toolbar-button--icon"
                 onClick={() => props.onMoveItem(props.selectedIndex!, "down")}
-                disabled={props.selectedIndex >= props.items.length - 1}
+                disabled={!props.editable || props.selectedIndex >= props.items.length - 1}
                 title="Move item down"
                 aria-label="Move item down"
                 type="button"
@@ -995,6 +1035,7 @@ function NestedCollectionPanel(props: {
               <button
                 className="ghost-button ghost-button--danger nested-toolbar-button nested-toolbar-button--icon"
                 onClick={() => props.onDeleteItem(props.selectedIndex!)}
+                disabled={!props.editable}
                 title="Delete item"
                 aria-label="Delete item"
                 type="button"
@@ -1475,7 +1516,7 @@ function isMeaningfullyFilled(value: unknown) {
 function buildNestedItemCard(
   item: unknown,
   index: number,
-  resolved: ReturnType<typeof resolveNestedNodeSchema> | null,
+  resolved: ResolveNestedNodeSchemaResult | null,
 ) {
   if (resolved?.kind === "supported" && isPlainObjectValue(item)) {
     const record = item as Record<string, unknown>;

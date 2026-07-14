@@ -1,6 +1,7 @@
 import { applyViewFilters } from "./filtering.mjs";
 import { applyViewSorts } from "./sorting.mjs";
 import { runSearch } from "./search-engine.mjs";
+import { projectViewEngineRows } from "./derived-field-projection.mjs";
 
 const emptyFilters = { topLevelRules: [], advancedRoot: null };
 const emptySorts = [];
@@ -13,8 +14,10 @@ export function runView({
   sorts = emptySorts,
   fieldTypes = {},
   optionOrdersByField = {},
+  derivedFieldProjection = null,
 }) {
-  const searchResult = runSearch({ rows, query, candidateRowIds });
+  const projectedRows = derivedFieldProjection ? projectViewEngineRows(rows, derivedFieldProjection) : rows;
+  const searchResult = runSearch({ rows: projectedRows, query, candidateRowIds });
   const filteredRows = materializeRows(
     applyViewFilters(searchResult.searchRows.map(createRuntimeRow), "", filters, fieldTypes),
     searchResult.searchRows,

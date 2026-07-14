@@ -1,9 +1,11 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
 import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
+import { createSkillNodeContractClient } from "./skill-node-contract-client.mjs";
 
 export const recoverableRequestEventName = "data-editor:recoverable-request";
 const defaultRecoveryBridgePort = 8791;
+let skillNodeContractClient: ReturnType<typeof createSkillNodeContractClient> | null = null;
 
 export type RecoverableRequestEventDetail = {
   url: string;
@@ -98,6 +100,32 @@ export type SaveDocumentsResult = {
   savedPaths: string[];
   failedPath: string | null;
   errorMessage: string | null;
+  errorCode: string | null;
+  errorField: string | null;
+};
+export type SkillNodeContractSaveGate = {
+  contractVersion: number;
+  contractEtag: string;
+  saveToken: {
+    projectId: string;
+    contractVersion: number;
+    etag: string;
+  };
+};
+export type SkillNodeContract = {
+  contract_version: number;
+  runtime_rules: Record<string, unknown>;
+  nodes: Record<string, unknown>;
+  labels: Record<string, unknown>;
+  help: Record<string, unknown>;
+  ui_presentation: Record<string, unknown>;
+};
+export type LoadedSkillNodeContract = {
+  projectId: string;
+  contract: SkillNodeContract;
+  version: number;
+  etag: string;
+  fromCache: boolean;
 };
 export type RunEntryActionRequest = {
   projectId: string;
@@ -489,20 +517,59 @@ export async function listFiles(projectId?: string | null): Promise<DataFile[]> 
   return fetchJson(withProjectId("/api/files", projectId));
 }
 
+export async function loadSkillNodeContract(projectId: string): Promise<LoadedSkillNodeContract> {
+  skillNodeContractClient ??= createSkillNodeContractClient();
+  return skillNodeContractClient.load(projectId);
+}
+
+export function clearSkillNodeContractCache(projectId?: string | null) {
+  skillNodeContractClient?.clear(projectId);
+  if (projectId == null) skillNodeContractClient = null;
+}
+
 export async function loadDocument(path: string, projectId?: string | null) {
   return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
 }
 
 export async function saveDocument(path: string, root: unknown, projectId?: string | null): Promise<SaveDocumentResult> {
+  const result = await saveDocumentsWith(
+    [{ path, root }],
+    (savePath: string, saveRoot: unknown, contractGate: SkillNodeContractSaveGate | null) => (
+      postDocumentSave(savePath, saveRoot, projectId, contractGate)
+    ),
+    { projectId, loadSkillNodeContract },
+  );
+  if (!result.ok) throw saveDocumentsError(result);
+  return { ok: true };
+}
+
+function postDocumentSave(
+  path: string,
+  root: unknown,
+  projectId?: string | null,
+  contractGate: SkillNodeContractSaveGate | null = null,
+): Promise<SaveDocumentResult> {
   return fetchJson("/api/save", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, path, root }),
+    body: JSON.stringify({ projectId, path, root, ...(contractGate ?? {}) }),
   });
 }
 
 export async function saveDocuments(items: PendingDocumentSave[], projectId?: string | null): Promise<SaveDocumentsResult> {
-  return saveDocumentsWith(items, (path: string, root: unknown) => saveDocument(path, root, projectId));
+  return saveDocumentsWith(
+    items,
+    (path: string, root: unknown, contractGate: SkillNodeContractSaveGate | null) => (
+      postDocumentSave(path, root, projectId, contractGate)
+    ),
+    { projectId, loadSkillNodeContract },
+  );
+}
+
+function saveDocumentsError(result: SaveDocumentsResult) {
+  const error = new Error(result.errorMessage ?? "Document save failed.");
+  Object.assign(error, { code: result.errorCode, field: result.errorField });
+  return error;
 }
 
 export async function loadViewConfig(projectId?: string | null): Promise<ViewConfig> {
@@ -849,7 +916,16 @@ async function fetchJson(url: string, options?: RequestInit, fetchOptions: Fetch
     });
   }
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+  if (!res.ok) {
+    const error = new Error(data.error ?? `HTTP ${res.status}`);
+    Object.assign(error, {
+      code: typeof data.code === "string" ? data.code : null,
+      field: typeof data.field === "string" ? data.field : null,
+      status: res.status,
+      details: data.details ?? null,
+    });
+    throw error;
+  }
   return data;
 }
 

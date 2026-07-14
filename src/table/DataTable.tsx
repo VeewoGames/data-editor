@@ -717,7 +717,7 @@ function DataTableComponent(props: DataTableProps) {
       };
       if (!isCellInsideRect(selectionRect, coord)) return [];
       const columnModel = columnModelsByField[fieldName];
-      if (!columnModel) return [];
+      if (!columnModel || columnModel.isReadonly) return [];
       return [{
         rowId: rowView.rowId,
         rowIndex: rowView.sourceIndex,

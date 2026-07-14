@@ -180,6 +180,7 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       onConfigureDocument={() => runtime.onConfigureDocument(columnModel.fieldName)}
       onClearDocument={() => runtime.onClearDocument(columnModel.fieldName)}
       onDeleteField={() => runtime.onDeleteField(columnModel.fieldName)}
+      isReadonly={columnModel.isReadonly}
     />
   );
 }
@@ -258,6 +259,7 @@ function TableColumnCellView(
       <CellRenderer
         cellId={cellId}
         value={value}
+        readonly={columnModel.isReadonly}
         displayType={displayType}
         wrapped={columnModel.wrapped}
         multiSelectConfig={columnModel.multiSelectConfig}

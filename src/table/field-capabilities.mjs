@@ -21,6 +21,7 @@ const changeableFieldTypes = ["Text", "Select", "Document"];
  *   documentConfigured?: boolean;
  *   isTitle?: boolean;
  *   isPrimaryKey?: boolean;
+ *   isReadonly?: boolean;
  * }} input
  * @returns {FieldMenuCapabilities}
  */
@@ -33,9 +34,10 @@ export function computeFieldMenuCapabilities({
   documentConfigured = false,
   isTitle = false,
   isPrimaryKey = false,
+  isReadonly = false,
 }) {
   const isRelationRole = roleKind === "relation" || relationConfigured;
-  const lockedByStructure = isNested || isBacklink || roleKind === "backlink";
+  const lockedByStructure = isNested || isBacklink || roleKind === "backlink" || isReadonly;
   const isText = baseDisplayType === "Text";
   const isRelationEligibleBaseType = baseDisplayType === "Text"
     || baseDisplayType === "Select"

@@ -3,6 +3,7 @@ import path from "node:path";
 import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
 import { normalizeSharedViewDraftState } from "./shared-views.mjs";
 import { buildSidebarTreePreferences } from "./sidebar-tree.mjs";
+import { migrateTargetingViewStorage } from "./view/targeting-view-file-migration.mjs";
 
 const defaultAppearanceThemeId = "light";
 const defaultAppearanceBaseFontSize = 14;
@@ -20,6 +21,7 @@ export async function listViewProfiles(projectContextOrRoot) {
 
 export async function loadViewProfile(projectContextOrRoot, name) {
   const context = createProjectContext(projectContextOrRoot);
+  await migrateTargetingViewStorage(context, { apply: true });
   const profileName = normalizeProfileName(name);
   const target = path.join(profileDir(context), `${profileName}.json`);
   try {
