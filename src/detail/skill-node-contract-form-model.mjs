@@ -1,4 +1,5 @@
 import { createSkillNodeContractRegistryAdapter } from "./node-schema-registry.mjs";
+import { buildChargeDerivedSummary, resolveChargeDerivedState } from "./skill-node-derived-rules.mjs";
 
 export function createSkillNodeContractFormModel(editorState) {
   if (!editorState?.canEdit || editorState.status !== "ready" || !editorState.contract) {
@@ -12,13 +13,24 @@ export function createSkillNodeContractFormModel(editorState) {
     resolveNestedNodeSchema: adapter.resolveNestedNodeSchema,
     projectFieldStates(schema, value, context = {}) {
       const conditionValue = buildConditionValue(value, context);
+      const chargeState = resolveChargeDerivedState(editorState.contract, context?.rootValue);
+      const chargeSelection = chargeState && schema.title === "selection.entity";
       return schema.fields.map((field) => ({
         field,
-        visible: field.visibleWhen == null || evaluateNodeFieldCondition(field.visibleWhen, conditionValue),
+        visible: (!chargeSelection || ["distance", "relations"].includes(field.fieldName))
+          && (field.visibleWhen == null || evaluateNodeFieldCondition(field.visibleWhen, conditionValue)),
         disabled: field.readonly === true
           || (field.disabledWhen != null && evaluateNodeFieldCondition(field.disabledWhen, conditionValue)),
         readonly: field.readonly === true,
       }));
+    },
+    canSwitchDiscriminator(schema, context = {}) {
+      return !(schema.title === "selection.entity" && resolveChargeDerivedState(editorState.contract, context?.rootValue));
+    },
+    getDerivedRuleSummary(schema, context = {}) {
+      return schema.title === "selection.entity"
+        ? buildChargeDerivedSummary(editorState.contract, context?.rootValue)
+        : [];
     },
     evaluateConstraints(schema, value, context = {}) {
       const conditionValue = buildConditionValue(value, context);
@@ -84,6 +96,12 @@ function blockedFormModel(status, error) {
       };
     },
     projectFieldStates() {
+      return [];
+    },
+    canSwitchDiscriminator() {
+      return false;
+    },
+    getDerivedRuleSummary() {
       return [];
     },
     evaluateConstraints() {

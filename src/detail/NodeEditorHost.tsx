@@ -171,13 +171,16 @@ function ObjectNodeEditor(props: {
     ...state.field,
     disabled: !props.canEdit || state.disabled,
   }));
+  const canSwitchDiscriminator = props.canSwitchDiscriminator
+    && (props.contractFormModel?.canSwitchDiscriminator(props.schema, { rootValue: props.rootValue }) ?? true);
+  const derivedRuleSummary = props.contractFormModel?.getDerivedRuleSummary(props.schema, { rootValue: props.rootValue }) ?? [];
   const sections = buildNodeSections(visibleFields, props.schema.presentation?.sections ?? []);
   const showUnknownAdvanced = !props.schema.allowUnknownFields && unknownFieldNames.length > 0;
   const unknownAdvancedLabel = `Unknown fields (${unknownFieldNames.length})`;
 
   return (
     <div className="property-list nested-property-list">
-      {props.canSwitchDiscriminator && props.discriminatorField ? (
+      {canSwitchDiscriminator && props.discriminatorField ? (
         <section className="property-block property-block--node-summary">
           <div className="property-heading">
             <span className="property-heading-label">
@@ -227,6 +230,22 @@ function ObjectNodeEditor(props: {
               </button>
             ))}
           </SearchablePicker>
+        </section>
+      ) : null}
+      {derivedRuleSummary.length ? (
+        <section className="node-section" data-node-section="derived-rule-summary">
+          <div className="node-section-header">
+            <strong>合同派生规则</strong>
+            <small>只读，不写回技能 JSON</small>
+          </div>
+          <div className="node-section-fields">
+            {derivedRuleSummary.map((row) => (
+              <section className="property-block" key={row.label}>
+                <PropertyHeading fieldName={row.label} fieldType="Text" />
+                <input className="detail-input detail-input--readonly" readOnly value={row.value} />
+              </section>
+            ))}
+          </div>
         </section>
       ) : null}
       {sections.map((section) => {

@@ -27,6 +27,8 @@ export type SkillNodeContractFormModel = {
   error: unknown;
   resolveNestedNodeSchema(context: ResolveNestedNodeSchemaContext): ResolveNestedNodeSchemaResult;
   projectFieldStates(schema: ObjectNodeSchema, value: Record<string, unknown>, context?: ContractFormContext): ContractFormFieldState[];
+  canSwitchDiscriminator(schema: ObjectNodeSchema, context?: ContractFormContext): boolean;
+  getDerivedRuleSummary(schema: ObjectNodeSchema, context?: ContractFormContext): Array<{ label: string; value: string }>;
   evaluateConstraints(schema: ObjectNodeSchema, value: Record<string, unknown>, context?: ContractFormContext): ContractFormConstraintResult;
 };
 export function createSkillNodeContractFormModel(editorState: {

@@ -83,6 +83,7 @@ import { DetailPanel, type DetailEntryActionStatus, type DetailSnapshot } from "
 import { createSkillNodeContractEditorState, validateSkillNodeContractSaveToken } from "./detail/skill-node-contract-state";
 import type { SkillNodeContractEditorState } from "./detail/skill-node-contract-state";
 import { createSkillNodeContractFormModel } from "./detail/skill-node-contract-form-model";
+import { validateSkillNodeDerivedRuleConflicts } from "./detail/skill-node-derived-rules.mjs";
 import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
 import { defaultAutomationRuntime } from "./automation-runtime.mjs";
@@ -5200,6 +5201,19 @@ export function App() {
     if (commandSavingRef.current || closingRef.current || rebuildingRef.current || restartingRef.current) return { outcome: "deferred" } as const;
     if (dirtyDomains.includes("document") && currentDataDirty && currentModel && isFormalSkillsDocumentPath(currentSelectedPath)) {
       const contractState = skillNodeContractEditorStateRef.current;
+      const derivedRuleCheck = contractState.contract
+        ? validateSkillNodeDerivedRuleConflicts(contractState.contract, currentModel.root)
+        : { ok: true, issues: [] };
+      if (!derivedRuleCheck.ok) {
+        const firstIssue = derivedRuleCheck.issues[0];
+        const remaining = derivedRuleCheck.issues.length - 1;
+        const blockingMessage = `技能节点合同阻断保存：${firstIssue.skillId} 的 ${firstIssue.fieldPath}：${firstIssue.message}${remaining > 0 ? `（另有 ${remaining} 项冲突）` : ""}`;
+        setStatus(blockingMessage);
+        return {
+          outcome: "blocked-confirmation",
+          message: blockingMessage,
+        } as const;
+      }
       const saveCheck = contractState.canEdit && contractState.version != null && contractState.etag
         ? validateSkillNodeContractSaveToken({
           token: { version: contractState.version, etag: contractState.etag },
