@@ -10,7 +10,11 @@ import { addOrActivateProject } from "../src/project-registry.mjs";
 import { assertSkillNodeContractUnchanged } from "../server.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nocturnelRoot = path.resolve(repoRoot, "..", "..");
+const nocturnelRoot = process.env.NOCTURNEL_ROOT
+  ? path.resolve(process.env.NOCTURNEL_ROOT)
+  : path.basename(path.dirname(repoRoot)) === "tools"
+    ? path.resolve(repoRoot, "..", "..")
+    : path.resolve(repoRoot, "..", "Nocturnel");
 const serverScriptPath = path.join(repoRoot, "server.mjs");
 const canonicalContract = JSON.parse(await readFile(path.join(nocturnelRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
 const canonicalSchemaText = await readFile(path.join(nocturnelRoot, "data", "contracts", "skill_nodes.schema.json"), "utf8");

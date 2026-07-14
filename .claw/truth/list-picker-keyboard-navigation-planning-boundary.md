@@ -474,3 +474,35 @@ recheck 再次确认以下长期约束已经成立：
 验证、正式 `8787` UI 复核和 data-editor 服务收尾均已完成。最终验收仍遵守既有证据边界：核心定向验证通过；完整 `npm test` 的既有无关失败不应被改写为本轮视觉回归，也不应被表述成全量测试全绿。
 
 后续维护应以本节、task 9 的验证边界和 task 10 的正式计算样式基线为最新真值；此前 planning 章节只用于解释设计来源，不再表示当前实现状态。
+
+## Option 首次拖拽回顶部假象：真实滚动与 FLIP 中间帧是两层独立根因
+
+`src/table/OptionFieldEditor.tsx` 的 option 拖拽会临时改变候选渲染结构：拖拽开始后，`dragPreview.activeId` 对应项从 `renderedOptions` 中移除；释放并提交排序时，候选数组会按新顺序重建。用户看到的“先回顶部再回当前位置”不能只用最终 `scrollTop` 判断，它包含两层彼此独立的副作用。
+
+### 第一层：通用 `scrollIntoView` 改变真实滚动位置
+
+活动项初始化 effect 曾依赖每次重建的 `renderedOptions`，拖拽开始或释放时可能重算默认候选；同时，监听 `activeOptionIndex` / `renderedOptions` 的通用 effect 无条件执行 `scrollIntoView({ block: "nearest" })`。两者组合会把滚动容器真实拉向默认候选。
+
+这一层的稳定边界是：
+
+- 活动项初始化 effect 只依赖真正决定默认候选或候选结构的稳定标量：`defaultCandidate?.value`、`draft`、`filteredOptions.length`、`open`；不得重新依赖 `renderedOptions` 数组引用。
+- 不保留监听 `activeOptionIndex` / `renderedOptions` 的通用 `scrollIntoView` effect。活动项状态可因 pointer、drag、筛选或重排变化，但这些变化不应自动解释为键盘导航。
+- 仅在 `ArrowUp` / `ArrowDown` / `Home` / `End` 的键盘分支中，先用 `resolveListboxNavigationIndex(...)` 计算 `nextActiveIndex`，再更新活动项，并对该目标 option 执行 `scrollIntoView({ block: "nearest" })`。
+
+### 第二层：过期 FLIP 基准制造视觉回顶部中间帧
+
+上一轮修复只覆盖了真实 `scrollTop` 变化，没有覆盖视觉动画中间帧。Option 列表滚动不会触发 React render，因此 `previousRowTopsRef` 仍保存滚动前的 `getBoundingClientRect().top`。首次拖拽触发 render 后，FLIP `useLayoutEffect` 用这个过期基准与当前坐标相减，会给整列 option 制造约等于 `scrollTop` 的 `translateY(...)`，再在 `140ms` 内动画回到 `translateY(0)`。用户因此看到列表仿佛先回顶部再回原位，即使实际 `scrollTop` 从始至终没有变化。
+
+当前通过 `syncOptionRowTops()` 维护 FLIP 基准：
+
+- 滚动容器的 `onScroll` 每次滚动时刷新当前各 option row 的 top 坐标。
+- 拖拽 handle 的 `onPointerDown` 在 `handleDragStart(...)` 前再次同步基准，保证首次拖拽 render 使用最新可视位置。
+- `useLayoutEffect` 仍只负责真实列表重排的 FLIP 位移动画；不得用过期的滚动前坐标解释一次拖拽预览。
+
+### 验证合同
+
+正式 Chrome `8787` 长列表实测中，拖拽前容器 `scrollTop = 950`，拖拽释放后仍为 `950`；从 `scrollTop = 800` 按 `Home` 后滚动到约 `12`，活动项为 `damage`。验证期间产生的排序草稿已通过 `Escape` 取消，没有提交为正式数据。
+
+`tests/data-editor.spec.ts` 的 `option field drag keeps the scrolled viewport stable on its first preview frame` 回归用例进一步固定首次预览帧合同：先把长列表滚到 `scrollTop > 500`，再开始第一次拖拽；预览期间 `scrollTop` 必须保持不变，且 option row 的动画 keyframe 中不得出现绝对值 `>= 500px` 的 `translateY(...)`。该定向用例当前为 `1/1` 通过。
+
+后续回归必须同时检查三个维度：拖拽不改变真实滚动位置、首次预览帧不存在约等于滚动量的 FLIP 大位移、方向键与 `Home` / `End` 仍会定向滚动到新活动项。只检查拖拽前后的最终 `scrollTop` 会漏掉第二层视觉回归。

@@ -1410,6 +1410,20 @@ select {
   z-index: 1;
 }
 
+.automation-save-status {
+  align-items: center;
+  background: #ecf9ef;
+  border: 1px solid #b7e4c0;
+  border-radius: 7px;
+  color: #21753b;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: auto;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
 .automation-settings-overview,
 .automation-rule-list {
   display: grid;
@@ -5110,6 +5124,29 @@ th:hover .column-resize-handle,
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   line-height: 1.45;
+}
+
+.detail-entry-action-output {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.detail-entry-action-output summary {
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.detail-entry-action-output pre {
+  margin: 6px 0 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg-default) 86%, transparent);
+  color: inherit;
+  font: inherit;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .detail-entry-action-status--running {

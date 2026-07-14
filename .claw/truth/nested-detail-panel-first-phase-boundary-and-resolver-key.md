@@ -909,6 +909,163 @@ array nested panel 的长期布局已经从“在 secondary 下方继续展开�
 - 布局分层决定 item detail 去向
 - CSS 变量挂载决定 sibling aside 能否稳定读取同一套宽度语义
 
+### 51. Nocturnel 正式数据文件迁移到 `data/content/*.json` 后，registry 的 `sourcePathSuffix` 仍可能因为旧路径精确匹配而在真实 UI 全面 fallback
+
+当前 `NodeEditorHost` / `DetailPanel` 到 resolver 的 `sourcePath`、`collectionPath` 与 `schemaContextValue` 传递链本身可以是完整的，但 `src/detail/node-schema-registry.mjs` 里的 registry 条目仍把这些 nested schema 注册在旧 suffix 上：
+
+- `data/classes.json`
+- `data/affixes.json`
+- `data/affixes_mechanic.json`
+- `data/runes.json`
+- `data/skills.json`
+- `data/traits.json`
+
+而 `resolveNestedNodeSchema(...)` 当前仍用：
+
+- `(sourcePath ?? "").endsWith(candidate.sourcePathSuffix)`
+
+做精确 suffix 命中。
+
+因此一旦 Nocturnel 正式数据文件从 `data/*.json` 迁移到 `data/content/*.json`，即使 registry 单测仍然全部命中、`NodeEditorHost` 也正常把 context 往下传，真实 UI 里的这些已注册 nested schema 仍会统一掉回 fallback。
+
+这条事实的长期含义是：
+
+- 这是 registry `sourcePathSuffix` 与真实 `sourcePath` 漂移导致的 schema 断链
+- 它和 `NodeEditorHost` / context 传递是否正常是两层问题
+- 它和第六批 `tertiary panel` 布局修复无关，不应把 UI fallback 误归因到三级布局或 width 变量
+
+### 52. 当 registry 单测命中但真实 UI 全面 fallback 时，优先对比 `/api/files` 的真实 `sourcePath` 与 registry `sourcePathSuffix`
+
+Nocturnel 这类场景已经证明：如果 `tests/node-schema-registry.test.mjs` 继续通过，但真实 UI 里 `classes / affixes / affixes_mechanic / runes / skills / traits` 的已注册 nested schema 同时全面 fallback，第一排查动作应固定为：
+
+- 先看 `/api/files` 返回给前端的真实 `sourcePath`
+- 再看 `src/detail/node-schema-registry.mjs` 里对应条目的 `sourcePathSuffix`
+- 不要先把问题归因到 `NodeEditorHost`、`schemaContextValue`、`nestedStack` 或 tertiary layout
+
+这条排查规则的长期目标是快速区分两类常见断链：
+
+- 单测与 UI 同时不命中：优先看 registry 条目本身、resolver key 或 discriminator 规则
+- 单测命中但 UI 全面 fallback：优先看真实文件路径与 `sourcePathSuffix` 是否已经漂移
+
+### 53. 产品层修复应直接对齐正式路径，不保留旧 `data/*.json` 兼容
+
+对当前 Nocturnel 正式数据源，这类 registry 断链的产品层修复方向已经固定为：
+
+- 以当前正式 `/api/files` 暴露出来的 `data/content/*.json` 路径为真值
+- 直接修正 registry 的正式 `sourcePathSuffix`
+- 不为旧 `data/*.json` 保留长期双路径兼容
+
+这条边界和本项目其余 nested 重构原则一致：当前产品已经切到的新正式路径就是唯一真值，不为了历史路径继续维持隐式 fallback 或双轨兼容。
+
+### 54. 上述路径迁移修复已经正式落地到六类 registry entry，并统一切到 `data/content/*.json`
+
+当前 `src/detail/node-schema-registry.mjs` 中这六类 nested schema registry entry 已经统一改到正式路径：
+
+- `classes`
+- `affixes`
+- `affixes_mechanic`
+- `runes`
+- `skills`
+- `traits`
+
+对应的 `sourcePathSuffix` 现在统一使用：
+
+- `data/content/classes.json`
+- `data/content/affixes.json`
+- `data/content/affixes_mechanic.json`
+- `data/content/runes.json`
+- `data/content/skills.json`
+- `data/content/traits.json`
+
+这意味着前一条里定义的“产品层直接对齐正式路径”已经不再只是修复方向，而是当前代码库里的正式现状；产品层没有保留旧 `data/*.json` 的长期兼容分支。
+
+### 55. resolver 单测合同已经随正式路径同步扩到六类真实 `data/content` 路径，并提升为 7/7
+
+`tests/node-schema-registry.test.mjs` 现在新增并固定覆盖六类真实路径样本：
+
+- `data/content/classes.json`
+- `data/content/affixes.json`
+- `data/content/affixes_mechanic.json`
+- `data/content/runes.json`
+- `data/content/skills.json`
+- `data/content/traits.json`
+
+这条单测合同的长期含义是：
+
+- registry 命中真值不再只基于历史 `data/*.json` fixture
+- Nocturnel 的正式 `data/content` 路径已经进入 resolver 最小单测面
+- 当前 resolver 单测通过结果已经更新为 `7/7`
+
+### 56. schema 相关 fixture 与 Playwright 主验证面已切到 Nocturnel 的真实路径镜像
+
+`tests/fixtures/make-scratch-root.mjs` 的正式数据来源已经切到：
+
+- Nocturnel `data/content`
+- Nocturnel `data/rules`
+
+它现在会从这些真实源数据生成 scratch 下的 `data/content` schema 编辑镜像；其中 `keywords.json` 继续从 `data/rules` 复制进入 fixture。
+
+与之配套，schema 相关 Playwright 用例也已经改走这套真实路径镜像，而不是继续依赖旧 `data/*.json` 样本路径。
+
+当前这组实现完成后的最小验证事实可以固定为：
+
+- `node --test tests/node-schema-registry.test.mjs` 通过 `7/7`
+- `tests/fixtures/make-scratch-root.mjs` fixture 生成成功
+
+这条事实的长期含义是：
+
+- unit / fixture / Playwright 三层验证面已经共同对齐 Nocturnel 当前正式数据路径
+- 后续再做 schema 相关回归时，不应把旧 `data/*.json` fixture 当成产品真值
+- 如果真实 UI、fixture 与 resolver 再次出现分裂，优先检查这三层是否仍共同指向同一套 `data/content` 路径镜像
+
+### 57. 当前这轮 registry 路径修复的定向验证矩阵已经收口为 unit 7/7 + Playwright 六项 + build 通过
+
+本轮最终固定下来的最小完成态验证矩阵是：
+
+- `node --test tests/node-schema-registry.test.mjs` 通过 `7/7`
+- 定向 Playwright 六项最终全部通过
+- `npm run build` 成功
+
+其中已明确跑通的六项 Playwright 能力面是：
+
+- 对象 fixed schema
+- `skills` 多态递归
+- `runes` 父级 discriminator
+- `affixes_mechanic` 子对象
+- unsupported fallback
+- 单对象不重复 tertiary
+
+这条验证面的长期含义是：
+
+- 这轮回归已经不只证明 resolver 命中，还证明真实 nested host、fallback 分流和 tertiary 呈现边界同时成立
+- 后续若再出现类似“单测通过但 UI 表现异常”，应优先复用这组六项定向 Playwright 作为最小 UI 回归面
+
+### 58. 正式 `http://127.0.0.1:8787/` 上的 Nocturnel 真实 UI 已恢复 `classes.starting_stats` 的 schema-driven 编辑
+
+当前在正式服务 `http://127.0.0.1:8787/` 上，对真实 Nocturnel `data/content/classes.json` 的验收结果已经固定为：
+
+- 点击 `starting_stats` 后显示 `5 fields`
+- 可见 `max_hp` 等正式编辑输入
+- 不再出现 `Schema fallback`
+
+这条事实说明：
+
+- registry `sourcePathSuffix` 切换到 `data/content/*.json` 后，真实 `/api/files` 路径与 nested schema registry 已重新对齐
+- 这次修复已经在正式服务和真实产品数据面上被验证，不只是 fixture 或测试环境内成立
+
+### 59. `npm run typecheck` 当前阻塞点是工作树既有 `src/App.tsx:3926 projectId`，不应归因到本次 registry 修改
+
+当前 `npm run typecheck` 仍未通过，但这轮验收已经确认阻塞点集中在：
+
+- `src/App.tsx:3926`
+- 未定义 `projectId`
+
+因此对本轮 registry 路径修复的长期归因边界应固定为：
+
+- `typecheck` 阻塞来自当前工作树既有问题
+- 它不是 `src/detail/node-schema-registry.mjs` 这次正式路径切换的负向证据
+- 对这条功能线的完成态验收，仍应优先认 `unit 7/7 + 定向 Playwright 六项 + build + 正式 UI 实测`
+
 ## 长期行为 / 规则
 
 - “完整 nested 编辑”在本轮只指向右侧 nested detail 主路径升级，不等于全量字段系统重构。
@@ -945,6 +1102,14 @@ array nested panel 的长期布局已经从“在 secondary 下方继续展开�
 - 当前最小回归面是 `tests/node-schema-registry.test.mjs` + object node / object array / table nested cell 的 targeted Playwright + build。
 - `npm run typecheck` 目前仍被仓库既有错误阻塞，不应直接归因到这轮 nested schema / host 改造。
 - `defaultTypeFor(value)` 的旧值推断清理范围只限 nested secondary panel，不扩散到 primary detail。
+- Nocturnel 正式数据文件已经从 `data/*.json` 迁移到 `data/content/*.json`；如果 `src/detail/node-schema-registry.mjs` 仍用旧 `sourcePathSuffix`，已注册 schema 会在真实 UI 统一 fallback，即使单测和 context 传递都正常。
+- 当 registry 单测命中但真实 UI 的已注册 nested schema 全面 fallback 时，先对比 `/api/files` 的真实 `sourcePath` 与 registry `sourcePathSuffix`，不要先怀疑 tertiary layout 或 `NodeEditorHost` context。
+- 这类路径迁移问题的产品层修复应直接对齐正式 `data/content/*.json` 路径，不保留旧 `data/*.json` 兼容；当前六类 registry entry 已经完成这次切换。
+- `tests/node-schema-registry.test.mjs` 的最小 resolver 合同现在应覆盖六类真实 `data/content` 路径，当前通过结果为 `7/7`。
+- `tests/fixtures/make-scratch-root.mjs` 应继续从 Nocturnel `data/content` 和 `data/rules` 生成 scratch 镜像，schema 相关 Playwright 用例也应继续消费这套真实路径镜像。
+- 这轮 registry 路径修复的最小完成态验证矩阵已经固定为：resolver 单测 `7/7`、定向 Playwright 六项全部通过、`npm run build` 成功。
+- 正式 `http://127.0.0.1:8787/` 上的真实 Nocturnel `data/content/classes.json -> starting_stats` 已恢复 schema-driven 编辑，验收标志是显示 `5 fields`、出现 `max_hp` 等输入、且不再出现 `Schema fallback`。
+- `npm run typecheck` 当前若仍被 `src/App.tsx:3926` 的未定义 `projectId` 阻塞，应继续视为工作树既有问题，而不是本次 registry 修改的回归证据。
 - 这条 truth 记录的是长期边界和已落地的 schema / resolver 真值，不是阶段进度日志。
 
 ## 关联文档
@@ -1002,3 +1167,13 @@ array nested panel 的长期布局已经从“在 secondary 下方继续展开�
 - `rootField`
 - `nestedPath`
 - `discriminator`
+- `sourcePathSuffix`
+- `endsWith`
+- `/api/files`
+- `data/content`
+- `data/rules`
+- `make-scratch-root`
+- `7/7`
+- `starting_stats`
+- `Schema fallback`
+- `projectId`

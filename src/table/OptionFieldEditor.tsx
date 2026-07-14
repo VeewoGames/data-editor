@@ -255,16 +255,19 @@ export function OptionFieldEditor({
     [filteredOptions, mode, selectedValues],
   );
 
+  function syncOptionRowTops() {
+    const nextRowTops: Record<string, number> = {};
+    for (const option of renderedOptions) {
+      const row = optionRowRefs.current[option.value];
+      if (row) nextRowTops[option.value] = row.getBoundingClientRect().top;
+    }
+    previousRowTopsRef.current = nextRowTops;
+  }
+
   useEffect(() => {
     const preferredIndex = renderedOptions.findIndex((option) => option.value === defaultCandidate?.value);
     setActiveOptionIndex(preferredIndex >= 0 ? preferredIndex : (renderedOptions.length ? 0 : -1));
-  }, [defaultCandidate?.value, draft, open, renderedOptions]);
-
-  useEffect(() => {
-    if (activeOptionIndex < 0) return;
-    const option = renderedOptions[activeOptionIndex];
-    optionRowRefs.current[option?.value]?.scrollIntoView({ block: "nearest" });
-  }, [activeOptionIndex, renderedOptions]);
+  }, [defaultCandidate?.value, draft, filteredOptions.length, open]);
 
   useLayoutEffect(() => {
     const nextRowTops: Record<string, number> = {};
@@ -590,11 +593,14 @@ export function OptionFieldEditor({
               onKeyDown={(event) => {
                 if (isListboxNavigationKey(event.key)) {
                   event.preventDefault();
-                  setActiveOptionIndex(resolveListboxNavigationIndex({
+                  const nextActiveIndex = resolveListboxNavigationIndex({
                     currentIndex: activeOptionIndex,
                     itemCount: renderedOptions.length,
                     key: event.key,
-                  }));
+                  });
+                  setActiveOptionIndex(nextActiveIndex);
+                  const nextOption = renderedOptions[nextActiveIndex];
+                  optionRowRefs.current[nextOption?.value]?.scrollIntoView({ block: "nearest" });
                   return;
                 }
                 if (event.key === "Enter") {
@@ -626,7 +632,7 @@ export function OptionFieldEditor({
               value={draft}
             />
           </div>
-          <div className="multi-select-options option-field-popover-section option-field-popover-section-scroll" id={`option-list-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}`} role="listbox" aria-multiselectable={mode === "multi"} onPointerMove={handleOptionPointerMove}>
+          <div className="multi-select-options option-field-popover-section option-field-popover-section-scroll" id={`option-list-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}`} role="listbox" aria-multiselectable={mode === "multi"} onPointerMove={handleOptionPointerMove} onScroll={syncOptionRowTops}>
             {renderedOptions.map((option, index) => {
               const selected = selectedValues.some((item) => String(item) === option.value);
               const row = (
@@ -643,6 +649,7 @@ export function OptionFieldEditor({
                     className="option-drag-handle"
                     onPointerDown={(event) => {
                       event.preventDefault();
+                      syncOptionRowTops();
                       handleDragStart(option.value, event);
                     }}
                     type="button"

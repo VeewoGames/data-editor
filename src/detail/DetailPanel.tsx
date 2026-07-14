@@ -66,6 +66,7 @@ export type DetailSnapshot = {
     tone: "running" | "success" | "warning" | "error";
     title: string;
     detail: string | null;
+    output?: string | null;
   } | null;
 };
 
@@ -521,6 +522,12 @@ export function DetailPanel({
               <div className={`detail-entry-action-status detail-entry-action-status--${entryActionStatus.tone}`}>
                 <strong>{entryActionStatus.title}</strong>
                 {entryActionStatus.detail ? <span>{entryActionStatus.detail}</span> : null}
+                {entryActionStatus.output ? (
+                  <details className="detail-entry-action-output">
+                    <summary>查看执行输出</summary>
+                    <pre>{entryActionStatus.output}</pre>
+                  </details>
+                ) : null}
               </div>
             ) : entryActionErrorMessage ? <div className="panel-subtitle">{entryActionErrorMessage}</div> : null}
           </div>

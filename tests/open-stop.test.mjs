@@ -13,7 +13,7 @@ import { promisify } from "node:util";
 import { loadControllerState, loadRecoveryBridgeState, loadServiceState, saveServiceState } from "../src/runtime-state.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
 import { runtimeHome } from "../src/project-registry.mjs";
-import { openService } from "../open.mjs";
+import { hasSameRecoveryBridgeConfig, openService } from "../open.mjs";
 import { startMainService } from "../service-lifecycle.mjs";
 import { postControllerStopRequest, runBuildCommand } from "../server.mjs";
 import {
@@ -33,6 +33,31 @@ const serviceFinalizeScriptPath = path.join(repoRoot, "scripts", "service-finali
 const projectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(repoRoot, "..", "Nocturnel"));
 const execFileAsync = promisify(execFile);
 const activeOpenToolRoots = new Set();
+
+test("recovery bridge configuration includes the project root", () => {
+  const requested = {
+    bridgePort: 8791,
+    port: 8787,
+    mode: "static",
+    adapterId: "nocturnel",
+    registryHome: path.resolve("C:/Users/lans/AppData/Roaming/data-editor"),
+    projectRoot: path.resolve("C:/Code/Nocturnel"),
+  };
+  const state = {
+    port: 8791,
+    servicePort: 8787,
+    serviceMode: "static",
+    adapterId: "nocturnel",
+    registryHome: requested.registryHome,
+    projectRoot: requested.projectRoot,
+  };
+
+  assert.equal(hasSameRecoveryBridgeConfig(state, requested), true);
+  assert.equal(hasSameRecoveryBridgeConfig({
+    ...state,
+    projectRoot: path.resolve("C:/Code/Nocturnel/tools/Nocturnel"),
+  }, requested), false);
+});
 
 async function makeToolRoot(t) {
   const toolRoot = await mkdtemp(path.join(os.tmpdir(), "data-editor-stop-"));

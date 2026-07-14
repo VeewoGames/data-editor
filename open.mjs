@@ -62,12 +62,7 @@ export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
       if (!processInfo) {
         await clearRecoveryBridgeStateImpl(stateTarget);
       } else if (matchesRecoveryBridgeIdentity(processInfo, state)) {
-        const sameConfig =
-          Number(state.port) === requested.bridgePort &&
-          Number(state.servicePort) === requested.port &&
-          String(state.serviceMode ?? "static") === requested.mode &&
-          String(state.adapterId ?? "nocturnel") === requested.adapterId &&
-          path.resolve(String(state.registryHome ?? "")) === requested.registryHome;
+        const sameConfig = hasSameRecoveryBridgeConfig(state, requested);
         if (sameConfig) {
           await waitForBridgeReadyImpl(requested.bridgePort);
           return { message: `Recovery bridge is running at http://127.0.0.1:${requested.bridgePort}/` };
@@ -114,6 +109,15 @@ export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
   );
   await waitForBridgeReadyImpl(requested.bridgePort);
   return { message: `Recovery bridge is running at http://127.0.0.1:${requested.bridgePort}/` };
+}
+
+export function hasSameRecoveryBridgeConfig(state, requested) {
+  return Number(state.port) === requested.bridgePort &&
+    Number(state.servicePort) === requested.port &&
+    String(state.serviceMode ?? "static") === requested.mode &&
+    String(state.adapterId ?? "nocturnel") === requested.adapterId &&
+    path.resolve(String(state.registryHome ?? "")) === requested.registryHome &&
+    path.resolve(String(state.projectRoot ?? "")) === requested.projectRoot;
 }
 
 export async function postControllerJson(port, requestPath, body, timeoutMs = 15000) {

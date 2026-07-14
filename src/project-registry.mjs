@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 
 const registryVersion = 1;
 const validIdPattern = /^[a-z0-9_-]+$/;
@@ -49,6 +49,7 @@ export async function addOrActivateProject(input, options = {}) {
   const registry = await loadProjectRegistry(options);
   const root = path.resolve(input.root ?? input.projectRoot ?? process.cwd());
   if (isFilesystemRoot(root)) throw new Error(`Project root cannot be a filesystem root: ${root}`);
+  await assertProjectRootDirectory(root);
   const existing = registry.projects.find((project) => samePath(project.root, root));
   if (existing) {
     registry.activeProjectId = existing.id;
@@ -111,6 +112,16 @@ function normalizeProjectDefinition(value) {
       includeExtensions: normalizeIncludeExtensions(value?.filePolicy?.includeExtensions),
     },
   };
+}
+
+async function assertProjectRootDirectory(root) {
+  try {
+    const info = await stat(root);
+    if (!info.isDirectory()) throw new Error(`Project root is not a directory: ${root}`);
+  } catch (error) {
+    if (error?.code === "ENOENT") throw new Error(`Project root does not exist: ${root}`);
+    throw error;
+  }
 }
 
 function normalizeDataSources(value) {

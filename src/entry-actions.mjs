@@ -110,6 +110,10 @@ export function entryActionResultPath(projectContextOrRoot, runId) {
   return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.result.json`);
 }
 
+export function entryActionOutputPath(projectContextOrRoot, runId) {
+  return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.reply.md`);
+}
+
 export async function writeEntryActionHandoff(projectContextOrRoot, runId, payload) {
   const targetPath = entryActionHandoffPath(projectContextOrRoot, runId);
   await mkdir(path.dirname(targetPath), { recursive: true });

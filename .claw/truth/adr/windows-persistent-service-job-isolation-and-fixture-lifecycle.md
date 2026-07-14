@@ -33,12 +33,20 @@ Data Editor 的正式后台服务由 `recovery-bridge.mjs` 监督主服务。旧
 
 测试收尾不能依赖 test runner 退出、宿主 Job 关闭或临时目录删除来隐式回收持久服务。
 
+### 4. bridge 复用与冲突清理必须校验完整运行身份
+
+recovery bridge 的“同配置”判断必须包含 `projectRoot`，并与 bridge port、service port、mode、adapter 和 `registryHome` 一起比较。端口与 adapter 相同但项目根不同的 bridge 不能被静默复用，否则后续恢复会继续把主服务绑定到错误项目。
+
+当 controller state 记录的 service PID 与 `8787` 实际监听 PID 冲突时，runtime state 不能单独作为清理依据。必须以实际监听 PID 为起点读取完整命令行，确认其 data-editor 服务身份和参数后精确停止孤儿进程，再由 recovery bridge 恢复受管服务；不得仅凭端口占用或陈旧 state 扩大清理范围。
+
 ## alternatives considered
 
 - 继续使用 Windows Node `detached + unref`：不能跨越调用方外部 Job 的 kill-on-close 边界，已被否决。
 - 用定时重启恢复被回收服务：只掩盖退出结果，不能修正生命周期归属，已被否决。
 - 要求 `IsProcessInJob=false` 或强制 `CREATE_BREAKAWAY_FROM_JOB`：约束了错误的系统级表象，且不是已验证修复成立的必要条件，已被否决。
 - fixture 无条件 stop：会让未启动服务的测试承担不必要的 Windows CIM 扫描成本，已被否决。
+- bridge 复用时忽略 `projectRoot`：会把同端口、同 adapter 但项目绑定不同的实例误判为同配置，已被否决。
+- controller state 与监听 PID 冲突时只信任其中一方：不能同时证明进程归属与实时占用，已被否决。
 
 ## related code
 
@@ -57,8 +65,10 @@ Data Editor 的正式后台服务由 `recovery-bridge.mjs` 监督主服务。旧
 - 跨平台差异只存在于持久进程创建适配层；状态、身份、停止与恢复协议保持统一。
 - Windows 生命周期验证必须证明“调用方 kill-on-close Job 关闭后双端口仍健康”，不能用普通父命令退出或单纯端口监听代替。
 - 持久进程正确存活后，测试必须显式承担资源所有权；新增 open helper 时必须同步接入 active root 跟踪与正式 stop 收尾。
+- bridge 配置身份包含 `projectRoot`；切换项目根时必须启动匹配的新监督链，不能沿用旧绑定。
+- 状态与实际监听冲突的恢复流程必须先完成监听 PID 的完整命令行身份校验，再执行精确清理和受管恢复。
 - 后续若更换 Windows broker、创建 flags 或监督链，必须重新验证调用方 Job 隔离、双端口健康、无可见窗口及 `stop` / `service:finalize` 合同。
 
 ## search terms
 
-`spawnPersistentProcess`、`Win32_Process.Create`、`WmiPrvSE.exe`、`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`、`IsProcessInJob`、`CREATE_BREAKAWAY_FROM_JOB`、`activeOpenToolRoots`、`attach: true`、`detached: true`、`8787`、`8791`、`service:finalize`、`windowsHide`
+`spawnPersistentProcess`、`Win32_Process.Create`、`WmiPrvSE.exe`、`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`、`IsProcessInJob`、`CREATE_BREAKAWAY_FROM_JOB`、`activeOpenToolRoots`、`hasSameRecoveryBridgeConfig`、`projectRoot`、`controller state`、`listening PID`、`commandLine`、`attach: true`、`detached: true`、`8787`、`8791`、`service:finalize`、`windowsHide`

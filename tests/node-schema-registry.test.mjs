@@ -2,9 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolveNestedNodeSchema } from "../src/detail/node-schema-registry.mjs";
 
+test("resolves every registered schema family from current Nocturnel content paths", () => {
+  const cases = [
+    { sourcePath: "data/content/classes.json", collectionPath: "$", rootField: "starting_stats", nestedPath: [], value: {} },
+    { sourcePath: "data/content/affixes.json", collectionPath: "affixes", rootField: "value_model", nestedPath: [], value: {} },
+    { sourcePath: "data/content/affixes_mechanic.json", collectionPath: "$", rootField: "effect_spec", nestedPath: [], value: {} },
+    { sourcePath: "data/content/runes.json", collectionPath: "$", rootField: "effects", nestedPath: [0], value: { effect_type: "trigger_on_cast" } },
+    { sourcePath: "data/content/traits.json", collectionPath: "traits", rootField: "effects", nestedPath: [0], value: { type: "mechanic" } },
+  ];
+
+  for (const input of cases) {
+    const result = resolveNestedNodeSchema(input);
+    assert.equal(result.kind, "supported", `${input.sourcePath}:${input.rootField} should resolve`);
+  }
+});
+
 test("resolves fixed object schema for classes.starting_equipments", () => {
   const result = resolveNestedNodeSchema({
-    sourcePath: "data/classes.json",
+    sourcePath: "data/content/classes.json",
     collectionPath: "$",
     rootField: "starting_equipments",
     nestedPath: [],
@@ -36,7 +51,7 @@ test("resolves fixed object schema for classes.starting_equipments", () => {
 
 test("resolves discriminated rune params schema by effect_type", () => {
   const result = resolveNestedNodeSchema({
-    sourcePath: "data/runes.json",
+    sourcePath: "data/content/runes.json",
     collectionPath: "$",
     rootField: "effects",
     nestedPath: [0, "params"],
@@ -66,9 +81,9 @@ test("resolves discriminated rune params schema by effect_type", () => {
   ]);
 });
 
-test("resolves discriminated recursive skills node schema by type", () => {
+test("static registry does not provide a fallback for skill nodes", () => {
   const result = resolveNestedNodeSchema({
-    sourcePath: "data/skills.json",
+    sourcePath: "data/content/skills.json",
     collectionPath: "skills",
     rootField: "nodes",
     nestedPath: [0],
@@ -81,48 +96,13 @@ test("resolves discriminated recursive skills node schema by type", () => {
     },
   });
 
-  assert.equal(result.kind, "supported");
-  assert.equal(result.schema.title, "skills.condition");
-  assert.deepEqual(result.schema.fields.map((field) => field.fieldName), [
-    "condition_type",
-    "threshold",
-    "then_nodes",
-    "else_nodes",
-  ]);
-});
-
-test("resolves recursive child skills node path under then_nodes", () => {
-  const result = resolveNestedNodeSchema({
-    sourcePath: "data/skills.json",
-    collectionPath: "skills",
-    rootField: "nodes",
-    nestedPath: [0, "then_nodes", 0],
-    value: {
-      type: "damage",
-      base_damage: 25,
-      damage_type: "physical",
-    },
-  });
-
-  assert.equal(result.kind, "supported");
-  assert.equal(result.currentDiscriminator, "damage");
-  assert.deepEqual(result.schema.fields.map((field) => field.fieldName), [
-    "base_damage",
-    "damage_type",
-    "element",
-    "scaling_type",
-    "sp_ratio",
-    "ad_ratio",
-    "hit_count",
-    "damage_range_max",
-    "damage_range_min",
-    "runtime_todo",
-  ]);
+  assert.equal(result.kind, "unsupported");
+  assert.match(result.reason, /No registered schema/);
 });
 
 test("resolves rune params schema from parent effect context", () => {
   const result = resolveNestedNodeSchema({
-    sourcePath: "data/runes.json",
+    sourcePath: "data/content/runes.json",
     collectionPath: "$",
     rootField: "effects",
     nestedPath: [0, "params"],

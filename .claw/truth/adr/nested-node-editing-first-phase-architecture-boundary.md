@@ -14,6 +14,7 @@ status: accepted
 - `.claw/archive/tasks/实现嵌套节点编辑第一批可见能力/plan.json`
 - `.claw/archive/tasks/实现嵌套节点多态与递归节点接入/plan.json`
 - `.claw/archive/tasks/清理嵌套节点旧值推断路径并完成最终回归/plan.json`
+- `.claw/tasks/修复嵌套结构统一落入-Schema-fallback-的回归/plan.json`
 
 已存在的 planning / closeout truth 已确认以下事实已经成为稳定真值：
 
@@ -32,6 +33,7 @@ status: accepted
 - unsupported nested object / array 的长期语义已经固定为只读 fallback，不再提供 legacy 表单编辑
 - 最终 nested matrix 已切到 schema-driven node 主链 + 独立 fallback 短用例，不再依赖 mixed 长用例的旧编辑语义
 - unsupported object node 不再伪装成可完整编辑，而是进入受控只读 fallback
+- Nocturnel nested schema registry 对 `sourcePath` 仍采用精确匹配；当正式数据文件迁移到 `data/content/*.json` 后，旧 `data/*.json` 注册即使还能让旧 fixture 命中，也会让真实 UI 中已注册路径整体退回 `Schema fallback`
 
 ## decision
 
@@ -64,7 +66,27 @@ resolver 的稳定 lookup 语义固定为：
 
 其中 numeric nested segment 必须统一归一化为 `[]`。数组下标不是 schema 真值的一部分，因此 `effects[0].params` 与 `effects[3].params` 必须命中同一条 registry 记录。
 
-### 4. `DetailPanel.nestedStack` 继续作为唯一 nested 导航真值
+### 4. registry 的 `sourcePath` 真值必须跟随当前正式数据路径，不保留旧路径兼容注册
+
+当外部数据目录迁移导致正式文件路径变化时，nested schema registry 的 `sourcePath` / `sourcePathSuffix` 必须直接切到当前真实路径，例如 Nocturnel 已切换到 `data/content/*.json` 后，就不再继续保留旧 `data/*.json` 兼容注册作为正式真值。
+
+这条 contract 的含义是：
+
+- registry 的路径身份以当前产品真实文件路径为准
+- 旧路径 fixture 或历史兼容命中不能代表真实 UI 正常
+- 若真实 UI 已统一落入 `Schema fallback`，优先检查 registry 的 `sourcePath` 是否仍停留在历史路径
+
+### 5. 外部数据目录迁移时，必须同步更新真实路径测试与 registry 对照排查
+
+只更新单测或只更新 registry 其中一侧都不够。凡是发生 source file 迁移，都必须同时完成：
+
+- `sourcePathSuffix` 注册更新到真实路径
+- 基于真实路径的 resolver 合同测试更新
+- 真实 UI / `/api/files` 返回路径与 registry 对照排查
+
+当“旧测试仍通过，但真实 UI 全面 fallback”同时出现时，这应被视为优先级最高的 registry 身份错位信号，而不是继续怀疑 `DetailPanel`、`nestedStack`、`NodeEditorHost` 或 tertiary 布局链路。
+
+### 6. `DetailPanel.nestedStack` 继续作为唯一 nested 导航真值
 
 第一阶段不引入第二套 nested 导航状态机。`NodeEditorHost` 及后续 node-driven 分层必须消费既有：
 
@@ -73,7 +95,7 @@ resolver 的稳定 lookup 语义固定为：
 
 不得绕开这套导航真值，在 host 或 resolver 层并行维护另一套 nested 状态。
 
-### 5. fixed object node 的 secondary panel 正式宿主切到 `NodeEditorHost`
+### 7. fixed object node 的 secondary panel 正式宿主切到 `NodeEditorHost`
 
 fixed-schema object node 的 nested secondary panel 主路径正式固定为：
 
@@ -81,7 +103,7 @@ fixed-schema object node 的 nested secondary panel 主路径正式固定为：
 
 这意味着旧 `NestedObjectPanel` object 主路径不再作为长期双轨保留，后续 object-node 能力扩展默认在 `NodeEditorHost` 下继续推进。
 
-### 6. fixed object node 的第一批正式可见能力固定为 summary、默认值恢复与 schema placeholder
+### 8. fixed object node 的第一批正式可见能力固定为 summary、默认值恢复与 schema placeholder
 
 fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力已经固定为：
 
@@ -97,7 +119,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 都当成 schema 真值的一部分维护，而不是在渲染层补散落特判。
 
-### 7. nested 叶子字段必须复用现有 editor，并通过 path 级 adapter 写回
+### 9. nested 叶子字段必须复用现有 editor，并通过 path 级 adapter 写回
 
 第一阶段已经固定的复用边界是：
 
@@ -107,7 +129,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 后续新增 nested 叶子字段能力时，默认方向是扩展 path 级 adapter，而不是回退到顶层字段 draft 模型或重造专用控件。
 
-### 8. object array 节点的正式基础操作固定为新增、复制、上移、下移、删除
+### 10. object array 节点的正式基础操作固定为新增、复制、上移、下移、删除
 
 第一批可见能力已经把 object array 节点操作固定为：
 
@@ -125,7 +147,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 不得为 object array 再引入独立保存模型、局部草稿缓存或第二套节点状态。
 
-### 9. discriminated schema 切换继续放在 `NodeEditorHost` 内，并按 variant `defaultValue` 完整重建节点
+### 11. discriminated schema 切换继续放在 `NodeEditorHost` 内，并按 variant `defaultValue` 完整重建节点
 
 第四阶段接入后，多态节点的正式切换边界已经固定为：
 
@@ -135,7 +157,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 这意味着类型切换不是在旧值上做局部修补，也不保留旧变体脏字段；默认 contract 就是“按目标 schema 重建当前节点”。
 
-### 10. `runes.effects[].params` 的 discriminator 通过父级 schema context 继承，不在 `params` 层本地持有 `effect_type`
+### 12. `runes.effects[].params` 的 discriminator 通过父级 schema context 继承，不在 `params` 层本地持有 `effect_type`
 
 `runes.effects[].params` 的正式 discriminator 仍然是：
 
@@ -149,7 +171,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 因此 `params` 节点本身不需要再额外保存或镜像一份 `effect_type`。后续如果这条链路断掉，应优先排查 context 传递，而不是回退到在 `params` 对象里补本地 discriminator 字段。
 
-### 11. `skills` 递归子节点通过 recursive path pattern 继续命中同一套 discriminated schema
+### 13. `skills` 递归子节点通过 recursive path pattern 继续命中同一套 discriminated schema
 
 `skills.nodes[]` 的递归接入已经固定为：
 
@@ -163,7 +185,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 - 递归命中依赖 path pattern / recursive path，而不是临时复制平面 path 规则
 - 子数组新增默认项使用目标 collection item 的默认 variant，不继承父节点当前 discriminator
 
-### 12. collection item 命中 schema 时进入 embedded `NodeEditorHost`，未命中继续 fallback / legacy
+### 14. collection item 命中 schema 时进入 embedded `NodeEditorHost`，未命中继续 fallback / legacy
 
 当前 secondary panel collection item 的正式承接边界已经固定为：
 
@@ -172,7 +194,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 这条边界把“schema-driven item”与“legacy item”收口在同一个 collection panel 中，而不是为 collection item 再另起独立编辑器。
 
-### 13. secondary panel collection item 的 legacy 内容层已经退出正式 nested 主路径
+### 15. secondary panel collection item 的 legacy 内容层已经退出正式 nested 主路径
 
 第五阶段收口后，secondary panel collection item 的长期边界已经进一步固定为：
 
@@ -182,7 +204,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 仍然保留的 legacy 内容层只用于 primitive 安全结构的最小编辑，不再代表 nested complex structure 的正式编辑能力。
 
-### 14. `NestedEditor.tsx` 已从 secondary panel 主路径移除
+### 16. `NestedEditor.tsx` 已从 secondary panel 主路径移除
 
 第五阶段的正式清理点已经固定为：
 
@@ -191,7 +213,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 其中 `NestedEditor.tsx` 已不再是 secondary panel 主路径的一部分。后续若继续排查 nested detail 主链，不应再把它当作行为真值或扩展入口。
 
-### 15. unsupported nested object / array 的正式长期语义已经固定为只读 fallback
+### 17. unsupported nested object / array 的正式长期语义已经固定为只读 fallback
 
 当前 unsupported nested object / array 的正式语义是：
 
@@ -202,7 +224,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 这条 contract 同时适用于 object node 与 collection item，不再区分“暂时没 schema，但还能先按值编辑”的过渡语义。
 
-### 16. 最终 nested matrix 以 schema-driven node 主链 + 独立 fallback 短用例为准
+### 18. 最终 nested matrix 以 schema-driven node 主链 + 独立 fallback 短用例为准
 
 第五阶段后，最终 nested 回归矩阵的长期验证边界已经固定为：
 
@@ -212,7 +234,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 这意味着未来如果继续调整 nested host / fallback，应继续维持“正式能力”和“unsupported 结构”分层验证，而不是重新把两类语义混回一条 mixed 长链路。
 
-### 17. 第四阶段已进入多态 / 递归节点接入，但仍只限 nested secondary panel 主路径
+### 19. 第四阶段已进入多态 / 递归节点接入，但仍只限 nested secondary panel 主路径
 
 当前已接受的推进顺序已经从基础节点层推进到多态 / 递归节点接入，但约束没有改变：
 
@@ -222,13 +244,14 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 
 因此这轮新增的多态切换、父级 context、recursive path 和 embedded host，不应被误读成可以脱离当前 secondary panel 主链另起新状态机或新编辑表面。
 
-### 18. unsupported object node 统一进入只读 fallback
+### 20. unsupported object node 统一进入只读 fallback
 
 未注册 path、未命中 discriminator variant，或当前 object node 不在正式 schema 覆盖面内时，统一进入受控只读 fallback，而不是继续走旧值推断形成“看起来还能完整编辑”的伪能力。
 
 ## alternatives considered
 
 - 把 schema 规则继续散落在组件层：会让 nested path 扩展继续依赖零散分支，无法维持稳定命中合同，因此不接受。
+- 为已迁移的数据文件继续保留旧 `data/*.json` 兼容注册：会制造“旧测试通过、真实 UI fallback”的假阳性，因此不接受。
 - 为新框架另建第二套 nested 导航状态：会与 `DetailPanel.nestedStack` 并行竞争，不符合当前 secondary panel 导航真值，因此不接受。
 - 继续保留旧 `NestedObjectPanel` 与 `NodeEditorHost` 双轨：会让 object-node 主路径长期分叉，不利于后续扩展，因此不接受。
 - 为 nested relation/select 单独实现简化控件：会复制既有业务编辑语义，不符合本轮复用边界，因此不接受。
@@ -242,6 +265,7 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 - `tests/data-editor.spec.ts`
 - `tests/node-schema-registry.test.mjs`
 - `.claw/truth/nested-detail-panel-first-phase-boundary-and-resolver-key.md`
+- `.claw/tasks/修复嵌套结构统一落入-Schema-fallback-的回归/plan.json`
 - `.claw/archive/tasks/实现嵌套节点完整编辑第一阶段与基础底座/plan.json`
 - `.claw/archive/tasks/实现嵌套节点编辑第一批可见能力/plan.json`
 - `.claw/archive/tasks/实现嵌套节点多态与递归节点接入/plan.json`
@@ -250,6 +274,8 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 ## consequences
 
 - 后续 nested node 支持扩展时，优先改 registry/resolver 与 `NodeEditorHost`，而不是回退到组件内联 path 判断。
+- 当 source file 发生迁移时，registry `sourcePath` 与真实路径测试必须同步更新；不再接受“保留旧路径兼容注册”来维持假通过。
+- 若真实 UI 已统一落入 `Schema fallback`，排查顺序应先对比 `/api/files` 与 registry 的路径身份，再怀疑 UI 宿主链路。
 - object-node secondary panel 的长期宿主已经统一，避免 `NestedObjectPanel`/`NodeEditorHost` 双轨并存。
 - nested 导航真值继续集中在 `DetailPanel.nestedStack`，后续功能扩展必须遵守现有导航合同。
 - fixed object node 的 summary、默认值恢复和 schema placeholder 已经成为正式能力面；后续若继续扩 object node，不应回退到“只有字段列表”的弱节点 UI。
@@ -272,6 +298,10 @@ fixed-schema object node 在 `NodeEditorHost` 下的第一批正式可见能力�
 - `NodeEditorHost`
 - `nestedStack`
 - `sourcePath`
+- `sourcePathSuffix`
+- `data/content`
+- `/api/files`
+- `Schema fallback`
 - `collectionPath`
 - `rootField`
 - `nestedPath`

@@ -12,6 +12,7 @@ import {
   buildEntryActionHandoff,
   createEntryActionRunId,
   entryActionHandoffPath,
+  entryActionOutputPath,
   findAutomationEntryAction,
   normalizeEntryActionPath,
   normalizeEntryActionRowId,
@@ -86,6 +87,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/automation-bindings" && req.method === "GET") return await handleLoadAutomationBindings(url, res);
     if (url.pathname === "/api/automation-bindings" && req.method === "POST") return await handleSaveAutomationBindings(req, res);
     if (url.pathname === "/api/entry-actions/result" && req.method === "GET") return await handleLoadEntryActionResult(url, res);
+    if (url.pathname === "/api/entry-actions/output" && req.method === "GET") return await handleLoadEntryActionOutput(url, res);
     if (url.pathname === "/api/shared-view-icon-pack-manifest" && req.method === "GET") return await handleSharedViewIconPackManifest(url, res);
     if (url.pathname === "/api/shared-view-icon-pack" && req.method === "GET") return await handleSharedViewIconPack(url, res);
     if (url.pathname === "/api/health" && req.method === "GET") return sendJson(res, { ok: true, bridgePort });
@@ -555,6 +557,18 @@ async function handleLoadEntryActionResult(url, res) {
     return;
   } catch {}
   sendJson(res, { error: `Unknown entry action run: ${runId}` }, 404);
+}
+
+async function handleLoadEntryActionOutput(url, res) {
+  const runId = String(url.searchParams.get("runId") ?? "").trim();
+  if (!runId) throw new Error("Missing runId");
+  const projectContext = await projectContextForUrl(url);
+  try {
+    const output = await readFile(entryActionOutputPath(projectContext, runId), "utf8");
+    sendJson(res, { runId, output });
+  } catch {
+    sendJson(res, { error: `Entry action output is unavailable: ${runId}` }, 404);
+  }
 }
 
 function handleShutdown(res) {

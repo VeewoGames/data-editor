@@ -76,6 +76,7 @@ test("saveProjectRegistry rejects invalid ids", async (t) => {
 test("addOrActivateProject creates a default data source and avoids duplicate roots", async (t) => {
   const home = await makeHome(t);
   const projectRoot = path.join(home, "ProjectA");
+  await mkdir(projectRoot, { recursive: true });
 
   const first = await addOrActivateProject({ root: projectRoot, adapter: "nocturnel" }, { home });
   const second = await addOrActivateProject({ root: projectRoot.toUpperCase(), adapter: "other" }, { home });
@@ -92,6 +93,22 @@ test("addOrActivateProject creates a default data source and avoids duplicate ro
 
   const stored = JSON.parse(await readFile(projectRegistryPath({ home }), "utf8"));
   assert.equal(stored.projects.length, 1);
+});
+
+test("addOrActivateProject rejects a project root that does not exist", async (t) => {
+  const home = await makeHome(t);
+  const missingRoot = path.join(home, "missing", "Nocturnel");
+
+  await assert.rejects(
+    () => addOrActivateProject({ root: missingRoot, adapter: "nocturnel" }, { home }),
+    /Project root does not exist/,
+  );
+
+  assert.deepEqual(await loadProjectRegistry({ home }), {
+    version: 1,
+    activeProjectId: null,
+    projects: [],
+  });
 });
 
 test("loadProjectRegistry drops filesystem-root projects and restores a valid active project", async (t) => {

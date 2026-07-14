@@ -25,6 +25,7 @@ import {
   reopenEditor,
   rebuildFrontend,
   loadEntryActionResult,
+  loadEntryActionOutput,
   runEntryAction,
   saveDocument,
   saveDocuments,
@@ -4001,7 +4002,10 @@ export function App() {
       });
       const finalResult = resolveEntryActionWaitOutcome(actionId, actionLabel, waitOutcome);
       if (!finalResult) return;
-      const finalStatus = buildEntryActionDetailStatus(actionId, actionLabel, finalResult);
+      const output = finalResult.outputPath
+        ? (await loadEntryActionOutput(finalResult.runId, activeProjectId).catch(() => null))?.output ?? null
+        : null;
+      const finalStatus = buildEntryActionDetailStatus(actionId, actionLabel, finalResult, output);
       setEntryActionStatus(finalStatus);
       if (finalResult.message) setEntryActionErrorMessage(finalResult.message);
       if (finalResult.status === "completed_with_writeback" || finalResult.status === "completed_without_observed_writeback") {
@@ -4054,6 +4058,7 @@ export function App() {
     actionId: string,
     actionLabel: string,
     result: EntryActionRunResult,
+    output: string | null = null,
   ): DetailEntryActionStatus {
     if (result.status === "completed_with_writeback") {
       const changedFields = result.writebackCheck?.changedFields?.length
@@ -4065,6 +4070,7 @@ export function App() {
           tone: "warning",
           title: `${actionLabel} 已写回（执行超时）`,
           detail: result.message ?? `自动化在等待上限内未正常结束，但${changedFields}`,
+          output,
         };
       }
       return {
@@ -4072,6 +4078,7 @@ export function App() {
         tone: "success",
         title: `${actionLabel} 已写回`,
         detail: result.message ?? changedFields,
+        output,
       };
     }
     if (result.status === "completed_without_observed_writeback") {
@@ -4081,6 +4088,7 @@ export function App() {
           tone: "warning",
           title: `${actionLabel} 未观察到写回（执行超时）`,
           detail: result.message ?? "自动化在等待上限内未正常结束，且当前未观察到目标条目发生变化。",
+          output,
         };
       }
       return {
@@ -4088,6 +4096,7 @@ export function App() {
         tone: "warning",
         title: `${actionLabel} 未观察到写回`,
         detail: result.message ?? "自动化已执行完成，但当前未观察到目标条目发生变化。",
+        output,
       };
     }
     if (result.status === "rejected") {
@@ -4096,6 +4105,7 @@ export function App() {
         tone: "warning",
         title: `${actionLabel} 未执行`,
         detail: result.message ?? result.reason ?? "自动化请求被拒绝，未进入执行。",
+        output,
       };
     }
     if (result.status === "failed") {
@@ -4105,6 +4115,7 @@ export function App() {
           tone: "warning",
           title: `${actionLabel} 执行超时`,
           detail: result.message ?? "自动化执行超时，已达到当前规则配置的等待上限。",
+          output,
         };
       }
       return {
@@ -4112,6 +4123,7 @@ export function App() {
         tone: "error",
         title: `${actionLabel} 执行失败`,
         detail: result.message ?? result.reason ?? "自动化执行失败。",
+        output,
       };
     }
     return {
@@ -4119,6 +4131,7 @@ export function App() {
       tone: "running",
       title: `${actionLabel} 运行中`,
       detail: "自动化仍在执行，正在等待完成结果。",
+      output,
     };
   }
 
@@ -6076,7 +6089,11 @@ function AutomationSettingsDialog(props: {
     if (!props.open) return;
     commitProfile(props.profile);
     commitBindings(props.bindings);
-    setSelectedRuleId(props.profile.rules[0]?.id ?? null);
+    setSelectedRuleId((current) => (
+      current && props.profile.rules.some((rule) => rule.id === current)
+        ? current
+        : (props.profile.rules[0]?.id ?? null)
+    ));
   }, [commitBindings, commitProfile, props.open, props.profile, props.bindings]);
 
   useEffect(() => {
@@ -7153,13 +7170,13 @@ function AutomationSettingsDialog(props: {
                   </div>
                 )}
                 {error ? <div className="dialog-error">{error}</div> : null}
-                {saveMessage ? <div className="dialog-help">{saveMessage}</div> : null}
               </div>
             ) : (
               <p>当前没有活动项目。</p>
             )}
           </div>
           <div className="dialog-actions">
+            {saveMessage ? <div className="automation-save-status" role="status">{saveMessage}</div> : null}
             <Dialog.Close className="ghost-button">关闭</Dialog.Close>
             <button className="primary-button" disabled={controlsDisabled || validationIssues.length > 0} onClick={() => void saveAutomationSettings()} type="button">
               {saving ? "正在保存..." : "保存自动化设置"}

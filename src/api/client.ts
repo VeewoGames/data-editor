@@ -159,6 +159,11 @@ export type EntryActionRunResult = {
     reason?: string;
   };
 };
+
+export type EntryActionOutput = {
+  runId: string;
+  output: string;
+};
 export type RelationConfig = {
   targetFile: string;
   targetCollection: string;
@@ -675,6 +680,10 @@ export async function runEntryAction(request: RunEntryActionRequest): Promise<Ru
 
 export async function loadEntryActionResult(runId: string, projectId?: string | null): Promise<EntryActionRunResult> {
   return fetchJson(withProjectId(`/api/entry-actions/result?runId=${encodeURIComponent(runId)}`, projectId));
+}
+
+export async function loadEntryActionOutput(runId: string, projectId?: string | null): Promise<EntryActionOutput> {
+  return fetchJson(withProjectId(`/api/entry-actions/output?runId=${encodeURIComponent(runId)}`, projectId));
 }
 
 export async function shutdownServer() {

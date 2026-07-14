@@ -5738,7 +5738,7 @@ test("table nested cell on empty row opens primary detail without nested seconda
 
 test("schema-driven object node shows summary and reset restores default values", async ({ page }) => {
   await page.goto("/");
-  await page.locator('.sidebar-item[title="data/classes.json"]').click();
+  await page.locator('.sidebar-item[title="data/content/classes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
   await tableRow(page, 0).locator('td[data-column-field="starting_equipments"] .nested-summary').click();
@@ -5810,44 +5810,34 @@ test("unsupported nested collection item falls back to read-only JSON", async ({
   await expect(page.locator(".detail-panel.tertiary .detail-input")).toHaveCount(0);
 });
 
-test("skills nested nodes support discriminator switching and recursive child arrays", async ({ page }) => {
+test("skills targeting nodes use the shared selection area affects contract", async ({ page }) => {
   await page.goto("/");
-  await page.locator('.sidebar-item[title="data/skills.json"]').click();
+  await page.locator('.sidebar-item[title="data/content/skills.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
   await tableRow(page, 0).locator('td[data-column-field="nodes"] .nested-summary').click();
   await expect(page.locator(".detail-panel.secondary.open")).toBeVisible();
   await page.locator(".nested-item-list button").first().click();
   await expect(page.locator(".detail-panel.tertiary.open")).toBeVisible();
-  await expect(page.locator('.detail-panel.tertiary [data-node-section="base"]')).toContainText("基础目标");
-  await expect(page.locator('.detail-panel.tertiary [data-node-section="area"]')).toContainText("区域形态");
-  await expect(page.locator('.detail-panel.tertiary [data-node-section="limits"]')).toContainText("目标限制");
-  await expect(page.locator('.detail-panel.tertiary [data-advanced-block="unknown-fields"]')).toContainText("高级信息");
-  await page.locator('.detail-panel.tertiary [data-advanced-block="unknown-fields"] summary').click();
-  await expect(page.locator('.detail-panel.tertiary [data-advanced-block="unknown-fields"] .json-editor')).toContainText('"type": "targeting"');
+  await expect(page.locator('.detail-panel.tertiary [data-node-section="targeting"]')).toContainText("目标选择");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("selection");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("area");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("affects");
 
   const typeSelect = page.getByRole("combobox", { name: "type" });
   await expect(typeSelect).toContainText("targeting");
-  await typeSelect.click();
-  await page.getByRole("combobox", { name: "筛选 type" }).fill("condition");
-  await page.getByRole("button", { name: "condition" }).click();
-  await expect(page.locator(".detail-panel.tertiary")).toContainText("condition_type");
-  await expect(page.locator(".detail-panel.tertiary")).toContainText("then_nodes");
-
   await page.locator(".detail-panel.tertiary .property-block").filter({
-    has: page.locator(".property-heading span", { hasText: "then_nodes" }),
+    has: page.locator(".property-heading span", { hasText: "selection" }),
   }).locator(".nested-entry-button").click();
-
-  await expect(page.getByRole("button", { name: "增加项目" })).toBeVisible();
-  await page.getByRole("button", { name: "增加项目" }).click();
-  await page.locator(".detail-panel.secondary .nested-item-list button").first().click();
-  await expect(page.getByRole("combobox", { name: "type" })).toContainText("targeting");
-  await expect(page.locator(".detail-panel.tertiary")).toContainText("range_type");
+  await expect(page.getByRole("combobox", { name: "type" })).toContainText("entity");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("distance");
+  await expect(page.locator(".detail-panel.tertiary")).toContainText("relations");
+  await expect(page.locator(".detail-panel.tertiary")).not.toContainText("range_type");
 });
 
 test("rune params nested detail resolves discriminator from parent effect context", async ({ page }) => {
   await page.goto("/");
-  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await page.locator('.sidebar-item[title="data/content/runes.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
   await tableRow(page, 0).locator('td[data-column-field="effects"] .nested-summary').click();
@@ -5869,7 +5859,7 @@ test("rune params nested detail resolves discriminator from parent effect contex
 
 test("affixes mechanic effect_spec uses template sections and nested value_model summary", async ({ page }) => {
   await page.goto("/");
-  await page.locator('.sidebar-item[title="data/affixes_mechanic.json"]').click();
+  await page.locator('.sidebar-item[title="data/content/affixes_mechanic.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
   await tableRow(page, 0).locator('td[data-column-field="effect_spec"] .nested-summary').click();
@@ -6120,12 +6110,12 @@ test("autosave persists schema-driven nested node edits without toolbar save but
   await page.reload();
 
   await expect(page.locator(".toolbar .primary-button")).toHaveCount(0);
-  await page.locator('.sidebar-item[title="data/classes.json"]').click();
+  await page.locator('.sidebar-item[title="data/content/classes.json"]').click();
   await tableRow(page, 0).locator('td[data-column-field="starting_equipments"] .nested-summary').click();
   await page.locator(".detail-panel.secondary .property-block").filter({ hasText: "helm" }).locator(".detail-input").fill("autosave_e2e");
   await expect(page.locator(".dirty-pill")).toContainText("待保存");
   await waitForAutosaveWrite(page, async () => {
-    const text = await readFile(path.resolve("tests/.scratch/data/classes.json"), "utf8");
+    const text = await readFile(path.resolve("tests/.scratch/data/content/classes.json"), "utf8");
     return text.includes("autosave_e2e");
   });
 });
@@ -8777,6 +8767,58 @@ test("option field editor drag reorder updates visible chip order and persists a
   expect(rowChipTextsAfterReload.indexOf(sourceValue)).toBeLessThan(rowChipTextsAfterReload.indexOf(targetValue));
 });
 
+test("option field drag keeps the scrolled viewport stable on its first preview frame", async ({ page }) => {
+  const originalConfig = await readScratchViewConfigText();
+  const fieldKey = "data/e2e_multiselect.json:$:features";
+  try {
+    const nextConfig = originalConfig ? JSON.parse(originalConfig) : {};
+    nextConfig.fields = {
+      ...(nextConfig.fields ?? {}),
+      [fieldKey]: {
+        ...(nextConfig.fields?.[fieldKey] ?? {}),
+        type: "Multi-select",
+        multiSelectOptions: Object.fromEntries(Array.from({ length: 60 }, (_, index) => {
+          const value = `scroll_option_${String(index).padStart(2, "0")}`;
+          return [value, { label: value, color: null }];
+        })),
+      },
+    };
+    await writeScratchViewConfig(nextConfig);
+
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/e2e_multiselect.json"]').click();
+    await tableRow(page, 1).locator(".multi-select-trigger").click();
+
+    const scrollSection = page.locator(".option-field-popover-section-scroll");
+    await scrollSection.evaluate((element) => { element.scrollTop = 700; });
+    const scrollTopBeforeDrag = await scrollSection.evaluate((element) => element.scrollTop);
+    expect(scrollTopBeforeDrag).toBeGreaterThan(500);
+
+    await beginOptionHandleDrag(page, "scroll_option_25");
+    await movePointerOverOptionRow(page, "scroll_option_26");
+    await expect(page.locator(".option-field-drag-ghost")).toBeVisible();
+
+    const previewState = await scrollSection.evaluate((element) => {
+      const animationTransforms = [...element.querySelectorAll<HTMLElement>(".multi-select-option-row")]
+        .flatMap((row) => row.getAnimations())
+        .flatMap((animation) => animation.effect instanceof KeyframeEffect ? animation.effect.getKeyframes() : [])
+        .map((frame) => String(frame.transform ?? ""));
+      return {
+        animationTransforms,
+        scrollTop: element.scrollTop,
+      };
+    });
+    expect(previewState.scrollTop).toBe(scrollTopBeforeDrag);
+    expect(previewState.animationTransforms.some((transform) => /translateY\([+-]?(?:[5-9]\d\d|\d{4,})px\)/.test(transform))).toBe(false);
+
+    await cancelOptionHandleDrag(page, "scroll_option_25");
+  } finally {
+    if (originalConfig) await writeFile(path.resolve("tests/.scratch/.data-editor/view-config.json"), originalConfig, "utf8");
+  }
+});
+
 test("option field editor drag cancel rolls back preview and leaves the parent row clean", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -11304,6 +11346,63 @@ test("automation settings shows local validation issues before save", async ({ p
   await expect(dialog).toContainText("Rule 1: 目标范围至少要有一项。");
   await expect(dialog).toContainText("Rule 1: Skill 不能为空。");
   await expect(dialog.getByRole("button", { name: "保存自动化设置" })).toBeDisabled();
+});
+
+test("automation settings confirms save and preserves the selected rule", async ({ page }) => {
+  const projectsResponse = await page.request.get("/api/projects");
+  expect(projectsResponse.ok()).toBeTruthy();
+  const registry = await projectsResponse.json() as {
+    activeProjectId: string | null;
+  };
+  expect(registry.activeProjectId).toBeTruthy();
+  await page.request.post("/api/automation-profile", {
+    data: {
+      projectId: registry.activeProjectId,
+      profile: {
+        rules: [
+          {
+            id: "first-rule",
+            label: "第一条规则",
+            icon: "wand",
+            enabled: true,
+            targets: [{ file: "data/e2e_select.json", collection: "$" }],
+            payload: { includeRow: true, includeNeighbors: false },
+          },
+          {
+            id: "second-rule",
+            label: "第二条规则",
+            icon: "wand",
+            enabled: true,
+            targets: [{ file: "data/e2e_select.json", collection: "$" }],
+            payload: { includeRow: true, includeNeighbors: false },
+          },
+        ],
+      },
+    },
+  });
+  await page.request.post("/api/automation-bindings", {
+    data: {
+      projectId: registry.activeProjectId,
+      bindings: {
+        bindings: {
+          "first-rule": { provider: "codex", skill: "recheck", enabled: true },
+          "second-rule": { provider: "codex", skill: "recheck", enabled: true },
+        },
+      },
+    },
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "自动化设置" }).click();
+  const dialog = page.getByRole("dialog", { name: "自动化设置" });
+  const ruleItems = dialog.locator(".automation-rule-nav-item");
+  await ruleItems.nth(1).click();
+  const card = dialog.locator(".automation-rule-card");
+  await expect(card.getByRole("textbox", { name: "Rule Id" })).toHaveValue("second-rule");
+
+  await dialog.getByRole("button", { name: "保存自动化设置" }).click();
+  await expect(dialog.getByRole("status")).toHaveText("自动化设置已保存。");
+  await expect(card.getByRole("textbox", { name: "Rule Id" })).toHaveValue("second-rule");
 });
 
 test("automation settings keeps Rule Id focus while typing", async ({ page }) => {

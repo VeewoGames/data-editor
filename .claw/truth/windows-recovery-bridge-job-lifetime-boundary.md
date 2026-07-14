@@ -111,6 +111,12 @@ npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
 
 正式验收不能只看端口监听或 runtime state 文件：必须在独立后续命令中同时核对两个 health、真实父子进程关系，并运行 `service:finalize` 验证保护、恢复判定和临时目录清理合同。
 
+### `service:finalize` 的 Windows 停止竞态
+
+`service:finalize` 在 Windows 上可能遇到 `Stop-Process` 的检查后使用竞态：目标进程在身份检查与实际停止之间已经退出，导致第一次 finalize 报错。此类单次失败不能单独作为最终服务异常结论；应立即重跑一次 `npm run service:finalize`，再以第二次 finalize 结果、`cleanupPerformed`，以及 `8787/api/health` 与 `8791/health` 的独立复核共同收口。
+
+2026-07-14 的一次正式收尾中，第一次 finalize 命中该竞态，第二次成功；最终清理结果为 0 个进程、2 个临时目录，随后 `8787/api/health` 返回 `{ "ok": true, "bridgePort": 8791 }`，`8791/health` 返回 `{ "ok": true }`。这证明重试后的服务保护与临时目录清理合同成立；具体 PID 只属于当次运行快照，不作为长期真值。
+
 ## 本轮验证边界
 
 当前不能声明完整 `npm test` 全绿：全量运行仍会命中未修改的 `automation-bindings` / `view-state` 源码断言失败；完整 `tests/open-stop.test.mjs` 运行还会被未修改的 entry-action 临时 server 用例拖到 10 分钟工具上限。这两项不属于 persistent launcher / recovery lifecycle 修复的回归证据，不能据此把本次修复判为失败。
@@ -120,3 +126,39 @@ npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
 ## 关键检索词
 
 `8787`、`8791`、`recovery-bridge.mjs`、`spawnPersistentProcess`、`path.win32.resolve`、`ensureRecoveryBridgeRunning`、`activeOpenToolRoots`、`makeToolRoot`、`runOpenInsideKillOnCloseJob`、`runStop`、`attach: true`、`detached: true`、`unref()`、`Job Object`、`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`、`lastExit`、`Win32_Process.Create`、`WmiPrvSE.exe`、`EncodedCommand`、`CREATE_BREAKAWAY_FROM_JOB`、`main-healthy`、`protected`、`service:status`、`service:finalize`
+
+## recovery bridge 配置复用必须包含 `projectRoot`
+
+本次根因调查确认，`recovery-bridge.mjs` 启动时会把 `projectRoot` 写入 recovery bridge state，并在后续 `startServiceThroughController(...)` 中持续使用该 root 启动主服务。`open.mjs::openService(...)` 在确认 bridge 可复用后只向 `/start` 发送空对象，不会把本次请求的项目 root 重新传给既有 bridge。
+
+因此，`ensureRecoveryBridgeRunning(...)` 的旧 `sameConfig` 只比较 `port`、`servicePort`、`mode`、`adapter` 与 `registryHome`，却遗漏 `projectRoot` 时，两个不同项目只要共享其余配置，就可能被误判为同一实例。此时 `open` 会静默复用仍绑定旧项目的 bridge，`/start` 最终启动的仍是旧 `projectRoot`，而不是本次请求的项目。
+
+修复后的长期合同是：bridge 复用判定必须把规范化后的 `state.projectRoot` 与 `requested.projectRoot` 纳入严格相等比较。当前该判断收口在 `open.mjs::hasSameRecoveryBridgeConfig(...)`；旧 state 缺少 `projectRoot` 时也必须判为不匹配，不能为了兼容旧状态而放宽。`tests/open-stop.test.mjs` 应持续覆盖“其余配置相同但 `projectRoot` 不同 => 不可复用”。
+
+关联锚点：
+
+- `open.mjs::ensureRecoveryBridgeRunning(...)`
+- `open.mjs::hasSameRecoveryBridgeConfig(...)`
+- `recovery-bridge.mjs` 的 recovery bridge state 写入
+- `recovery-bridge.mjs::startServiceThroughController(...)`
+- `tests/open-stop.test.mjs`
+
+关键检索词：`hasSameRecoveryBridgeConfig`、`sameConfig`、`projectRoot`、`registryHome`、`/start`、`Recovery bridge port`
+
+### 实现与回归状态（2026-07-14）
+
+上述 bridge 配置合同已经落地：`open.mjs::hasSameRecoveryBridgeConfig(...)` 现同时比较规范化后的 `state.projectRoot` 与 `requested.projectRoot`，`ensureRecoveryBridgeRunning(...)` 统一复用该判断。`tests/open-stop.test.mjs` 已加入 project root 相同可复用、其余配置相同但 project root 不同不可复用的定向用例，本轮该 1 个定向测试通过。
+
+## controller state 未跟踪的孤儿主服务排障边界
+
+本次端到端收口发现，旧 `8787` server PID `56160` 未被当前 controller state 跟踪，属于孤儿主服务。向该进程调用 `POST /api/shutdown` 虽返回 `{ "ok": true, "stopping": true }`，但 `8787` 端口没有随之退出。这说明 202 响应只表示正式停止流程已被调度，不能单独证明目标端口已关闭；当实际进程不在 controller 的监督状态中时，必须继续核对 controller/service state、PID command line 身份与端口存活。
+
+本次处理在确认 command line 确属 data-editor server 后精确停止 PID `56160`，随后由现有 `8791` recovery bridge 通过正式监督链启动新的受管主服务 PID `19128`。新服务完成 registry/API/UI 验收。两个 PID 仅是本次现场快照，不是长期常量；可复用规则是“先证明孤儿身份，再按 command line 精确停止，最后让 bridge 重新建立受管主服务并复核双端口与业务 API”。
+
+关键检索词：`controller state`、`orphan`、`孤儿进程`、`/api/shutdown`、`stopping`、`commandLine`、`8791 recovery bridge`、`受管主服务`
+
+### 本轮最终完成快照（2026-07-14）
+
+修复、定向测试、无效 registry 清理、API/UI 验收与 `service:finalize` 已全部完成。最终独立复核中，`8787/api/health` 与 `8791/health` 均健康；主服务 PID `19128` 已由 recovery controller PID `33392` 跟踪，证明清理孤儿进程后重新建立了正式监督链。临时 Playwright 目录与测试进程均已清理，没有遗留本轮验证资源。
+
+上述 PID 只用于证明本次最终现场的监督关系，不是长期常量。与项目 registry 相关的最终状态已记录在 `project-registry-and-view-profile-cleanup-boundary.md`：仅保留 `Nocturnel -> C:\Code\Nocturnel`，项目数为 1，文件数为 38，真实页面项目菜单仅显示一个 `Nocturnel`。

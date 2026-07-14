@@ -7,18 +7,28 @@ const toolRoot = path.resolve(fixtureDir, "../..");
 const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(toolRoot, "..", "Nocturnel"));
 const scratchRoot = path.join(toolRoot, "tests", ".scratch");
 const scratchData = path.join(scratchRoot, "data");
+const scratchContentData = path.join(scratchData, "content");
+const scratchContractData = path.join(scratchData, "contracts");
 const scratchToolConfigDir = path.join(scratchRoot, "tools", "data-editor");
 
 await rm(scratchRoot, { recursive: true, force: true });
 await mkdir(scratchData, { recursive: true });
+await mkdir(scratchContentData, { recursive: true });
+await mkdir(scratchContractData, { recursive: true });
 await mkdir(scratchToolConfigDir, { recursive: true });
 await writeFile(path.join(scratchToolConfigDir, "view-config.json"), JSON.stringify({ fields: {} }, null, 2));
 
-for (const fileName of ["runes.json", "keywords.json", "skills.json", "enemies.json", "traits.json", "affixes.json", "status_effects.json", "classes.json"]) {
-  await cp(path.join(fixtureProjectRoot, "data", fileName), path.join(scratchData, fileName));
+const contentFileNames = ["runes.json", "skills.json", "enemies.json", "traits.json", "affixes.json", "status_effects.json", "classes.json"];
+for (const fileName of contentFileNames) {
+  const sourcePath = path.join(fixtureProjectRoot, "data", "content", fileName);
+  await cp(sourcePath, path.join(scratchData, fileName));
+  await cp(sourcePath, path.join(scratchContentData, fileName));
 }
+await cp(path.join(fixtureProjectRoot, "data", "rules", "keywords.json"), path.join(scratchData, "keywords.json"));
+await cp(path.join(fixtureProjectRoot, "data", "contracts", "skill_nodes.json"), path.join(scratchContractData, "skill_nodes.json"));
+await cp(path.join(fixtureProjectRoot, "data", "contracts", "skill_nodes.schema.json"), path.join(scratchContractData, "skill_nodes.schema.json"));
 
-await writeFile(path.join(scratchData, "affixes_mechanic.json"), JSON.stringify([
+const affixesMechanicFixture = JSON.stringify([
   {
     id: "mechanic_1",
     name: "Mechanic One",
@@ -36,7 +46,9 @@ await writeFile(path.join(scratchData, "affixes_mechanic.json"), JSON.stringify(
       }
     }
   }
-], null, 2));
+], null, 2);
+await writeFile(path.join(scratchData, "affixes_mechanic.json"), affixesMechanicFixture);
+await writeFile(path.join(scratchContentData, "affixes_mechanic.json"), affixesMechanicFixture);
 
 await writeFile(path.join(scratchData, "e2e_mixed.json"), JSON.stringify([
   {

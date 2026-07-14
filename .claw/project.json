@@ -1,20 +1,24 @@
 {
+  "version": "0.1.60",
   "id": "data-editor",
   "name": "data-editor",
   "maxTasksToKeep": 99,
+  "planning": true,
+  "autoUpdate": true,
+  "goalMode": true,
+  "truthDispatch": "per_task",
+  "externalPlanningSkill": null,
   "externalTruthSkill": null,
   "externalAdrSkill": null,
+  "defaultPlanTemplate": null,
   "contextPaths": [],
   "memory": {
+    "enabled": true,
     "externalDocPaths": [],
     "embedding": {
       "provider": "local",
       "model": "Snowflake/snowflake-arctic-embed-m-v2.0"
     }
   },
-  "planning": true,
-  "externalPlanningSkill": null,
-  "goalMode": true,
-  "truthDispatch": "per_task",
   "gitnexus": false
 }
