@@ -12,6 +12,7 @@ playwright-report/
 tests/.scratch/
 *.log
 .tmp-*
+*.import
 
 # claw-kit
 .claw/*
