@@ -13,6 +13,7 @@ import {
   createEntryActionRunId,
   entryActionHandoffPath,
   entryActionOutputPath,
+  findLatestEntryActionRun,
   findAutomationEntryAction,
   normalizeEntryActionPath,
   normalizeEntryActionRowId,
@@ -87,6 +88,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/automation-bindings" && req.method === "GET") return await handleLoadAutomationBindings(url, res);
     if (url.pathname === "/api/automation-bindings" && req.method === "POST") return await handleSaveAutomationBindings(req, res);
     if (url.pathname === "/api/entry-actions/result" && req.method === "GET") return await handleLoadEntryActionResult(url, res);
+    if (url.pathname === "/api/entry-actions/latest" && req.method === "GET") return await handleLoadLatestEntryActionResult(url, res);
     if (url.pathname === "/api/entry-actions/output" && req.method === "GET") return await handleLoadEntryActionOutput(url, res);
     if (url.pathname === "/api/shared-view-icon-pack-manifest" && req.method === "GET") return await handleSharedViewIconPackManifest(url, res);
     if (url.pathname === "/api/shared-view-icon-pack" && req.method === "GET") return await handleSharedViewIconPack(url, res);
@@ -557,6 +559,25 @@ async function handleLoadEntryActionResult(url, res) {
     return;
   } catch {}
   sendJson(res, { error: `Unknown entry action run: ${runId}` }, 404);
+}
+
+async function handleLoadLatestEntryActionResult(url, res) {
+  const sourcePath = normalizeEntryActionPath(url.searchParams.get("sourcePath"), "sourcePath");
+  const collectionPath = normalizeEntryActionPath(url.searchParams.get("collectionPath"), "collectionPath");
+  const rowId = normalizeEntryActionRowId(url.searchParams.get("rowId"));
+  const sourceRowIndex = normalizeEntryActionSourceRowIndex(url.searchParams.get("sourceRowIndex"));
+  const actionId = String(url.searchParams.get("actionId") ?? "").trim();
+  if (!actionId) throw new Error("Missing actionId");
+  if (rowId == null && sourceRowIndex == null) throw new Error("Entry action requires rowId or sourceRowIndex");
+  const projectContext = await projectContextForUrl(url);
+  const run = await findLatestEntryActionRun(projectContext, {
+    actionId,
+    sourcePath,
+    collectionPath,
+    rowId,
+    sourceRowIndex,
+  });
+  sendJson(res, { run });
 }
 
 async function handleLoadEntryActionOutput(url, res) {

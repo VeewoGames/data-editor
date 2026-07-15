@@ -63,6 +63,7 @@ export type DetailSnapshot = {
   entryActionErrorMessage: string | null;
   entryActionStatus: {
     actionId: string;
+    runId?: string | null;
     tone: "running" | "success" | "warning" | "error";
     title: string;
     detail: string | null;
@@ -84,6 +85,7 @@ type DetailPanelProps = {
   onCommitSelectDraft: (fieldName: string, patch: OptionFieldDraftCommit) => void;
   onOpenBacklink: (backlink: RelationBacklink) => void;
   onRequestSyncSave: () => void;
+  onClearEntryActionStatus: (status: DetailEntryActionStatus) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onSelectRow: (rowId: string | null, sourceRowIndex?: number | null) => void;
   onClose: () => void;
@@ -118,6 +120,7 @@ export function DetailPanel({
   onCommitSelectDraft,
   onOpenBacklink,
   onRequestSyncSave,
+  onClearEntryActionStatus,
   onOpenRelationTarget,
   onSelectRow,
   onClose,
@@ -520,7 +523,14 @@ export function DetailPanel({
             </div>
             {entryActionStatus ? (
               <div className={`detail-entry-action-status detail-entry-action-status--${entryActionStatus.tone}`}>
-                <strong>{entryActionStatus.title}</strong>
+                <div className="detail-entry-action-status-header">
+                  <strong>{entryActionStatus.title}</strong>
+                  {entryActionStatus.tone !== "running" ? (
+                    <button className="detail-entry-action-clear" type="button" onClick={() => onClearEntryActionStatus(entryActionStatus)}>
+                      清理
+                    </button>
+                  ) : null}
+                </div>
                 {entryActionStatus.detail ? <span>{entryActionStatus.detail}</span> : null}
                 {entryActionStatus.output ? (
                   <details className="detail-entry-action-output">

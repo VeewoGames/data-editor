@@ -5120,6 +5120,29 @@ th:hover .column-resize-handle,
   font-weight: 700;
 }
 
+.detail-entry-action-status-header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.detail-entry-action-clear {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.detail-entry-action-clear:hover {
+  opacity: 0.72;
+}
+
 .detail-entry-action-status span {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);

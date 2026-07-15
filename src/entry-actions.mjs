@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { getRows } from "./document-model.mjs";
 import { buildDocumentStore } from "./model/document-store.mjs";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
@@ -129,6 +129,48 @@ export async function readEntryActionStarted(projectContextOrRoot, runId) {
 export async function readEntryActionResult(projectContextOrRoot, runId) {
   const targetPath = entryActionResultPath(projectContextOrRoot, runId);
   return JSON.parse(await readFile(targetPath, "utf8"));
+}
+
+export async function findLatestEntryActionRun(projectContextOrRoot, identity) {
+  const runtimeDir = entryActionsRuntimeDir(projectContextOrRoot);
+  let fileNames = [];
+  try {
+    fileNames = await readdir(runtimeDir);
+  } catch {
+    return null;
+  }
+
+  const matches = [];
+  for (const fileName of fileNames) {
+    if (!fileName.endsWith(".json") || fileName.endsWith(".started.json") || fileName.endsWith(".result.json")) continue;
+    try {
+      const handoff = JSON.parse(await readFile(path.join(runtimeDir, fileName), "utf8"));
+      if (!matchesEntryActionIdentity(handoff, identity)) continue;
+      matches.push(handoff);
+    } catch {
+      // Ignore partial or unrelated runtime files.
+    }
+  }
+
+  const latest = matches.sort((left, right) => String(right.createdAt ?? "").localeCompare(String(left.createdAt ?? "")))[0];
+  if (!latest) return null;
+  const runId = latest.runId;
+  const actionId = latest.action?.id ?? null;
+  try {
+    return { ...await readEntryActionResult(projectContextOrRoot, runId), actionId, createdAt: latest.createdAt ?? null };
+  } catch {}
+  try {
+    return { ...await readEntryActionStarted(projectContextOrRoot, runId), actionId, createdAt: latest.createdAt ?? null };
+  } catch {}
+  return { runId, actionId, createdAt: latest.createdAt ?? null, status: "started" };
+}
+
+function matchesEntryActionIdentity(handoff, identity) {
+  const entry = handoff?.entry;
+  if (!entry || entry.sourcePath !== identity.sourcePath || entry.collectionPath !== identity.collectionPath) return false;
+  if (identity.actionId && handoff?.action?.id !== identity.actionId) return false;
+  if (identity.rowId && entry.rowId) return identity.rowId === entry.rowId;
+  return Number.isInteger(identity.sourceRowIndex) && entry.sourceRowIndex === identity.sourceRowIndex;
 }
 
 export function buildEntryActionHandoff({

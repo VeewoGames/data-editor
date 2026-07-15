@@ -25,6 +25,7 @@ import {
   reopenEditor,
   rebuildFrontend,
   loadEntryActionResult,
+  loadLatestEntryActionResult,
   loadEntryActionOutput,
   runEntryAction,
   saveDocument,
@@ -273,6 +274,7 @@ type SidebarTreeNodeLike = {
 type DeferredTaskHandle = { kind: "idle"; id: number } | { kind: "timeout"; id: number } | null;
 const defaultRecoveryBridgePort = 8791;
 const detailReorderReactProfilingStorageKey = "data-editor:enable-detail-reorder-profiling";
+const entryActionDismissedRunStorageKeyPrefix = "data-editor:entry-action-dismissed-run";
 const emptyFilterGroup: FilterGroup = { topLevelRules: [], advancedRoot: null };
 const emptySortRules: SortRule[] = [];
 const buildDocumentStoreTyped = buildDocumentStore as (input: {
@@ -284,6 +286,14 @@ const runViewTyped = runView as (input: ViewInput) => ViewResult;
 const sidebarTreePrefsStorageKey = "data-editor:__sidebar-tree-prefs";
 type AutomationModelOption = { value: string; label: string };
 type DeviceEntryActionBindingStatus = NonNullable<DeviceEntryActionBindings["bindingStatuses"]>[string];
+type EntryActionDismissalIdentity = {
+  actionId: string;
+  projectId: string;
+  sourcePath: string;
+  collectionPath: string;
+  rowId: string | null;
+  sourceRowIndex: number | null;
+};
 const automationRuntimeInheritValue = "__inherit__";
 const automationModelOptions: AutomationModelOption[] = [
   { value: "gpt-5.5", label: "5.5" },
@@ -294,6 +304,33 @@ const automationModelOptions: AutomationModelOption[] = [
   { value: "gpt-5.4-mini", label: "5.4 Mini" },
   { value: "gpt-5.3-codex-spark", label: "5.3 Codex Spark" },
 ];
+
+function entryActionDismissalStorageKey(identity: EntryActionDismissalIdentity) {
+  const rowIdentity = identity.rowId ? `id:${identity.rowId}` : `index:${identity.sourceRowIndex ?? ""}`;
+  return `${entryActionDismissedRunStorageKeyPrefix}:${encodeURIComponent([
+    identity.projectId,
+    identity.actionId,
+    identity.sourcePath,
+    identity.collectionPath,
+    rowIdentity,
+  ].join("|"))}`;
+}
+
+function isEntryActionRunDismissed(identity: EntryActionDismissalIdentity, runId: string) {
+  try {
+    return window.localStorage.getItem(entryActionDismissalStorageKey(identity)) === runId;
+  } catch {
+    return false;
+  }
+}
+
+function dismissEntryActionRun(identity: EntryActionDismissalIdentity, runId: string) {
+  try {
+    window.localStorage.setItem(entryActionDismissalStorageKey(identity), runId);
+  } catch {
+    // Dismissal remains local to the current page when storage is unavailable.
+  }
+}
 
 function markPerf(name: string) {
   if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
@@ -2535,6 +2572,47 @@ export function App() {
     }),
     [automationProfileState, automationBindingsState, selectedPath, collectionPath],
   );
+  useEffect(() => {
+    if (!detailOpen || entryActionRunningId || !activeProjectId || !selectedPath || selectedSourceRowIndex == null) return;
+    let cancelled = false;
+    void Promise.all(visibleEntryActions.map(async (action) => {
+      const response = await loadLatestEntryActionResult({
+        actionId: action.id,
+        sourcePath: selectedPath,
+        collectionPath,
+        rowId: selectedRowId,
+        sourceRowIndex: selectedSourceRowIndex,
+      }, activeProjectId);
+      return response.run;
+    }))
+      .then(async (runs) => {
+        if (cancelled) return;
+        const latest = runs
+          .filter((run): run is EntryActionRunResult => run != null)
+          .sort((left, right) => String(right.finishedAt ?? right.startedAt ?? right.createdAt ?? "").localeCompare(String(left.finishedAt ?? left.startedAt ?? left.createdAt ?? "")))[0];
+        if (!latest?.actionId) return;
+        const action = visibleEntryActions.find((candidate) => candidate.id === latest.actionId);
+        if (!action) return;
+        if (isEntryActionRunDismissed({
+          actionId: action.id,
+          projectId: activeProjectId,
+          sourcePath: selectedPath,
+          collectionPath,
+          rowId: selectedRowId,
+          sourceRowIndex: selectedSourceRowIndex,
+        }, latest.runId)) return;
+        const output = latest.outputPath
+          ? (await loadEntryActionOutput(latest.runId, activeProjectId).catch(() => null))?.output ?? null
+          : null;
+        if (cancelled) return;
+        setEntryActionStatus(buildEntryActionDetailStatus(action.id, action.label, latest, output));
+        setEntryActionErrorMessage(latest.message ?? null);
+      })
+      .catch(() => {
+        // Status recovery is best-effort and must not block opening a detail panel.
+      });
+    return () => { cancelled = true; };
+  }, [detailOpen, entryActionRunningId, activeProjectId, selectedPath, collectionPath, selectedRowId, selectedSourceRowIndex, visibleEntryActions]);
   const initialNestedTarget = useMemo(() => {
     if (!pendingNestedOpen) return null;
     if (pendingNestedOpen.rowId !== selectedRowId) return null;
@@ -3234,6 +3312,20 @@ export function App() {
     entryActionWatchIdRef.current += 1;
     setEntryActionErrorMessage(null);
     setEntryActionStatus(null);
+  }
+
+  function dismissEntryActionStatus(status: DetailEntryActionStatus) {
+    if (status.runId && activeProjectId && selectedPath && selectedSourceRowIndex != null) {
+      dismissEntryActionRun({
+        actionId: status.actionId,
+        projectId: activeProjectId,
+        sourcePath: selectedPath,
+        collectionPath,
+        rowId: selectedRowId,
+        sourceRowIndex: selectedSourceRowIndex,
+      }, status.runId);
+    }
+    clearEntryActionFeedback();
   }
 
   function buildCurrentEntryActionFeedbackSelection(): EntryActionFeedbackSelection {
@@ -3991,6 +4083,7 @@ export function App() {
         onEnterBackgroundWait: () => {
           setEntryActionStatus({
             actionId,
+            runId: result.runId,
             tone: "running",
             title: `${actionLabel} 仍在执行`,
             detail: "自动化耗时较长，仍在后台等待完成结果。结果返回后会自动更新。",
@@ -4067,6 +4160,7 @@ export function App() {
       if (result.reason === "codex_exec_timeout") {
         return {
           actionId,
+          runId: result.runId,
           tone: "warning",
           title: `${actionLabel} 已写回（执行超时）`,
           detail: result.message ?? `自动化在等待上限内未正常结束，但${changedFields}`,
@@ -4075,6 +4169,7 @@ export function App() {
       }
       return {
         actionId,
+        runId: result.runId,
         tone: "success",
         title: `${actionLabel} 已写回`,
         detail: result.message ?? changedFields,
@@ -4085,6 +4180,7 @@ export function App() {
       if (result.reason === "codex_exec_timeout") {
         return {
           actionId,
+          runId: result.runId,
           tone: "warning",
           title: `${actionLabel} 未观察到写回（执行超时）`,
           detail: result.message ?? "自动化在等待上限内未正常结束，且当前未观察到目标条目发生变化。",
@@ -4093,6 +4189,7 @@ export function App() {
       }
       return {
         actionId,
+        runId: result.runId,
         tone: "warning",
         title: `${actionLabel} 未观察到写回`,
         detail: result.message ?? "自动化已执行完成，但当前未观察到目标条目发生变化。",
@@ -4102,6 +4199,7 @@ export function App() {
     if (result.status === "rejected") {
       return {
         actionId,
+        runId: result.runId,
         tone: "warning",
         title: `${actionLabel} 未执行`,
         detail: result.message ?? result.reason ?? "自动化请求被拒绝，未进入执行。",
@@ -4112,6 +4210,7 @@ export function App() {
       if (result.reason === "codex_exec_timeout") {
         return {
           actionId,
+          runId: result.runId,
           tone: "warning",
           title: `${actionLabel} 执行超时`,
           detail: result.message ?? "自动化执行超时，已达到当前规则配置的等待上限。",
@@ -4120,6 +4219,7 @@ export function App() {
       }
       return {
         actionId,
+        runId: result.runId,
         tone: "error",
         title: `${actionLabel} 执行失败`,
         detail: result.message ?? result.reason ?? "自动化执行失败。",
@@ -4128,6 +4228,7 @@ export function App() {
     }
     return {
       actionId,
+      runId: result.runId,
       tone: "running",
       title: `${actionLabel} 运行中`,
       detail: "自动化仍在执行，正在等待完成结果。",
@@ -5626,6 +5727,7 @@ export function App() {
                   onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
                   onOpenBacklink={handleOpenBacklink}
                   onRequestSyncSave={() => void persistChanges(true)}
+                  onClearEntryActionStatus={dismissEntryActionStatus}
                   onOpenRelationTarget={handleOpenRelationTarget}
                   onSelectRow={selectRowById}
                   onClose={() => setDetailOpen(false)}
@@ -5737,6 +5839,7 @@ export function App() {
               onCommitSelectDraft={(fieldName, patch) => selectedRowId && handleCommitSelectOptionFieldDraftByRowId(selectedRowId, fieldName, patch)}
               onOpenBacklink={handleOpenBacklink}
               onRequestSyncSave={() => void persistChanges(true)}
+              onClearEntryActionStatus={dismissEntryActionStatus}
               onOpenRelationTarget={handleOpenRelationTarget}
               onSelectRow={selectRowById}
               onClose={() => setDetailOpen(false)}

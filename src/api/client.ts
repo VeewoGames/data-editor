@@ -146,6 +146,9 @@ export type RunEntryActionResponse = {
 export type EntryActionRunResult = {
   version?: number;
   runId: string;
+  actionId?: string | null;
+  createdAt?: string | null;
+  startedAt?: string | null;
   status: "started" | "rejected" | "failed" | "completed_with_writeback" | "completed_without_observed_writeback";
   finishedAt?: string;
   outputPath?: string | null;
@@ -163,6 +166,14 @@ export type EntryActionRunResult = {
 export type EntryActionOutput = {
   runId: string;
   output: string;
+};
+
+export type LoadLatestEntryActionResultRequest = {
+  actionId: string;
+  sourcePath: string;
+  collectionPath: string;
+  rowId?: string | null;
+  sourceRowIndex?: number | null;
 };
 export type RelationConfig = {
   targetFile: string;
@@ -680,6 +691,20 @@ export async function runEntryAction(request: RunEntryActionRequest): Promise<Ru
 
 export async function loadEntryActionResult(runId: string, projectId?: string | null): Promise<EntryActionRunResult> {
   return fetchJson(withProjectId(`/api/entry-actions/result?runId=${encodeURIComponent(runId)}`, projectId));
+}
+
+export async function loadLatestEntryActionResult(
+  request: LoadLatestEntryActionResultRequest,
+  projectId?: string | null,
+): Promise<{ run: EntryActionRunResult | null }> {
+  const params = new URLSearchParams({
+    actionId: request.actionId,
+    sourcePath: request.sourcePath,
+    collectionPath: request.collectionPath,
+  });
+  if (request.rowId) params.set("rowId", request.rowId);
+  if (request.sourceRowIndex != null) params.set("sourceRowIndex", String(request.sourceRowIndex));
+  return fetchJson(withProjectId(`/api/entry-actions/latest?${params.toString()}`, projectId));
 }
 
 export async function loadEntryActionOutput(runId: string, projectId?: string | null): Promise<EntryActionOutput> {
