@@ -3,6 +3,7 @@ export type CollectionInfo = { path: string; label: string; rowCount: number };
 export type DocumentModel = {
   format: "json" | "csv";
   sourcePath: string;
+  documentEtag?: string;
   root: unknown;
   rootKind: "array" | "object";
   collections: CollectionInfo[];

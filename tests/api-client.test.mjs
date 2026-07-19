@@ -33,6 +33,7 @@ test("skill document saves carry contract version, ETag, and a project-scoped to
       "data/content/skills.json",
       { skill_node_contract_version: 1, skills: [] },
       "project-a",
+      '"document-a"',
     );
   } finally {
     globalThis.fetch = originalFetch;
@@ -45,6 +46,7 @@ test("skill document saves carry contract version, ETag, and a project-scoped to
   const body = JSON.parse(calls[1].options.body);
   assert.equal(body.contractVersion, 1);
   assert.equal(body.contractEtag, '"contract-a"');
+  assert.equal(body.documentEtag, '"document-a"');
   assert.deepEqual(body.saveToken, {
     projectId: "project-a",
     contractVersion: 1,

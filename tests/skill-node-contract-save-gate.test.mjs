@@ -167,6 +167,38 @@ test("second save-gate check detects a contract changed after initial validation
   );
 });
 
+test("document ETag blocks a stale whole-document save after external writeback", async (t) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "data-editor-document-etag-"));
+  const registryHome = path.join(tempRoot, "registry");
+  const projectA = path.join(tempRoot, "project-a");
+  t.after(async () => rm(tempRoot, { recursive: true, force: true }));
+
+  await writeProject(projectA, "project-a");
+  await addOrActivateProject({ id: "project-a", root: projectA }, { home: registryHome });
+  const port = await findAvailablePort();
+  const child = spawn(process.execPath, [
+    serverScriptPath,
+    "--project", projectA,
+    "--registry-home", registryHome,
+    "--port", String(port),
+  ], { cwd: repoRoot, shell: false, stdio: ["ignore", "ignore", "ignore"], windowsHide: true });
+  t.after(() => { try { child.kill(); } catch {} });
+  await waitForHealth(port);
+
+  const document = await fetch(`http://127.0.0.1:${port}/api/document?projectId=project-a&path=${encodeURIComponent(skillPath())}`);
+  const staleEtag = (await document.json()).documentEtag;
+  assert.ok(staleEtag);
+  const externallyWrittenRoot = { skill_node_contract_version: 1, skills: [{ skill_id: "external", ap_cost: 1, cooldown: 2, mana_cost: 2 }] };
+  await writeFile(path.join(projectA, skillPath()), JSON.stringify(externallyWrittenRoot), "utf8");
+
+  const staleSave = await save(port, "project-a", skillPath(), { skill_node_contract_version: 1, skills: [] }, {
+    ...gate("project-a", 1, await fetchContractEtag(projectA)),
+    documentEtag: staleEtag,
+  });
+  assertSaveError(staleSave, 409, "DOCUMENT_SAVE_ETAG_STALE", "documentEtag");
+  assert.deepEqual(JSON.parse(await readFile(path.join(projectA, skillPath()), "utf8")), externallyWrittenRoot);
+});
+
 function skillPath() {
   return "data/content/skills.json";
 }

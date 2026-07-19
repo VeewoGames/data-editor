@@ -1,4 +1,5 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import path from "node:path";
 import { readFile, readdir } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
@@ -123,7 +124,10 @@ async function handleDocument(url, res) {
   const text = await readTextFile(projectContext, relativePath);
   const ext = path.extname(relativePath).toLowerCase();
   const parsed = ext === ".csv" ? { data: parseCsv(text), format: "csv" } : parseJson(text);
-  sendJson(res, buildDocumentModel(parsed.data, parsed.format, relativePath));
+  sendJson(res, {
+    ...buildDocumentModel(parsed.data, parsed.format, relativePath),
+    documentEtag: documentEtag(text),
+  });
 }
 
 async function handleSave(req, res) {
@@ -133,6 +137,8 @@ async function handleSave(req, res) {
     const projectContext = await projectContextForId(body.projectId);
     const ext = path.extname(body.path).toLowerCase();
     if (![".json", ".csv"].includes(ext)) throw new Error(`Unsupported save extension: ${ext}`);
+    const currentText = await readTextFile(projectContext, body.path);
+    assertDocumentEtagUnchanged(body.documentEtag, currentText);
 
     const validatedContract = isSkillDocumentPath(body.path)
       ? await validateSkillDocumentSave(body, projectContext)
@@ -142,9 +148,9 @@ async function handleSave(req, res) {
       await assertSkillNodeContractUnchanged(projectContext, validatedContract.etag);
     }
     await writeTextFile(projectContext, body.path, text);
-    sendJson(res, { ok: true });
+    sendJson(res, { ok: true, documentEtag: documentEtag(text) });
   } catch (error) {
-    if (!(error instanceof SkillNodeContractError) && !(error instanceof SkillDocumentSaveError)) throw error;
+    if (!(error instanceof SkillNodeContractError) && !(error instanceof SkillDocumentSaveError) && !(error instanceof DocumentSaveError)) throw error;
     sendJson(res, {
       error: error.message,
       code: error.code,
@@ -559,6 +565,42 @@ async function handleLoadEntryActionResult(url, res) {
     return;
   } catch {}
   sendJson(res, { error: `Unknown entry action run: ${runId}` }, 404);
+}
+
+class DocumentSaveError extends Error {
+  constructor(code, message, field, { status = 409, details = null } = {}) {
+    super(message);
+    this.name = "DocumentSaveError";
+    this.code = code;
+    this.field = field;
+    this.status = status;
+    this.details = details;
+  }
+}
+
+function documentEtag(text) {
+  return `"${crypto.createHash("sha256").update(text, "utf8").digest("hex")}"`;
+}
+
+function assertDocumentEtagUnchanged(expectedEtag, currentText) {
+  if (expectedEtag == null) return;
+  if (typeof expectedEtag !== "string" || !expectedEtag) {
+    throw new DocumentSaveError(
+      "DOCUMENT_SAVE_ETAG_INVALID",
+      "documentEtag must be a non-empty string when provided.",
+      "documentEtag",
+      { status: 400 },
+    );
+  }
+  const currentEtag = documentEtag(currentText);
+  if (expectedEtag !== currentEtag) {
+    throw new DocumentSaveError(
+      "DOCUMENT_SAVE_ETAG_STALE",
+      "文件已被外部更新。为避免覆盖新内容，已拒绝保存；请刷新后再继续编辑。",
+      "documentEtag",
+      { details: { expected: expectedEtag, actual: currentEtag } },
+    );
+  }
 }
 
 async function handleLoadLatestEntryActionResult(url, res) {

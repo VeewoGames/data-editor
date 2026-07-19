@@ -1,4 +1,5 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
+import type { DocumentModel } from "../model/documentModel";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
 import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
 import { createSkillNodeContractClient } from "./skill-node-contract-client.mjs";
@@ -94,7 +95,7 @@ export type ProjectRegistry = {
   projects: ProjectDefinition[];
 };
 export type PendingDocumentSave = { path: string; root: unknown };
-export type SaveDocumentResult = { ok: true };
+export type SaveDocumentResult = { ok: true; documentEtag?: string };
 export type SaveDocumentsResult = {
   ok: boolean;
   savedPaths: string[];
@@ -102,6 +103,7 @@ export type SaveDocumentsResult = {
   errorMessage: string | null;
   errorCode: string | null;
   errorField: string | null;
+  documentEtags: Record<string, string>;
 };
 export type SkillNodeContractSaveGate = {
   contractVersion: number;
@@ -543,20 +545,20 @@ export function clearSkillNodeContractCache(projectId?: string | null) {
   if (projectId == null) skillNodeContractClient = null;
 }
 
-export async function loadDocument(path: string, projectId?: string | null) {
+export async function loadDocument(path: string, projectId?: string | null): Promise<DocumentModel> {
   return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
 }
 
-export async function saveDocument(path: string, root: unknown, projectId?: string | null): Promise<SaveDocumentResult> {
+export async function saveDocument(path: string, root: unknown, projectId?: string | null, documentEtag?: string): Promise<SaveDocumentResult> {
   const result = await saveDocumentsWith(
     [{ path, root }],
     (savePath: string, saveRoot: unknown, contractGate: SkillNodeContractSaveGate | null) => (
-      postDocumentSave(savePath, saveRoot, projectId, contractGate)
+      postDocumentSave(savePath, saveRoot, projectId, contractGate, documentEtag)
     ),
     { projectId, loadSkillNodeContract },
   );
   if (!result.ok) throw saveDocumentsError(result);
-  return { ok: true };
+  return { ok: true, documentEtag: result.documentEtags?.[path] };
 }
 
 function postDocumentSave(
@@ -564,11 +566,12 @@ function postDocumentSave(
   root: unknown,
   projectId?: string | null,
   contractGate: SkillNodeContractSaveGate | null = null,
+  documentEtag?: string,
 ): Promise<SaveDocumentResult> {
   return fetchJson("/api/save", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, path, root, ...(contractGate ?? {}) }),
+    body: JSON.stringify({ projectId, path, root, ...(contractGate ?? {}), ...(documentEtag ? { documentEtag } : {}) }),
   });
 }
 

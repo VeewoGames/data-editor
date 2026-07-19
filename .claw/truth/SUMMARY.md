@@ -8,6 +8,7 @@
 - [Windows recovery bridge 的 Job 生命周期边界、WMI broker、active fixture 收尾与正式双端口验收合同](./windows-recovery-bridge-job-lifetime-boundary.md)
 - [Windows 持久服务的 Job 隔离、监督链与 fixture 生命周期合同](./adr/windows-persistent-service-job-isolation-and-fixture-lifecycle.md)
 - [Document 字段 Markdown 不可见问题：docRoot 缓存失效边界与刷新收口](./document-field-markdown-cache-invalidation.md)
+- [文档保存的加载时内容哈希门禁：stale 全量回写冲突边界](./adr/document-save-load-hash-optimistic-concurrency.md)
 - [DataTable 矩形选区对离散选项触发区的豁免边界](./data-table-rect-selection-option-trigger-exemption.md)
 - [DataTable 文本/数字单元格切换时的 blur 绕过与 draft 丢失](./data-table-text-cell-blur-bypass-draft-loss.md)
 - [表格 nested 单元格直达右侧 DetailPanel 嵌套编辑](./table-nested-detail-panel-nested-editing.md)

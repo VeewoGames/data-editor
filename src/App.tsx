@@ -5260,7 +5260,8 @@ export function App() {
     setStatus("");
     try {
       if (dirtyDomains.includes("document") && currentDataDirty && currentModel && currentSelectedPath) {
-        await saveDocument(currentSelectedPath, currentModel.root, currentProjectId);
+        const saveResult = await saveDocument(currentSelectedPath, currentModel.root, currentProjectId, currentModel.documentEtag);
+        if (saveResult.documentEtag) currentModel.documentEtag = saveResult.documentEtag;
         savedDocumentRootRef.current = cloneDataRoot(currentModel.root);
         dataDirtyRef.current = false;
         setDataDirty(false);

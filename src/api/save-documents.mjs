@@ -2,11 +2,14 @@ export const skillDocumentPath = "data/content/skills.json";
 
 export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
   const savedPaths = [];
+  /** @type {Record<string, string>} */
+  const documentEtags = {};
   for (const item of items ?? []) {
     try {
       const contractGate = await buildContractSaveGate(item.path, options);
-      await saveDocumentFn(item.path, item.root, contractGate);
+      const saved = await saveDocumentFn(item.path, item.root, contractGate);
       savedPaths.push(item.path);
+      if (typeof saved?.documentEtag === "string" && saved.documentEtag) documentEtags[item.path] = saved.documentEtag;
     } catch (error) {
       return {
         ok: false,
@@ -15,6 +18,7 @@ export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
         errorMessage: error instanceof Error ? error.message : String(error),
         errorCode: typeof error?.code === "string" ? error.code : null,
         errorField: typeof error?.field === "string" ? error.field : null,
+        documentEtags,
       };
     }
   }
@@ -25,6 +29,7 @@ export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
     errorMessage: null,
     errorCode: null,
     errorField: null,
+    documentEtags,
   };
 }
 
