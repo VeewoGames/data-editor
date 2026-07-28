@@ -7,6 +7,7 @@ export type RowHandle = {
   sourceIndex: number;
   sourceKey: string | null;
   sourceOrder: number;
+  sourceValue?: unknown;
 };
 
 export type TableRowView = {
@@ -35,6 +36,7 @@ export type BuildDocumentStoreInput = {
   documentId?: string;
   model: DocumentModel;
   previousStore?: DocumentStore | null;
+  collectionIdentityOverrides?: Map<string, RowId[]> | null;
 };
 
 export {

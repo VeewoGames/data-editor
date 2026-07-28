@@ -36,7 +36,6 @@ export type ViewTabsProps = {
   onReorderViews: (operation: ViewTabReorderOperation) => void;
   onToggleFilterBar: () => void;
   onToggleTableTextEditMode: () => void;
-  onToggleRowDeleteControls: () => void;
   onSetDocumentFieldEnabled: (fieldName: string, enabled: boolean) => void;
   onSaveDocumentRoot: (value: string) => void;
   onRefreshDocumentIndex: () => void;
@@ -59,7 +58,6 @@ export type ViewTabsSnapshot = {
   filterBarVisible: boolean;
   hasActiveFilters: boolean;
   tableTextEditMode: boolean;
-  rowDeleteControlsVisible: boolean;
   viewOrderDirty: boolean;
   selectedFilePath: string | null;
   documentRoot: string;
@@ -99,7 +97,6 @@ export function ViewTabs({
   onReorderViews,
   onToggleFilterBar,
   onToggleTableTextEditMode,
-  onToggleRowDeleteControls,
   onSetDocumentFieldEnabled,
   onSaveDocumentRoot,
   onRefreshDocumentIndex,
@@ -118,7 +115,6 @@ export function ViewTabs({
     filterBarVisible,
     hasActiveFilters,
     tableTextEditMode,
-    rowDeleteControlsVisible,
     viewOrderDirty,
     selectedFilePath,
     documentRoot,
@@ -878,7 +874,7 @@ export function ViewTabs({
                 <button
                   type="button"
                   className={[
-                    "view-tab-action row-delete-toggle view-tabs-row-delete-toggle",
+                    "view-tab-action settings-toggle view-tabs-settings-toggle",
                     settingsOpen ? "active" : "",
                   ].filter(Boolean).join(" ")}
                   aria-expanded={settingsOpen}
@@ -899,9 +895,7 @@ export function ViewTabs({
                     onRefreshDocumentIndex={onRefreshDocumentIndex}
                     onSaveDocumentRoot={onSaveDocumentRoot}
                     onSetDocumentFieldEnabled={onSetDocumentFieldEnabled}
-                    onToggleRowDeleteControls={onToggleRowDeleteControls}
                     resolvedCount={documentResolvedCount}
-                    rowDeleteControlsVisible={rowDeleteControlsVisible}
                     selectedFilePath={selectedFilePath}
                   />
                 </Popover.Content>

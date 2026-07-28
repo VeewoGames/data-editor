@@ -16,6 +16,17 @@ export type WritebackAdapter = {
   setCellValueByRowId(collectionPath: string, rowId: RowId, fieldName: string, value: unknown): void;
   setNestedValueByRowId(collectionPath: string, rowId: RowId, pathParts: Array<string | number>, value: unknown): void;
   deleteRowByRowId(collectionPath: string, rowId: RowId): void;
+  reorderRowsByRowId(
+    collectionPath: string,
+    sourceRowId: RowId,
+    targetRowId: RowId,
+    placement: "before" | "after",
+  ): Pick<RowHandle, "rowId" | "sourceIndex" | "sourceKey">;
+  duplicateRowByRowId(
+    collectionPath: string,
+    rowId: RowId,
+    primaryKeyField?: string | null,
+  ): Pick<RowHandle, "rowId" | "sourceIndex" | "sourceKey">;
   addFieldByRowId(
     collectionPath: string,
     rowId: RowId,
@@ -29,6 +40,8 @@ export {
   addFieldByRowId,
   createWritebackAdapter,
   deleteRowByRowId,
+  duplicateRowByRowId,
+  reorderRowsByRowId,
   resolveRowLocatorById,
   setCellValueByRowId,
   setNestedValueByRowId,

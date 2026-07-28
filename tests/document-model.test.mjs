@@ -6,9 +6,11 @@ import {
   buildDocumentModel,
   deleteField,
   deleteRow,
+  duplicateRow,
   getMainColumns,
   getNestedFields,
   getRows,
+  reorderRows,
   setCellValue,
   setNestedValue,
 } from "../src/document-model.mjs";
@@ -96,6 +98,87 @@ test("delete row removes only selected collection row", () => {
   const model = buildDocumentModel([{ id: 1 }, { id: 2 }], "json");
   deleteRow(model, "$", 0);
   assert.deepEqual(model.root, [{ id: 2 }]);
+});
+
+test("reorder rows moves the original array object using before and after placement", () => {
+  const alpha = { id: "a" };
+  const beta = { id: "b" };
+  const gamma = { id: "c" };
+  const model = buildDocumentModel({ skills: [alpha, beta, gamma] }, "json");
+
+  assert.deepEqual(reorderRows(model, "skills", 0, 2, "after"), {
+    sourceIndex: 2,
+    sourceKey: null,
+  });
+  assert.deepEqual(model.root.skills.map((row) => row.id), ["b", "c", "a"]);
+  assert.equal(model.root.skills[2], alpha);
+
+  reorderRows(model, "skills", 2, 0, "before");
+  assert.deepEqual(model.root.skills.map((row) => row.id), ["a", "b", "c"]);
+  assert.equal(model.root.skills[0], alpha);
+});
+
+test("reorder rows rejects record maps, identical rows, invalid indexes, and invalid placement", () => {
+  const arrayModel = buildDocumentModel([{ id: "a" }, { id: "b" }], "json");
+  assert.throws(() => reorderRows(arrayModel, "$", 0, 0, "before"), /must be different/);
+  assert.throws(() => reorderRows(arrayModel, "$", -1, 1, "before"), /Invalid source/);
+  assert.throws(() => reorderRows(arrayModel, "$", 0, 4, "before"), /Invalid target/);
+  assert.throws(() => reorderRows(arrayModel, "$", 0, 1, "middle"), /Invalid row placement/);
+  assert.deepEqual(arrayModel.root.map((row) => row.id), ["a", "b"]);
+
+  const mapModel = buildDocumentModel({ alpha: { name: "A" }, beta: { name: "B" } }, "json");
+  assert.throws(() => reorderRows(mapModel, "$", 0, 1, "before"), /do not support row ordering/);
+  assert.deepEqual(Object.keys(mapModel.root), ["alpha", "beta"]);
+});
+
+test("duplicate array row deep clones content, allocates identity, and suffixes string primary keys", () => {
+  const source = {
+    __entry_id: "01JZTESTENTRY0000000000000A",
+    skill_id: "fireball",
+    nested: { values: [1, 2] },
+  };
+  const model = buildDocumentModel([
+    source,
+    { __entry_id: "01JZTESTENTRY0000000000000B", skill_id: "fireball_1" },
+  ], "json");
+
+  const locator = duplicateRow(model, "$", { sourceIndex: 0, sourceKey: null }, "skill_id");
+  const duplicate = model.root[1];
+  assert.deepEqual(locator, { sourceIndex: 1, sourceKey: null });
+  assert.equal(duplicate.skill_id, "fireball_2");
+  assert.match(duplicate.__entry_id, /^[0-9A-Z]{26}$/);
+  assert.notEqual(duplicate.__entry_id, source.__entry_id);
+  assert.notEqual(duplicate, source);
+  assert.notEqual(duplicate.nested, source.nested);
+  assert.notEqual(duplicate.nested.values, source.nested.values);
+  duplicate.nested.values.push(3);
+  assert.deepEqual(source.nested.values, [1, 2]);
+});
+
+test("duplicate array row increments numeric primary keys", () => {
+  const model = buildDocumentModel([
+    { id: 1, name: "Alpha" },
+    { id: 2, name: "Beta" },
+  ], "json");
+  duplicateRow(model, "$", { sourceIndex: 0, sourceKey: null }, "id");
+  assert.deepEqual(model.root.map((row) => row.id), [1, 3, 2]);
+});
+
+test("duplicate record-map row creates a new map key without persistent entry id", () => {
+  const model = buildDocumentModel({
+    alpha: { name: "Alpha", nested: { enabled: true } },
+    beta: { name: "Beta" },
+  }, "json");
+  const locator = duplicateRow(
+    model,
+    "$",
+    { sourceIndex: 0, sourceKey: "alpha" },
+    null,
+  );
+  assert.deepEqual(locator, { sourceIndex: 2, sourceKey: "item_3" });
+  assert.deepEqual(model.root.item_3, { name: "Alpha", nested: { enabled: true } });
+  assert.equal("__entry_id" in model.root.item_3, false);
+  assert.notEqual(model.root.item_3.nested, model.root.alpha.nested);
 });
 
 test("add field writes empty value to selected row only by default", () => {

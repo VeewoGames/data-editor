@@ -5,11 +5,9 @@ type TableSettingsPopoverProps = {
   selectedFilePath: string | null;
   documentRoot: string;
   documentFields: Array<{ fieldName: string; enabled: boolean }>;
-  rowDeleteControlsVisible: boolean;
   resolvedCount: number;
   conflictCount: number;
   indexError: string | null;
-  onToggleRowDeleteControls: () => void;
   onSetDocumentFieldEnabled: (fieldName: string, enabled: boolean) => void;
   onSaveDocumentRoot: (value: string) => void;
   onRefreshDocumentIndex: () => void;
@@ -19,11 +17,9 @@ export function TableSettingsPopover({
   selectedFilePath,
   documentRoot,
   documentFields,
-  rowDeleteControlsVisible,
   resolvedCount,
   conflictCount,
   indexError,
-  onToggleRowDeleteControls,
   onSetDocumentFieldEnabled,
   onSaveDocumentRoot,
   onRefreshDocumentIndex,
@@ -39,18 +35,6 @@ export function TableSettingsPopover({
 
   return (
     <div className="menu-content table-settings-popover">
-      <div className="table-settings-section">
-        <div className="table-settings-section-title">显示选项</div>
-        <label className="table-settings-check">
-          <input
-            checked={rowDeleteControlsVisible}
-            onChange={onToggleRowDeleteControls}
-            type="checkbox"
-          />
-          <span>显示行删除控件</span>
-        </label>
-      </div>
-
       <div className="table-settings-section">
         <div className="table-settings-section-title">关联文档</div>
         {hasSelection ? (

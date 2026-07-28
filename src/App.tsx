@@ -110,6 +110,8 @@ import { buildRelationKey } from "./model/relationPath";
 import { parseRelationKey, type PrimaryKeyImpact, type PrimaryKeySyncPlan, type RelationBacklink } from "./model/relationMaintenance";
 import { deriveBacklinkConfigs, syncBacklinksWithRelations } from "./model/fieldRole";
 import { resolveAutoSuffixedPrimaryKeyValue } from "./model/primary-key-auto-suffix.mjs";
+import { duplicateRowByRowId, reorderRowsByRowId } from "./model/writeback-adapter";
+import { resolveCanReorderRows } from "./table/row-reorder-policy.mjs";
 import { analyzePrimaryKeyCandidates, buildCollectionKey, type FilteredPrimaryKeyCandidate, type PrimaryKeyCandidate, type PrimaryKeyCandidateAnalysis } from "./model/primaryKeyCandidate";
 import { findTitleField, getRecordTitle } from "./model/titleField";
 import type { ValidationIssue } from "./model/validation";
@@ -282,7 +284,27 @@ const buildDocumentStoreTyped = buildDocumentStore as (input: {
   documentId: string;
   model: DocumentModel;
   previousStore?: DocumentStore | null;
+  collectionIdentityOverrides?: Map<string, string[]> | null;
 }) => DocumentStore;
+const resolveCanReorderRowsTyped = resolveCanReorderRows as unknown as (input: {
+  model: DocumentModel | null;
+  collectionPath: string;
+  query: string;
+  filters: FilterGroup;
+  sorts: SortRule[];
+  commandSaving: boolean;
+  closing: boolean;
+  rebuilding: boolean;
+  restarting: boolean;
+}) => boolean;
+const duplicateRowByRowIdTyped = duplicateRowByRowId as (input: {
+  documentId?: string;
+  model: DocumentModel;
+  store: DocumentStore;
+  collectionPath: string;
+  rowId: string;
+  primaryKeyField?: string | null;
+}) => { rowId: string; sourceIndex: number; sourceKey: string | null };
 const runViewTyped = runView as (input: ViewInput) => ViewResult;
 const sidebarTreePrefsStorageKey = "data-editor:__sidebar-tree-prefs";
 type AutomationModelOption = { value: string; label: string };
@@ -675,7 +697,6 @@ export function App() {
   const enableTableTextEditMode = useCallback(() => {
     setTableTextEditMode((current) => current ? current : true);
   }, []);
-  const [rowDeleteControlsVisible, setRowDeleteControlsVisible] = useState(false);
   const [pendingOpenFilterRuleId, setPendingOpenFilterRuleId] = useState<string | null>(null);
   const [uiRevision, bumpUiRevision] = useState(0);
   const [layoutRevision, bumpLayoutRevision] = useState(0);
@@ -2008,6 +2029,25 @@ export function App() {
     stableActiveViewRenderStateRef.current = nextState;
     return nextState;
   }, [activeToolbarQuery, activeView?.filters, activeView?.sorts]);
+  const canReorderRows = useMemo(() => resolveCanReorderRowsTyped({
+    model,
+    collectionPath,
+    query: activeViewRenderState.query,
+    filters: activeViewRenderState.filters,
+    sorts: activeViewRenderState.sorts,
+    commandSaving,
+    closing,
+    rebuilding,
+    restarting,
+  }), [
+    model,
+    collectionPath,
+    activeViewRenderState,
+    commandSaving,
+    closing,
+    rebuilding,
+    restarting,
+  ]);
   const dirtyViewIds = useMemo(() => {
     if (!activeCollectionKey) return new Set<string>();
     return new Set(Object.keys(draftSource.viewDrafts?.[activeCollectionKey] ?? {}));
@@ -2515,6 +2555,55 @@ export function App() {
     () => applyValidationIssueOverrides(validationSnapshot, validationIssueOverrides),
     [validationSnapshot, validationIssueOverrides],
   );
+  const handleReorderRows = useCallback((
+    sourceRowId: string,
+    targetRowId: string,
+    placement: "before" | "after",
+  ) => {
+    if (!canReorderRows || !model || !documentStore || !collectionStore) return;
+    mutate(() => {
+      const result = reorderRowsByRowId({
+        model,
+        store: documentStore,
+        collectionPath,
+        sourceRowId,
+        targetRowId,
+        placement,
+      });
+      const nextRowIds = [...collectionStore.rowIds];
+      const identityIndex = nextRowIds.indexOf(sourceRowId);
+      if (identityIndex < 0) throw new Error(`Unknown rowId: ${sourceRowId}`);
+      nextRowIds.splice(identityIndex, 1);
+      nextRowIds.splice(result.sourceIndex, 0, sourceRowId);
+      const nextStore = buildDocumentStoreTyped({
+        documentId: selectedPath ?? "document",
+        model,
+        previousStore: documentStore,
+        collectionIdentityOverrides: new Map([[collectionPath, nextRowIds]]),
+      });
+      documentStoreRef.current = nextStore;
+      prebuiltDocumentStoreRef.current = {
+        documentId: selectedPath ?? "document",
+        model,
+        store: nextStore,
+      };
+      setSelectedSourceRow(result.sourceIndex, sourceRowId);
+    });
+  }, [canReorderRows, model, documentStore, collectionStore, collectionPath, selectedPath]);
+  const handleDuplicateRow = useCallback((rowIndex: number, rowId: string | null) => {
+    if (!model || !documentStore || !rowId) return;
+    mutate(() => {
+      const duplicate = duplicateRowByRowIdTyped({
+        documentId: selectedPath ?? "document",
+        model,
+        store: documentStore,
+        collectionPath,
+        rowId,
+        primaryKeyField: activeValidationPrimaryKeyField,
+      });
+      setSelectedSourceRow(duplicate.sourceIndex, duplicate.rowId);
+    });
+  }, [model, documentStore, selectedPath, collectionPath, activeValidationPrimaryKeyField]);
   const tableSnapshot = useMemo<TableSnapshot>(() => ({
     schemaModel: model!,
     sourcePath: selectedPath,
@@ -2537,6 +2626,7 @@ export function App() {
     scrollRestoreKey,
     initialScrollPosition,
     textEditable: tableTextEditMode,
+    canReorderRows,
     onEnableTextEditMode: enableTableTextEditMode,
     onRegisterActiveTextEditor: registerActiveTextEditor,
   }), [
@@ -2561,6 +2651,7 @@ export function App() {
     scrollRestoreKey,
     initialScrollPosition,
     tableTextEditMode,
+    canReorderRows,
     enableTableTextEditMode,
     registerActiveTextEditor,
   ]);
@@ -2792,7 +2883,6 @@ export function App() {
     filterBarVisible,
     hasActiveFilters: activeViewHasFilters,
     tableTextEditMode,
-    rowDeleteControlsVisible,
     viewOrderDirty,
     selectedFilePath: selectedPath,
     documentRoot: selectedPath ? (viewConfig.documentFiles[selectedPath]?.docRoot ?? "") : "",
@@ -2810,7 +2900,6 @@ export function App() {
     filterBarVisible,
     activeViewHasFilters,
     tableTextEditMode,
-    rowDeleteControlsVisible,
     viewOrderDirty,
     selectedPath,
     viewConfig.documentFiles,
@@ -5652,7 +5741,6 @@ export function App() {
                   onReorderViews={handleReorderSharedViews}
                   onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
                   onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
-                  onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
                   onSetDocumentFieldEnabled={setDocumentFieldEnabled}
                   onSaveDocumentRoot={handleSaveDocumentRoot}
                   onRefreshDocumentIndex={handleRefreshDocumentIndex}
@@ -5710,8 +5798,9 @@ export function App() {
                   onClearDocument={handleClearDocument}
                   onOpenRelationTarget={handleOpenRelationTarget}
                   onAddRow={handleAddRow}
+                  onDuplicateRow={handleDuplicateRow}
+                  onReorderRows={handleReorderRows}
                   onDeleteRow={handleDeleteRow}
-                  showRowDeleteControls={rowDeleteControlsVisible}
                   onAddField={handleAddField}
                   onDeleteField={handleDeleteField}
                 />
@@ -5772,7 +5861,6 @@ export function App() {
               onReorderViews={handleReorderSharedViews}
               onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
               onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
-              onToggleRowDeleteControls={() => setRowDeleteControlsVisible((value) => !value)}
               onSetDocumentFieldEnabled={setDocumentFieldEnabled}
               onSaveDocumentRoot={handleSaveDocumentRoot}
               onRefreshDocumentIndex={handleRefreshDocumentIndex}
@@ -5824,8 +5912,9 @@ export function App() {
               onClearDocument={handleClearDocument}
               onOpenRelationTarget={handleOpenRelationTarget}
               onAddRow={handleAddRow}
+              onDuplicateRow={handleDuplicateRow}
+              onReorderRows={handleReorderRows}
               onDeleteRow={handleDeleteRow}
-              showRowDeleteControls={rowDeleteControlsVisible}
               onAddField={handleAddField}
               onDeleteField={handleDeleteField}
             />

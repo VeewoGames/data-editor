@@ -1120,14 +1120,14 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
 
   assert.match(viewTabsSource, /onToggleFilterBar/);
   assert.match(viewTabsSource, /onToggleTableTextEditMode/);
-  assert.match(viewTabsSource, /onToggleRowDeleteControls/);
+  assert.doesNotMatch(viewTabsSource, /onToggleRowDeleteControls/);
   assert.match(viewTabsSource, /onAddRow/);
   assert.match(viewTabsSource, /onManualSave/);
   assert.match(viewTabsSource, /onSaveDocumentRoot/);
   assert.match(viewTabsSource, /onRefreshDocumentIndex/);
   assert.match(viewTabsSource, /manualSaveDirty: boolean;/);
   assert.match(viewTabsSource, /hasActiveFilters/);
-  assert.match(viewTabsSource, /rowDeleteControlsVisible/);
+  assert.doesNotMatch(viewTabsSource, /rowDeleteControlsVisible/);
   assert.match(viewTabsSource, /aria-pressed=\{filterBarVisible\}/);
   assert.match(viewTabsSource, /aria-pressed=\{tableTextEditMode\}/);
   assert.match(viewTabsSource, /aria-expanded=\{settingsOpen\}/);
@@ -1136,7 +1136,7 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.match(viewTabsSource, /hasActiveFilters \? "has-filters" : ""/);
   assert.match(viewTabsSource, /manualSaveDirty \? "has-unsaved" : ""/);
   assert.match(viewTabsSource, /filterBarVisible \? "visible" : ""/);
-  assert.match(viewTabsSource, /view-tabs-row-delete-toggle/);
+  assert.match(viewTabsSource, /view-tabs-settings-toggle/);
   assert.match(viewTabsSource, /settingsOpen \? "active" : ""/);
   assert.match(viewTabsSource, /table-settings-popover-shell/);
   assert.match(viewTabsSource, /<TableSettingsPopover/);
@@ -1481,24 +1481,25 @@ test("favorite icon profile updates retain the favorites array and save immediat
   assert.match(appSource, /void commitProfileSave\(selectedViewProfileNameRef\.current!, nextProfile\);/);
 });
 
-test("row delete controls stay hidden until the temporary toolbar mode is enabled", async () => {
+test("row action handle permanently replaces the legacy delete control toggle", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const dataTableSource = await readFile(new URL("../src/table/DataTable.tsx", import.meta.url), "utf8");
+  const settingsSource = await readFile(new URL("../src/components/TableSettingsPopover.tsx", import.meta.url), "utf8");
+  const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
 
-  assert.match(appSource, /const \[rowDeleteControlsVisible, setRowDeleteControlsVisible\] = useState\(false\);/);
-  assert.match(appSource, /rowDeleteControlsVisible,/);
-  assert.match(appSource, /onToggleRowDeleteControls=\{\(\) => setRowDeleteControlsVisible\(\(value\) => !value\)\}/);
+  assert.doesNotMatch(appSource, /rowDeleteControlsVisible|onToggleRowDeleteControls|showRowDeleteControls/);
   assert.match(appSource, /onSaveDocumentRoot=\{handleSaveDocumentRoot\}/);
   assert.match(appSource, /onRefreshDocumentIndex=\{handleRefreshDocumentIndex\}/);
   assert.match(appSource, /documentConfiguredFields: configuredDocumentFields,/);
   assert.match(appSource, /onConfigureDocument=\{handleConfigureDocument\}/);
   assert.match(appSource, /onClearDocument=\{handleClearDocument\}/);
-  assert.match(appSource, /showRowDeleteControls=\{rowDeleteControlsVisible\}/);
-  assert.doesNotMatch(appSource, /localStorage\.(?:getItem|setItem)\([^)]*rowDeleteControlsVisible/);
-
-  assert.match(dataTableSource, /showRowDeleteControls: boolean;/);
-  assert.match(dataTableSource, /className=\{props\.showRowDeleteControls \? "icon-button danger" : "icon-button danger row-delete-hidden"\}/);
-  assert.match(dataTableSource, /aria-hidden=\{!props\.showRowDeleteControls\}/);
-  assert.match(dataTableSource, /tabIndex=\{props\.showRowDeleteControls \? 0 : -1\}/);
-  assert.match(dataTableSource, /previous\.showRowDeleteControls === next\.showRowDeleteControls/);
+  assert.match(dataTableSource, /data-row-action-handle=\{rowId\}/);
+  assert.match(dataTableSource, /<icons\.dragHandle size=\{16\} \/>/);
+  assert.match(dataTableSource, /<span>复制条目<\/span>/);
+  assert.match(dataTableSource, /<span>删除条目<\/span>/);
+  assert.match(dataTableSource, /runtimeActionRef\.current\.onDuplicateRow/);
+  assert.match(dataTableSource, /runtimeActionRef\.current\.onDeleteRow/);
+  assert.doesNotMatch(dataTableSource, /showRowDeleteControls|row-delete-hidden/);
+  assert.doesNotMatch(settingsSource, /显示行删除控件|rowDeleteControlsVisible|onToggleRowDeleteControls/);
+  assert.doesNotMatch(stylesSource, /row-delete-hidden|view-tabs-row-delete-toggle/);
 });

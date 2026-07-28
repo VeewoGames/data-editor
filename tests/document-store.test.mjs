@@ -135,3 +135,135 @@ test("record-map rebuild after delete and add preserves surviving ids and alloca
   assert.equal(secondCollection.handleById.get(secondCollection.rowViews[1].rowId)?.sourceOrder, 2);
   assert.equal(new Set(secondCollection.rowIds).size, secondCollection.rowIds.length);
 });
+
+test("primitive array rebuild reuses row ids by value and old occurrence order", () => {
+  const model = buildDocumentModel(["alpha", "repeat", "repeat", 7, null], "json");
+  const first = buildDocumentStore({ documentId: "values", model });
+  const firstIds = first.collections.get("$").rowIds;
+
+  model.root.splice(0, model.root.length, "repeat", 7, "alpha", null, "repeat");
+  const second = buildDocumentStore({
+    documentId: "values",
+    model,
+    previousStore: first,
+  });
+  const secondCollection = second.collections.get("$");
+  const secondIds = secondCollection.rowIds;
+
+  assert.deepEqual(secondIds, [
+    firstIds[1],
+    firstIds[3],
+    firstIds[0],
+    firstIds[4],
+    firstIds[2],
+  ]);
+  assert.equal(secondCollection.handleById.get(firstIds[0]).sourceIndex, 2);
+  assert.equal(secondCollection.handleById.get(firstIds[1]).sourceIndex, 0);
+  assert.equal(secondCollection.handleById.get(firstIds[2]).sourceIndex, 4);
+});
+
+test("mixed array rebuild preserves object identities and primitive identities together", () => {
+  const objectRow = { name: "object" };
+  const nestedArrayRow = ["nested"];
+  const model = buildDocumentModel(["alpha", objectRow, 9, nestedArrayRow], "json");
+  const first = buildDocumentStore({ documentId: "mixed", model });
+  const firstIds = first.collections.get("$").rowIds;
+
+  model.root.splice(0, model.root.length, nestedArrayRow, 9, objectRow, "alpha");
+  const second = buildDocumentStore({
+    documentId: "mixed",
+    model,
+    previousStore: first,
+  });
+
+  assert.deepEqual(second.collections.get("$").rowIds, [
+    firstIds[3],
+    firstIds[2],
+    firstIds[1],
+    firstIds[0],
+  ]);
+});
+
+test("large primitive rebuild reuses identity queues for repeated values", () => {
+  const values = Array.from({ length: 5000 }, (_, index) => `value-${index % 5}`);
+  const originalValues = [...values];
+  const model = buildDocumentModel(values, "json");
+  const first = buildDocumentStore({ documentId: "large-values", model });
+  const firstIds = first.collections.get("$").rowIds;
+
+  model.root.reverse();
+  const second = buildDocumentStore({
+    documentId: "large-values",
+    model,
+    previousStore: first,
+  });
+  const secondIds = second.collections.get("$").rowIds;
+
+  for (let valueIndex = 0; valueIndex < 5; valueIndex += 1) {
+    const value = `value-${valueIndex}`;
+    const expectedIds = originalValues
+      .map((entry, index) => entry === value ? firstIds[index] : null)
+      .filter(Boolean);
+    const actualIds = model.root
+      .map((entry, index) => entry === value ? secondIds[index] : null)
+      .filter(Boolean);
+    assert.deepEqual(actualIds, expectedIds);
+  }
+});
+
+test("collection identity override requires an exact permutation of previous row ids", () => {
+  const model = buildDocumentModel(["alpha", "beta", "gamma"], "json");
+  const first = buildDocumentStore({ documentId: "values", model });
+  const firstCollection = first.collections.get("$");
+  const originalRoot = [...model.root];
+  const originalRowIds = [...firstCollection.rowIds];
+  const originalHandles = originalRowIds.map((rowId) => ({
+    rowId,
+    ...firstCollection.handleById.get(rowId),
+  }));
+
+  const assertRejectedWithoutMutation = (previousStore, override, pattern) => {
+    assert.throws(() => buildDocumentStore({
+      documentId: "values",
+      model,
+      previousStore,
+      collectionIdentityOverrides: new Map([["$", override]]),
+    }), pattern);
+    assert.deepEqual(model.root, originalRoot);
+    assert.deepEqual(firstCollection.rowIds, originalRowIds);
+    assert.deepEqual(
+      originalRowIds.map((rowId) => ({
+        rowId,
+        ...firstCollection.handleById.get(rowId),
+      })),
+      originalHandles,
+    );
+  };
+
+  assertRejectedWithoutMutation(null, originalRowIds, /requires a previous collection/);
+  assertRejectedWithoutMutation(
+    first,
+    [originalRowIds[0], originalRowIds[1], "foreign-row"],
+    /Unknown overridden rowId/,
+  );
+  assertRejectedWithoutMutation(
+    first,
+    [originalRowIds[0], originalRowIds[0], originalRowIds[2]],
+    /Duplicate overridden rowId/,
+  );
+  assertRejectedWithoutMutation(
+    first,
+    [originalRowIds[0], null, originalRowIds[2]],
+    /Invalid overridden rowId/,
+  );
+  assertRejectedWithoutMutation(
+    first,
+    [originalRowIds[0], originalRowIds[1]],
+    /preserve the previous collection length/,
+  );
+  assertRejectedWithoutMutation(
+    first,
+    [originalRowIds[0], originalRowIds[1], originalRowIds[2], originalRowIds[2]],
+    /preserve the previous collection length/,
+  );
+});

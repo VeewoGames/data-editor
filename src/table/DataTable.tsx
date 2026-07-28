@@ -1,4 +1,5 @@
 import { flexRender, getCoreRowModel, useReactTable, type HeaderGroup } from "@tanstack/react-table";
+import * as Popover from "@radix-ui/react-popover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   buildColumnPreviewOrderState,
@@ -29,6 +30,12 @@ import type { ValidationSnapshot } from "../validation/issue-map";
 import { mergeMeasuredRowHeights, resolveRowHeight as resolveMeasuredRowHeight } from "./row-height-index.mjs";
 import { buildTableRuntimeDeps } from "./table-runtime-deps.mjs";
 import { buildVariableRowWindow } from "./variable-row-window.mjs";
+import {
+  hasExceededRowDragThreshold,
+  isPreciseRowDragPointer,
+  resolveRowAutoScrollDelta,
+  resolveRowDropTarget,
+} from "./row-dnd.mjs";
 import type { ActiveTextEditorRegistrar } from "../editing";
 import type { DocumentIndexEntry } from "../api/client";
 
@@ -75,6 +82,26 @@ type PendingInteractiveSelection = {
   clientY: number;
 };
 
+type RowDropTarget = {
+  rowId: string;
+  placement: "before" | "after";
+};
+
+type ActiveRowDrag = {
+  sourceRowId: string;
+  sourceRowIndex: number;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  dragging: boolean;
+  handle: HTMLButtonElement;
+};
+
+type RowDragVisual = {
+  sourceRowId: string;
+  target: RowDropTarget | null;
+};
+
 function sameTableCellCoord(left: TableCellCoord | null, right: TableCellCoord | null) {
   if (!left || !right) return false;
   return left.rowId === right.rowId &&
@@ -105,6 +132,7 @@ export type TableSnapshot = {
   scrollRestoreKey: string | null;
   initialScrollPosition: { scrollTop: number; scrollLeft: number } | null;
   textEditable: boolean;
+  canReorderRows: boolean;
   onEnableTextEditMode?: () => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
 };
@@ -135,8 +163,9 @@ type DataTableProps = {
   onClearDocument: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onAddRow: () => void;
+  onDuplicateRow: (rowIndex: number, rowId: string | null) => void;
+  onReorderRows: (sourceRowId: string, targetRowId: string, placement: "before" | "after") => void;
   onDeleteRow: (rowIndex: number, rowId: string | null) => void;
-  showRowDeleteControls: boolean;
   onAddField: () => void;
   onDeleteField: (fieldName: string) => void;
 };
@@ -151,6 +180,8 @@ function DataTableComponent(props: DataTableProps) {
   const [selectionFocus, setSelectionFocus] = useState<TableCellCoord | null>(null);
   const [selectionPointerActive, setSelectionPointerActive] = useState(false);
   const [activeOptionFieldCellId, setActiveOptionFieldCellId] = useState<string | null>(null);
+  const [openRowActionId, setOpenRowActionId] = useState<string | null>(null);
+  const [rowDragVisual, setRowDragVisual] = useState<RowDragVisual | null>(null);
   const [columnDragSession, setColumnDragSession] = useState<{
     draggingField: string;
     ghostTop: number;
@@ -165,6 +196,13 @@ function DataTableComponent(props: DataTableProps) {
   const columnDragPointerXRef = useRef<number | null>(null);
   const columnDragAutoScrollDirectionRef = useRef<-1 | 0 | 1>(0);
   const columnDragAutoScrollFrameRef = useRef<number | null>(null);
+  const activeRowDragRef = useRef<ActiveRowDrag | null>(null);
+  const rowDropTargetRef = useRef<RowDropTarget | null>(null);
+  const rowPointerXRef = useRef<number | null>(null);
+  const rowPointerYRef = useRef<number | null>(null);
+  const rowAutoScrollFrameRef = useRef<number | null>(null);
+  const suppressRowHandleClickRef = useRef<string | null>(null);
+  const suppressRowHandleClickTimerRef = useRef<number | null>(null);
   const optionFieldClosersRef = useRef<Record<string, () => void>>({});
   const localWidthsRef = useRef<Record<string, number>>({ ...snapshot.fieldConfig.widths });
   const rowElementRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
@@ -198,6 +236,9 @@ function DataTableComponent(props: DataTableProps) {
     onCommitSelectDraft: props.onCommitSelectDraft,
     onResizeField: props.onResizeField,
     onReorderFields: props.onReorderFields,
+    onDuplicateRow: props.onDuplicateRow,
+    onDeleteRow: props.onDeleteRow,
+    onReorderRows: props.onReorderRows,
   });
   const restoredScrollContextKeyRef = useRef<string | null>(null);
   const [measuredRowHeights, setMeasuredRowHeights] = useState<Record<string, number>>({});
@@ -218,6 +259,52 @@ function DataTableComponent(props: DataTableProps) {
   useEffect(() => {
     setActiveTextCellId(null);
   }, [snapshot.textEditable, snapshot.sourcePath, snapshot.collectionPath]);
+  useEffect(() => {
+    cancelRowDrag();
+    setOpenRowActionId(null);
+  }, [snapshot.sourcePath, snapshot.collectionPath, snapshot.revision]);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !activeRowDragRef.current) return;
+      event.preventDefault();
+      cancelRowDrag();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      stopRowAutoScroll();
+      if (suppressRowHandleClickTimerRef.current != null) {
+        window.clearTimeout(suppressRowHandleClickTimerRef.current);
+      }
+    };
+  }, []);
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const activeDrag = activeRowDragRef.current;
+      if (!activeDrag?.dragging || activeDrag.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      moveActiveRowDrag(event.pointerId, event.clientX, event.clientY);
+    };
+    const handlePointerUp = (event: PointerEvent) => {
+      const activeDrag = activeRowDragRef.current;
+      if (!activeDrag?.dragging || activeDrag.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      finishActiveRowDrag(event.pointerId, event.clientX, event.clientY);
+    };
+    const handlePointerCancel = (event: PointerEvent) => {
+      const activeDrag = activeRowDragRef.current;
+      if (!activeDrag?.dragging || activeDrag.pointerId !== event.pointerId) return;
+      cancelRowDrag(false);
+    };
+    window.addEventListener("pointermove", handlePointerMove, { passive: false });
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerCancel);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerCancel);
+    };
+  }, [rowIds]);
 
   useEffect(() => {
     setScrollTop(0);
@@ -351,6 +438,9 @@ function DataTableComponent(props: DataTableProps) {
       onCommitSelectDraft: props.onCommitSelectDraft,
       onResizeField: props.onResizeField,
       onReorderFields: props.onReorderFields,
+      onDuplicateRow: props.onDuplicateRow,
+      onDeleteRow: props.onDeleteRow,
+      onReorderRows: props.onReorderRows,
     };
   }, [
     props.onSort,
@@ -376,6 +466,9 @@ function DataTableComponent(props: DataTableProps) {
     props.onCommitSelectDraft,
     props.onResizeField,
     props.onReorderFields,
+    props.onDuplicateRow,
+    props.onDeleteRow,
+    props.onReorderRows,
   ]);
   const tableData = tableRenderContract.rows;
   const columnModelSignature = useMemo(() => buildTableColumnModelsSignature({
@@ -976,8 +1069,199 @@ function DataTableComponent(props: DataTableProps) {
     columnDragAutoScrollFrameRef.current = null;
   }
 
+  function updateRowDropTarget(clientX: number, clientY: number) {
+    const activeDrag = activeRowDragRef.current;
+    const scrollContainer = scrollContainerRef.current;
+    if (!activeDrag?.dragging || !scrollContainer) return;
+    const rowRects = Object.entries(rowElementRefs.current).flatMap(([rowId, element]) => {
+      if (!element || !element.isConnected) return [];
+      const rect = element.getBoundingClientRect();
+      return [{ rowId, top: rect.top, bottom: rect.bottom }];
+    });
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const target = resolveRowDropTarget({
+      sourceRowId: activeDrag.sourceRowId,
+      pointerX: clientX,
+      pointerY: clientY,
+      containerRect: {
+        left: containerRect.left,
+        right: containerRect.right,
+        top: containerRect.top,
+        bottom: containerRect.bottom,
+      },
+      rowRects,
+      rowIds,
+    }) as RowDropTarget | null;
+    rowDropTargetRef.current = target;
+    setRowDragVisual((current) => {
+      if (
+        current?.sourceRowId === activeDrag.sourceRowId
+        && current.target?.rowId === target?.rowId
+        && current.target?.placement === target?.placement
+      ) return current;
+      return { sourceRowId: activeDrag.sourceRowId, target };
+    });
+  }
+
+  function scheduleRowAutoScroll() {
+    if (rowAutoScrollFrameRef.current != null) return;
+    const step = () => {
+      rowAutoScrollFrameRef.current = null;
+      const activeDrag = activeRowDragRef.current;
+      const scrollContainer = scrollContainerRef.current;
+      const pointerX = rowPointerXRef.current;
+      const pointerY = rowPointerYRef.current;
+      if (!activeDrag?.dragging || !scrollContainer || pointerX == null || pointerY == null) return;
+      const rect = scrollContainer.getBoundingClientRect();
+      const delta = resolveRowAutoScrollDelta({
+        pointerY,
+        containerTop: rect.top,
+        containerBottom: rect.bottom,
+      });
+      if (delta === 0) return;
+      const previousScrollTop = scrollContainer.scrollTop;
+      const maximumScrollTop = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+      const nextScrollTop = Math.min(maximumScrollTop, Math.max(0, previousScrollTop + delta));
+      if (nextScrollTop === previousScrollTop) return;
+      scrollContainer.scrollTop = nextScrollTop;
+      updateRowDropTarget(pointerX, pointerY);
+      rowAutoScrollFrameRef.current = window.requestAnimationFrame(step);
+    };
+    rowAutoScrollFrameRef.current = window.requestAnimationFrame(step);
+  }
+
+  function stopRowAutoScroll() {
+    if (rowAutoScrollFrameRef.current != null) {
+      window.cancelAnimationFrame(rowAutoScrollFrameRef.current);
+    }
+    rowAutoScrollFrameRef.current = null;
+  }
+
+  function cancelRowDrag(suppressClick = false) {
+    const activeDrag = activeRowDragRef.current;
+    if (suppressClick && activeDrag?.dragging) {
+      suppressRowHandleClickRef.current = activeDrag.sourceRowId;
+      if (suppressRowHandleClickTimerRef.current != null) {
+        window.clearTimeout(suppressRowHandleClickTimerRef.current);
+      }
+      suppressRowHandleClickTimerRef.current = window.setTimeout(() => {
+        suppressRowHandleClickRef.current = null;
+        suppressRowHandleClickTimerRef.current = null;
+      }, 0);
+    }
+    activeRowDragRef.current = null;
+    if (activeDrag?.handle.hasPointerCapture(activeDrag.pointerId)) {
+      activeDrag.handle.releasePointerCapture(activeDrag.pointerId);
+    }
+    rowDropTargetRef.current = null;
+    rowPointerXRef.current = null;
+    rowPointerYRef.current = null;
+    stopRowAutoScroll();
+    setRowDragVisual(null);
+  }
+
+  function handleRowHandlePointerDown(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    sourceRowIndex: number,
+    sourceRowId: string,
+  ) {
+    event.stopPropagation();
+    if (!snapshot.canReorderRows || !isPreciseRowDragPointer(event.pointerType) || event.button !== 0) return;
+    cancelRowDrag();
+    activeRowDragRef.current = {
+      sourceRowId,
+      sourceRowIndex,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      dragging: false,
+      handle: event.currentTarget,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveActiveRowDrag(pointerId: number, clientX: number, clientY: number) {
+    const activeDrag = activeRowDragRef.current;
+    if (!activeDrag || activeDrag.pointerId !== pointerId) return;
+    if (!activeDrag.dragging) {
+      if (!hasExceededRowDragThreshold(
+        activeDrag.startX,
+        activeDrag.startY,
+        clientX,
+        clientY,
+      )) return;
+      activeDrag.dragging = true;
+      setOpenRowActionId(null);
+      setRowDragVisual({ sourceRowId: activeDrag.sourceRowId, target: null });
+    }
+    rowPointerXRef.current = clientX;
+    rowPointerYRef.current = clientY;
+    updateRowDropTarget(clientX, clientY);
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+    const rect = scrollContainer.getBoundingClientRect();
+    const delta = resolveRowAutoScrollDelta({
+      pointerY: clientY,
+      containerTop: rect.top,
+      containerBottom: rect.bottom,
+    });
+    if (delta === 0) stopRowAutoScroll();
+    else scheduleRowAutoScroll();
+  }
+
+  function handleRowHandlePointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const activeDrag = activeRowDragRef.current;
+    if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+    moveActiveRowDrag(event.pointerId, event.clientX, event.clientY);
+    if (activeRowDragRef.current?.dragging) event.preventDefault();
+  }
+
+  function finishActiveRowDrag(pointerId: number, clientX: number, clientY: number) {
+    const activeDrag = activeRowDragRef.current;
+    if (!activeDrag || activeDrag.pointerId !== pointerId) return;
+    rowPointerXRef.current = clientX;
+    rowPointerYRef.current = clientY;
+    if (activeDrag.dragging) updateRowDropTarget(clientX, clientY);
+    const target = rowDropTargetRef.current;
+    const shouldCommit = activeDrag.dragging && target != null;
+    const sourceRowId = activeDrag.sourceRowId;
+    cancelRowDrag(activeDrag.dragging);
+    if (shouldCommit && target) {
+      runtimeActionRef.current.onReorderRows(sourceRowId, target.rowId, target.placement);
+    }
+  }
+
+  function handleRowHandlePointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    const activeDrag = activeRowDragRef.current;
+    if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+    if (activeDrag.dragging) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    finishActiveRowDrag(event.pointerId, event.clientX, event.clientY);
+  }
+
+  function handleRowHandlePointerCancel(event: ReactPointerEvent<HTMLButtonElement>) {
+    const activeDrag = activeRowDragRef.current;
+    if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancelRowDrag(false);
+  }
+
+  function handleRowHandleClick(event: ReactMouseEvent<HTMLButtonElement>, rowId: string) {
+    event.stopPropagation();
+    if (suppressRowHandleClickRef.current !== rowId) return;
+    suppressRowHandleClickRef.current = null;
+    if (suppressRowHandleClickTimerRef.current != null) {
+      window.clearTimeout(suppressRowHandleClickTimerRef.current);
+      suppressRowHandleClickTimerRef.current = null;
+    }
+    event.preventDefault();
+  }
+
   return (
-    <section className="table-shell">
+    <section className="table-shell" data-row-dragging={rowDragVisual ? "true" : undefined}>
       <TableColumnsRuntimeProvider value={tableColumnsRuntime} headerState={tableColumnsHeaderState}>
         <div
           className="table-scroll"
@@ -1045,19 +1329,77 @@ function DataTableComponent(props: DataTableProps) {
                   key={row.id}
                   data-row-id={rowId}
                   data-row-layout={hasWrappedField ? "top" : "center"}
-                  ref={(element) => { rowElementRefs.current[rowId] = element; }}
+                  data-row-drag-source={rowDragVisual?.sourceRowId === rowId ? "true" : undefined}
+                  data-row-drop-placement={rowDragVisual?.target?.rowId === rowId ? rowDragVisual.target.placement : undefined}
+                  ref={(element) => {
+                    if (element) rowElementRefs.current[rowId] = element;
+                    else delete rowElementRefs.current[rowId];
+                  }}
                   onClick={(event) => selectRow(event, originalRowIndex, rowId)}
                 >
                   <td className="row-action-cell" data-cell-kind="row-action">
-                    <button
-                      className={props.showRowDeleteControls ? "icon-button danger" : "icon-button danger row-delete-hidden"}
-                      onClick={(event) => { event.stopPropagation(); props.onDeleteRow(originalRowIndex, rowId); }}
-                      title="Delete row"
-                      aria-hidden={!props.showRowDeleteControls}
-                      tabIndex={props.showRowDeleteControls ? 0 : -1}
+                    <Popover.Root
+                      open={openRowActionId === rowId}
+                      onOpenChange={(open) => setOpenRowActionId(open ? rowId : null)}
                     >
-                      <icons.delete size={14} />
-                    </button>
+                      <Popover.Trigger asChild>
+                        <button
+                          aria-label="条目操作"
+                          aria-description={snapshot.canReorderRows ? "拖动排序，点击打开操作菜单" : "点击打开操作菜单"}
+                          className="icon-button row-action-handle"
+                          data-row-action-handle={rowId}
+                          data-row-reorder-enabled={snapshot.canReorderRows ? "true" : "false"}
+                          onClick={(event) => handleRowHandleClick(event, rowId)}
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onPointerCancel={handleRowHandlePointerCancel}
+                          onPointerDown={(event) => handleRowHandlePointerDown(event, originalRowIndex, rowId)}
+                          onPointerMove={handleRowHandlePointerMove}
+                          onPointerUp={handleRowHandlePointerUp}
+                          onLostPointerCapture={(event) => {
+                            const activeDrag = activeRowDragRef.current;
+                            if (activeDrag?.pointerId === event.pointerId && !activeDrag.dragging) cancelRowDrag(false);
+                          }}
+                          title={snapshot.canReorderRows ? "拖动排序或点击打开操作菜单" : "点击打开操作菜单"}
+                          type="button"
+                        >
+                          <icons.dragHandle size={16} />
+                        </button>
+                      </Popover.Trigger>
+                      <Popover.Portal>
+                        <Popover.Content
+                          align="start"
+                          className="menu-content row-action-menu"
+                          role="menu"
+                          side="right"
+                          sideOffset={6}
+                        >
+                          <button
+                            className="menu-item"
+                            onClick={() => {
+                              setOpenRowActionId(null);
+                              runtimeActionRef.current.onDuplicateRow(originalRowIndex, rowId);
+                            }}
+                            role="menuitem"
+                            type="button"
+                          >
+                            <icons.copy size={15} />
+                            <span>复制条目</span>
+                          </button>
+                          <button
+                            className="menu-item danger"
+                            onClick={() => {
+                              setOpenRowActionId(null);
+                              runtimeActionRef.current.onDeleteRow(originalRowIndex, rowId);
+                            }}
+                            role="menuitem"
+                            type="button"
+                          >
+                            <icons.delete size={15} />
+                            <span>删除条目</span>
+                          </button>
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
                   </td>
                   {row.getVisibleCells().map((cell) => (
                     <td
@@ -1153,7 +1495,8 @@ function DataTableComponent(props: DataTableProps) {
 
 export const DataTable = memo(DataTableComponent, (previous, next) => {
   return sameTableSnapshot(previous.snapshot, next.snapshot) &&
-    previous.showRowDeleteControls === next.showRowDeleteControls &&
+    previous.onDuplicateRow === next.onDuplicateRow &&
+    previous.onReorderRows === next.onReorderRows &&
     previous.onScrollPositionChange === next.onScrollPositionChange;
 });
 
@@ -1176,6 +1519,7 @@ function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
     sameSort(previous.sort, next.sort) &&
     previous.validation === next.validation &&
     previous.textEditable === next.textEditable &&
+    previous.canReorderRows === next.canReorderRows &&
     previous.onRegisterActiveTextEditor === next.onRegisterActiveTextEditor &&
     sameFieldViewConfigs(previous.fieldViewConfigs, next.fieldViewConfigs);
 }

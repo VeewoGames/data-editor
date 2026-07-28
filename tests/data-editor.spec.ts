@@ -292,6 +292,25 @@ function tableCell(page: Page, rowIndex: number, fieldName: string) {
   return tableRow(page, rowIndex).locator(`td[data-column-field="${fieldName}"]`).first();
 }
 
+function rowActionHandle(page: Page, rowIndex: number) {
+  return tableRow(page, rowIndex).locator("[data-row-action-handle]").first();
+}
+
+async function dragRowHandle(page: Page, sourceIndex: number, targetIndex: number, placement: "before" | "after") {
+  const source = await rowActionHandle(page, sourceIndex).boundingBox();
+  const target = await tableRow(page, targetIndex).boundingBox();
+  if (!source || !target) throw new Error("dragRowHandle requires visible source and target rows");
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(source.x + source.width / 2 + 8, source.y + source.height / 2 + 8, { steps: 3 });
+  await page.mouse.move(
+    target.x + Math.min(20, target.width / 2),
+    placement === "before" ? target.y + 3 : target.y + target.height - 3,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+}
+
 async function dragBetweenCells(page: Page, source: Locator, target: Locator) {
   const sourceBox = await source.boundingBox();
   const targetBox = await target.boundingBox();
@@ -9279,7 +9298,7 @@ test("table settings popover saves docRoot for the current file", async ({ page 
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
   await expect(page.locator(".data-table")).toBeVisible();
 
-  await page.locator('.view-tabs-row-delete-toggle').click();
+  await page.locator('.view-tabs-settings-toggle').click();
   const settingsPopover = page.locator(".table-settings-popover");
   await expect(settingsPopover).toBeVisible();
   await expect(settingsPopover).toContainText("关联文档");
@@ -9292,6 +9311,122 @@ test("table settings popover saves docRoot for the current file", async ({ page 
     const config = JSON.parse(text);
     return config.documentFiles?.["data/e2e_select.json"]?.docRoot === "docs/e2e_document_field";
   });
+});
+
+test("row action handle opens a keyboard-accessible duplicate and confirmed delete menu", async ({ page }) => {
+  const fileName = "e2e_row_action_menu.json";
+  const filePath = path.resolve("tests/.scratch/data", fileName);
+  await writeFile(filePath, `${JSON.stringify([
+    { id: "alpha", nested: { values: [1] } },
+    { id: "beta", nested: { values: [2] } },
+  ], null, 2)}\n`, "utf8");
+
+  await page.goto("/");
+  await page.locator(`.sidebar-item[title="data/${fileName}"]`).click();
+  await expect(tableRows(page)).toHaveCount(2);
+
+  const firstHandle = rowActionHandle(page, 0);
+  await firstHandle.focus();
+  await page.keyboard.press("Enter");
+  const menu = page.locator(".row-action-menu");
+  await expect(menu).toBeVisible();
+  await expect(menu).toHaveAttribute("role", "menu");
+  await expect(menu.getByRole("menuitem", { name: "复制条目" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "删除条目" })).toBeVisible();
+
+  await menu.getByRole("menuitem", { name: "复制条目" }).click();
+  await expect(tableRows(page)).toHaveCount(3);
+  await expect(page.locator(".row-action-menu")).toHaveCount(0);
+  await expect(page.locator(".data-table tbody tr.selected-row")).toHaveCount(1);
+
+  await rowActionHandle(page, 1).click();
+  await page.locator(".row-action-menu").getByRole("menuitem", { name: "删除条目" }).click();
+  await expect(page.getByRole("dialog", { name: "删除行" })).toBeVisible();
+  await page.getByRole("button", { name: "确认删除" }).click();
+  await expect(tableRows(page)).toHaveCount(2);
+});
+
+test("row handle drag commits once while Escape and outside release leave source order unchanged", async ({ page }) => {
+  const fileName = "e2e_row_drag.json";
+  const filePath = path.resolve("tests/.scratch/data", fileName);
+  await writeFile(filePath, `${JSON.stringify([
+    { id: "a" },
+    { id: "b" },
+    { id: "c" },
+  ], null, 2)}\n`, "utf8");
+
+  await page.goto("/");
+  await page.locator(`.sidebar-item[title="data/${fileName}"]`).click();
+  await expect(tableRows(page)).toHaveCount(3);
+  const visibleIds = () => page.locator('.data-table td[data-column-field="id"]').allTextContents();
+
+  await dragRowHandle(page, 0, 2, "after");
+  await expect.poll(visibleIds).toEqual(["b", "c", "a"]);
+  await expect(page.locator(".row-action-menu")).toHaveCount(0);
+  await expect.poll(async () => {
+    const rows = JSON.parse(await readFile(filePath, "utf8"));
+    return rows.map((row: { id: string }) => row.id);
+  }).toEqual(["b", "c", "a"]);
+
+  const escapeSource = await rowActionHandle(page, 0).boundingBox();
+  const escapeTarget = await tableRow(page, 2).boundingBox();
+  expect(escapeSource).not.toBeNull();
+  expect(escapeTarget).not.toBeNull();
+  await page.mouse.move(escapeSource!.x + escapeSource!.width / 2, escapeSource!.y + escapeSource!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(escapeTarget!.x + 20, escapeTarget!.y + escapeTarget!.height - 3, { steps: 8 });
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect.poll(visibleIds).toEqual(["b", "c", "a"]);
+  await rowActionHandle(page, 0).click();
+  await expect(page.locator(".row-action-menu")).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const outsideSource = await rowActionHandle(page, 0).boundingBox();
+  expect(outsideSource).not.toBeNull();
+  await page.mouse.move(outsideSource!.x + outsideSource!.width / 2, outsideSource!.y + outsideSource!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(outsideSource!.x + 10, outsideSource!.y + 50, { steps: 4 });
+  await page.mouse.move(1, outsideSource!.y + 80, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(visibleIds).toEqual(["b", "c", "a"]);
+  await expect(page.locator(".row-action-menu")).toHaveCount(0);
+});
+
+test("row handle edge drag keeps scrolling after source virtualization and stops on Escape", async ({ page }) => {
+  const fileName = "e2e_row_drag_long.json";
+  const filePath = path.resolve("tests/.scratch/data", fileName);
+  await writeFile(filePath, `${JSON.stringify(Array.from({ length: 120 }, (_, index) => ({
+    id: `row_${String(index).padStart(3, "0")}`,
+  })), null, 2)}\n`, "utf8");
+
+  await page.goto("/");
+  await page.locator(`.sidebar-item[title="data/${fileName}"]`).click();
+  await expect(tableRows(page).first()).toBeVisible();
+  const scroll = page.locator(".table-scroll");
+  const scrollBox = await scroll.boundingBox();
+  const source = await rowActionHandle(page, 0).boundingBox();
+  const sourceRowId = await tableRow(page, 0).getAttribute("data-row-id");
+  expect(scrollBox).not.toBeNull();
+  expect(source).not.toBeNull();
+  expect(sourceRowId).not.toBeNull();
+
+  await page.mouse.move(source!.x + source!.width / 2, source!.y + source!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(source!.x + source!.width / 2 + 8, source!.y + source!.height / 2 + 8, { steps: 3 });
+  await page.mouse.move(scrollBox!.x + 24, scrollBox!.y + scrollBox!.height - 2, { steps: 6 });
+  await page.waitForTimeout(450);
+  await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(120);
+  await expect(page.locator(`.data-table tbody tr[data-row-id="${sourceRowId}"]`)).toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  const stoppedAt = await scroll.evaluate((element) => element.scrollTop);
+  await page.waitForTimeout(120);
+  await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBe(stoppedAt);
+  await expect(page.locator(".table-shell")).not.toHaveAttribute("data-row-dragging", "true");
+  const persisted = JSON.parse(await readFile(filePath, "utf8"));
+  expect(persisted[0].id).toBe("row_000");
 });
 
 test("table keeps at least 300px bottom buffer below the last data row", async ({ page }) => {
