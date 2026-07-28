@@ -1,9 +1,11 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { getRows } from "./document-model.mjs";
-import { buildDocumentStore } from "./model/document-store.mjs";
+import { readPersistentEntryId } from "./model/persistent-entry-id.mjs";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
+import { isTerminalEntryActionState, normalizeEntryActionStateRecord } from "./entry-action-state.mjs";
+import { canonicalFileIdentity } from "./canonical-file-identity.mjs";
 
 export function normalizeEntryActionPath(value, label) {
   const normalized = String(value ?? "").trim().replaceAll("\\", "/");
@@ -75,19 +77,14 @@ export function resolveEntryActionRow(model, collectionPath, sourceRowIndex, row
 
 export function resolveEntryActionSourceRowIndex(model, collectionPath, sourceRowIndex, rowId = null) {
   const rows = getRows(model, collectionPath);
-  if (rowId) {
-    const store = buildDocumentStore({
-      documentId: model?.sourcePath || "document",
-      model,
-    });
-    const resolvedFromRowId = store.collections.get(collectionPath)?.sourceIndexByRowId.get(rowId) ?? null;
-    if (Number.isInteger(resolvedFromRowId)) return resolvedFromRowId;
-  }
-  if (sourceRowIndex < 0 || sourceRowIndex >= rows.length) {
-    throw new Error(`sourceRowIndex is out of range for ${collectionPath}: ${sourceRowIndex}`);
-  }
-  return sourceRowIndex;
+  if (typeof rowId !== "string" || !rowId.trim()) entryTargetError("ENTRY_ACTION_TARGET_MISSING", "A persistent __entry_id is required.");
+  const matches = rows.flatMap((row, index) => readPersistentEntryId(row) === rowId.trim() ? [index] : []);
+  if (matches.length === 0) entryTargetError("ENTRY_ACTION_TARGET_MISSING", "Persistent __entry_id was not found in the target collection.");
+  if (matches.length > 1) entryTargetError("ENTRY_ACTION_TARGET_ID_DUPLICATE", "Persistent __entry_id is duplicated in the target collection.");
+  return matches[0];
 }
+
+function entryTargetError(code, message) { throw Object.assign(new Error(message), { code }); }
 
 export function createEntryActionRunId() {
   return crypto.randomUUID();
@@ -114,6 +111,22 @@ export function entryActionOutputPath(projectContextOrRoot, runId) {
   return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.reply.md`);
 }
 
+export function entryActionProposalPath(projectContextOrRoot, runId) { return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.proposal.json`); }
+export function entryActionDiagnosticsPath(projectContextOrRoot, runId) { return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.diagnostics.json`); }
+
+export async function describeEntryActionArtifacts(projectContextOrRoot, runId) {
+  return {
+    proposal: await describeArtifact(entryActionProposalPath(projectContextOrRoot, runId)),
+    reply: await describeArtifact(entryActionOutputPath(projectContextOrRoot, runId)),
+    diagnostics: await describeArtifact(entryActionDiagnosticsPath(projectContextOrRoot, runId)),
+  };
+}
+
+async function describeArtifact(targetPath) {
+  try { await access(targetPath); return { path: targetPath, available: true }; }
+  catch { return { path: targetPath, available: false }; }
+}
+
 export async function writeEntryActionHandoff(projectContextOrRoot, runId, payload) {
   const targetPath = entryActionHandoffPath(projectContextOrRoot, runId);
   await mkdir(path.dirname(targetPath), { recursive: true });
@@ -123,12 +136,12 @@ export async function writeEntryActionHandoff(projectContextOrRoot, runId, paylo
 
 export async function readEntryActionStarted(projectContextOrRoot, runId) {
   const targetPath = entryActionStartedPath(projectContextOrRoot, runId);
-  return JSON.parse(await readFile(targetPath, "utf8"));
+  return normalizeEntryActionStateRecord(JSON.parse(await readFile(targetPath, "utf8")));
 }
 
 export async function readEntryActionResult(projectContextOrRoot, runId) {
   const targetPath = entryActionResultPath(projectContextOrRoot, runId);
-  return JSON.parse(await readFile(targetPath, "utf8"));
+  return normalizeEntryActionStateRecord(JSON.parse(await readFile(targetPath, "utf8")));
 }
 
 export async function findLatestEntryActionRun(projectContextOrRoot, identity) {
@@ -162,15 +175,35 @@ export async function findLatestEntryActionRun(projectContextOrRoot, identity) {
   try {
     return { ...await readEntryActionStarted(projectContextOrRoot, runId), actionId, createdAt: latest.createdAt ?? null };
   } catch {}
-  return { runId, actionId, createdAt: latest.createdAt ?? null, status: "started" };
+  return { runId, actionId, createdAt: latest.createdAt ?? null, phase: "running", outcome: null };
 }
 
-function matchesEntryActionIdentity(handoff, identity) {
+/** Returns every non-terminal run for one canonical physical source file. */
+export async function findActiveEntryActionRuns(projectContextOrRoot, sourcePath) {
+  const context = createProjectContext(projectContextOrRoot);
+  const identity = await canonicalFileIdentity(context, sourcePath);
+  let fileNames = [];
+  try { fileNames = await readdir(entryActionsRuntimeDir(context)); } catch { return { canonicalFileKey: identity.canonicalFileKey, runs: [] }; }
+  const runs = [];
+  for (const fileName of fileNames) {
+    if (!fileName.endsWith(".json") || fileName.endsWith(".started.json") || fileName.endsWith(".result.json")) continue;
+    try {
+      const handoff = JSON.parse(await readFile(path.join(entryActionsRuntimeDir(context), fileName), "utf8"));
+      if (handoff?.entry?.canonicalFileKey !== identity.canonicalFileKey || typeof handoff.runId !== "string") continue;
+      let state = { runId: handoff.runId, phase: "running", outcome: null };
+      try { state = await readEntryActionResult(context, handoff.runId); }
+      catch { try { state = await readEntryActionStarted(context, handoff.runId); } catch {} }
+      if (!isTerminalEntryActionState(state)) runs.push({ runId: handoff.runId, actionId: handoff?.action?.id ?? null, sourcePath: handoff?.entry?.sourcePath ?? identity.sourcePath, phase: state.phase });
+    } catch {}
+  }
+  return { canonicalFileKey: identity.canonicalFileKey, runs };
+}
+
+export function matchesEntryActionIdentity(handoff, identity) {
   const entry = handoff?.entry;
   if (!entry || entry.sourcePath !== identity.sourcePath || entry.collectionPath !== identity.collectionPath) return false;
   if (identity.actionId && handoff?.action?.id !== identity.actionId) return false;
-  if (identity.rowId && entry.rowId) return identity.rowId === entry.rowId;
-  return Number.isInteger(identity.sourceRowIndex) && entry.sourceRowIndex === identity.sourceRowIndex;
+  return Boolean(identity.rowId && entry.rowId && identity.rowId === entry.rowId);
 }
 
 export function buildEntryActionHandoff({

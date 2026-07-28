@@ -1,0 +1,12 @@
+{
+  "rules": [
+    {
+      "id": "fixture-rename",
+      "enabled": true,
+      "label": "Fixture rename",
+      "icon": "edit",
+      "targets": [{ "file": "data/items.json", "collection": "items", "writableFields": ["name"] }],
+      "payload": { "includeRow": true, "includeNeighbors": false }
+    }
+  ]
+}

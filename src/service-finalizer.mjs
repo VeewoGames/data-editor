@@ -111,9 +111,11 @@ export function planTempDirectoryCleanup({ directories = [], processes = [], tem
   const processCommandLines = processes.map((process) => normalizePathForCompare(process.commandLine ?? ""));
 
   for (const directory of directories) {
-    const fullPath = path.resolve(String(directory));
+    const descriptor = typeof directory === "string" ? { path: directory } : directory;
+    const fullPath = path.resolve(String(descriptor?.path ?? ""));
     const comparable = normalizePathForCompare(fullPath);
-    if (path.basename(fullPath).startsWith("data-editor-stop-") !== true) {
+    const name = path.basename(fullPath);
+    if (name.startsWith("data-editor-stop-") !== true && !name.startsWith("data-editor-entry-action-")) {
       skippedDirectories.push({ path: fullPath, reason: "name-mismatch" });
       continue;
     }
@@ -125,10 +127,33 @@ export function planTempDirectoryCleanup({ directories = [], processes = [], tem
       skippedDirectories.push({ path: fullPath, reason: "in-use" });
       continue;
     }
+    if (name.startsWith("data-editor-entry-action-") && !isCleanableEntryActionDirectory(descriptor, name)) {
+      skippedDirectories.push({ path: fullPath, reason: entryActionSkipReason(descriptor, name) });
+      continue;
+    }
     directoriesToDelete.push(fullPath);
   }
 
   return { directoriesToDelete, skippedDirectories };
+}
+
+function isCleanableEntryActionDirectory(descriptor, name) {
+  if (descriptor?.isSymbolicLink) return false;
+  const runId = name.slice("data-editor-entry-action-".length);
+  const marker = descriptor?.marker;
+  return Boolean(marker && marker.version === 1 && marker.kind === "entry-action-temp"
+    && marker.runId === runId && descriptor.activeLock !== true && descriptor.terminalEvidence === true
+    && descriptor.processEvidenceVerified === true && descriptor.fencingLockReleased === true);
+}
+
+function entryActionSkipReason(descriptor, name) {
+  if (descriptor?.isSymbolicLink) return "symlink-or-junction";
+  const runId = name.slice("data-editor-entry-action-".length);
+  if (!descriptor?.marker || descriptor.marker.version !== 1 || descriptor.marker.kind !== "entry-action-temp" || descriptor.marker.runId !== runId) return "owner-marker-invalid";
+  if (descriptor.activeLock === true) return "active-lock";
+  if (descriptor.processEvidenceVerified !== true) return "process-evidence-unverified";
+  if (descriptor.fencingLockReleased !== true) return "fencing-lock-unverified";
+  return "terminal-or-recovery-evidence-missing";
 }
 
 export async function checkServiceHealth({ mainPort = 8787, bridgePort = 8791, requestJson }) {

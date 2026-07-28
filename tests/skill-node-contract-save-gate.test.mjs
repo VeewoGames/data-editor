@@ -48,6 +48,13 @@ test("skill save gate blocks invalid contract state and leaves non-skill saves u
   });
   await waitForHealth(port);
 
+  const missingEtagResponse = await fetch(`http://127.0.0.1:${port}/api/save`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId: "project-a", path: skillPath(), root: { skill_node_contract_version: 1, skills: [] }, idempotencyKey: "missing_etag_12345" }),
+  });
+  assertSaveError({ status: missingEtagResponse.status, body: await missingEtagResponse.json() }, 400, "DOCUMENT_SAVE_ETAG_REQUIRED", "documentEtag");
+
   const contractResponse = await fetch(`http://127.0.0.1:${port}/api/skill-node-contract?projectId=project-a`);
   const etag = contractResponse.headers.get("etag");
   assert.ok(etag);
@@ -151,6 +158,35 @@ test("skill save gate blocks invalid contract state and leaves non-skill saves u
   const nonSkill = await save(port, "project-a", "data/content/traits.json", nonSkillRoot, {});
   assert.equal(nonSkill.status, 200);
   assert.deepEqual(JSON.parse(await readFile(path.join(projectA, "data/content/traits.json"), "utf8")), nonSkillRoot);
+
+  const traitDocument = await fetch(`http://127.0.0.1:${port}/api/document?projectId=project-a&path=${encodeURIComponent("data/content/traits.json")}`);
+  const traitEtag = (await traitDocument.json()).documentEtag;
+  const concurrentSave = (id) => fetch(`http://127.0.0.1:${port}/api/save`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId: "project-a", path: "data/content/traits.json", root: { traits: [{ id }] }, documentEtag: traitEtag, idempotencyKey: `concurrent_${id}_12345` }),
+  }).then(async (response) => ({ status: response.status, body: await response.json() }));
+  const concurrentResults = await Promise.all([concurrentSave("first"), concurrentSave("second")]);
+  assert.deepEqual(concurrentResults.map((result) => result.status).sort(), [200, 409]);
+  const stale = concurrentResults.find((result) => result.status === 409);
+  assert.equal(stale.body.code, "DOCUMENT_SAVE_ETAG_STALE");
+  const finalTraits = JSON.parse(await readFile(path.join(projectA, "data/content/traits.json"), "utf8"));
+  assert.ok(["first", "second"].includes(finalTraits.traits[0].id));
+
+  const idempotentDocument = await fetch(`http://127.0.0.1:${port}/api/document?projectId=project-a&path=${encodeURIComponent("data/content/traits.json")}`);
+  const idempotentEtag = (await idempotentDocument.json()).documentEtag;
+  const idempotencyKey = "replay_save_12345";
+  const idempotentPayload = { projectId: "project-a", path: "data/content/traits.json", root: { traits: [{ id: "replayed" }] }, documentEtag: idempotentEtag, idempotencyKey };
+  const firstSave = await fetch(`http://127.0.0.1:${port}/api/save`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(idempotentPayload) });
+  assert.equal(firstSave.status, 200);
+  const retrySave = await fetch(`http://127.0.0.1:${port}/api/save`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(idempotentPayload) });
+  assert.equal(retrySave.status, 200);
+  assert.equal((await retrySave.json()).replayed, true);
+  const collisionSave = await fetch(`http://127.0.0.1:${port}/api/save`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...idempotentPayload, root: { traits: [{ id: "different" }] } }) });
+  assertSaveError({ status: collisionSave.status, body: await collisionSave.json() }, 409, "DOCUMENT_SAVE_IDEMPOTENCY_CONFLICT", "idempotencyKey");
+  await writeFile(path.join(projectA, "data/content/traits.json"), JSON.stringify({ traits: [{ id: "external" }] }), "utf8");
+  const driftedReplay = await fetch(`http://127.0.0.1:${port}/api/save`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(idempotentPayload) });
+  assertSaveError({ status: driftedReplay.status, body: await driftedReplay.json() }, 503, "DOCUMENT_SAVE_NEEDS_RECOVERY", "idempotencyKey");
 });
 
 test("second save-gate check detects a contract changed after initial validation", async (t) => {
@@ -245,10 +281,13 @@ async function fetchContractEtag(projectRoot) {
 }
 
 async function save(port, projectId, documentPath, root, contractGate) {
+  const loaded = await fetch(`http://127.0.0.1:${port}/api/document?projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(documentPath)}`);
+  const loadedBody = await loaded.json();
+  const documentEtag = contractGate?.documentEtag ?? loadedBody.documentEtag;
   const response = await fetch(`http://127.0.0.1:${port}/api/save`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, path: documentPath, root, ...contractGate }),
+    body: JSON.stringify({ projectId, path: documentPath, root, ...contractGate, documentEtag, idempotencyKey: `test_${Math.random().toString(36).slice(2)}_12345` }),
   });
   const text = await response.text();
   return { status: response.status, body: text ? JSON.parse(text) : null };

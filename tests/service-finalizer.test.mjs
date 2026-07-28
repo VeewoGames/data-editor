@@ -124,6 +124,38 @@ test("planTempDirectoryCleanup only deletes unused data-editor-stop directories 
   ]);
 });
 
+test("entry-action temp cleanup fails closed without a matching owner marker and terminal evidence", () => {
+  const tempRoot = path.resolve("C:/Users/lans/AppData/Local/Temp");
+  const good = path.join(tempRoot, "data-editor-entry-action-run-good");
+  const badMarker = path.join(tempRoot, "data-editor-entry-action-run-bad");
+  const active = path.join(tempRoot, "data-editor-entry-action-run-active");
+  const link = path.join(tempRoot, "data-editor-entry-action-run-link");
+  const plan = planTempDirectoryCleanup({
+    tempRoot,
+    processes: [],
+    directories: [
+      { path: good, marker: { version: 1, kind: "entry-action-temp", runId: "run-good" }, terminalEvidence: true, activeLock: false, processEvidenceVerified: true, fencingLockReleased: true },
+      { path: badMarker, marker: { version: 1, kind: "entry-action-temp", runId: "wrong" }, terminalEvidence: true, activeLock: false, processEvidenceVerified: true, fencingLockReleased: true },
+      { path: active, marker: { version: 1, kind: "entry-action-temp", runId: "run-active" }, terminalEvidence: true, activeLock: true, processEvidenceVerified: true, fencingLockReleased: true },
+      { path: link, marker: { version: 1, kind: "entry-action-temp", runId: "run-link" }, terminalEvidence: true, activeLock: false, isSymbolicLink: true, processEvidenceVerified: true, fencingLockReleased: true },
+    ],
+  });
+  assert.deepEqual(plan.directoriesToDelete, [good]);
+  assert.deepEqual(plan.skippedDirectories.map((item) => item.reason), ["owner-marker-invalid", "active-lock", "symlink-or-junction"]);
+});
+
+test("entry-action cleanup requires verified process and fencing release evidence", () => {
+  const tempRoot = path.resolve("C:/Users/lans/AppData/Local/Temp");
+  const base = { marker: { version: 1, kind: "entry-action-temp", runId: "run-proof" }, terminalEvidence: true, activeLock: false };
+  const plan = planTempDirectoryCleanup({ tempRoot, processes: [], directories: [
+    { path: path.join(tempRoot, "data-editor-entry-action-run-proof"), ...base },
+    { path: path.join(tempRoot, "data-editor-entry-action-run-fence"), marker: { ...base.marker, runId: "run-fence" }, terminalEvidence: true, activeLock: false, processEvidenceVerified: true },
+    { path: path.join(tempRoot, "data-editor-entry-action-run-recovery"), marker: { ...base.marker, runId: "run-recovery" }, terminalEvidence: false, activeLock: false, processEvidenceVerified: true, fencingLockReleased: true },
+  ] });
+  assert.deepEqual(plan.directoriesToDelete, []);
+  assert.deepEqual(plan.skippedDirectories.map((item) => item.reason), ["process-evidence-unverified", "fencing-lock-unverified", "terminal-or-recovery-evidence-missing"]);
+});
+
 test("checkServiceHealth classifies main and bridge health", async () => {
   const health = await checkServiceHealth({
     mainPort: 8787,

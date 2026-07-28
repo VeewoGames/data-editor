@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import {
   controllerStatePath,
   clearServiceState,
@@ -105,6 +105,24 @@ test("runtime state stores project context state under project .data-editor runt
     controllerStatePath(runtimeTarget),
     path.join(projectRoot, ".data-editor", "runtime", "controller.json"),
   );
+});
+
+test("concurrent runtime state saves always leave parseable complete JSON", async (t) => {
+  const toolRoot = await makeToolRoot(t);
+  await ensureRuntimeDir(toolRoot);
+  const states = Array.from({ length: 20 }, (_, index) => ({
+    pid: 4000 + index,
+    port: 8787,
+    projectRoot: `C:/Code/Nocturnel-${index}`,
+    mode: "static",
+    command: ["node", "server.mjs"],
+    startedAt: "2026-07-27T00:00:00.000Z",
+  }));
+  await Promise.all(states.map((state) => saveServiceState(toolRoot, state)));
+
+  const stored = JSON.parse(await readFile(runtimeStatePath(toolRoot), "utf8"));
+  assert.equal(states.some((state) => state.pid === stored.pid && state.projectRoot === stored.projectRoot), true);
+  assert.deepEqual(await readdir(path.dirname(runtimeStatePath(toolRoot))), ["service.json"]);
 });
 
 test("clearServiceState removes runtime state file", async (t) => {

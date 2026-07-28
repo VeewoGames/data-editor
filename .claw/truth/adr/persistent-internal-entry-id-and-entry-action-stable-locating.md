@@ -1,6 +1,6 @@
 # 持久内部条目 ID 与 entry-action 稳定定位
 
-status: accepted
+<!-- document-state: accepted -->
 
 ## context
 
@@ -22,11 +22,13 @@ status: accepted
 
 该字段直接写入源数据记录，作为条目在保存、重载、新增和删除后的持久定位锚点，不再让业务主键或 `sourceRowIndex` 承担这项职责。
 
-### 2. 运行时定位与写回核对优先复用 `__entry_id`
+### 2. 运行时定位与写回核对只复用 `__entry_id`
 
-运行时的 `rowId`、entry-action 目标定位、以及执行前后写回核对，应优先复用持久 `__entry_id`。
+运行时的 `rowId`、entry-action 目标定位、以及执行前后写回核对，只复用持久 `__entry_id`。
 
-`sourceRowIndex` 仍可作为临时回退或兼容输入，但不能再被视为唯一真值。
+`sourceRowIndex` 仅保留展示、诊断和历史记录语义；它不是目标解析回退。缺少或找不到
+`rowId` 必须以 `ENTRY_ACTION_TARGET_MISSING` 拒绝，重复身份必须以
+`ENTRY_ACTION_TARGET_ID_DUPLICATE` 拒绝。
 
 同样，业务主键只承担业务语义，不再作为内部定位的最高优先级依据。
 
@@ -40,7 +42,7 @@ status: accepted
 
 entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/result` 轮询完成态。
 
-`POST /api/entry-actions/run` 的 `started` 返回只表示任务已进入执行队列或后台流程，不能被视为完成。
+在 legacy 启动路径仍可用时，`POST /api/entry-actions/run` 的 `started` 返回只表示任务已进入执行队列或后台流程，不能被视为完成。当前新任务入口已硬禁用，不能把这条历史启动语义写成现行能力。
 
 ### 5. 业务主键同步维护只在“非空旧值 -> 非空新值”时介入
 
@@ -53,7 +55,7 @@ entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/resu
 - 条目身份从运行时临时坐标升级为可持久写回的内部字段，跨保存与重载的定位更稳定。
 - entry-action 的目标定位和写回核对可以统一复用同一身份锚点，减少对业务主键空值和顺序变化的依赖。
 - `__entry_id` 不参与默认展示和候选推断后，UI 和字段分析不会被内部实现细节污染。
-- 前端不能再把 `started` 当作完成信号，必须等待 `/api/entry-actions/result` 的独立结果。
+- legacy 运行记录的前端不能把 `started` 当作完成信号，必须等待 `/api/entry-actions/result` 的独立结果。
 - 这条协议也为后续更可靠的执行审计和写回确认留下了明确接口边界。
 - 保存链不再把“业务主键为空”误判为内部身份缺失；业务字段可以为空或被清空，而不破坏条目级保存与后续定位。
 
@@ -70,3 +72,20 @@ entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/resu
 - `tests/document-store.test.mjs`
 - `tests/entry-actions.test.mjs`
 - `tests/open-stop.test.mjs`
+
+<!-- state: history -->
+## Evolution history
+
+<!-- dated: 2026-07-27 -->
+### legacy 启动语义不再描述新任务入口
+
+`__entry_id` 的稳定定位决定仍被接受，但本 ADR 中的 `started` 轮询语义只适用于历史运行记录。
+当前新任务门禁由
+[`entry-actions-legacy-direct-write-hard-disable.md`](./entry-actions-legacy-direct-write-hard-disable.md)
+维护。
+
+<!-- dated: 2026-07-27 -->
+### Strict RowId 从优先级规则收紧为拒绝规则
+
+曾经保留的 `sourceRowIndex` 回退和兼容输入已被移除。该变化避免历史行号在条目重排、缺失
+身份或重复身份时被误当成可提交的定位依据。

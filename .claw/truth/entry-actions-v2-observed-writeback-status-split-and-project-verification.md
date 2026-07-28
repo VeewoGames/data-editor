@@ -1,12 +1,12 @@
 # entry-action 观察到写回状态已分流：`completed_with_writeback` / `completed_without_observed_writeback`
 
-status: accepted
+<!-- document-state: historical -->
+<!-- state: history -->
+## 历史观察语义
 
-## context
+这条 truth 只沉淀已经完成的最小观察能力：`scripts/run-entry-action.mjs` 现在会在执行前后重读目标文件与目标条目，计算 `fileChanged`、`targetRowChanged` 和 `changedFields`，并把 `writebackCheck` 写入 `result.json`。
 
-这条 truth 只沉淀这轮已经完成的最小验证结果：`scripts/run-entry-action.mjs` 现在会在执行前后重读目标文件与目标条目，计算 `fileChanged`、`targetRowChanged` 和 `changedFields`，并把 `writebackCheck` 写入 `result.json`。
-
-它不重复更上层的 Codex 执行链、stdin prompt、skill 解析或绑定状态识别，只固定“结果状态如何对应真实观察到的写回”。
+它不重复更上层的 Codex 执行链、stdin prompt、skill 解析或绑定状态识别，只固定“结果状态如何对应执行前后快照观察到的变化”。这些快照不提供同源并发隔离，也不能把变化唯一归因于当前 `runId`。
 
 ## 结论
 
@@ -46,7 +46,7 @@ status: accepted
 - `skill_name = 震地砸击`
 - `skill_id = skill_ground_slam`
 
-这说明 `completed_with_writeback` 现在对应的是“过程完成且目标条目真实变化已被观察到”。
+这说明该次验证中，`completed_with_writeback` 对应“过程完成且前后快照观察到目标条目变化”。它不把这项观察提升为通用的单次运行归因证明。
 
 #### 第二次：同一已补完条目重跑未观察到写回
 
@@ -75,9 +75,11 @@ reply 也明确说明没有修改任何文件。
 
 ## 长期规则
 
-### 1. `completed_with_writeback` 才表示观察到真实写回
+### 1. `completed_with_writeback` 只表示观察到目标条目变化
 
-只有当 `writebackCheck.targetRowChanged` 或等价的观察证据成立时，才应该把结果解释为真实写回成功。
+只有当 `writebackCheck.targetRowChanged` 或等价的观察证据成立时，才可以报告“执行前后观察到目标条目变化”。
+
+该状态不能单独证明变化由当前 `runId` 产生，也不能证明目标外没有其他写入。同源文件并发、严格定位和受控提交的当前缺口由 [`entry-actions-same-source-concurrency-and-timeout-evidence-gap.md`](./entry-actions-same-source-concurrency-and-timeout-evidence-gap.md) 维护。
 
 ### 2. `completed_without_observed_writeback` 不是失败，但必须保留
 
@@ -89,9 +91,9 @@ reply 也明确说明没有修改任何文件。
 
 这类结果对排障很重要，不能和失败、异常终止混为一谈。
 
-### 3. 回写验证必须以目标文件和目标条目的重读结果为准
+### 3. 回写观察必须以目标文件和目标条目的重读结果为准
 
-`reply.md` 仍然只能作为过程说明，最终判断应以执行前后快照和 `writebackCheck` 为准。
+`reply.md` 仍然只能作为过程说明。判断“是否观察到目标变化”时，应以执行前后快照和 `writebackCheck` 为准；判断“是否由当前运行安全提交”时，还需要互斥、版本门禁和提交归因证据。
 
 ### 4. 新增写回链路后，历史“completed 只表示过程完成”的语义应视为过时
 
@@ -121,3 +123,19 @@ reply 也明确说明没有修改任何文件。
 - `targetRowChanged`
 - `changedFields`
 - `observed writeback`
+
+<!-- state: history -->
+## 演进记录
+
+<!-- dated: 2026-07-26 -->
+### 从写回成功解释收窄为快照观察语义
+
+早期在单次验证中，`completed_with_writeback` 曾被解释为当前运行真实写回成功。后续同源文件重叠运行证明，其他进程的写入也可能进入当前运行的前后快照，因此该状态的 canonical 含义收窄为“观察到目标条目变化”，不再承担运行归因或并发安全证明。
+
+<!-- dated: 2026-07-27 -->
+### legacy 观察链退出当前执行面
+
+新的 legacy action 已在 API 边界被拒绝，因此本文保留为旧 runner 的结果解释历史；它不代表
+当前可启动的自动化协议。当前运行时门禁由
+[`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
+维护。

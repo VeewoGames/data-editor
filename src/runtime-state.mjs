@@ -1,7 +1,8 @@
 import os from "node:os";
 import path from "node:path";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
+import { atomicWrite } from "./atomic-file.mjs";
 
 export function runtimeDir(target) {
   if (typeof target === "string") return path.resolve(target, ".runtime");
@@ -111,9 +112,7 @@ export async function saveControllerState(target, state) {
 
 async function saveRuntimeState(target, targetPath, state) {
   await ensureRuntimeDir(target);
-  const tempPath = `${targetPath}.tmp`;
-  await writeFile(tempPath, JSON.stringify(state, null, 2) + "\n", "utf8");
-  await rename(tempPath, targetPath);
+  await atomicWrite(targetPath, JSON.stringify(state, null, 2) + "\n");
 }
 
 export async function clearServiceState(target) {

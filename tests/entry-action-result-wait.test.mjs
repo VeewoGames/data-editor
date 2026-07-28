@@ -7,10 +7,10 @@ import {
 
 test("waitForEntryActionResult switches to background polling and resolves delayed completion", async () => {
   const statuses = [
-    { runId: "run-1", status: "started" },
-    { runId: "run-1", status: "started" },
-    { runId: "run-1", status: "started" },
-    { runId: "run-1", status: "completed_with_writeback", message: "done" },
+    { runId: "run-1", phase: "running" },
+    { runId: "run-1", phase: "running" },
+    { runId: "run-1", phase: "committing" },
+    { runId: "run-1", phase: "terminal", outcome: "completed_with_writeback", message: "done" },
   ];
   let enteredBackground = 0;
 
@@ -30,7 +30,7 @@ test("waitForEntryActionResult switches to background polling and resolves delay
   assert.equal(enteredBackground, 1);
   assert.equal(outcome.kind, "completed");
   assert.equal(outcome.delayed, true);
-  assert.equal(outcome.result.status, "completed_with_writeback");
+  assert.equal(outcome.result.outcome, "completed_with_writeback");
 });
 
 test("waitForEntryActionResult returns timed_out instead of throwing when background wait is exhausted", async () => {
@@ -39,7 +39,7 @@ test("waitForEntryActionResult returns timed_out instead of throwing when backgr
     backgroundPollLimit: 2,
     foregroundIntervalMs: 0,
     foregroundPollLimit: 1,
-    loadResult: async () => ({ runId: "run-1", status: "started" }),
+    loadResult: async () => ({ runId: "run-1", phase: "running" }),
     projectId: "project-1",
     runId: "run-1",
   });
@@ -58,7 +58,7 @@ test("waitForEntryActionResult aborts when shouldContinue turns false", async ()
       foregroundPollLimit: 2,
       loadResult: async () => {
         shouldContinue = false;
-        return { runId: "run-1", status: "started" };
+        return { runId: "run-1", phase: "running" };
       },
       projectId: "project-1",
       runId: "run-1",

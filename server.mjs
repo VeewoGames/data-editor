@@ -13,7 +13,9 @@ import {
   buildEntryActionHandoff,
   createEntryActionRunId,
   entryActionHandoffPath,
+  describeEntryActionArtifacts,
   entryActionOutputPath,
+  findActiveEntryActionRuns,
   findLatestEntryActionRun,
   findAutomationEntryAction,
   normalizeEntryActionPath,
@@ -39,6 +41,11 @@ import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
 import { createConnectionShutdown } from "./src/server-shutdown.mjs";
+import { createJobSupervisor } from "./src/job-supervisor.mjs";
+import { createDocumentCommitCoordinator } from "./src/document-commit-coordinator.mjs";
+import { createCommitJournal } from "./src/commit-journal.mjs";
+import { executeJournaledDocumentCommit } from "./src/document-commit-executor.mjs";
+import { classifyCommitJournalRecovery } from "./src/commit-journal-recovery.mjs";
 import { listSharedViewIconManifestEntries } from "./src/shared-view-icon-manifest.mjs";
 import {
   loadSkillNodeContract,
@@ -59,17 +66,31 @@ const execFileAsync = promisify(execFile);
 let shuttingDown = false;
 let initialProjectPromise = null;
 const connectionShutdown = createConnectionShutdown();
+const jobSupervisor = createJobSupervisor({ toolRoot });
+const documentCommitCoordinator = createDocumentCommitCoordinator();
 
 const server = http.createServer(async (req, res) => {
   try {
-    await ensureInitialProject();
     const url = new URL(req.url, `http://${req.headers.host}`);
+    if (url.pathname === "/api/entry-actions/run" && req.method === "POST") {
+      return sendJson(
+        res,
+        {
+          error: "条目自动化写回协议正在安全升级，当前禁止启动新任务。",
+          code: "ENTRY_ACTION_PROTOCOL_DISABLED",
+          field: "entryAction",
+          details: { protocolMode: "legacy-disabled" },
+        },
+        503,
+        { "cache-control": "no-store" },
+      );
+    }
+    await ensureInitialProject();
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
     if (url.pathname === "/api/projects" && req.method === "POST") return await handleCreateProject(req, res);
     if (url.pathname === "/api/project-update" && req.method === "POST") return await handleUpdateProject(req, res);
     if (url.pathname === "/api/project-delete" && req.method === "POST") return await handleDeleteProject(req, res);
     if (url.pathname === "/api/project-activate" && req.method === "POST") return await handleActivateProject(req, res);
-    if (url.pathname === "/api/entry-actions/run" && req.method === "POST") return await handleRunEntryAction(req, res);
     if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/document") return await handleDocument(url, res);
     if (url.pathname === "/api/document-index") return await handleDocumentIndex(url, res);
@@ -90,6 +111,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/automation-bindings" && req.method === "POST") return await handleSaveAutomationBindings(req, res);
     if (url.pathname === "/api/entry-actions/result" && req.method === "GET") return await handleLoadEntryActionResult(url, res);
     if (url.pathname === "/api/entry-actions/latest" && req.method === "GET") return await handleLoadLatestEntryActionResult(url, res);
+    if (url.pathname === "/api/entry-actions/active" && req.method === "GET") return await handleLoadActiveEntryActionRuns(url, res);
     if (url.pathname === "/api/entry-actions/output" && req.method === "GET") return await handleLoadEntryActionOutput(url, res);
     if (url.pathname === "/api/shared-view-icon-pack-manifest" && req.method === "GET") return await handleSharedViewIconPackManifest(url, res);
     if (url.pathname === "/api/shared-view-icon-pack" && req.method === "GET") return await handleSharedViewIconPack(url, res);
@@ -134,21 +156,50 @@ async function handleSave(req, res) {
   try {
     const body = await readJsonBody(req);
     if (!body.path) throw new Error("Missing save path");
+    assertDocumentSaveIdempotencyKey(body.idempotencyKey);
     const projectContext = await projectContextForId(body.projectId);
     const ext = path.extname(body.path).toLowerCase();
     if (![".json", ".csv"].includes(ext)) throw new Error(`Unsupported save extension: ${ext}`);
-    const currentText = await readTextFile(projectContext, body.path);
-    assertDocumentEtagUnchanged(body.documentEtag, currentText);
-
-    const validatedContract = isSkillDocumentPath(body.path)
-      ? await validateSkillDocumentSave(body, projectContext)
-      : null;
     const text = ext === ".csv" ? serializeCsv(body.root) : serializeJson(body.root);
-    if (validatedContract) {
-      await assertSkillNodeContractUnchanged(projectContext, validatedContract.etag);
-    }
-    await writeTextFile(projectContext, body.path, text);
-    sendJson(res, { ok: true, documentEtag: documentEtag(text) });
+    const requestDigest = sha256(JSON.stringify({ path: body.path, documentEtag: body.documentEtag, text }));
+    await documentCommitCoordinator.withCommit({ projectContext, sourcePath: body.path }, async (identity) => {
+      const journal = createCommitJournal({ directory: commitJournalDirectory(projectContext) });
+      const existing = await readJournalIfPresent(journal, body.idempotencyKey);
+      if (existing) {
+        if (existing.saveType !== "document_save" || existing.requestDigest !== requestDigest) {
+          throw new DocumentSaveError("DOCUMENT_SAVE_IDEMPOTENCY_CONFLICT", "idempotencyKey 已用于不同的保存请求。", "idempotencyKey");
+        }
+        if (existing.stage === "result_published") {
+          const currentText = await readTextFile(projectContext, body.path);
+          const recovery = classifyCommitJournalRecovery({ entry: existing, currentEtag: documentEtag(currentText), currentDigest: sha256(currentText) });
+          if (recovery.disposition !== "completed") {
+            throw new DocumentSaveError("DOCUMENT_SAVE_NEEDS_RECOVERY", "保存记录与当前文件无法证明一致，已停止重放。", "idempotencyKey", { status: 503 });
+          }
+          sendJson(res, { ok: true, documentEtag: existing.newEtag, replayed: true });
+          return;
+        }
+      }
+      const currentText = await readTextFile(projectContext, body.path);
+      const entry = existing ?? createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest });
+      if (existing) await resumeDocumentSaveJournal({ journal, entry, currentText });
+      else assertDocumentEtagUnchanged(body.documentEtag, currentText);
+      const validatedContract = isSkillDocumentPath(body.path)
+        ? await validateSkillDocumentSave(body, projectContext)
+        : null;
+      if (validatedContract) await assertSkillNodeContractUnchanged(projectContext, validatedContract.etag);
+      await executeJournaledDocumentCommit({
+        journal,
+        entry,
+        replace: () => writeTextFile(projectContext, body.path, text),
+        verify: async () => {
+          const persisted = await readTextFile(projectContext, body.path);
+          if (documentEtag(persisted) !== entry.newEtag || sha256(persisted) !== entry.afterDigest) {
+            throw new DocumentSaveError("DOCUMENT_SAVE_VERIFY_FAILED", "保存后的文件未通过完整性校验。", "path", { status: 503 });
+          }
+        },
+      });
+      sendJson(res, { ok: true, documentEtag: documentEtag(text) });
+    });
   } catch (error) {
     if (!(error instanceof SkillNodeContractError) && !(error instanceof SkillDocumentSaveError) && !(error instanceof DocumentSaveError)) throw error;
     sendJson(res, {
@@ -386,8 +437,51 @@ async function handleSaveAutomationProfile(req, res) {
   const body = await readJsonBody(req);
   const projectContext = await projectContextForId(body.projectId);
   const profile = body && typeof body === "object" && "profile" in body ? body.profile : body;
-  const result = await saveAutomationProfile(projectContext, profile);
-  sendJson(res, { ok: true, ...result });
+  try {
+    const result = await saveAutomationProfile(projectContext, profile, body?.etag ?? null);
+    sendJson(res, { ok: true, ...result });
+  } catch (error) {
+    if (error?.code === "AUTOMATION_PROFILE_ETAG_STALE") return sendJson(res, { error: error.message, code: error.code, field: "etag" }, 409);
+    throw error;
+  }
+}
+
+function commitJournalDirectory(projectContext) {
+  return resolveInsideRoot(projectContext.projectRoot, path.join(projectContext.runtimeDir, "commit-journal"));
+}
+
+async function readJournalIfPresent(journal, idempotencyKey) {
+  try { return await journal.read(idempotencyKey); }
+  catch (error) { if (error?.code === "COMMIT_JOURNAL_MISSING") return null; throw error; }
+}
+
+function createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest }) {
+  return {
+    idempotencyKey: body.idempotencyKey,
+    saveType: "document_save",
+    canonicalFileKey: identity.canonicalFileKey,
+    baseEtag: documentEtag(currentText), newEtag: documentEtag(text),
+    beforeDigest: sha256(currentText), afterDigest: sha256(text), requestDigest,
+  };
+}
+
+async function resumeDocumentSaveJournal({ journal, entry, currentText }) {
+  const disposition = classifyCommitJournalRecovery({ entry, currentEtag: documentEtag(currentText), currentDigest: sha256(currentText) });
+  if (disposition.disposition === "uncommitted") return;
+  if (disposition.disposition !== "resume") {
+    throw new DocumentSaveError("DOCUMENT_SAVE_NEEDS_RECOVERY", "保存记录与当前文件无法证明一致，已停止重试。", "idempotencyKey", { status: 503 });
+  }
+  // Only infer the post-replace marker from an intent record. Later stages must
+  // still execute their own verification/publish operation before advancing.
+  if (entry.stage === "commit_intent" && disposition.nextStage === "source_replaced") {
+    await journal.advance(entry, "source_replaced");
+  }
+}
+
+function assertDocumentSaveIdempotencyKey(value) {
+  if (typeof value !== "string" || !/^[A-Za-z0-9_-]{8,128}$/.test(value)) {
+    throw new DocumentSaveError("DOCUMENT_SAVE_IDEMPOTENCY_KEY_REQUIRED", "idempotencyKey must be a stable UUID-like token for one logical save.", "idempotencyKey", { status: 400 });
+  }
 }
 
 async function handleLoadAutomationSkillCatalog(url, res) {
@@ -552,7 +646,8 @@ async function handleLoadEntryActionResult(url, res) {
   if (!runId) throw new Error("Missing runId");
   const projectContext = await projectContextForUrl(url);
   try {
-    sendJson(res, await readEntryActionResult(projectContext, runId));
+    const result = await readEntryActionResult(projectContext, runId);
+    sendJson(res, { ...result, artifacts: await describeEntryActionArtifacts(projectContext, runId) });
     return;
   } catch {}
   try {
@@ -579,15 +674,18 @@ class DocumentSaveError extends Error {
 }
 
 function documentEtag(text) {
-  return `"${crypto.createHash("sha256").update(text, "utf8").digest("hex")}"`;
+  return `"${sha256(text)}"`;
+}
+
+function sha256(text) {
+  return crypto.createHash("sha256").update(text, "utf8").digest("hex");
 }
 
 function assertDocumentEtagUnchanged(expectedEtag, currentText) {
-  if (expectedEtag == null) return;
   if (typeof expectedEtag !== "string" || !expectedEtag) {
     throw new DocumentSaveError(
-      "DOCUMENT_SAVE_ETAG_INVALID",
-      "documentEtag must be a non-empty string when provided.",
+      "DOCUMENT_SAVE_ETAG_REQUIRED",
+      "documentEtag must be a non-empty string loaded with the document.",
       "documentEtag",
       { status: 400 },
     );
@@ -620,6 +718,12 @@ async function handleLoadLatestEntryActionResult(url, res) {
     sourceRowIndex,
   });
   sendJson(res, { run });
+}
+
+async function handleLoadActiveEntryActionRuns(url, res) {
+  const sourcePath = normalizeEntryActionPath(url.searchParams.get("sourcePath"), "sourcePath");
+  const projectContext = await projectContextForUrl(url);
+  sendJson(res, await findActiveEntryActionRuns(projectContext, sourcePath));
 }
 
 async function handleLoadEntryActionOutput(url, res) {
@@ -839,6 +943,7 @@ async function shutdownServer(exitCode) {
   if (shuttingDown) return;
   shuttingDown = true;
   process.exitCode = exitCode;
+  await jobSupervisor.shutdown().catch((error) => console.error(error));
   await clearServiceStateIfOwned(runtimeTargetFromArgs(), process.pid).catch(() => {});
   await connectionShutdown.close(server);
   process.exit(exitCode);

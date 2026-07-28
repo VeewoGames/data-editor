@@ -1,8 +1,8 @@
 ﻿# entry-action 前端超时误判修复：60 秒前台等待后转后台继续轮询，不再直接判失败
 
-status: accepted
-
-## context
+<!-- document-state: historical -->
+<!-- state: history -->
+## 历史前端等待语义
 
 这条 truth 只沉淀详情面板里 entry-action 点击后的前端等待语义，不重复第二版配置归属、target pair 结构或 `completed_with_writeback` / `completed_without_observed_writeback` 的结果含义本身。
 
@@ -117,6 +117,16 @@ status: accepted
 
 - `completed_with_writeback`
 - `completed_without_observed_writeback`
+
+## 演进记录
+
+<!-- dated: 2026-07-27 -->
+### legacy runner 已退出当前启动路径
+
+该等待链只适用于仍能启动 legacy runner 的历史运行记录。新任务现在在 API 边界被拒绝，当前
+运行时门禁由
+[`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
+维护。
 - `writebackCheck`
 
 前端等待更久，不等于放宽结果可信度。

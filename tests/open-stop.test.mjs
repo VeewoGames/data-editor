@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -189,6 +189,7 @@ function postJson(port, requestPath, body = {}) {
         response.on("end", () => {
           resolve({
             statusCode: response.statusCode ?? 0,
+            headers: response.headers,
             body: responseBody ? JSON.parse(responseBody) : null,
           });
         });
@@ -197,6 +198,41 @@ function postJson(port, requestPath, body = {}) {
     request.on("timeout", () => request.destroy(new Error("timeout")));
     request.on("error", reject);
     request.end(payload);
+  });
+}
+
+function postRaw(port, requestPath, body) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path: requestPath,
+        method: "POST",
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "content-length": Buffer.byteLength(body),
+        },
+        timeout: 3000,
+      },
+      (response) => {
+        let responseBody = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          responseBody += chunk;
+        });
+        response.on("end", () => {
+          resolve({
+            statusCode: response.statusCode ?? 0,
+            headers: response.headers,
+            body: responseBody ? JSON.parse(responseBody) : null,
+          });
+        });
+      },
+    );
+    request.on("timeout", () => request.destroy(new Error("timeout")));
+    request.on("error", reject);
+    request.end(body);
   });
 }
 
@@ -1576,18 +1612,12 @@ test("server saves and loads automation profile and machine-local bindings", asy
   assert.equal(storedBindings.bindings.recheck.skill, "recheck");
 });
 
-test("server runs an entry action and writes artifacts under project .data-editor runtime", async (t) => {
+test("entry action run is globally disabled while historical artifacts remain readable", async (t) => {
   const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-project-"));
   const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-home-"));
-  const originalCodexCli = process.env.DATA_EDITOR_CODEX_CLI;
-  process.env.DATA_EDITOR_CODEX_CLI = process.execPath;
   t.after(async () => {
     await rm(project, { recursive: true, force: true });
     await rm(registryHome, { recursive: true, force: true });
-  });
-  t.after(() => {
-    if (originalCodexCli == null) delete process.env.DATA_EDITOR_CODEX_CLI;
-    else process.env.DATA_EDITOR_CODEX_CLI = originalCodexCli;
   });
   await mkdir(path.join(project, "data"));
   await writeFile(path.join(project, "data", "items.json"), `${JSON.stringify({
@@ -1610,40 +1640,34 @@ test("server runs an entry action and writes artifacts under project .data-edito
   await waitForHttpOk(port);
   const projects = await waitForJsonOk(port, "/api/projects");
   const projectId = projects.activeProjectId;
-  const profileResponse = await postJson(port, "/api/automation-profile", {
-    projectId,
-    profile: {
-      rules: [{
-        id: "recheck",
-        label: "Recheck",
-        icon: "wand",
-        enabled: true,
-        targets: [
-          { file: "data/items.json", collection: "items" },
-        ],
-        payload: {
-          includeRow: true,
-          includeNeighbors: true,
-        },
-      }],
+  const runtimeDir = path.join(project, ".data-editor", "runtime", "entry-actions");
+  const historicalRunId = "historical-entry-action-run";
+  const historicalHandoff = {
+    version: 1,
+    runId: historicalRunId,
+    createdAt: "2026-07-25T12:00:00.000Z",
+    action: { id: "recheck" },
+    entry: {
+      sourcePath: "data/items.json",
+      collectionPath: "items",
+      rowId: "items:1",
+      sourceRowIndex: 1,
     },
-  });
-  assert.equal(profileResponse.statusCode, 200, JSON.stringify(profileResponse.body));
-  const bindingsResponse = await postJson(port, "/api/automation-bindings", {
-    projectId,
-    bindings: {
-      bindings: {
-        recheck: {
-          provider: "codex",
-          skill: "recheck",
-          enabled: true,
-        },
-      },
-    },
-  });
-  assert.equal(bindingsResponse.statusCode, 200, JSON.stringify(bindingsResponse.body));
+  };
+  const historicalResult = {
+    version: 1,
+    runId: historicalRunId,
+    status: "completed_with_writeback",
+    finishedAt: "2026-07-25T12:01:00.000Z",
+  };
+  await mkdir(runtimeDir, { recursive: true });
+  await writeFile(path.join(runtimeDir, `${historicalRunId}.json`), `${JSON.stringify(historicalHandoff, null, 2)}\n`, "utf8");
+  await writeFile(path.join(runtimeDir, `${historicalRunId}.result.json`), `${JSON.stringify(historicalResult, null, 2)}\n`, "utf8");
+  await writeFile(path.join(runtimeDir, `${historicalRunId}.reply.md`), "historical reply\n", "utf8");
+  const historicalFileNames = (await readdir(runtimeDir)).sort();
 
-  const runResponse = await postJson(port, "/api/entry-actions/run", {
+  const invalidRunResponse = await postRaw(port, "/api/entry-actions/run", "{");
+  const validRunResponse = await postJson(port, "/api/entry-actions/run", {
     projectId,
     actionId: "recheck",
     sourcePath: "data/items.json",
@@ -1651,32 +1675,38 @@ test("server runs an entry action and writes artifacts under project .data-edito
     rowId: "items:1",
     sourceRowIndex: 1,
   });
-  assert.equal(runResponse.statusCode, 200, JSON.stringify(runResponse.body));
-  assert.equal(runResponse.body?.status, "started");
+  const disabledBody = {
+    error: "条目自动化写回协议正在安全升级，当前禁止启动新任务。",
+    code: "ENTRY_ACTION_PROTOCOL_DISABLED",
+    field: "entryAction",
+    details: { protocolMode: "legacy-disabled" },
+  };
+  for (const response of [invalidRunResponse, validRunResponse]) {
+    assert.equal(response.statusCode, 503, JSON.stringify(response.body));
+    assert.equal(response.headers["cache-control"], "no-store");
+    assert.deepEqual(response.body, disabledBody);
+  }
+  assert.deepEqual((await readdir(runtimeDir)).sort(), historicalFileNames);
 
-  const runId = runResponse.body?.runId;
-  assert.equal(typeof runId, "string");
-  const startedResponse = await getJson(port, `/api/entry-actions/result?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(runId)}`);
-  assert.equal(startedResponse.statusCode, 200, JSON.stringify(startedResponse.body));
-  assert.equal(startedResponse.body?.status, "started");
-  const handoffPath = path.join(project, ".data-editor", "runtime", "entry-actions", `${runId}.json`);
-  const startedPath = path.join(project, ".data-editor", "runtime", "entry-actions", `${runId}.started.json`);
-  const legacyRuntimePath = path.join(project, ".runtime", "entry-actions", `${runId}.json`);
+  const resultResponse = await getJson(port, `/api/entry-actions/result?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(historicalRunId)}`);
+  assert.equal(resultResponse.statusCode, 200, JSON.stringify(resultResponse.body));
+  assert.equal(resultResponse.body?.phase, "terminal");
+  assert.equal(resultResponse.body?.outcome, "completed_with_writeback");
+  assert.equal(resultResponse.body?.artifacts?.reply?.available, true);
+  assert.equal(resultResponse.body?.artifacts?.proposal?.available, false);
+  assert.equal(resultResponse.body?.artifacts?.diagnostics?.available, false);
 
-  const handoff = JSON.parse(await readFile(handoffPath, "utf8"));
-  assert.equal(handoff.action.id, "recheck");
-  assert.equal(handoff.action.binding.skill, "recheck");
-  assert.equal(handoff.entry.sourcePath, "data/items.json");
-  assert.equal(handoff.entry.collectionPath, "items");
-  assert.equal(handoff.entry.sourceRowIndex, 1);
-  assert.deepEqual(handoff.entry.row, { id: "beta", name: "Beta", tags: ["b"] });
-  assert.deepEqual(handoff.entry.previousRow, { id: "alpha", name: "Alpha", tags: ["a"] });
-  assert.deepEqual(handoff.entry.nextRow, { id: "gamma", name: "Gamma", tags: ["c"] });
+  const latestResponse = await getJson(
+    port,
+    `/api/entry-actions/latest?projectId=${encodeURIComponent(projectId)}&actionId=recheck&sourcePath=data%2Fitems.json&collectionPath=items&rowId=items%3A1&sourceRowIndex=1`,
+  );
+  assert.equal(latestResponse.statusCode, 200, JSON.stringify(latestResponse.body));
+  assert.equal(latestResponse.body?.run?.runId, historicalRunId);
+  assert.equal(latestResponse.body?.run?.outcome, "completed_with_writeback");
 
-  const started = JSON.parse(await waitForFileText(startedPath));
-  assert.equal(started.status, "started");
-  assert.equal(started.runId, runId);
-  await assert.rejects(() => readFile(legacyRuntimePath, "utf8"));
+  const outputResponse = await getJson(port, `/api/entry-actions/output?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(historicalRunId)}`);
+  assert.equal(outputResponse.statusCode, 200, JSON.stringify(outputResponse.body));
+  assert.deepEqual(outputResponse.body, { runId: historicalRunId, output: "historical reply\n" });
 });
 
 test("POST /api/shutdown returns success and stops the static service through the formal stop flow", async (t) => {

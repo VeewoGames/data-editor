@@ -1,8 +1,10 @@
 # entryActions 第二版本机 Codex 执行链已接通：stdin prompt、技能解析与回写核对边界
 
-status: accepted
+<!-- document-state: historical -->
+<!-- state: history -->
+## 历史执行链
 
-## context
+### 背景
 
 这条 truth 只沉淀 `entryActions` 第二版里“执行器已经从占位 started 切到真实本机 Codex 执行”这一轮稳定事实，不重复更早的双层个人化方向、运行时真值切换，或 Project Settings / Automation Settings 的入口收口。
 
@@ -111,13 +113,15 @@ status: accepted
 
 在 Windows 上，如果连 `.started.json` 都长期不出现，优先检查 `handleRunEntryAction(...)` 的后台子进程是否仍保持 `detached: true`。
 
-### 3. `completed` 只说明 Codex 进程完成，不自动证明业务回写完成
+### 3. 结果分流与 `writebackCheck` 只提供观察证据
 
 后续如果要判断一条条目动作是否真正成功，必须继续核对：
 
-- 目标文件或数据项是否真的被改动
-- 修改是否已落盘
-- 最终结果是否与条目状态一致
+- `result.status` 是 `completed_with_writeback` 还是 `completed_without_observed_writeback`
+- `writebackCheck` 是否观察到目标文件或目标条目变化
+- reply 与输出文件是否真实存在
+
+这些结果只能描述 runner 前后快照观察到的变化，不能单独证明变化由当前 `runId` 产生，也不能证明同源文件并发安全。并发归因、严格定位和提交门禁的当前缺口统一由 [`entry-actions-same-source-concurrency-and-timeout-evidence-gap.md`](./entry-actions-same-source-concurrency-and-timeout-evidence-gap.md) 维护。
 
 ### 4. 项目内 skills 是正式执行面的一部分
 
@@ -150,3 +154,14 @@ status: accepted
 - `result.json`
 - `reply.md`
 - `detached: true`
+
+<!-- state: history -->
+## 演进记录
+
+<!-- dated: 2026-07-27 -->
+### 运行时入口已硬禁用
+
+本文描述的 legacy runner 仍可作为历史实现证据，但 `POST /api/entry-actions/run` 已在该链路前
+固定拒绝新任务。当前运行时门禁与 pre-enable 安全基础由
+[`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
+维护。

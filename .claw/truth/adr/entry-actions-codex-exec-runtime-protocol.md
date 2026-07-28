@@ -1,6 +1,6 @@
 # entryActions 真实执行面固定为本机 codex exec
 
-status: accepted
+<!-- document-state: superseded -->
 
 ## context
 
@@ -87,7 +87,7 @@ Windows 下 `run-entry-action.mjs` 发起后台执行时，正式协议固定采
 - 项目内 `.agents/skills` 成为正式可解析来源，项目技能不再只能靠全局安装命中。
 - 详情按钮的运行反馈继续保留最小面，但 `started` 只代表任务已进入后台，不代表最终结果已写回。
 - `codex exec`、`stdin` 和 writable workspace 共同组成执行协议后，服务端主路径更稳定，但也更依赖本机 Codex 环境是否真实可用。
-- 当前仍不解决“completed 但未真实写回”的结果可信度问题；这类问题需要独立的回写验证或审计机制，不能被 `started` / `completed` 状态本身覆盖。
+- 当前结果已分流为 `completed_with_writeback` / `completed_without_observed_writeback` 并附带 `writebackCheck`，但这些仍只是执行前后快照的观察证据，不能证明变化可唯一归因于当前 `runId`，也不能替代同源文件互斥、严格定位或受控提交门禁。当前缺口由 [`../entry-actions-same-source-concurrency-and-timeout-evidence-gap.md`](../entry-actions-same-source-concurrency-and-timeout-evidence-gap.md) 维护。
 - Windows 运行时对父进程退出时机的依赖被进一步收窄，`run-entry-action.mjs` 可以把产物落盘职责完整交给后台 runner，减少 `started` 已返回但结果文件缺失的竞态。
 - 前端详情状态与执行协议之间新增了一层长期合同：`started` 的长尾窗口是协议正常部分，不是默认失败信号；后续若调整等待窗口或结果提示，必须保留这条区分。
 
@@ -101,3 +101,14 @@ Windows 下 `run-entry-action.mjs` 发起后台执行时，正式协议固定采
 - `src/entry-action-result-wait.ts`
 - `src/automation-profile.mjs`
 - `src/automation-bindings.mjs`
+
+<!-- state: history -->
+## Evolution history
+
+<!-- dated: 2026-07-27 -->
+### legacy direct-write 执行面已被硬禁用
+
+当前 `POST /api/entry-actions/run` 固定拒绝新任务，因此本 ADR 的 writable runner 决定不再是
+当前可执行协议。现行门禁与 pre-enable 安全边界由
+[`entry-actions-legacy-direct-write-hard-disable.md`](./entry-actions-legacy-direct-write-hard-disable.md)
+维护；未来是否采用新的执行面必须另行决策和授权。

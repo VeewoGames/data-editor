@@ -1,32 +1,39 @@
+import crypto from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createProjectContext, displayProjectPath } from "./project-context.mjs";
 import { normalizeSharedViewIcon } from "./view/shared-view-normalize.mjs";
 
 const validRuleIdPattern = /^[a-z0-9_-]+$/;
+const profileSaveLocks = new Map();
 
 export function emptyAutomationProfile() {
-  return { rules: [] };
+  return { rules: [], etag: null };
 }
 
 export async function loadAutomationProfile(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
   try {
-    const parsed = JSON.parse(await readFile(profilePath(context), "utf8"));
-    return normalizeAutomationProfile(parsed);
+    const text = await readFile(profilePath(context), "utf8");
+    return { ...normalizeAutomationProfile(JSON.parse(text)), etag: profileEtag(text) };
   } catch (error) {
     if (error?.code === "ENOENT") return emptyAutomationProfile();
     throw error;
   }
 }
 
-export async function saveAutomationProfile(projectContextOrRoot, profile) {
+export async function saveAutomationProfile(projectContextOrRoot, profile, expectedEtag = null) {
   const context = createProjectContext(projectContextOrRoot);
   const target = profilePath(context);
   const normalized = validateAutomationProfile(profile);
-  await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
-  return { path: displayProjectPath(context, target) };
+  return withProfileSaveLock(target, async () => {
+    const current = await readFile(target, "utf8").catch((error) => error?.code === "ENOENT" ? null : Promise.reject(error));
+    if (expectedEtag != null && expectedEtag !== profileEtag(current ?? "")) throw Object.assign(new Error("Automation profile has changed."), { code: "AUTOMATION_PROFILE_ETAG_STALE" });
+    await mkdir(path.dirname(target), { recursive: true });
+    const text = `${JSON.stringify(normalized, null, 2)}\n`;
+    await writeFile(target, text, "utf8");
+    return { path: displayProjectPath(context, target), etag: profileEtag(text) };
+  });
 }
 
 export function validateAutomationProfile(value) {
@@ -66,7 +73,7 @@ function normalizeRule(value, seenIds) {
   const targets = normalizeTargets(value.targets, id);
   const payload = normalizePayload(value.payload, id);
   const runtime = normalizeRuntime(value.runtime, id);
-  return { id, label, icon, enabled, targets, payload, ...(runtime ? { runtime } : {}) };
+  return { id, label, icon, enabled: enabled && targets.every((target) => target.writableFields.length > 0), targets, payload, ...(runtime ? { runtime } : {}) };
 }
 
 function normalizeRuntime(value, ruleId) {
@@ -99,7 +106,7 @@ function normalizeTargets(value, ruleId) {
   const files = normalizeRequiredStringArray(value.files, `Entry action rule "${ruleId}" targets.files`);
   const collections = normalizeRequiredStringArray(value.collections, `Entry action rule "${ruleId}" targets.collections`);
   return dedupeTargetPairs(
-    files.flatMap((file) => collections.map((collection) => ({ file, collection }))),
+    files.flatMap((file) => collections.map((collection) => ({ file, collection, writableFields: normalizeWritableFields(value.writableFields, ruleId) }))),
     ruleId,
   );
 }
@@ -113,6 +120,7 @@ function normalizeTargetPairs(value, ruleId) {
     result.push({
       file: normalizeRequiredString(item.file, `Entry action rule "${ruleId}" target.file`),
       collection: normalizeRequiredString(item.collection, `Entry action rule "${ruleId}" target.collection`),
+      writableFields: normalizeWritableFields(item.writableFields, ruleId),
     });
   }
   return dedupeTargetPairs(result, ruleId);
@@ -131,6 +139,12 @@ function dedupeTargetPairs(value, ruleId) {
     throw new Error(`Entry action rule "${ruleId}" targets must contain at least one value`);
   }
   return result;
+}
+
+function normalizeWritableFields(value, ruleId) {
+  if (value == null) return [];
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`Entry action rule "${ruleId}" target.writableFields must be a non-empty array`);
+  return [...new Set(value.map((field) => normalizeRequiredString(field, `Entry action rule "${ruleId}" target.writableFields`)))];
 }
 
 function normalizePayload(value, ruleId) {
@@ -221,4 +235,14 @@ function normalizeRequiredEnum(value, allowed, label) {
 
 function profilePath(context) {
   return path.resolve(context.automationProfilePath);
+}
+function profileEtag(text) { return `"${crypto.createHash("sha256").update(text, "utf8").digest("hex")}"`; }
+async function withProfileSaveLock(key, task) {
+  const previous = profileSaveLocks.get(key) ?? Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => { release = resolve; });
+  profileSaveLocks.set(key, current);
+  await previous;
+  try { return await task(); }
+  finally { release(); if (profileSaveLocks.get(key) === current) profileSaveLocks.delete(key); }
 }

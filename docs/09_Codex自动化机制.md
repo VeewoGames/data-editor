@@ -4,77 +4,56 @@
 
 ### 1. 总体目标和范围
 
-Data Editor 的 Codex 自动化把“某个集合中的某条记录”交给本机 Codex 技能处理。它不是通用任务队列，也不替代 Codex；它负责在详情面板中配置可执行动作、校验本机绑定、传递受限的条目上下文，并展示异步结果。
+Data Editor 的条目级 Codex 自动化仍在安全升级中。当前正式产品不提供新任务的执行能力：
+`POST /api/entry-actions/run` 固定返回 HTTP 503 与
+`ENTRY_ACTION_PROTOCOL_DISABLED`。本页只说明已落地的安全边界和隔离验证，不把未启用的
+自动化方案描述为可用功能。
 
 ### 2. 各阶段任务概要
 
-1. 配置规则：定义动作名称、适用的数据文件与 collection，以及可选的运行参数。
-2. 配置本机绑定：把规则映射到当前设备可用的 Codex skill。
-3. 执行与观察：从详情面板启动动作，读取 started、result 与 Markdown 输出。
+1. 安全前置：建立物理文件身份、原子写、Windows Job ownership、fencing 与可证明 recovery。
+2. Authority：以 policy、profile ETag、Strict RowId 和 authority snapshot 限定允许的目标与字段。
+3. 隔离验证：在临时 scratch 中验证真实 Codex CLI 只能产生严格 proposal，不触碰正式项目。
+4. 当前提交基础：正式保存已使用 `canonicalFileKey` 提交互斥、严格 ETag、稳定幂等键和可恢复
+   commit journal；proposal commit 复用同一执行器。入口启用仍不在范围内。
 
 ### 3. 整体结构框架
 
 ```text
-自动化规则（项目或个人 profile）
-        + 本机绑定与默认运行参数
-        -> API 校验 active project、目标与条目
-        -> handoff JSON
-        -> run-entry-action 子进程 / Codex CLI / skill
-        -> result JSON 与 reply.md
-        -> 详情面板反馈
+正式入口 -> 503 ENTRY_ACTION_PROTOCOL_DISABLED
+
+隔离测试面：fixture -> scratch -> Codex CLI -> 严格 proposal -> 隔离目录
+                                          \-> timeout -> Job 树终止 / fencing 释放
 ```
 
-## 配置分层
+## 当前正式边界
 
-自动化规则保存为 `.data-editor/automation-profile.json`。每条规则至少包含稳定的 `id`、显示 `label`、启用状态和 `targets`；目标精确到数据文件与 collection。规则可覆盖 `model`、`reasoning`、`verbosity` 与 `timeoutMs`。
+服务端在任何 profile、binding、环境变量或前端状态之前拒绝新的 legacy direct-write action；
+旧 runner 文件或历史结果仍可读取，不代表该入口可以执行。正式保存路径的 allowlist、
+`canonicalFileIdentity(...)`、原子写、提交互斥与 journal 已形成受控提交基础，但它们不是自动化
+写回入口。
 
-本机绑定保存为 `.data-editor/local/automation-bindings.json`，不应作为团队共享规则。它包含：
+## 已完成的隔离验证
 
-- `bindings.<ruleId>.provider`：当前仅支持 `codex`；
-- `bindings.<ruleId>.skill`：本机 skill 名称；
-- `bindings.<ruleId>.enabled`：是否允许执行；
-- `defaults`：所有未被规则覆盖的运行参数。
+批次 D 已完成以下工具层事实：
 
-运行参数优先级是：规则覆盖 > 本机 `defaults` > 系统默认值。系统默认值为 `gpt-5.6-terra`、`medium` 推理、`low` 输出详略和 120 秒超时。
+- proposal 必须是 version 1，绑定 UUID `runId`、canonical file key、`authorityDigest`、profile ETag、
+  fencing token，并且只允许一个既有字段的显式替换。
+- 只有真实 Codex CLI 退出码为 0 且 proposal 通过严格 schema 时，才会在隔离目录原子发布；失败、
+  无效 payload 或路径异常不会留下 proposal。
+- success / timeout 都只运行于临时 scratch fixture。timeout 在观察到 CLI readiness 后终止 Windows Job，
+  并验证 Job 树退出、fencing release、10 秒无源文件晚写和空 proposal 目录。
 
-## 前置条件与可用性
+这些验证未向正式项目写入，也未恢复 API 入口。
 
-执行前服务会确认：当前项目处于 active 状态、规则存在且已启用、本机绑定存在且启用、provider 为 `codex`、可执行 Codex CLI 存在，以及指定 skill 可从项目 `.agents/skills` 或用户 Codex skill 目录解析到 `SKILL.md`。
+## 配置与可用性
 
-任一条件不满足时，动作不会启动；前端应显示绑定状态或服务返回的具体原因。
+`.data-editor/automation-profile.json`、本机 bindings、policy 与 authority snapshot 仍是受控执行协议的
+输入和验证基础；当前它们不能绕过入口禁用。用户界面或配置中出现的动作、绑定或历史运行记录，
+都不代表可以启动新的写回任务。
 
-## 执行链
+## 后续边界
 
-详情面板通过 `POST /api/entry-actions/run` 提交 `projectId`、`actionId`、`sourcePath`、`collectionPath`、`sourceRowIndex` 和可选 `rowId`。服务会验证该动作允许处理该文件与 collection，重新读取源文档并解析目标行。
-
-服务随后生成唯一 `runId`，将动作、绑定、最终运行参数和当前行及相邻行摘要写入：
-
-```text
-<project>/.data-editor/runtime/entry-actions/<runId>.json
-```
-
-后台 `run-entry-action.mjs` 消费 handoff，并以 detached 子进程执行，避免阻塞 Data Editor 服务。Windows 下该子进程隐藏窗口运行。
-
-## 结果与排查
-
-运行目录还会产生：
-
-```text
-<runId>.started.json  # 已被执行器接收
-<runId>.result.json   # 成功或失败状态
-<runId>.reply.md      # 面向用户的 Markdown 输出
-```
-
-前端通过以下接口轮询或读取状态：
-
-- `GET /api/entry-actions/result?runId=...`
-- `GET /api/entry-actions/output?runId=...`
-
-如果 result 尚未生成但 handoff 存在，服务返回 `started`；未知 `runId` 返回 404。排查时先检查绑定可用状态、handoff 文件、result JSON，再检查 Codex CLI 与 skill 本身的执行输出。
-
-## 使用边界
-
-- 动作只能作用于当前 active project 中规则允许的目标 collection。
-- Data Editor 传递的是受限的条目上下文；skill 的具体行为由 Codex skill 自己定义。
-- 自动化不会自动保存或改写当前数据记录，除非被调用 skill 在其授权范围内另行操作。
-- 本机绑定包含设备相关能力，不应和团队规则混为同一份共享配置。
+批次 E 已完成统一提交 coordinator、proposal commit 共用执行器、commit journal 与恢复判定；它没有
+把 proposal 服务接入新任务路由。正式入口仍须完成完整运行时接入、真实项目端到端验证并取得独立
+启用授权，才能解除禁用。

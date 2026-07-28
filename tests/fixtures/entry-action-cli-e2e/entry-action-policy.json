@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "targets": [{
+    "file": "data/items.json",
+    "collection": "items",
+    "writableFields": {
+      "name": { "type": "string", "nullable": false, "uniqueScope": "none", "validator": "non_empty_string" }
+    }
+  }]
+}

@@ -1,9 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "../src/file-service.mjs";
+import {
+  isAllowedDataFile,
+  listDataFiles,
+  readTextFile,
+  resolveInsideRoot,
+  writeTextFile,
+} from "../src/file-service.mjs";
 
 test("resolveInsideRoot blocks traversal", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
@@ -52,6 +58,25 @@ test("listDataFiles returns virtual paths from multiple data sources", async () 
   }
 });
 
+test("allowlist accepts normalized virtual paths without allowing source-root escape", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
+  try {
+    await mkdir(path.join(root, "data", "nested"), { recursive: true });
+    await writeFile(path.join(root, "data", "nested", "a.json"), "[]");
+
+    assert.equal(await isAllowedDataFile(root, "data\\nested\\.\\a.json"), true);
+    assert.equal(await isAllowedDataFile(root, "data/nested/other/../a.json"), true);
+    assert.equal(await isAllowedDataFile(root, "data/../../outside.json"), false);
+    assert.equal(await isAllowedDataFile(root, "DATA/nested/a.json"), false);
+    if (process.platform === "win32") {
+      assert.equal(await isAllowedDataFile(root, "data/NESTED/A.JSON"), true);
+      assert.equal(await readTextFile(root, "data/NESTED/A.JSON"), "[]");
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("readTextFile rejects large preview files", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
   try {
@@ -71,6 +96,34 @@ test("writeTextFile overwrites allowed project files directly", async () => {
     const result = await writeTextFile(root, "data/a.json", "[2]");
     assert.deepEqual(result, { ok: true });
     assert.equal(await readFile(path.join(root, "data", "a.json"), "utf8"), "[2]");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("writeTextFile failure leaves the original file unchanged and no temp residue", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
+  try {
+    await mkdir(path.join(root, "data"));
+    const target = path.join(root, "data", "a.json");
+    await writeFile(target, "[1]");
+    await assert.rejects(() => writeTextFile(root, "data/a.json", Symbol("invalid payload")), /data|argument|Received/i);
+    assert.equal(await readFile(target, "utf8"), "[1]");
+    assert.deepEqual(await readdir(path.dirname(target)), ["a.json"]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("concurrent writeTextFile calls leave complete content", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-"));
+  try {
+    await mkdir(path.join(root, "data"));
+    const target = path.join(root, "data", "a.json");
+    await writeFile(target, "[]");
+    const payloads = Array.from({ length: 20 }, (_, index) => JSON.stringify({ index, body: String(index).repeat(2048) }));
+    await Promise.all(payloads.map((payload) => writeTextFile(root, "data/a.json", payload)));
+    assert.equal(payloads.includes(await readFile(target, "utf8")), true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

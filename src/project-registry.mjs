@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
+import { atomicWrite } from "./atomic-file.mjs";
 
 const registryVersion = 1;
 const validIdPattern = /^[a-z0-9_-]+$/;
@@ -39,9 +40,7 @@ export async function saveProjectRegistry(registry, options = {}) {
   validateProjectRegistry(normalized);
   const target = projectRegistryPath(options);
   await mkdir(path.dirname(target), { recursive: true });
-  const tempPath = `${target}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
-  await rename(tempPath, target);
+  await atomicWrite(target, `${JSON.stringify(normalized, null, 2)}\n`);
   return normalized;
 }
 

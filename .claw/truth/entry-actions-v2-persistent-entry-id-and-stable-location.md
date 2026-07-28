@@ -1,8 +1,9 @@
 # 持久内部条目 ID 与 entry-action 稳定定位已落地
 
-status: accepted
+<!-- state: current -->
+## 当前行为
 
-## context
+### 背景
 
 这条 truth 只沉淀本轮已经完成的稳定事实：数组集合条目现在有了持久内部身份字段 `__entry_id`，而 `entry-action` 的定位、handoff 和写回核对都已经改为优先围绕这个内部身份工作。
 
@@ -33,11 +34,14 @@ status: accepted
 - 内部定位字段不污染默认编辑面
 - 用户侧仍然看到正常字段集合，而不是额外内部标识列
 
-### 4. `resolveEntryActionRow(...)` 现在优先按 rowId 定位并修正 sourceRowIndex
+### 4. `resolveEntryActionRow(...)` 只按 rowId 定位并修正 sourceRowIndex
 
-`src/entry-actions.mjs::resolveEntryActionRow(...)` 现在会优先按 `rowId` 定位目标条目，并把 `sourceRowIndex` 修正为真实位置。
+`src/entry-actions.mjs::resolveEntryActionRow(...)` 现在要求非空 `rowId`，并只按持久
+`__entry_id` 在目标 collection 中定位目标条目；`sourceRowIndex` 不参与回退定位。
 
-服务端写入 handoff 时使用的是修正后的真实 `sourceRowIndex`，而不是只信前端传入的旧行号。
+找不到 `rowId` 时返回 `ENTRY_ACTION_TARGET_MISSING`；同一 collection 中出现重复
+`__entry_id` 时返回 `ENTRY_ACTION_TARGET_ID_DUPLICATE`。服务端写入 handoff 时使用解析出的
+真实 `sourceRowIndex`，而不是只信前端传入的旧行号。
 
 ### 5. 写回核对也已经切到 rowId 优先
 
@@ -54,9 +58,9 @@ status: accepted
 
 这保证 entry-action 启动前，当前编辑态不会只停留在前端内存草稿里。
 
-### 7. `/api/entry-actions/result` 已用于轮询 started / completed
+### 7. `/api/entry-actions/result` 已用于轮询启动态与分流后的完成态
 
-服务端新增了 `/api/entry-actions/result`，前端可据此轮询 entry-action 的 started / completed 结果。
+服务端保留 `/api/entry-actions/result` 供历史运行记录读取 `started`、`completed_with_writeback` 和 `completed_without_observed_writeback`。新任务入口当前不会产生这些 legacy 启动态；它固定返回 `ENTRY_ACTION_PROTOCOL_DISABLED`。
 
 这让 entry-action 的运行态不再只靠一次性发起请求猜测，结果读取链路也变成了可重复查询的稳定接口。
 
@@ -107,9 +111,10 @@ status: accepted
 
 ## 长期规则
 
-### 1. `rowId` 优先于旧行号
+### 1. `rowId` 是唯一的提交定位身份
 
-只要目标条目已经有 `__entry_id`，后续稳定定位就应优先使用它，而不是回退到可能漂移的旧 `sourceRowIndex`。
+后续稳定定位必须使用非空且唯一的 `__entry_id`；不得以可能漂移的 `sourceRowIndex` 作为
+缺失、找不到或重复 `rowId` 的回退。
 
 ### 2. 内部身份字段不应进入默认 UI 面
 
@@ -139,7 +144,7 @@ status: accepted
 - `tests/document-store.test.mjs`
 - `tests/entry-actions.test.mjs`
 - `tests/maintenance-lookup.test.mjs`
-- 临时真实项目验证：错误 `sourceRowIndex` + 正确 `rowId` 仍能稳定定位并发起 action
+- 历史真实项目验证：错误 `sourceRowIndex` + 正确 `rowId` 曾能稳定定位并发起 legacy action
 - 临时真实项目验证：清空 `skill_id` 后不再出现“待确认 / 新主键不能为空”阻断
 
 ## 关键检索词
@@ -152,5 +157,23 @@ status: accepted
 - `/api/entry-actions/result`
 - `sourceRowIndex`
 - `rowId`
+- `ENTRY_ACTION_TARGET_MISSING`
+- `ENTRY_ACTION_TARGET_ID_DUPLICATE`
 - `primaryKeySyncPlan`
 - `configured business primary key is cleared to empty`
+
+<!-- state: history -->
+## 演进记录
+
+<!-- dated: 2026-07-27 -->
+### 稳定定位保留，legacy 启动入口关闭
+
+`__entry_id` 的持久身份与结果读取能力仍是当前事实；曾经由此进入的 legacy 新任务启动路径已被
+`ENTRY_ACTION_PROTOCOL_DISABLED` 取代。当前运行时门禁见
+[`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)。
+
+<!-- dated: 2026-07-27 -->
+### Strict RowId 取消行号回退
+
+定位链已从“优先 `rowId`”收紧为“只接受唯一持久 `__entry_id`”。此演进保留在这里，便于
+排查旧 handoff 或历史记录中仍携带 `sourceRowIndex` 时不误把它当作当前提交定位依据。

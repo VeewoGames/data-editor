@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readdir, readFile, rm } from "node:fs/promises";
+import { lstat, readdir, readFile, rm } from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
@@ -309,9 +309,27 @@ async function listNodeProcesses() {
 
 async function listTempStopDirectories(tempRoot) {
   const entries = await readdir(tempRoot, { withFileTypes: true }).catch(() => []);
-  return entries
-    .filter((entry) => entry.isDirectory() && entry.name.startsWith("data-editor-stop-"))
-    .map((entry) => path.join(tempRoot, entry.name));
+  return Promise.all(entries
+    .filter((entry) => entry.isDirectory() && (entry.name.startsWith("data-editor-stop-") || entry.name.startsWith("data-editor-entry-action-")))
+    .map((entry) => describeTempDirectory(path.join(tempRoot, entry.name))));
+}
+
+async function describeTempDirectory(directory) {
+  const ownerPath = path.join(directory, ".owner.json");
+  const resultPath = path.join(directory, "result.json");
+  const recoveryPath = path.join(directory, "recovery.json");
+  const lockPath = path.join(directory, ".active.lock");
+  const [stat, marker, result, recovery, activeLock] = await Promise.all([
+    lstat(directory).catch(() => null), readJsonFile(ownerPath), readJsonFile(resultPath), readJsonFile(recoveryPath),
+    lstat(lockPath).then(() => true).catch(() => false),
+  ]);
+  const terminalEvidence = Boolean(
+    (result?.phase === "terminal" && result?.outcome && result.outcome !== "failed_needs_recovery")
+    || recovery?.status === "recovered" || recovery?.disposition === "completed",
+  );
+  // No legacy producer writes verified PID/FILETIME or fencing-release proofs yet.
+  // Keep the directory rather than infer either fact from a command line or absent file.
+  return { path: directory, isSymbolicLink: Boolean(stat?.isSymbolicLink()), marker, activeLock, terminalEvidence, processEvidenceVerified: false, fencingLockReleased: false };
 }
 
 async function removeDirectory(targetPath) {

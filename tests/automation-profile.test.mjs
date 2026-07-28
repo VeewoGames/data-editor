@@ -24,8 +24,8 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
           label: " Recheck ",
           icon: "refresh",
           targets: [
-            { file: " data/skills.json ", collection: " skills " },
-            { file: "data/skills.json", collection: "skills" },
+            { file: " data/skills.json ", collection: " skills ", writableFields: ["name"] },
+            { file: "data/skills.json", collection: "skills", writableFields: ["name"] },
           ],
           payload: {
             includeRow: false,
@@ -44,7 +44,7 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
           icon: "refresh",
           enabled: true,
           targets: [
-            { file: "data/skills.json", collection: "skills" },
+            { file: "data/skills.json", collection: "skills", writableFields: ["name"] },
           ],
           payload: {
             includeRow: false,
@@ -132,6 +132,30 @@ test("saveAutomationProfile uses profile home when configured", async () => {
   }
 });
 
+test("saveAutomationProfile rejects a stale ETag", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
+  try {
+    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true } }] };
+    const first = await saveAutomationProfile(root, profile);
+    await saveAutomationProfile(root, { ...profile, rules: [{ ...profile.rules[0], label: "Changed" }] }, first.etag);
+    await assert.rejects(() => saveAutomationProfile(root, profile, first.etag), (error) => error?.code === "AUTOMATION_PROFILE_ETAG_STALE");
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("concurrent saves with one ETag admit only one writer", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
+  try {
+    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true } }] };
+    const initial = await saveAutomationProfile(root, profile);
+    const results = await Promise.allSettled([
+      saveAutomationProfile(root, { ...profile, rules: [{ ...profile.rules[0], label: "First" }] }, initial.etag),
+      saveAutomationProfile(root, { ...profile, rules: [{ ...profile.rules[0], label: "Second" }] }, initial.etag),
+    ]);
+    assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+    assert.equal(results.filter((result) => result.status === "rejected" && result.reason?.code === "AUTOMATION_PROFILE_ETAG_STALE").length, 1);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("normalizeAutomationProfile migrates legacy file and collection arrays into target pairs", () => {
   const profile = normalizeAutomationProfile({
     rules: [
@@ -149,9 +173,9 @@ test("normalizeAutomationProfile migrates legacy file and collection arrays into
   });
 
   assert.deepEqual(profile.rules[0].targets, [
-    { file: "data/skills.json", collection: "skills" },
-    { file: "data/skills.json", collection: "$" },
-    { file: "data/traits.json", collection: "skills" },
-    { file: "data/traits.json", collection: "$" },
+    { file: "data/skills.json", collection: "skills", writableFields: [] },
+    { file: "data/skills.json", collection: "$", writableFields: [] },
+    { file: "data/traits.json", collection: "skills", writableFields: [] },
+    { file: "data/traits.json", collection: "$", writableFields: [] },
   ]);
 });

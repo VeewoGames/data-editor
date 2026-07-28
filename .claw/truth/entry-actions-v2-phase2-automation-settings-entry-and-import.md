@@ -1,6 +1,6 @@
 # entryActions 第二版第二阶段：正式运行时真值切换与个人自动化入口收口
 
-status: accepted
+<!-- state: current -->
 
 ## context
 
@@ -17,14 +17,18 @@ status: accepted
 - 用户级 `automation profile`
 - 机器本地 `automation bindings`
 
-`run-entry-action` 以及详情按钮可见性都应围绕这两层真值做判断，而不是再回读项目级旧配置。
+详情按钮可见性仍围绕这两层真值判断，而不是再回读项目级旧配置。`run-entry-action`
+只保留为 legacy handler 的历史实现：当前 `POST /api/entry-actions/run` 在进入它之前固定返回
+HTTP 503 `ENTRY_ACTION_PROTOCOL_DISABLED`。新任务门禁由
+[`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
+单独拥有。
 
 ### 2. `project.entryActions` 只保留迁移来源语义
 
 旧 `project.entryActions` 现在只作为一次性迁移来源，不再承担以下职责：
 
 - 详情按钮是否显示
-- `run-entry-action` 是否允许进入执行
+- 已禁用入口是否允许进入执行
 - 新入口里规则层的长期编辑职责
 
 后续代码和排障语义里，只能把它理解为历史来源，不应再把它当成正式运行时真值或长期 fallback。

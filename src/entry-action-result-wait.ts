@@ -1,4 +1,5 @@
 import type { EntryActionRunResult } from "./api/client";
+import { isTerminalEntryActionState } from "./entry-action-state.mjs";
 
 export class EntryActionResultWaitCancelledError extends Error {
   constructor() {
@@ -39,7 +40,7 @@ export async function waitForEntryActionResult(options: WaitForEntryActionResult
   for (let attempt = 0; attempt < foregroundPollLimit; attempt += 1) {
     ensureShouldContinue(shouldContinue);
     const result = await loadResult(runId, projectId);
-    if (result.status !== "started") {
+    if (isTerminalEntryActionState(result)) {
       return { kind: "completed", delayed: false, result };
     }
     if (attempt + 1 < foregroundPollLimit) {
@@ -52,7 +53,7 @@ export async function waitForEntryActionResult(options: WaitForEntryActionResult
   for (let attempt = 0; attempt < backgroundPollLimit; attempt += 1) {
     ensureShouldContinue(shouldContinue);
     const result = await loadResult(runId, projectId);
-    if (result.status !== "started") {
+    if (isTerminalEntryActionState(result)) {
       return { kind: "completed", delayed: true, result };
     }
     if (attempt + 1 < backgroundPollLimit) {

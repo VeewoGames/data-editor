@@ -49,9 +49,11 @@ export type EntryActionRule = {
 export type EntryActionTarget = {
   file: string;
   collection: string;
+  writableFields?: string[];
 };
 export type UserAutomationProfile = {
   rules: EntryActionRule[];
+  etag?: string | null;
 };
 export type EntryActionBinding = {
   provider: "codex";
@@ -94,7 +96,7 @@ export type ProjectRegistry = {
   activeProjectId: string | null;
   projects: ProjectDefinition[];
 };
-export type PendingDocumentSave = { path: string; root: unknown };
+export type PendingDocumentSave = { path: string; root: unknown; documentEtag: string; idempotencyKey?: string };
 export type SaveDocumentResult = { ok: true; documentEtag?: string };
 export type SaveDocumentsResult = {
   ok: boolean;
@@ -151,11 +153,15 @@ export type EntryActionRunResult = {
   actionId?: string | null;
   createdAt?: string | null;
   startedAt?: string | null;
-  status: "started" | "rejected" | "failed" | "completed_with_writeback" | "completed_without_observed_writeback";
+  phase: "queued" | "running" | "proposal_ready" | "committing" | "terminal";
+  outcome?: "completed_with_writeback" | "completed_without_changes" | "conflicted" | "rejected" | "failed" | "timed_out" | "failed_needs_recovery" | null;
+  /** @deprecated The legacy protocol remains readable only for historical artifacts. */
+  status?: "started" | "rejected" | "failed" | "completed_with_writeback" | "completed_without_observed_writeback";
   finishedAt?: string;
   outputPath?: string | null;
   reason?: string | null;
   message?: string | null;
+  artifacts?: Record<"proposal" | "reply" | "diagnostics", { path: string; available: boolean }>;
   writebackCheck?: {
     available: boolean;
     fileChanged: boolean;
@@ -549,11 +555,11 @@ export async function loadDocument(path: string, projectId?: string | null): Pro
   return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
 }
 
-export async function saveDocument(path: string, root: unknown, projectId?: string | null, documentEtag?: string): Promise<SaveDocumentResult> {
+export async function saveDocument(path: string, root: unknown, projectId?: string | null, documentEtag?: string, idempotencyKey = crypto.randomUUID()): Promise<SaveDocumentResult> {
   const result = await saveDocumentsWith(
     [{ path, root }],
     (savePath: string, saveRoot: unknown, contractGate: SkillNodeContractSaveGate | null) => (
-      postDocumentSave(savePath, saveRoot, projectId, contractGate, documentEtag)
+      postDocumentSave(savePath, saveRoot, projectId, contractGate, documentEtag, idempotencyKey)
     ),
     { projectId, loadSkillNodeContract },
   );
@@ -567,19 +573,20 @@ function postDocumentSave(
   projectId?: string | null,
   contractGate: SkillNodeContractSaveGate | null = null,
   documentEtag?: string,
+  idempotencyKey?: string,
 ): Promise<SaveDocumentResult> {
   return fetchJson("/api/save", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, path, root, ...(contractGate ?? {}), ...(documentEtag ? { documentEtag } : {}) }),
+    body: JSON.stringify({ projectId, path, root, ...(contractGate ?? {}), ...(documentEtag ? { documentEtag } : {}), ...(idempotencyKey ? { idempotencyKey } : {}) }),
   });
 }
 
 export async function saveDocuments(items: PendingDocumentSave[], projectId?: string | null): Promise<SaveDocumentsResult> {
   return saveDocumentsWith(
     items,
-    (path: string, root: unknown, contractGate: SkillNodeContractSaveGate | null) => (
-      postDocumentSave(path, root, projectId, contractGate)
+    (path: string, root: unknown, contractGate: SkillNodeContractSaveGate | null, documentEtag: string, idempotencyKey: string) => (
+      postDocumentSave(path, root, projectId, contractGate, documentEtag, idempotencyKey)
     ),
     { projectId, loadSkillNodeContract },
   );
@@ -656,7 +663,7 @@ export async function saveAutomationProfile(profile: UserAutomationProfile, proj
   return fetchJson("/api/automation-profile", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, profile: normalizeFetchedAutomationProfile(profile) }),
+    body: JSON.stringify({ projectId, profile: normalizeFetchedAutomationProfile(profile), ...(profile.etag ? { etag: profile.etag } : {}) }),
   });
 }
 
@@ -786,6 +793,7 @@ function normalizeFetchedAutomationProfile(value: unknown): UserAutomationProfil
   const rules = Array.isArray((value as { rules?: unknown }).rules) ? (value as { rules: unknown[] }).rules : [];
   return {
     rules: rules.map((rule) => normalizeFetchedEntryActionRule(rule)).filter(Boolean) as EntryActionRule[],
+    etag: typeof (value as { etag?: unknown }).etag === "string" ? (value as { etag: string }).etag : null,
   };
 }
 

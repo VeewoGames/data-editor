@@ -53,9 +53,9 @@ export async function buildPrimaryKeySyncSaveSnapshot({
   currentPath,
   loadDocument,
 }) {
-  /** @type {Map<string, { root: unknown; format: import("./documentModel").DocumentModel["format"] }>} */
+  /** @type {Map<string, { root: unknown; format: import("./documentModel").DocumentModel["format"]; documentEtag?: string }>} */
   const rootsByPath = new Map([
-    [currentPath, { root: cloneDataRoot(currentModel.root), format: currentModel.format }],
+    [currentPath, { root: cloneDataRoot(currentModel.root), format: currentModel.format, documentEtag: currentModel.documentEtag }],
   ]);
 
   for (const sourceFile of plan.sourceFiles) {
@@ -64,6 +64,7 @@ export async function buildPrimaryKeySyncSaveSnapshot({
     rootsByPath.set(sourceFile, {
       root: cloneDataRoot(documentModel.root),
       format: documentModel.format,
+      documentEtag: documentModel.documentEtag,
     });
   }
 
@@ -81,12 +82,15 @@ export async function buildPrimaryKeySyncSaveSnapshot({
   }
 
   /** @type {import("../api/client").PendingDocumentSave[]} */
-  const pendingSaves = [{ path: currentPath, root: rootsByPath.get(currentPath)?.root ?? null }];
+  const currentSnapshot = rootsByPath.get(currentPath);
+  if (!currentSnapshot?.documentEtag) throw new Error(`缺少文档版本令牌，拒绝保存：${currentPath}`);
+  const pendingSaves = [{ path: currentPath, root: currentSnapshot.root, documentEtag: currentSnapshot.documentEtag }];
   for (const sourceFile of plan.sourceFiles) {
     if (sourceFile === currentPath) continue;
     const sourceSnapshot = rootsByPath.get(sourceFile);
     if (!sourceSnapshot) throw new Error(`无法加载来源文件：${sourceFile}`);
-    pendingSaves.push({ path: sourceFile, root: sourceSnapshot.root });
+    if (!sourceSnapshot.documentEtag) throw new Error(`缺少文档版本令牌，拒绝保存：${sourceFile}`);
+    pendingSaves.push({ path: sourceFile, root: sourceSnapshot.root, documentEtag: sourceSnapshot.documentEtag });
   }
   return { plan, pendingSaves };
 }

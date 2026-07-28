@@ -1,4 +1,5 @@
 import { addField, deleteRow, setCellValue, setNestedValue } from "../document-model.mjs";
+import { validateAuthorizedPatch } from "../entry-action-policy.mjs";
 import { buildDocumentStore, getCollectionStore, getSourceLocatorByRowId } from "./document-store.mjs";
 
 export function createWritebackAdapter({ documentId = "document", model }) {
@@ -71,6 +72,12 @@ export function resolveRowLocatorById({ store, collectionPath, rowId }) {
 export function setCellValueByRowId({ model, store, collectionPath, rowId, fieldName, value }) {
   const locator = resolveRowLocatorById({ store, collectionPath, rowId });
   setCellValue(model, collectionPath, locator.sourceIndex, fieldName, value);
+}
+
+/** Applies one already-authorized policy patch; it never derives authority itself. */
+export function setAuthorizedCellValueByRowId({ model, store, policy, file, collectionPath, rowId, fieldName, value }) {
+  validateAuthorizedPatch({ policy, file, collection: collectionPath, field: fieldName, value });
+  setCellValueByRowId({ model, store, collectionPath, rowId, fieldName, value });
 }
 
 export function setNestedValueByRowId({ model, store, collectionPath, rowId, pathParts, value }) {

@@ -12,6 +12,7 @@ test("buildPrimaryKeySyncSaveSnapshot rewrites same-file relation rows inside th
     { id: "a", target_id: "b", name: "Alpha" },
     { id: "b2", target_id: null, name: "Beta" },
   ], "json", "data/items.json");
+  currentModel.documentEtag = '"items-v1"';
   let loadCount = 0;
 
   const snapshot = await buildPrimaryKeySyncSaveSnapshot({
@@ -57,9 +58,11 @@ test("buildPrimaryKeySyncSaveSnapshot loads each external source once and applie
   const currentModel = buildDocumentModel([
     { skill_id: "slash_2", name: "Slash" },
   ], "json", "data/skills.json");
+  currentModel.documentEtag = '"skills-v1"';
   const sourceModel = buildDocumentModel([
     { id: "enemy_a", skill_id: "slash", name: "Enemy A" },
   ], "json", "data/enemies.json");
+  sourceModel.documentEtag = '"enemies-v1"';
   let loadCount = 0;
 
   const snapshot = await buildPrimaryKeySyncSaveSnapshot({
@@ -106,6 +109,7 @@ test("buildPrimaryKeySyncSaveSnapshot rewrites same-file top-level multi relatio
     { id: "a", target_ids: ["b", "c"], name: "Alpha" },
     { id: "b2", target_ids: [], name: "Beta" },
   ], "json", "data/items.json");
+  currentModel.documentEtag = '"items-v1"';
 
   const snapshot = await buildPrimaryKeySyncSaveSnapshot({
     plan: {
@@ -146,9 +150,11 @@ test("buildPrimaryKeySyncSaveSnapshot rewrites external top-level multi relation
   const currentModel = buildDocumentModel([
     { skill_id: "slash_2", name: "Slash" },
   ], "json", "data/skills.json");
+  currentModel.documentEtag = '"skills-v1"';
   const sourceModel = buildDocumentModel([
     { id: "enemy_a", skill_ids: ["slash", "guard"], name: "Enemy A" },
   ], "json", "data/enemies.json");
+  sourceModel.documentEtag = '"enemies-v1"';
 
   const snapshot = await buildPrimaryKeySyncSaveSnapshot({
     plan: {

@@ -4102,7 +4102,7 @@ export function App() {
       const finalStatus = buildEntryActionDetailStatus(actionId, actionLabel, finalResult, output);
       setEntryActionStatus(finalStatus);
       if (finalResult.message) setEntryActionErrorMessage(finalResult.message);
-      if (finalResult.status === "completed_with_writeback" || finalResult.status === "completed_without_observed_writeback") {
+      if (finalResult.outcome === "completed_with_writeback" || finalResult.outcome === "completed_without_changes") {
         await openDocumentAt(
           selectedPathRef.current ?? selectedPath,
           collectionPathRef.current,
@@ -4154,7 +4154,7 @@ export function App() {
     result: EntryActionRunResult,
     output: string | null = null,
   ): DetailEntryActionStatus {
-    if (result.status === "completed_with_writeback") {
+    if (result.outcome === "completed_with_writeback") {
       const changedFields = result.writebackCheck?.changedFields?.length
         ? `已观察到字段变更：${result.writebackCheck.changedFields.join("、")}`
         : "已观察到目标条目写回。";
@@ -4177,47 +4177,33 @@ export function App() {
         output,
       };
     }
-    if (result.status === "completed_without_observed_writeback") {
-      if (result.reason === "codex_exec_timeout") {
-        return {
-          actionId,
-          runId: result.runId,
-          tone: "warning",
-          title: `${actionLabel} 未观察到写回（执行超时）`,
-          detail: result.message ?? "自动化在等待上限内未正常结束，且当前未观察到目标条目发生变化。",
-          output,
-        };
-      }
+    if (result.outcome === "completed_without_changes") {
       return {
         actionId,
         runId: result.runId,
         tone: "warning",
-        title: `${actionLabel} 未观察到写回`,
-        detail: result.message ?? "自动化已执行完成，但当前未观察到目标条目发生变化。",
+        title: `${actionLabel} 已完成（无变更）`,
+        detail: result.message ?? "自动化已完成，正式文件没有提交变更。",
         output,
       };
     }
-    if (result.status === "rejected") {
+    if (result.outcome === "rejected" || result.outcome === "conflicted") {
       return {
         actionId,
         runId: result.runId,
         tone: "warning",
-        title: `${actionLabel} 未执行`,
-        detail: result.message ?? result.reason ?? "自动化请求被拒绝，未进入执行。",
+        title: result.outcome === "conflicted" ? `${actionLabel} 提交冲突` : `${actionLabel} 未执行`,
+        detail: result.message ?? result.reason ?? (result.outcome === "conflicted" ? "自动化提交与当前文件冲突，未写入。" : "自动化请求被拒绝，未进入执行。"),
         output,
       };
     }
-    if (result.status === "failed") {
-      if (result.reason === "codex_exec_timeout") {
-        return {
-          actionId,
-          runId: result.runId,
-          tone: "warning",
-          title: `${actionLabel} 执行超时`,
-          detail: result.message ?? "自动化执行超时，已达到当前规则配置的等待上限。",
-          output,
-        };
-      }
+    if (result.outcome === "timed_out") {
+      return { actionId, runId: result.runId, tone: "warning", title: `${actionLabel} 执行超时`, detail: result.message ?? "自动化执行超时，已安全结束。", output };
+    }
+    if (result.outcome === "failed_needs_recovery") {
+      return { actionId, runId: result.runId, tone: "error", title: `${actionLabel} 等待恢复`, detail: result.message ?? "自动化未能证明安全终态，已保留恢复证据。", output };
+    }
+    if (result.outcome === "failed") {
       return {
         actionId,
         runId: result.runId,

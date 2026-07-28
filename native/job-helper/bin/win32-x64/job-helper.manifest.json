@@ -1,0 +1,8 @@
+﻿{
+    "protocolVersion":  2,
+    "platform":  "win32",
+    "arch":  "x64",
+    "sourceSha256":  "50a4793b8c35336d6500098fff991f9d768f2a12f3c908d295dff4ebcaceff6b",
+    "executableSha256":  "1830c327bdf6b0ad05e7c81dede8be3a4493c089cbdfd589dd078beb443c2899",
+    "testFaults":  false
+}

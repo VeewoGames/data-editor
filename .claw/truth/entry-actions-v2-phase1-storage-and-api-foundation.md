@@ -1,8 +1,7 @@
 ﻿# entryActions 第二版第一阶段：共享规则与本地绑定的存储/API 基础设施已落地
 
-status: accepted
-
-## context
+<!-- state: current -->
+## 当前行为
 
 这条 truth 只沉淀 `entryActions` 第二版第一阶段已经正式落地的实现态事实，不重复“为什么要转成双层个人化配置”的方向性判断。
 
@@ -72,7 +71,17 @@ status: accepted
 
 这说明 phase-1 的后端协议已经从“先落盘再说”收敛为“带 schema 约束的正式保存入口”。
 
-### 4. 第二版第一阶段 API 面已经独立存在，且旧执行链暂未切换
+### 4. profile 保存使用内容 ETag，规则 target 必须声明可写字段
+
+`loadAutomationProfile(...)` 返回由 profile 内容计算的 `etag`；
+`saveAutomationProfile(..., expectedEtag)` 按同一 profile 路径串行 compare-and-save。陈旧 ETag
+会以 `AUTOMATION_PROFILE_ETAG_STALE` 拒绝，HTTP 保存接口映射为 409。
+
+每个 target 现在还必须有非空 `writableFields`。读取旧 profile 时缺失该字段会归一化为空数组，
+并使规则失去启用资格；新保存显式提交空字段列表则被拒绝。profile 只能表达候选可写字段，
+实际写回仍必须同时通过 project-scoped policy 的最大权限校验。
+
+### 5. 第二版第一阶段 API 面已经独立存在，legacy 执行链当前不可达
 
 服务端已经新增并接通四个正式接口：
 
@@ -83,14 +92,19 @@ status: accepted
 
 对应前端 client 锚点在 `src/api/client.ts`，服务端入口在 `server.mjs`。
 
-但这轮仍然保留第一版执行链：
+仓库仍保留旧执行 handler 与项目级 `entryActions` 的历史实现，但它不再是当前可执行路径：
 
-- `POST /api/entry-actions/run` 仍从项目级 `entryActions` 取动作白名单
-- `Project Settings` 里的旧 `entryActions` 编辑入口也仍然存在
+- `server.mjs::handleRunEntryAction(...)` 的旧实现仍会读取项目级 `entryActions`
+- `POST /api/entry-actions/run` 的当前运行时门禁由
+  [`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
+  统一维护
+- `Project Settings` 里的旧 `entryActions` 编辑入口仍然存在
 
-因此，当前真实状态是“第二版存储/API 基础设施已落地，执行真值迁移尚未发生”。后续排障或需求评审时，不能把 phase-1 误判为已经完成旧链清理。
+因此，当前真实状态是“第二版存储/API 基础设施已落地，执行真值迁移尚未发生”。当前
+`POST /api/entry-actions/run` 的具体禁用合同由上述 canonical Truth 维护；不能把 profile API、ETag
+或 `writableFields` 误判为入口已经恢复。
 
-### 5. 自动化保存请求和 `saveViewProfile` 一样，当前都不再使用 `keepalive`
+### 6. 自动化保存请求和 `saveViewProfile` 一样，当前都不再使用 `keepalive`
 
 `src/api/client.ts` 里：
 
@@ -104,7 +118,13 @@ status: accepted
 
 ## 长期行为 / 规则
 
-### 1. 看到 `automation profile` 时，默认按“独立用户自动化配置”理解，不要再把它当成 `UserViewProfile` 扩展位
+### 1. profile 更新必须携带并保留服务端 ETag
+
+客户端在读取后保存 profile 时必须回传当前 ETag；收到
+`AUTOMATION_PROFILE_ETAG_STALE` 后应重新读取，而不是用陈旧内容覆盖。规则未声明非空
+`writableFields` 时不得被视为可启用。
+
+### 2. 看到 `automation profile` 时，默认按“独立用户自动化配置”理解，不要再把它当成 `UserViewProfile` 扩展位
 
 如果后续排查第二版自动化配置丢失、路径漂移或 schema 变化，优先检查：
 
@@ -114,7 +134,7 @@ status: accepted
 
 而不是先回头猜 `src/view-profile.mjs` 或 `selectedViewProfile` 流程。
 
-### 2. 看到 `automation bindings` 时，默认按“当前机器正式本地文件”理解，不要再猜它会跟 profile home 走
+### 3. 看到 `automation bindings` 时，默认按“当前机器正式本地文件”理解，不要再猜它会跟 profile home 走
 
 排查当前设备为什么显示可执行按钮、为什么某台机器没有绑定时，优先检查项目内：
 
@@ -122,14 +142,15 @@ status: accepted
 
 不要把 `DATA_EDITOR_PROFILE_HOME` 误当成 bindings 真值源。
 
-### 3. phase-1 之后，不能把新 API 的存在误读成第二版执行链已切换完成
+### 4. 不能把 dormant legacy handler、profile ETag、`writableFields` 或新 API 误读为入口已恢复
 
-只要 `server.mjs` 中的 `handleRunEntryAction(...)` 仍然通过 `findEntryAction(project, body.actionId)` 读取项目级 `entryActions`，就说明旧执行真值仍在生效。
+`server.mjs::handleRunEntryAction(...)` 仍保留历史实现，不等于旧执行真值正在生效；当前 API 门禁
+的行为与代码锚点见上述 canonical Truth。
 
 这时：
 
-- 新的 profile/bindings API 属于基础设施已落地
-- 旧的 `entryActions` 运行时链属于尚未清理的迁移前状态
+- 新的 profile/bindings API、ETag 和 `writableFields` 属于受控执行的基础设施
+- 新任务入口的禁用合同由上述 canonical Truth 维护
 
 ## 关联代码
 
@@ -160,3 +181,14 @@ status: accepted
 - `saveAutomationBindings`
 - `keepalive`
 - `entryActions v2 phase 1`
+- `AUTOMATION_PROFILE_ETAG_STALE`
+- `writableFields`
+
+<!-- state: history -->
+## 演进记录
+
+<!-- dated: 2026-07-27 -->
+### profile 版本与可写字段门禁完成
+
+phase-1 初始 API 只提供 schema 保存边界。当前 ETag compare-and-save 与 `writableFields` 资格
+门禁已补齐；它们仍不改变新任务入口的禁用状态。

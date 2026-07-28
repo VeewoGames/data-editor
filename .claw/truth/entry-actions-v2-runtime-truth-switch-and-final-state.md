@@ -1,6 +1,18 @@
 # entryActions 第二版运行时真值切换完成：详情按钮与服务端执行都已转向个人自动化
 
-status: accepted
+<!-- document-state: historical -->
+
+<!-- state: history -->
+## 历史运行时快照
+
+<!-- dated: 2026-07-28 -->
+### profile 与 binding 曾进入 legacy 执行链，但当前入口已硬禁用
+
+本文保留的是 `automation profile + machine-local automation bindings` 接入 legacy
+`handleRunEntryAction(...)` 前的运行时快照。当前 `POST /api/entry-actions/run` 在进入该 handler
+前固定返回 HTTP 503 `ENTRY_ACTION_PROTOCOL_DISABLED`；其当前安全边界由
+`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md` 拥有。本文不能证明
+该入口现可执行，也不能把 profile / binding 解释为绕过门禁的依据。
 
 ## context
 

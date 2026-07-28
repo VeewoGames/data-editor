@@ -3,12 +3,49 @@ import test from "node:test";
 import {
   clearSkillNodeContractCache,
   loadAutomationSkillCatalog,
+  runEntryAction,
   saveAutomationBindings,
   saveAutomationProfile,
   saveDocument,
   saveViewProfile,
   validateAutomationBindings,
 } from "../src/api/client.ts";
+
+test("entry action client preserves structured protocol-disabled errors", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    error: "条目自动化写回协议正在安全升级，当前禁止启动新任务。",
+    code: "ENTRY_ACTION_PROTOCOL_DISABLED",
+    field: "entryAction",
+    details: { protocolMode: "legacy-disabled" },
+  }), {
+    status: 503,
+    headers: { "content-type": "application/json" },
+  });
+
+  try {
+    await assert.rejects(
+      () => runEntryAction({
+        projectId: "project-1",
+        actionId: "recheck",
+        sourcePath: "data/items.json",
+        collectionPath: "items",
+        rowId: "items:1",
+        sourceRowIndex: 1,
+      }),
+      (error) => {
+        assert.equal(error.message, "条目自动化写回协议正在安全升级，当前禁止启动新任务。");
+        assert.equal(error.code, "ENTRY_ACTION_PROTOCOL_DISABLED");
+        assert.equal(error.status, 503);
+        assert.equal(error.field, "entryAction");
+        assert.deepEqual(error.details, { protocolMode: "legacy-disabled" });
+        return true;
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("skill document saves carry contract version, ETag, and a project-scoped token", async () => {
   const calls = [];

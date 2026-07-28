@@ -7,7 +7,8 @@ export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
   for (const item of items ?? []) {
     try {
       const contractGate = await buildContractSaveGate(item.path, options);
-      const saved = await saveDocumentFn(item.path, item.root, contractGate);
+      const idempotencyKey = item.idempotencyKey ?? crypto.randomUUID();
+      const saved = await saveDocumentFn(item.path, item.root, contractGate, item.documentEtag, idempotencyKey);
       savedPaths.push(item.path);
       if (typeof saved?.documentEtag === "string" && saved.documentEtag) documentEtags[item.path] = saved.documentEtag;
     } catch (error) {

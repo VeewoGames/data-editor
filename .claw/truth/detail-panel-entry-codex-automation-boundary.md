@@ -1,6 +1,16 @@
 ﻿# detail panel 条目级 Codex 自动化：正式维护入口与稳定运行边界
 
-status: accepted
+<!-- document-state: historical -->
+
+<!-- state: history -->
+## 历史事实
+
+<!-- dated: 2026-07-28 -->
+### legacy 维护与执行链已退出当前运行时
+
+当前新任务入口由 `entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`
+拥有：`POST /api/entry-actions/run` 在执行任何 legacy 链路前固定返回 HTTP 503
+`ENTRY_ACTION_PROTOCOL_DISABLED`。因此本文不得作为当前维护入口、可执行性或 UI 运行时的依据。
 
 ## context
 

@@ -73,6 +73,26 @@ test("saveProjectRegistry rejects invalid ids", async (t) => {
   );
 });
 
+test("concurrent project registry saves always leave parseable complete JSON", async (t) => {
+  const home = await makeHome(t);
+  const registries = Array.from({ length: 20 }, (_, index) => ({
+    activeProjectId: `project-${index}`,
+    projects: [{
+      id: `project-${index}`,
+      name: `Project ${index}`,
+      root: path.join(home, `Project-${index}`),
+      adapter: "nocturnel",
+      dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
+      filePolicy: { includeExtensions: [".json", ".csv"] },
+    }],
+  }));
+  await Promise.all(registries.map((registry) => saveProjectRegistry(registry, { home })));
+
+  const stored = JSON.parse(await readFile(projectRegistryPath({ home }), "utf8"));
+  assert.equal(registries.some((registry) => registry.activeProjectId === stored.activeProjectId), true);
+  assert.equal(stored.projects[0].id, stored.activeProjectId);
+});
+
 test("addOrActivateProject creates a default data source and avoids duplicate roots", async (t) => {
   const home = await makeHome(t);
   const projectRoot = path.join(home, "ProjectA");
