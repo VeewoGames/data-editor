@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
+import { mkdtemp, rm } from "node:fs/promises";
 import { isTerminalEntryActionState, normalizeEntryActionStateRecord } from "../src/entry-action-state.mjs";
+import { advanceEntryActionPhase, readEntryActionStarted, writeEntryActionStarted } from "../src/entry-actions.mjs";
 
 test("only a declared terminal outcome ends entry-action waiting", () => {
   for (const phase of ["queued", "running", "proposal_ready", "committing"]) assert.equal(isTerminalEntryActionState({ phase }), false);
@@ -10,7 +14,28 @@ test("only a declared terminal outcome ends entry-action waiting", () => {
   assert.equal(isTerminalEntryActionState({ phase: "terminal", outcome: "completed_without_observed_writeback" }), false);
 });
 
-test("historical result artifacts normalize to the new phase and outcome contract", () => {
-  assert.deepEqual(normalizeEntryActionStateRecord({ runId: "old", status: "started" }), { runId: "old", phase: "running", outcome: null });
-  assert.deepEqual(normalizeEntryActionStateRecord({ runId: "old", status: "completed_without_observed_writeback" }), { runId: "old", phase: "terminal", outcome: "completed_without_changes" });
+test("legacy result artifacts are rejected instead of entering a compatibility path", () => {
+  assert.throws(() => normalizeEntryActionStateRecord({ runId: "old", status: "started" }), { code: "ENTRY_ACTION_STATE_INVALID" });
+  assert.throws(() => normalizeEntryActionStateRecord({ runId: "old", status: "completed_without_observed_writeback" }), { code: "ENTRY_ACTION_STATE_INVALID" });
+});
+
+test("active phases advance monotonically and survive detail-panel reloads", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "entry-action-state-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const runId = "7d671df6-1f59-47d3-b3d8-09b95b587cee";
+  await writeEntryActionStarted(root, runId, {
+    version: 2,
+    runId,
+    actionId: "fixture-action",
+    phase: "running",
+    outcome: null,
+    startedAt: "2026-07-29T00:00:00.000Z",
+  });
+  await advanceEntryActionPhase(root, runId, "proposal_ready");
+  await advanceEntryActionPhase(root, runId, "committing");
+  assert.equal((await readEntryActionStarted(root, runId)).phase, "committing");
+  await assert.rejects(
+    advanceEntryActionPhase(root, runId, "running"),
+    { code: "ENTRY_ACTION_PHASE_REGRESSION" },
+  );
 });

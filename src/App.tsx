@@ -87,6 +87,16 @@ import { validateSkillNodeDerivedRuleConflicts } from "./detail/skill-node-deriv
 import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
 import { defaultAutomationRuntime } from "./automation-runtime.mjs";
+import {
+  automationRuleSelectionAfterRemoval,
+  normalizeAutomationRuleSelection,
+  normalizeVisibleAutomationRuleSelection,
+} from "./automation-rule-selection.mjs";
+import {
+  pruneOrphanAutomationRuleBindings,
+  remapAutomationRuleBindingKey,
+  removeAutomationRuleBinding,
+} from "./automation-rule-draft.mjs";
 import { buildDetailSelectionState, resolveDetailSelectionSync } from "./detail/selection-state.mjs";
 import { stabilizeViewResult } from "./view/stable-view-result.mjs";
 import { buildStableViewEngineRows } from "./view/stable-view-engine-rows.mjs";
@@ -4179,6 +4189,9 @@ export function App() {
             detail: "自动化耗时较长，仍在后台等待完成结果。结果返回后会自动更新。",
           });
         },
+        onPendingResult: (pendingResult) => {
+          setEntryActionStatus(buildEntryActionDetailStatus(actionId, actionLabel, pendingResult));
+        },
         projectId: activeProjectId,
         runId: result.runId,
         shouldContinue: () => entryActionWatchIdRef.current === watchId,
@@ -4305,6 +4318,7 @@ export function App() {
     return {
       actionId,
       runId: result.runId,
+      startedAt: result.startedAt,
       tone: "running",
       title: `${actionLabel} 运行中`,
       detail: "自动化仍在执行，正在等待完成结果。",
@@ -6233,7 +6247,7 @@ function AutomationSettingsDialog(props: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+  const [selectedRuleIndex, setSelectedRuleIndex] = useState<number | null>(null);
   const [iconPickerOpenRuleId, setIconPickerOpenRuleId] = useState<string | null>(null);
   const [skillPickerOpenRuleId, setSkillPickerOpenRuleId] = useState<string | null>(null);
   const [skillPickerQuery, setSkillPickerQuery] = useState("");
@@ -6244,33 +6258,31 @@ function AutomationSettingsDialog(props: {
   const profileRef = useRef(profile);
   const bindingsRef = useRef(bindings);
   const commitProfile = useCallback((updater: UserAutomationProfile | ((current: UserAutomationProfile) => UserAutomationProfile)) => {
-    setProfile((current) => {
-      const next = typeof updater === "function"
-        ? (updater as (current: UserAutomationProfile) => UserAutomationProfile)(current)
-        : updater;
-      profileRef.current = next;
-      return next;
-    });
+    const current = profileRef.current;
+    const next = typeof updater === "function"
+      ? (updater as (current: UserAutomationProfile) => UserAutomationProfile)(current)
+      : updater;
+    profileRef.current = next;
+    setProfile(next);
   }, []);
   const commitBindings = useCallback((updater: DeviceEntryActionBindings | ((current: DeviceEntryActionBindings) => DeviceEntryActionBindings)) => {
-    setBindings((current) => {
-      const next = typeof updater === "function"
-        ? (updater as (current: DeviceEntryActionBindings) => DeviceEntryActionBindings)(current)
-        : updater;
-      bindingsRef.current = next;
-      return next;
-    });
+    const current = bindingsRef.current;
+    const next = typeof updater === "function"
+      ? (updater as (current: DeviceEntryActionBindings) => DeviceEntryActionBindings)(current)
+      : updater;
+    bindingsRef.current = next;
+    setBindings(next);
   }, []);
   const rules = profile.rules;
-  const filteredRules = useMemo(() => {
+  const filteredRuleIndexes = useMemo(() => {
     const query = ruleSearchQuery.trim().toLowerCase();
-    if (!query) return rules;
-    return rules.filter((rule) => {
+    if (!query) return rules.map((_, index) => index);
+    return rules.flatMap((rule, index) => {
       const binding = bindings.bindings[rule.id];
       const label = rule.label.trim().toLowerCase();
       const ruleId = rule.id.trim().toLowerCase();
       const skill = binding?.skill?.trim().toLowerCase() ?? "";
-      return label.includes(query) || ruleId.includes(query) || skill.includes(query);
+      return label.includes(query) || ruleId.includes(query) || skill.includes(query) ? [index] : [];
     });
   }, [bindings.bindings, ruleSearchQuery, rules]);
   const targetCatalogByFile = useMemo(
@@ -6281,17 +6293,16 @@ function AutomationSettingsDialog(props: {
   useEffect(() => {
     if (!props.open) return;
     commitProfile(props.profile);
-    commitBindings(props.bindings);
-    setSelectedRuleId((current) => (
-      current && props.profile.rules.some((rule) => rule.id === current)
-        ? current
-        : (props.profile.rules[0]?.id ?? null)
+    commitBindings(pruneOrphanAutomationRuleBindings(
+      props.bindings,
+      props.profile.rules.map((rule) => rule.id),
     ));
+    setSelectedRuleIndex((current) => normalizeAutomationRuleSelection(current, props.profile.rules.length));
   }, [commitBindings, commitProfile, props.open, props.profile, props.bindings]);
 
   useEffect(() => {
     if (props.open) return;
-    setSelectedRuleId(null);
+    setSelectedRuleIndex(null);
     setIconPickerOpenRuleId(null);
     setSkillPickerOpenRuleId(null);
     setSkillPickerQuery("");
@@ -6301,22 +6312,16 @@ function AutomationSettingsDialog(props: {
   }, [props.open]);
 
   useEffect(() => {
-    if (!rules.length) {
-      setSelectedRuleId(null);
-      return;
-    }
-    if (selectedRuleId && rules.some((rule) => rule.id === selectedRuleId)) return;
-    setSelectedRuleId(rules[0]?.id ?? null);
-  }, [rules, selectedRuleId]);
+    setSelectedRuleIndex((current) => normalizeAutomationRuleSelection(current, rules.length));
+  }, [rules.length]);
 
   useEffect(() => {
-    if (!filteredRules.length) {
-      if (ruleSearchQuery.trim()) setSelectedRuleId(null);
-      return;
-    }
-    if (selectedRuleId && filteredRules.some((rule) => rule.id === selectedRuleId)) return;
-    setSelectedRuleId(filteredRules[0]?.id ?? null);
-  }, [filteredRules, ruleSearchQuery, selectedRuleId]);
+    setSelectedRuleIndex((current) => normalizeVisibleAutomationRuleSelection(
+      current,
+      filteredRuleIndexes,
+      Boolean(ruleSearchQuery.trim()),
+    ));
+  }, [filteredRuleIndexes, ruleSearchQuery]);
 
   const refreshSkillCatalog = useCallback(async (projectId: string) => {
     setSkillCatalogLoading(true);
@@ -6345,7 +6350,10 @@ function AutomationSettingsDialog(props: {
       .then(([nextProfile, nextBindings]) => {
         if (cancelled) return;
         commitProfile(nextProfile);
-        commitBindings(nextBindings);
+        commitBindings(pruneOrphanAutomationRuleBindings(
+          nextBindings,
+          nextProfile.rules.map((rule) => rule.id),
+        ));
         setLoadedProjectId(props.project!.id);
       })
       .catch((loadError) => {
@@ -6594,18 +6602,9 @@ function AutomationSettingsDialog(props: {
     if (!rule) return;
     const nextId = nextIdRaw.trim();
     const previousId = rule.id;
-    if (selectedRuleId === previousId) {
-      setSelectedRuleId(nextId || previousId);
-    }
     updateRule(index, { ...rule, id: nextId });
-    if (!previousId || previousId === nextId) return;
-    commitBindings((current) => {
-      const nextBindings = { ...current.bindings };
-      const previousBinding = nextBindings[previousId];
-      delete nextBindings[previousId];
-      if (previousBinding && nextId) nextBindings[nextId] = previousBinding;
-      return { ...current, bindings: nextBindings };
-    });
+    if (previousId === nextId) return;
+    commitBindings(remapAutomationRuleBindingKey(bindingsRef.current, previousId, nextId));
   }
 
   function updateBinding(ruleId: string, nextBinding: EntryActionBinding) {
@@ -6648,19 +6647,13 @@ function AutomationSettingsDialog(props: {
 
   function removeRule(index: number) {
     const rule = rules[index];
-    const nextSelectedRuleId = selectedRuleId === rule?.id
-      ? (rules[index + 1]?.id ?? rules[index - 1]?.id ?? null)
-      : selectedRuleId;
+    const nextSelectedRuleIndex = automationRuleSelectionAfterRemoval(selectedRuleIndex, index, rules.length);
     commitProfile((current) => ({
       rules: current.rules.filter((_, currentIndex) => currentIndex !== index),
     }));
-    setSelectedRuleId(nextSelectedRuleId);
-    if (!rule?.id) return;
-    commitBindings((current) => {
-      const nextBindings = { ...current.bindings };
-      delete nextBindings[rule.id];
-      return { ...current, bindings: nextBindings };
-    });
+    setSelectedRuleIndex(nextSelectedRuleIndex);
+    if (!rule) return;
+    commitBindings(removeAutomationRuleBinding(bindingsRef.current, rule.id));
   }
 
   function addRule() {
@@ -6699,13 +6692,17 @@ function AutomationSettingsDialog(props: {
         },
       },
     }));
-    setSelectedRuleId(nextId);
+    setSelectedRuleIndex(rules.length);
   }
 
   async function saveAutomationSettings() {
     if (!props.project?.id) return;
     const latestProfile = profileRef.current;
-    const latestBindings = bindingsRef.current;
+    const latestBindings = pruneOrphanAutomationRuleBindings(
+      bindingsRef.current,
+      latestProfile.rules.map((rule) => rule.id),
+    );
+    commitBindings(latestBindings);
     const latestValidationIssues = validateAutomationSettings(latestProfile, latestBindings);
     if (latestValidationIssues.length > 0) {
       setError("请先修正自动化设置中的校验问题，再保存。");
@@ -6872,28 +6869,33 @@ function AutomationSettingsDialog(props: {
                         />
                       </label>
                       <div className="automation-rule-nav">
-                        {filteredRules.length ? filteredRules.map((rule, index) => {
+                        {filteredRuleIndexes.length ? filteredRuleIndexes.map((ruleIndex) => {
+                          const rule = rules[ruleIndex];
                           const binding = bindings.bindings[rule.id] ?? {
                             provider: "codex" as const,
                             skill: "",
                             enabled: true,
                           };
                           const bindingStatus = bindings.bindingStatuses?.[rule.id];
-                          const issueCount = validationIssuesByRuleId[rule.id]?.length ?? 0;
+                          const issueCount = (
+                            validationIssuesByRuleId[rule.id]
+                            ?? validationIssuesByRuleId[`__index_${ruleIndex}`]
+                            ?? []
+                          ).length;
                           const skillUiState = resolveAutomationSkillUiState(binding, bindingStatus, skillCatalogMap);
-                          const isSelected = rule.id === selectedRuleId;
+                          const isSelected = ruleIndex === selectedRuleIndex;
                           return (
                             <button
-                              key={`rule-nav-${rule.id || index}`}
+                              key={`rule-nav-${ruleIndex}`}
                               type="button"
                               className={`automation-rule-nav-item ${isSelected ? "is-selected" : ""}`}
-                              onClick={() => setSelectedRuleId(rule.id)}
+                              onClick={() => setSelectedRuleIndex(ruleIndex)}
                             >
                               <span className="automation-rule-nav-item__icon" data-view-icon={rule.icon || sharedViewDefaultIconId}>
                                 {renderRuleIcon((rule.icon || sharedViewDefaultIconId) as SharedViewIconId, 16)}
                               </span>
                               <span className="automation-rule-nav-item__body">
-                                <strong>{rule.label || rule.id || `动作 ${index + 1}`}</strong>
+                                <strong>{rule.label || rule.id || `动作 ${ruleIndex + 1}`}</strong>
                                 <small>{binding.skill.trim() || "未选择技能"}</small>
                               </span>
                               <span className="automation-rule-nav-item__meta">
@@ -6913,7 +6915,7 @@ function AutomationSettingsDialog(props: {
                       </div>
                     </div>
                     {(() => {
-                      const selectedIndex = rules.findIndex((rule) => rule.id === selectedRuleId);
+                      const selectedIndex = selectedRuleIndex ?? -1;
                       const selectedRule = selectedIndex >= 0 ? rules[selectedIndex] : null;
                       if (!selectedRule) {
                         return (
@@ -7371,7 +7373,13 @@ function AutomationSettingsDialog(props: {
           <div className="dialog-actions">
             {saveMessage ? <div className="automation-save-status" role="status">{saveMessage}</div> : null}
             <Dialog.Close className="ghost-button">关闭</Dialog.Close>
-            <button className="primary-button" disabled={controlsDisabled || validationIssues.length > 0} onClick={() => void saveAutomationSettings()} type="button">
+            <button
+              className="primary-button"
+              disabled={controlsDisabled || validationIssues.length > 0}
+              onClick={() => void saveAutomationSettings()}
+              title={validationIssues.length > 0 ? validationIssues.join("\n") : undefined}
+              type="button"
+            >
               {saving ? "正在保存..." : "保存自动化设置"}
             </button>
           </div>

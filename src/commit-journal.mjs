@@ -52,21 +52,25 @@ async function readStage(directory, idempotencyKey) {
 function normalize(value, expectedStage = null) {
   if (!value || typeof value !== "object" || Array.isArray(value)
     || !COMMIT_JOURNAL_STAGES.includes(value.stage) || (expectedStage && value.stage !== expectedStage)
-    || !validId(value.idempotencyKey) || !["document_save", "proposal_commit"].includes(value.saveType)
+    || !validId(value.idempotencyKey) || !["document_save", "proposal_commit", "text_artifact_commit"].includes(value.saveType)
     || !digest(value.canonicalFileKey) || typeof value.baseEtag !== "string" || typeof value.newEtag !== "string"
     || !digest(value.beforeDigest) || !digest(value.afterDigest) || !digest(value.requestDigest)) {
     throw journalError("COMMIT_JOURNAL_INVALID");
   }
   if (value.saveType === "proposal_commit" && (!validId(value.runId) || !validId(value.ownerToken)
     || !Number.isInteger(value.fencingToken) || value.fencingToken < 0 || !validId(value.rowId)
-    || !digest(value.proposalDigest) || !validProposalChange(value.change))) {
+    || !digest(value.proposalDigest) || !validProposalChanges(value.changes))) {
+    throw journalError("COMMIT_JOURNAL_INVALID");
+  }
+  if (value.saveType === "text_artifact_commit" && (!validId(value.runId) || !validId(value.artifactId)
+    || typeof value.artifactPath !== "string" || value.artifactPath.length === 0)) {
     throw journalError("COMMIT_JOURNAL_INVALID");
   }
   return { ...value, createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date().toISOString(), updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date().toISOString() };
 }
 
 function assertSameLogicalSave(existing, requested) {
-  for (const key of ["idempotencyKey", "saveType", "canonicalFileKey", "baseEtag", "newEtag", "beforeDigest", "afterDigest", "requestDigest", "runId", "ownerToken", "fencingToken", "rowId", "proposalDigest"]) {
+  for (const key of ["idempotencyKey", "saveType", "canonicalFileKey", "baseEtag", "newEtag", "beforeDigest", "afterDigest", "requestDigest", "runId", "ownerToken", "fencingToken", "rowId", "proposalDigest", "artifactId", "artifactPath"]) {
     if (!Object.is(existing[key] ?? null, requested[key] ?? null)) throw journalError("COMMIT_JOURNAL_IDEMPOTENCY_CONFLICT");
   }
 }
@@ -74,10 +78,12 @@ function assertSameLogicalSave(existing, requested) {
 function file(directory, id) { if (!validId(id)) throw journalError("COMMIT_JOURNAL_INVALID"); return path.join(directory, `${id}.json`); }
 function validId(value) { return typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value); }
 function digest(value) { return typeof value === "string" && /^[0-9a-f]{64}$/.test(value); }
-function validProposalChange(value) {
-  return value && typeof value === "object" && !Array.isArray(value)
-    && typeof value.field === "string" && value.field.length > 0
-    && typeof value.beforeExists === "boolean" && typeof value.afterExists === "boolean"
-    && Object.hasOwn(value, "before") && Object.hasOwn(value, "after");
+function validProposalChanges(value) {
+  return Array.isArray(value) && value.length > 0 && value.every((change) => (
+    change && typeof change === "object" && !Array.isArray(change)
+    && typeof change.field === "string" && change.field.length > 0
+    && typeof change.beforeExists === "boolean" && typeof change.afterExists === "boolean"
+    && Object.hasOwn(change, "before") && Object.hasOwn(change, "after")
+  ));
 }
 export function journalError(code, cause) { return Object.assign(new Error(code), { code, cause }); }

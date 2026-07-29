@@ -1,6 +1,8 @@
 # Nocturnel 技能预算账本模型
 
-status: accepted
+## Status
+
+accepted
 
 ## context
 
@@ -18,7 +20,10 @@ status: accepted
 
 后续“同步技能开发文档模板草案与瘦身方案”已完成。该轮把 `data-editor` 侧两份技能开发文档模板相关方案同步到同一预算账本边界：模板文档只维护结构和引用，不维护完整 BU 分值表；完整预算模型统一回源 `C:\Code\Nocturnel\项目文档\标准&指南\技能预算指南（AI 专用）.md`。
 
-后续“落地技能开发文档实际生成模板”已完成。该轮确认持久化 `dev_doc` 的实际生成控制点固定在用户级 `design-skill`：`Write or update a skill development document` 路由负责写入 `dev_doc`，而 `references/workflows-and-checklists.md` 中的 `Skill Development Document Template` 负责 persisted 文档骨架；交互式 `Formal Output Skeleton` 只用于对话输出，不作为持久化正文结构。
+后续玩家技能职责拆分已经完成。玩家技能持久化 `dev_doc` 的当前设计入口已收口到 Nocturnel
+repo-local `data-design-skill-player`。正式评审与评分 ownership 由
+[`nocturnel-player-skill-review-authority-and-verification-gate.md`](./nocturnel-player-skill-review-authority-and-verification-gate.md)
+单独拥有；用户级 `design-skill` 建立的模板边界保留为历史来源，不再是玩家技能的唯一当前入口。
 
 ## decision
 
@@ -86,11 +91,14 @@ Nocturnel 技能预算的长期模型采用独立“预算账本层”，而不�
 
 `skill_axe_throw.md` 继续作为当前首个正式 BU 预算账本样例。完整评分记录继续保留；预算账本负责解释 AP 与数值预算依据，完整评分记录负责保留评分审计过程。
 
-### 9. 持久化 `dev_doc` 的生成入口固定为用户级 `design-skill`
+### 9. 玩家技能 `dev_doc` 的设计入口固定为 repo-local `data-design-skill-player`
 
-Nocturnel 技能开发文档的实际持久化生成，不再由计划正文、临时草案或交互式回答骨架决定，而是固定由用户级 `design-skill` 的 `Write or update a skill development document` 路由控制。
+Nocturnel 玩家技能开发文档的当前设计入口固定为 repo-local
+`.agents/skills/data-design-skill-player`，不再由计划正文、临时草案或交互式回答骨架决定。
 
-该路由只负责把技能稿写入 `dev_doc`，并强制使用 `Skill Development Document Template` 这套 persisted 骨架；`Formal Output Skeleton` 继续只承担交互式分析和答复，不进入持久化正文主干。
+该 Skill 负责设计稿和 persisted `dev_doc`，但不得生成非空正式 `rating`。正式评分与完成门禁由
+独立评审决定负责；本 ADR 只拥有设计入口与预算账本边界，不重复定义评分状态机。预算账本继续
+回源独立预算指南。
 
 对实际生成的技能开发文档来说，职责边界保持不变：
 
@@ -115,7 +123,9 @@ Nocturnel 技能开发文档的实际持久化生成，不再由计划正文、�
 - 三份既有指南的职责边界变窄：数值手册管数值锚点，设计指南管设计产出，品质标准管评分流程，预算指南管 BU 账本。
 - 后续技能开发文档迁移可优先参考 `skill_axe_throw.md` 的章节顺序；若技能调整导致伤害、控制、范围、目标数或支付项变化，应重新核对 BU 账本，而不是只修改评分文字。
 - 技能开发文档模板草案和模板瘦身方案不应成为第二份 BU 分值表维护点；它们只规定文档结构、引用关系和评分记录保留规则。
-- `design-skill` 的 `Write or update a skill development document` 路由成为后续所有持久化 `dev_doc` 的唯一实际入口；计划正文和交互式答复只能提供上下文，不能替代持久化模板控制。
+- repo-local `data-design-skill-player` 成为 Nocturnel 玩家技能持久化 `dev_doc` 的当前设计入口；
+  计划正文和交互式答复只能提供上下文，不能替代持久化模板控制。
+- 设计入口不拥有正式评分；具体评分与实现完成门禁规则回源独立玩家技能评审 ADR。
 - persisted 技能文档前半段优先承载高价值设计决策与账本结果，后半段再保留完整评分记录，从而把交互式分析噪声与正式正文分离。
 - 同池校准表成为调整预算指南前的证据层；单个样本或未复核样本不足以直接修改 BU 分值表。
 - `skill_weapon_bow_shot` 可以支撑远程基础攻击和远程安全支付的局部锚点判断，但不能自动替代完整技能评分。
@@ -133,6 +143,9 @@ Nocturnel 技能开发文档的实际持久化生成，不再由计划正文、�
 - `C:\Code\data-editor\docs\superpowers\specs\2026-07-09-技能开发文档模板瘦身优化方案.md`
 - `C:\Users\lans\.codex\skills\design-skill\SKILL.md`
 - `C:\Users\lans\.codex\skills\design-skill\references\workflows-and-checklists.md`
+- `C:\Code\Nocturnel\.agents\skills\data-design-skill-player\SKILL.md`
+- `C:\Code\Nocturnel\.agents\skills\review-player-skill\SKILL.md`
+- `C:\Code\Nocturnel\.agents\skills\review-player-skill\references\review-contract.md`
 - `C:\Code\Nocturnel\项目文档\标准&指南\技能预算指南（AI 专用）.md`
 - `C:\Code\Nocturnel\项目文档\数值\战斗数值平衡手册 2.0（AI 专用）.md`
 - `C:\Code\Nocturnel\项目文档\标准&指南\技能设计指南（AI 专用）.md`
@@ -143,3 +156,14 @@ Nocturnel 技能开发文档的实际持久化生成，不再由计划正文、�
 ## search terms
 
 `Nocturnel`、`技能预算`、`预算账本`、`BU`、`1 AP = 100 BU`、`235 BU`、`技能预算指南`、`技能开发文档模板`、`模板瘦身`、`完整评分记录`、`skill_axe_throw`、`同池校准`、`skill_weapon_bow_shot`、`skill_throw_knife`、`skill_armor_break`、`skill_thrust`
+
+<!-- state: history -->
+## Evolution history
+
+<!-- dated: 2026-07-29 -->
+### 用户级 `design-skill` 的唯一入口决定被玩家技能仓库本地职责取代
+
+早期决定由用户级 `design-skill` 的
+`Write or update a skill development document` 路由统一生成 persisted `dev_doc`。该决定建立的
+预算账本与评分记录章节边界继续有效，但对 Nocturnel 玩家技能而言，当前设计入口已经迁移到
+repo-local `data-design-skill-player`；正式评分的独立 ownership 由玩家技能评审 ADR 记录。

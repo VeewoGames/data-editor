@@ -24,3 +24,39 @@ test("different documents proceed independently and a failure does not poison it
   await Promise.all([coordinator.withCommit({ projectContext: {}, sourcePath: "a" }, async () => {}), coordinator.withCommit({ projectContext: {}, sourcePath: "b" }, async () => {})]);
   assert.equal(coordinator.activeCount, 0);
 });
+
+test("multi-document commits acquire unique identities in deterministic order", async () => {
+  const coordinator = createDocumentCommitCoordinator();
+  const calls = [];
+  const a = { canonicalFileKey: "a".repeat(64), name: "a" };
+  const b = { canonicalFileKey: "b".repeat(64), name: "b" };
+  const result = await coordinator.withIdentities([b, a, b], async (identities) => {
+    calls.push(...identities.map((identity) => identity.name));
+    return "ok";
+  });
+  assert.equal(result, "ok");
+  assert.deepEqual(calls, ["a", "b"]);
+  assert.equal(coordinator.activeCount, 0);
+});
+
+test("inverse multi-document requests do not deadlock", async () => {
+  const coordinator = createDocumentCommitCoordinator();
+  const a = { canonicalFileKey: "a".repeat(64) };
+  const b = { canonicalFileKey: "b".repeat(64) };
+  const calls = [];
+  let releaseFirst;
+  const first = coordinator.withIdentities([a, b], async () => {
+    calls.push("first:start");
+    await new Promise((resolve) => { releaseFirst = resolve; });
+    calls.push("first:end");
+  });
+  const second = coordinator.withIdentities([b, a], async () => {
+    calls.push("second");
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(calls, ["first:start"]);
+  releaseFirst();
+  await Promise.all([first, second]);
+  assert.deepEqual(calls, ["first:start", "first:end", "second"]);
+  assert.equal(coordinator.activeCount, 0);
+});

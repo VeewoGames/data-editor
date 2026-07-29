@@ -49,7 +49,7 @@ export type EntryActionRule = {
 export type EntryActionTarget = {
   file: string;
   collection: string;
-  writableFields?: string[];
+  textArtifactId?: string;
 };
 export type UserAutomationProfile = {
   rules: EntryActionRule[];
@@ -156,7 +156,6 @@ export type EntryActionRunResult = {
   phase: "queued" | "running" | "proposal_ready" | "committing" | "terminal";
   outcome?: "completed_with_writeback" | "completed_without_changes" | "conflicted" | "rejected" | "failed" | "timed_out" | "failed_needs_recovery" | null;
   /** @deprecated The legacy protocol remains readable only for historical artifacts. */
-  status?: "started" | "rejected" | "failed" | "completed_with_writeback" | "completed_without_observed_writeback";
   finishedAt?: string;
   outputPath?: string | null;
   reason?: string | null;
@@ -843,6 +842,7 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
     return dedupeFetchedEntryActionTargets(value.map((item) => ({
       file: typeof (item as { file?: unknown } | null)?.file === "string" ? (item as { file: string }).file.trim() : "",
       collection: typeof (item as { collection?: unknown } | null)?.collection === "string" ? (item as { collection: string }).collection.trim() : "",
+      ...normalizeFetchedTextArtifactId((item as { textArtifactId?: unknown } | null)?.textArtifactId),
     })));
   }
   if (value && typeof value === "object") {
@@ -852,6 +852,10 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
     return dedupeFetchedEntryActionTargets(files.flatMap((file) => collections.map((collection) => ({ file, collection }))));
   }
   return [];
+}
+
+function normalizeFetchedTextArtifactId(value: unknown): Pick<EntryActionTarget, "textArtifactId"> {
+  return typeof value === "string" && value.trim() ? { textArtifactId: value.trim() } : {};
 }
 
 function normalizeFetchedStringArray(value: unknown) {

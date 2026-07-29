@@ -8,27 +8,69 @@ import { serializeJson } from "./json-codec.mjs";
 import { parseCsv, serializeCsv } from "./csv-codec.mjs";
 import { executeJournaledDocumentCommit } from "./document-commit-executor.mjs";
 
-export async function prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot, policy, profile, documentText, format = "json", documentId = "document", probeLease }) {
+export async function prepareEntryActionProposalCommit({
+  proposal,
+  lease,
+  authoritySnapshot,
+  policy,
+  profile,
+  documentText,
+  textArtifactCurrentText = undefined,
+  format = "json",
+  documentId = "document",
+  probeLease,
+}) {
   const value = validateEntryActionProposal(proposal);
   if (!lease || value.canonicalFileKey !== lease.canonicalFileKey || value.runId !== lease.runId || value.fencingToken !== lease.fencingToken) fail("ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE");
   const current = typeof probeLease === "function" ? await probeLease(lease) : null;
   if (!current || current.status !== "owned" || current.lease?.ownerToken !== lease.ownerToken || current.lease?.ownerHash !== lease.ownerHash || current.lease?.fencingToken !== lease.fencingToken) fail("ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE");
   if (etag(documentText) !== value.baseDocumentEtag) fail("ENTRY_ACTION_PROPOSAL_DOCUMENT_STALE");
   if (authoritySnapshot.authorityDigest !== value.authorityDigest || authoritySnapshot.automationProfileEtag !== value.automationProfileEtag) fail("ENTRY_ACTION_AUTHORITY_STALE");
-  const rule = assertAuthorityCurrent({ snapshot: authoritySnapshot, policy, profile, field: value.change.field, value: value.change.after });
   const source = format === "csv" ? parseCsv(documentText) : JSON.parse(documentText);
   const model = buildDocumentModel(source, format, value.sourcePath);
   const store = buildDocumentStore({ documentId, model });
   const locator = getSourceLocatorByRowId(store, value.collectionPath, value.rowId);
   const row = getRows(model, value.collectionPath)[locator.sourceIndex];
-  if (!row || !Object.hasOwn(row, value.change.field) || !Object.is(row[value.change.field], value.change.before)) fail("ENTRY_ACTION_PROPOSAL_BEFORE_MISMATCH");
-  if (rule.uniqueScope === "collection" && getRows(model, value.collectionPath).some((candidate, index) => index !== locator.sourceIndex && Object.is(candidate?.[value.change.field], value.change.after))) fail("ENTRY_ACTION_PROPOSAL_UNIQUE_CONFLICT");
-  setAuthorizedCellValueByRowId({ model, store, policy, file: value.sourcePath, collectionPath: value.collectionPath, rowId: value.rowId, fieldName: value.change.field, value: value.change.after });
-  return { proposal: value, model, root: model.root, documentEtag: etag(format === "csv" ? serializeCsv(model.root) : serializeJson(model.root)), format };
+  if (!row) fail("ENTRY_ACTION_PROPOSAL_BEFORE_MISMATCH");
+  const authority = assertAuthorityCurrent({
+    snapshot: authoritySnapshot,
+    policy,
+    profile,
+    changes: value.changes,
+    textArtifact: value.textArtifact,
+    row,
+  });
+  for (const [index, change] of value.changes.entries()) {
+    if (!Object.hasOwn(row, change.field) || !deepEqual(row[change.field], change.before)) fail("ENTRY_ACTION_PROPOSAL_BEFORE_MISMATCH");
+    const rule = authority.fieldRules[index];
+    if (rule.uniqueScope === "collection" && getRows(model, value.collectionPath).some((candidate, candidateIndex) => candidateIndex !== locator.sourceIndex && deepEqual(candidate?.[change.field], change.after))) fail("ENTRY_ACTION_PROPOSAL_UNIQUE_CONFLICT");
+  }
+  for (const change of value.changes) {
+    setAuthorizedCellValueByRowId({
+      model,
+      store,
+      policy,
+      file: value.sourcePath,
+      collectionPath: value.collectionPath,
+      rowId: value.rowId,
+      fieldName: change.field,
+      value: change.after,
+    });
+  }
+  const textArtifact = prepareTextArtifact(value.textArtifact, textArtifactCurrentText);
+  return {
+    proposal: value,
+    model,
+    root: model.root,
+    documentEtag: etag(format === "csv" ? serializeCsv(model.root) : serializeJson(model.root)),
+    format,
+    textArtifact,
+  };
 }
 
 /** Executes the already-authorized JSON proposal through the same durable journal as document saves. */
 export async function commitEntryActionProposal({ journal, prepared, lease, documentText, writeText, readText, publishResult }) {
+  if (prepared.textArtifact !== null) fail("ENTRY_ACTION_GROUP_COMMIT_REQUIRED");
   const afterText = prepared.format === "csv" ? serializeCsv(prepared.root) : serializeJson(prepared.root);
   const entry = createProposalCommitJournalEntry({ proposal: prepared.proposal, lease, documentText, afterText });
   await executeJournaledDocumentCommit({
@@ -61,10 +103,23 @@ export function createProposalCommitJournalEntry({ proposal, lease, documentText
     fencingToken: value.fencingToken,
     rowId: value.rowId,
     proposalDigest,
-    change: structuredClone(value.change),
+    changes: structuredClone(value.changes),
   };
 }
 
 function etag(text) { return `"${crypto.createHash("sha256").update(text, "utf8").digest("hex")}"`; }
 function digest(text) { return crypto.createHash("sha256").update(text, "utf8").digest("hex"); }
+function deepEqual(left, right) { return stableJson(left) === stableJson(right); }
+function stableJson(value) { if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`; if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`; return JSON.stringify(value); }
+function prepareTextArtifact(artifact, currentText) {
+  if (artifact === null) return null;
+  if (currentText !== null && typeof currentText !== "string") fail("ENTRY_ACTION_TEXT_ARTIFACT_STATE_REQUIRED");
+  const exists = typeof currentText === "string";
+  if (artifact.beforeExists !== exists) fail("ENTRY_ACTION_TEXT_ARTIFACT_BEFORE_MISMATCH");
+  if (exists && digest(currentText) !== artifact.beforeDigest) fail("ENTRY_ACTION_TEXT_ARTIFACT_BEFORE_MISMATCH");
+  return {
+    ...structuredClone(artifact),
+    beforeContent: currentText,
+  };
+}
 function fail(code) { throw Object.assign(new Error(code), { code }); }

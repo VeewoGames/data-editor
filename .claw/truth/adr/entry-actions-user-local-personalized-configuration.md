@@ -1,6 +1,6 @@
 # entryActions 第二版改为双层个人化配置
 
-status: accepted
+<!-- document-state: accepted -->
 
 ## context
 
@@ -178,6 +178,31 @@ status: accepted
 
 这条决策的核心边界是：`Automation Settings` 只是 shared icon runtime 的消费面，不是第二套图标体系的所有者。任何后续扩展都必须继续沿用 shared view 的图标 registry、加载与持久化合同，不能因为自动化场景不同就重新分叉一套收藏 / 最近 / pack 语义。
 
+### 12. 编辑态规则选择使用原始数组索引，不复用业务 `Rule Id`
+
+`Rule Id` 同时具有可编辑、保存前才严格校验、允许草稿期暂时为空或重复的性质，不能承担
+`Automation Settings` 当前规则的 UI 身份。编辑态选择统一由原始 `rules` 数组索引拥有，
+搜索结果只携带该索引，新增和删除也必须显式归一化索引。
+
+这项决定只属于设置页草稿状态，不把索引写入 `automation profile`，也不改变 bindings 继续按
+合法 `ruleId` 关联的持久化合同。其目的不是把数组顺序升级成业务主键，而是避免用尚未合法化的
+业务字段驱动编辑器自身的可达性。
+
+bindings 继续按 `ruleId` 持久化，也意味着编辑态不能只修改 profile：`Rule Id` 改名必须同步
+迁移 binding 与状态键，删除必须同步清理，打开、加载与保存前必须剔除 profile 已不引用的孤立
+binding。保存判断使用 profile/bindings 的同步 ref 快照，避免 React 异步 state 让界面摘要、
+禁用条件与实际提交读取不同版本。该事务允许 id 在草稿期暂时为空，但不降低保存前合法性校验，
+也不把 profile/bindings 双保存升级为原子事务。
+
+## alternatives
+
+- 继续用 `rule.id` 作为选择身份：拒绝，因为空值、重复值和字段改名都会让选择失效或指向错误规则。
+- 为规则草稿新增并持久化独立 UI ID：拒绝，当前规则只在单个设置会话中需要临时稳定身份，
+  引入持久字段会扩大 schema 和迁移成本。
+- 使用过滤结果下标：拒绝，因为搜索集合变化后下标不再对应原始规则，删除和详情定位会发生错位。
+- 只修改 profile 中的 `Rule Id`、等待保存时再猜 binding 对应关系：拒绝，因为旧键会成为界面
+  不可见但仍参与全局校验的孤立 binding，清空再输入还会丢失已选择的 Skill。
+
 ## consequences
 
 - 后续实现重心将从“项目共享配置编辑”转向“用户共享规则 + 设备本地绑定”编辑。
@@ -185,18 +210,25 @@ status: accepted
 - 用户跨电脑时，动作规则仍可保留；但新设备需要单独补齐执行绑定。
 - 第一阶段的正式持久化边界已经固定为“每项目唯一 `automation profile` + project-local `.data-editor/local/automation-bindings.json`”，后续阶段在此基础上继续接管运行时真值。
 - 当前第一版的 `project-registry -> server -> client` 链路只作为一次性迁移来源，不保留长期兼容双读。
-- 在切换 `run-entry-action` 真值和清理旧入口之前，旧链路仍承担运行时职责；新链路先承担存储和读写契约职责。
-- 第二版落地后，应清理 `Project Settings` 中旧入口，并移除项目级 `entryActions` 旧真值，避免后续长期维护两套配置语义。
+- 第二版运行时已切到 profile/bindings 与 proposal-only service；项目级 `entryActions` 不再是执行真值。
+- action 是否可执行还必须通过项目 eligibility、policy、authority 与 fencing，不能从 profile/binding
+  就绪直接推断。
 - 执行反馈与审计继续保持最小面，避免在架构归属切换阶段把历史、轮询和回写一并固化成长期负担。
 - 设置页的最小体验收口不是一次性 UI 美化，而是持续要求“保存前可发现 + 服务端可拒绝 + 错误可回显”，避免非法配置混入正式真值。
 - `automation profile` 与 `automation bindings` 的读写分层会长期保留：`load` 允许宽松归一化，`save` 必须严格校验。
 - 自动化规则的目标范围语义已经固定为 file-scoped collection pair；`$` 只在具体文件上下文里解释，不再单独作为全局目标名使用。
 - `Automation Settings` 的图标入口将长期复用 shared view 图标体系，避免为自动化规则维护第二套收藏、最近与 pack 状态。
+- 设置页可以继续展示和编辑尚未通过 `Rule Id`、Skill 或目标校验的规则；业务合法性仍由本地 issues
+  与服务端保存校验负责，编辑可达性不再依赖这些字段已经合法。
+- profile 规则与本机 binding 在草稿期必须同步改键、删除和清理；保存链以同步 ref 快照为准，
+  不允许孤立 binding 继续禁用一个表面上合法的规则草稿。
 
 ## related code
 
 - `src/App.tsx`
 - `src/automation-profile.mjs`
+- `src/automation-rule-selection.mjs`
+- `src/automation-rule-draft.mjs`
 - `src/automation-bindings.mjs`
 - `src/detail/DetailPanel.tsx`
 - `src/entry-actions.mjs`
@@ -206,7 +238,11 @@ status: accepted
 - `src/components/ViewTabs.tsx`
 - `src/components/icons.ts`
 - `server.mjs`
-- `scripts/run-entry-action.mjs`
+- `src/entry-action-route.mjs`
+- `src/entry-action-service.mjs`
+- `src/entry-action-eligibility.mjs`
+- `tests/automation-rule-selection.test.mjs`
+- `tests/automation-rule-draft.test.mjs`
 - `docs/plans/2026-07-01-entryActions第二版具体执行方案.md`
 - `docs/plans/2026-07-01-entryActions第二版体验方案.md`
 - `docs/plans/2026-07-01-详情面板条目级Codex自动化方案.md`
@@ -214,4 +250,14 @@ status: accepted
 
 ## search terms
 
-`entryActions`、`双层个人化配置`、`automation profile`、`UserViewProfile`、`selectedViewProfile`、`automation-bindings.json`、`DATA_EDITOR_PROFILE_HOME`、`共享动作规则`、`设备本地执行绑定`、`Project Settings`、`binding`、`payload.includeRow`、`payload.includeNeighbors`、`started`、`rejected`、`error`、`handoff`、`run-entry-action`
+`entryActions`、`双层个人化配置`、`automation profile`、`UserViewProfile`、`selectedViewProfile`、`selectedRuleIndex`、`automation-rule-selection`、`automation-rule-draft`、`Rule Id`、`remapAutomationRuleBindingKey`、`pruneOrphanAutomationRuleBindings`、`automation-bindings.json`、`DATA_EDITOR_PROFILE_HOME`、`共享动作规则`、`设备本地执行绑定`、`Project Settings`、`binding`、`payload.includeRow`、`payload.includeNeighbors`、`proposal-only`、`eligibility`
+
+<!-- state: history -->
+## Evolution history
+
+<!-- dated: 2026-07-29 -->
+### 双层配置接入 proposal-only 执行链
+
+profile 与 machine-local bindings 从存储/可见性真值扩展为 proposal-only service 的输入；执行资格
+另由项目/action eligibility 和安全 authority 决定。旧 `run-entry-action` direct-write 脚本退出
+生产路径，双层个人化配置决定保持不变。

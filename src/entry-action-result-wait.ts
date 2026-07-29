@@ -15,6 +15,7 @@ export type WaitForEntryActionResultOptions = {
   foregroundPollLimit?: number;
   loadResult: (runId: string, projectId: string) => Promise<EntryActionRunResult>;
   onEnterBackgroundWait?: () => void | Promise<void>;
+  onPendingResult?: (result: EntryActionRunResult) => void | Promise<void>;
   projectId: string;
   runId: string;
   shouldContinue?: () => boolean;
@@ -32,6 +33,7 @@ export async function waitForEntryActionResult(options: WaitForEntryActionResult
     foregroundPollLimit = 60,
     loadResult,
     onEnterBackgroundWait,
+    onPendingResult,
     projectId,
     runId,
     shouldContinue = () => true,
@@ -43,6 +45,7 @@ export async function waitForEntryActionResult(options: WaitForEntryActionResult
     if (isTerminalEntryActionState(result)) {
       return { kind: "completed", delayed: false, result };
     }
+    await onPendingResult?.(result);
     if (attempt + 1 < foregroundPollLimit) {
       await delay(foregroundIntervalMs, shouldContinue);
     }
@@ -56,6 +59,7 @@ export async function waitForEntryActionResult(options: WaitForEntryActionResult
     if (isTerminalEntryActionState(result)) {
       return { kind: "completed", delayed: true, result };
     }
+    await onPendingResult?.(result);
     if (attempt + 1 < backgroundPollLimit) {
       await delay(backgroundIntervalMs, shouldContinue);
     }

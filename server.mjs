@@ -2,7 +2,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import path from "node:path";
 import { readFile, readdir } from "node:fs/promises";
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { parseCsv, serializeCsv } from "./src/csv-codec.mjs";
@@ -10,29 +10,21 @@ import { parseJson, serializeJson } from "./src/json-codec.mjs";
 import { buildDocumentModel } from "./src/document-model.mjs";
 import { buildDocumentIndex, readResolvedDocument } from "./src/document-service.mjs";
 import {
-  buildEntryActionHandoff,
-  createEntryActionRunId,
   entryActionHandoffPath,
   describeEntryActionArtifacts,
   entryActionOutputPath,
   findActiveEntryActionRuns,
   findLatestEntryActionRun,
-  findAutomationEntryAction,
   normalizeEntryActionPath,
   normalizeEntryActionRowId,
   normalizeEntryActionSourceRowIndex,
   readEntryActionResult,
   readEntryActionStarted,
-  resolveAutomationEntryActionBinding,
-  resolveEntryActionRow,
-  validateEntryActionTarget,
-  writeEntryActionHandoff,
 } from "./src/entry-actions.mjs";
 import { loadAutomationBindings, saveAutomationBindings } from "./src/automation-bindings.mjs";
 import { loadAutomationSkillCatalog } from "./src/automation-skill-catalog.mjs";
-import { loadAutomationProfile, saveAutomationProfile } from "./src/automation-profile.mjs";
-import { resolveAutomationExecutionConfig } from "./src/automation-runtime.mjs";
 import { resolveCodexBindingStatus } from "./src/codex-runtime.mjs";
+import { loadAutomationProfile, saveAutomationProfile } from "./src/automation-profile.mjs";
 import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
@@ -43,6 +35,7 @@ import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "
 import { createConnectionShutdown } from "./src/server-shutdown.mjs";
 import { createJobSupervisor } from "./src/job-supervisor.mjs";
 import { createDocumentCommitCoordinator } from "./src/document-commit-coordinator.mjs";
+import { createEntryActionRunRoute } from "./src/entry-action-route.mjs";
 import { createCommitJournal } from "./src/commit-journal.mjs";
 import { executeJournaledDocumentCommit } from "./src/document-commit-executor.mjs";
 import { classifyCommitJournalRecovery } from "./src/commit-journal-recovery.mjs";
@@ -68,22 +61,26 @@ let initialProjectPromise = null;
 const connectionShutdown = createConnectionShutdown();
 const jobSupervisor = createJobSupervisor({ toolRoot });
 const documentCommitCoordinator = createDocumentCommitCoordinator();
+const activeEntryActionCompletions = new Map();
+const runEntryAction = createEntryActionRunRoute({
+  loadRegistry: async () => {
+    await ensureInitialProject();
+    return loadProjectRegistry(registryOptions);
+  },
+  toolRoot,
+  jobSupervisor,
+  documentCommitCoordinator,
+  onCompletion(started) {
+    activeEntryActionCompletions.set(started.runId, started.completion);
+    void started.completion.finally(() => activeEntryActionCompletions.delete(started.runId));
+  },
+});
 
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname === "/api/entry-actions/run" && req.method === "POST") {
-      return sendJson(
-        res,
-        {
-          error: "条目自动化写回协议正在安全升级，当前禁止启动新任务。",
-          code: "ENTRY_ACTION_PROTOCOL_DISABLED",
-          field: "entryAction",
-          details: { protocolMode: "legacy-disabled" },
-        },
-        503,
-        { "cache-control": "no-store" },
-      );
+      return await handleRunEntryAction(req, res);
     }
     await ensureInitialProject();
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
@@ -120,7 +117,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/shutdown" && req.method === "POST") return handleShutdown(res);
     return await serveStatic(url.pathname, res);
   } catch (error) {
-    sendJson(res, { error: error.message }, 500);
+    sendJson(res, {
+      error: error.message,
+      ...(error?.code ? { code: error.code } : {}),
+      ...(error?.field ? { field: error.field } : {}),
+      ...(error?.details ? { details: error.details } : {}),
+    }, Number.isInteger(error?.status) ? error.status : 500, { "cache-control": "no-store" });
   }
 });
 connectionShutdown.attach(server);
@@ -163,6 +165,15 @@ async function handleSave(req, res) {
     const text = ext === ".csv" ? serializeCsv(body.root) : serializeJson(body.root);
     const requestDigest = sha256(JSON.stringify({ path: body.path, documentEtag: body.documentEtag, text }));
     await documentCommitCoordinator.withCommit({ projectContext, sourcePath: body.path }, async (identity) => {
+      const active = await findActiveEntryActionRuns(projectContext, body.path);
+      if (active.runs.length > 0) {
+        throw new DocumentSaveError(
+          "DOCUMENT_SAVE_ENTRY_ACTION_ACTIVE",
+          "当前文件存在正在执行的条目自动化，已暂缓普通保存。",
+          "path",
+          { status: 409, details: { runs: active.runs } },
+        );
+      }
       const journal = createCommitJournal({ directory: commitJournalDirectory(projectContext) });
       const existing = await readJournalIfPresent(journal, body.idempotencyKey);
       if (existing) {
@@ -559,86 +570,7 @@ async function handleActivateProject(req, res) {
 
 async function handleRunEntryAction(req, res) {
   const body = await readJsonBody(req);
-  const projectId = String(body.projectId ?? "").trim();
-  if (!projectId) throw new Error("Missing projectId");
-
-  const registry = await loadProjectRegistry(registryOptions);
-  if (registry.activeProjectId !== projectId) {
-    throw new Error(`Entry actions are limited to the active project: ${projectId}`);
-  }
-  const project = registry.projects.find((candidate) => candidate.id === projectId);
-  if (!project) throw new Error(`Unknown project: ${projectId}`);
-
-  const projectContext = createProjectContext({
-    projectRoot: project.root,
-    adapterId: project.adapter,
-    dataSources: project.dataSources,
-    filePolicy: project.filePolicy,
-  });
-  const profile = await loadAutomationProfile(projectContext);
-  const bindings = await loadAutomationBindings(projectContext);
-  const action = findAutomationEntryAction(profile, body.actionId);
-  const binding = resolveAutomationEntryActionBinding(bindings, action.id);
-  const bindingStatus = await resolveCodexBindingStatus(binding, { projectRoot: projectContext.projectRoot });
-  if (bindingStatus.status !== "ready") {
-    sendJson(res, { error: bindingStatus.message ?? "当前设备绑定不可用。" }, 400);
-    return;
-  }
-  const sourcePath = normalizeEntryActionPath(body.sourcePath, "sourcePath");
-  const collectionPath = normalizeEntryActionPath(body.collectionPath, "collectionPath");
-  const rowId = normalizeEntryActionRowId(body.rowId);
-  const sourceRowIndex = normalizeEntryActionSourceRowIndex(body.sourceRowIndex);
-  if (rowId == null && sourceRowIndex == null) {
-    throw new Error("Entry action requires rowId or sourceRowIndex");
-  }
-  if (sourceRowIndex == null) {
-    throw new Error("Entry action MVP requires sourceRowIndex");
-  }
-
-  validateEntryActionTarget(action, sourcePath, collectionPath);
-  const text = await readTextFile(projectContext, sourcePath);
-  const ext = path.extname(sourcePath).toLowerCase();
-  const parsed = ext === ".csv" ? { data: parseCsv(text), format: "csv" } : parseJson(text);
-  const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
-  const { row, previousRow, nextRow, rowCount, sourceRowIndex: resolvedSourceRowIndex } = resolveEntryActionRow(model, collectionPath, sourceRowIndex, rowId);
-  const executionConfig = resolveAutomationExecutionConfig({
-    rule: action,
-    binding,
-    defaults: bindings.defaults,
-  });
-  const runId = createEntryActionRunId();
-  const handoff = buildEntryActionHandoff({
-    runId,
-    project,
-    action,
-    binding,
-    runtime: executionConfig.runtime,
-    sourcePath,
-    collectionPath,
-    rowId,
-    sourceRowIndex: resolvedSourceRowIndex,
-    row,
-    previousRow,
-    nextRow,
-    rowCount,
-  });
-  const handoffPath = await writeEntryActionHandoff(projectContext, runId, handoff);
-
-  spawn(process.execPath, [path.resolve(toolRoot, "scripts", "run-entry-action.mjs"), "--handoff", handoffPath], {
-    cwd: toolRoot,
-    shell: false,
-    windowsHide: true,
-    // On Windows the fire-and-forget child can die before startup if it stays attached.
-    detached: true,
-    stdio: "ignore",
-  }).unref();
-
-  sendJson(res, {
-    ok: true,
-    status: "started",
-    runId,
-    handoffPath: entryActionHandoffPath(projectContext, runId),
-  });
+  sendJson(res, await runEntryAction(body));
 }
 
 async function handleLoadEntryActionResult(url, res) {
@@ -944,6 +876,7 @@ async function shutdownServer(exitCode) {
   shuttingDown = true;
   process.exitCode = exitCode;
   await jobSupervisor.shutdown().catch((error) => console.error(error));
+  await Promise.allSettled([...activeEntryActionCompletions.values()]);
   await clearServiceStateIfOwned(runtimeTargetFromArgs(), process.pid).catch(() => {});
   await connectionShutdown.close(server);
   process.exit(exitCode);

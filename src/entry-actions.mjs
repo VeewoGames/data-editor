@@ -1,11 +1,12 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir } from "node:fs/promises";
 import { getRows } from "./document-model.mjs";
 import { readPersistentEntryId } from "./model/persistent-entry-id.mjs";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
 import { isTerminalEntryActionState, normalizeEntryActionStateRecord } from "./entry-action-state.mjs";
 import { canonicalFileIdentity } from "./canonical-file-identity.mjs";
+import { atomicWrite, exclusiveCreateLock } from "./atomic-file.mjs";
 
 export function normalizeEntryActionPath(value, label) {
   const normalized = String(value ?? "").trim().replaceAll("\\", "/");
@@ -130,8 +131,50 @@ async function describeArtifact(targetPath) {
 export async function writeEntryActionHandoff(projectContextOrRoot, runId, payload) {
   const targetPath = entryActionHandoffPath(projectContextOrRoot, runId);
   await mkdir(path.dirname(targetPath), { recursive: true });
-  await writeFile(targetPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await atomicWrite(targetPath, `${JSON.stringify(payload, null, 2)}\n`);
   return targetPath;
+}
+
+export async function writeEntryActionStarted(projectContextOrRoot, runId, payload) {
+  const targetPath = entryActionStartedPath(projectContextOrRoot, runId);
+  await mkdir(path.dirname(targetPath), { recursive: true });
+  await exclusiveCreateLock(targetPath, `${JSON.stringify(normalizeEntryActionStateRecord(payload), null, 2)}\n`);
+  return targetPath;
+}
+
+export async function advanceEntryActionPhase(projectContextOrRoot, runId, phase, details = {}) {
+  const targetPath = entryActionStartedPath(projectContextOrRoot, runId);
+  const current = await readEntryActionStarted(projectContextOrRoot, runId);
+  if (activePhaseRank(phase) < activePhaseRank(current.phase)) {
+    throw Object.assign(new Error("ENTRY_ACTION_PHASE_REGRESSION"), { code: "ENTRY_ACTION_PHASE_REGRESSION" });
+  }
+  const normalized = normalizeEntryActionStateRecord({
+    ...current,
+    ...details,
+    runId,
+    phase,
+    outcome: null,
+    updatedAt: new Date().toISOString(),
+  });
+  await atomicWrite(targetPath, `${JSON.stringify(normalized, null, 2)}\n`);
+  return normalized;
+}
+
+export async function publishEntryActionResultIdempotently(projectContextOrRoot, runId, payload) {
+  const targetPath = entryActionResultPath(projectContextOrRoot, runId);
+  const normalized = normalizeEntryActionStateRecord(payload);
+  await mkdir(path.dirname(targetPath), { recursive: true });
+  try {
+    await exclusiveCreateLock(targetPath, `${JSON.stringify(normalized, null, 2)}\n`);
+    return { ...normalized, replayed: false };
+  } catch (cause) {
+    if (cause?.code !== "EEXIST") throw cause;
+  }
+  const existing = normalizeEntryActionStateRecord(JSON.parse(await readFile(targetPath, "utf8")));
+  if (stableJson(existing) !== stableJson(normalized)) {
+    throw Object.assign(new Error("ENTRY_ACTION_RESULT_IDEMPOTENCY_CONFLICT"), { code: "ENTRY_ACTION_RESULT_IDEMPOTENCY_CONFLICT" });
+  }
+  return { ...existing, replayed: true };
 }
 
 export async function readEntryActionStarted(projectContextOrRoot, runId) {
@@ -261,4 +304,16 @@ export function buildEntryActionHandoff({
       nextRow: action.payload.includeNeighbors && nextRow != null ? structuredClone(nextRow) : null,
     },
   };
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+
+function activePhaseRank(phase) {
+  const rank = ["queued", "running", "proposal_ready", "committing"].indexOf(phase);
+  if (rank < 0) throw Object.assign(new Error("ENTRY_ACTION_STATE_INVALID"), { code: "ENTRY_ACTION_STATE_INVALID" });
+  return rank;
 }

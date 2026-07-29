@@ -1,14 +1,14 @@
 # entryActions 第二版方向收敛：放弃项目共享，转为双层个人化配置
 
-status: accepted
+<!-- state: current -->
 
 ## context
 
 这条 truth 只沉淀 `entryActions` 第二版的长期产品与架构判断。
 
-当前代码里已经存在第一版条目级自动化闭环：项目通过 `Project Settings` 维护 `entryActions`，详情面板按当前项目配置与目标过滤按钮，服务端再走 `entry-actions/run` handoff 链路。
-
-但第二版不再把这套“项目共享动作定义”继续当作最终产品方向。这里保留的是为什么要转向，以及转向后哪些边界不应再重新打开。
+当前条目自动化以 `automation profile + machine-local automation bindings` 承担个人规则与设备绑定，
+并通过 proposal-only service 执行。项目级 `entryActions` 只保留历史迁移语义，不再是按钮或执行
+真值。这里保留的是为什么要采用双层个人化配置，以及哪些边界不应重新打开。
 
 ## 结论
 
@@ -133,7 +133,8 @@ status: accepted
 - `src/project-registry.mjs`
 - `src/entry-actions.mjs`
 - `server.mjs`
-- `scripts/run-entry-action.mjs`
+- `src/entry-action-route.mjs`
+- `src/entry-action-service.mjs`
 
 ## 关联文档
 

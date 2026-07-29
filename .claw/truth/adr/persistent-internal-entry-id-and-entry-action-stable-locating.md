@@ -40,9 +40,9 @@
 
 ### 4. entry-action 完成态必须通过独立结果轮询接口判断
 
-entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/result` 轮询完成态。
-
-在 legacy 启动路径仍可用时，`POST /api/entry-actions/run` 的 `started` 返回只表示任务已进入执行队列或后台流程，不能被视为完成。当前新任务入口已硬禁用，不能把这条历史启动语义写成现行能力。
+entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/result` 轮询规范化的
+`phase/outcome`。proposal-only 发起响应只表示任务已进入执行链，不能被视为写回完成；关闭详情后
+仍应通过结果接口恢复终态。
 
 ### 5. 业务主键同步维护只在“非空旧值 -> 非空新值”时介入
 
@@ -55,7 +55,7 @@ entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/resu
 - 条目身份从运行时临时坐标升级为可持久写回的内部字段，跨保存与重载的定位更稳定。
 - entry-action 的目标定位和写回核对可以统一复用同一身份锚点，减少对业务主键空值和顺序变化的依赖。
 - `__entry_id` 不参与默认展示和候选推断后，UI 和字段分析不会被内部实现细节污染。
-- legacy 运行记录的前端不能把 `started` 当作完成信号，必须等待 `/api/entry-actions/result` 的独立结果。
+- 发起响应不能当作完成信号，前端必须等待 `/api/entry-actions/result` 的独立终态。
 - 这条协议也为后续更可靠的执行审计和写回确认留下了明确接口边界。
 - 保存链不再把“业务主键为空”误判为内部身份缺失；业务字段可以为空或被清空，而不破坏条目级保存与后续定位。
 
@@ -65,7 +65,9 @@ entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/resu
 - `src/model/row-id.mjs`
 - `src/model/maintenance-lookup.mjs`
 - `src/entry-actions.mjs`
-- `scripts/run-entry-action.mjs`
+- `src/entry-action-service.mjs`
+- `src/entry-action-proposal-commit.mjs`
+- `src/entry-action-group-commit.mjs`
 - `server.mjs`
 - `src/App.tsx`
 - `src/components/PrimaryKeyCandidateBanner.tsx`

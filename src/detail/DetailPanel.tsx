@@ -30,6 +30,7 @@ import type { SkillNodeContractFormModel } from "./skill-node-contract-form-mode
 import { mergeDetailFieldOrder } from "../model/document-field-state.mjs";
 import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 import { isPersistentEntryIdField } from "../model/persistent-entry-id.mjs";
+import { formatEntryActionElapsedDuration } from "../entry-action-duration";
 
 export type DetailSnapshot = {
   open: boolean;
@@ -64,6 +65,7 @@ export type DetailSnapshot = {
   entryActionStatus: {
     actionId: string;
     runId?: string | null;
+    startedAt?: string | null;
     tone: "running" | "success" | "warning" | "error";
     title: string;
     detail: string | null;
@@ -328,6 +330,16 @@ export function DetailPanel({
   const canGoPrevious = previousRowTarget != null;
   const canGoNext = nextRowTarget != null;
   const entryActionsBusy = entryActionRunningId != null;
+  const [entryActionClockMs, setEntryActionClockMs] = useState(() => Date.now());
+  const entryActionElapsed = entryActionStatus?.tone === "running"
+    ? formatEntryActionElapsedDuration(entryActionStatus.startedAt, entryActionClockMs)
+    : null;
+  useEffect(() => {
+    if (entryActionStatus?.tone !== "running" || !entryActionStatus.startedAt) return;
+    setEntryActionClockMs(Date.now());
+    const timer = window.setInterval(() => setEntryActionClockMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [entryActionStatus?.startedAt, entryActionStatus?.tone]);
   const primaryClassName = `detail-panel primary ${open ? "open" : ""} ${activeNested ? "with-secondary" : ""} ${tertiaryPanelOpen ? "with-tertiary" : ""} ${documentPanel.open ? "with-document" : ""}`;
   const naturalFieldOrder = useMemo(
     () => row ? mergeDetailFieldOrder(row, Object.keys(fieldViewConfigs), displayTypes) : [],
@@ -532,6 +544,7 @@ export function DetailPanel({
                   ) : null}
                 </div>
                 {entryActionStatus.detail ? <span>{entryActionStatus.detail}</span> : null}
+                {entryActionElapsed ? <span>{entryActionElapsed}</span> : null}
                 {entryActionStatus.output ? (
                   <details className="detail-entry-action-output">
                     <summary>查看执行输出</summary>

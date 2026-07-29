@@ -1,0 +1,15 @@
+{
+  "defaults": {
+    "model": "gpt-5.6",
+    "reasoning": "low",
+    "verbosity": "low",
+    "timeoutMs": 30000
+  },
+  "bindings": {
+    "fixture-review": {
+      "provider": "codex",
+      "skill": "fixture-proposal",
+      "enabled": true
+    }
+  }
+}

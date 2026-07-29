@@ -13,6 +13,7 @@ test("waitForEntryActionResult switches to background polling and resolves delay
     { runId: "run-1", phase: "terminal", outcome: "completed_with_writeback", message: "done" },
   ];
   let enteredBackground = 0;
+  const pendingPhases = [];
 
   const outcome = await waitForEntryActionResult({
     backgroundIntervalMs: 0,
@@ -23,6 +24,9 @@ test("waitForEntryActionResult switches to background polling and resolves delay
     onEnterBackgroundWait: () => {
       enteredBackground += 1;
     },
+    onPendingResult: (result) => {
+      pendingPhases.push(result.phase);
+    },
     projectId: "project-1",
     runId: "run-1",
   });
@@ -31,6 +35,7 @@ test("waitForEntryActionResult switches to background polling and resolves delay
   assert.equal(outcome.kind, "completed");
   assert.equal(outcome.delayed, true);
   assert.equal(outcome.result.outcome, "completed_with_writeback");
+  assert.deepEqual(pendingPhases, ["running", "running", "committing"]);
 });
 
 test("waitForEntryActionResult returns timed_out instead of throwing when background wait is exhausted", async () => {

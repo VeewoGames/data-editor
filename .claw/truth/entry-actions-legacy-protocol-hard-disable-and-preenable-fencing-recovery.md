@@ -1,100 +1,59 @@
-# entry-action legacy 协议已硬禁用，pre-enable 文件安全与恢复基础已落地
+# entry-action proposal-only 安全执行、组合提交与恢复边界
 
 <!-- state: current -->
 ## 当前行为
 
-### 新任务入口统一拒绝，既有结果读取不属于本次门禁
+### 生产入口只接受显式 eligible 的 proposal-only action
 
-`server.mjs` 在调用项目初始化和 legacy `handleRunEntryAction(...)` 之前处理
-`POST /api/entry-actions/run`：它固定返回 HTTP 503、
-`ENTRY_ACTION_PROTOCOL_DISABLED` 与 `protocolMode: "legacy-disabled"`。该门禁不读取
-环境变量、profile、binding 或前端状态，因此不能由这些输入绕过。
+`server.mjs` 将 `POST /api/entry-actions/run` 交给 `src/entry-action-route.mjs`，该路由只调用
+`startProposalOnlyEntryAction(...)`。项目必须提供 version 1 的
+`.data-editor/entry-action-eligibility.json`，并同时满足
+`protocolMode: "proposal-only"` 与 action allowlist；缺失、损坏或 action 未列入时返回
+`ENTRY_ACTION_PROTOCOL_DISABLED`。
 
-此状态只禁止启动新的 legacy direct-write action；它没有把历史 handoff、result、latest
-或 output 读取能力改写成新的提交协议。不得把旧 runner 文件仍在仓库中，或旧结果仍可读，
-解释为该入口可执行。
+legacy direct-write runner 已从生产入口和脚本面移除；环境变量、旧 handler、旧结果文件或前端
+状态都不能恢复该路径。历史运行结果仍可读取，但它们不构成新任务的执行资格或 fallback。
 
-### 正式保存路径使用 allowlist、物理身份与原子写基础设施
+### proposal v2 只表达同一条目的既有字段与一个受控文本产物
 
-`src/file-service.mjs` 现在先把虚拟路径规范化并解析到 allowlist 中的真实文件，再交给
-`atomicWrite(...)` 写入。`src/canonical-file-identity.mjs` 只对已允许的数据文件取得
-`realpath`，将 Windows 的物理路径规范化后计算 `canonicalFileKey`；同一物理文件的别名、
-大小写或 junction 不能获得不同的文件身份。
+`src/entry-action-proposal.mjs` 只接受严格 version 2 schema：
 
-`src/atomic-file.mjs` 提供三项基础原语：
+- `changes[]` 包含同一稳定 `rowId` 上 1 至 64 个互不重复的既有字段变更；
+- `textArtifact` 为 `null`，或为一个完整的受控 Markdown 产物；
+- proposal 绑定 `runId`、`actionId`、源路径、collection、`canonicalFileKey`、文档 ETag、
+  profile ETag、authority digest 与 fencing token；
+- 未知字段、字段新增/删除、no-op、任意文件列表、任意路径、删除、二进制或命令均被拒绝。
 
-- `exclusiveCreateLock(...)` 用 `wx` 创建并同步落盘；
-- `atomicWrite(...)` 用唯一临时文件完成 write、sync、close、同目录 replace；
-- `atomicReplace(...)` 只允许同目录同卷替换，并对 `EPERM` / `EBUSY` 做有界重试，不先删
-  target 作为 fallback。
+`src/entry-action-policy.mjs` 的 version 3 policy 定义精确 target、可选 `rowMatch`，以及由稳定
+源字段推导的唯一 Markdown `pathTemplate`、create/update 权限和大小上限；它不再定义 JSON
+字段白名单、字段类型或 validator。
 
-`file-service`、runtime state 与 project registry 已迁移到该原子写原语。它们也是批次 E
-正式文档提交的基础；这不等于恢复自动化入口或建立跨文件事务。
+`src/entry-action-authority.mjs` 在启动快照中把目标条目的全部现有字段记录为
+`proposalContract.writableFields`，具体 Skill 决定实际提交其中哪些字段。提交锁内仍会重新检查
+policy、profile、行身份、字段仍然存在、before 值、文本产物身份及所有并发令牌；新增/删除字段
+或任一快照、目标范围与权限漂移都会失败关闭。
 
-### 正式文档保存已收敛到按物理文件串行的 journal 提交
+### JSON/CSV 与 Markdown 使用持久 group journal 前向收敛
 
-`server.mjs` 的 `/api/save` 在 `src/document-commit-coordinator.mjs` 的
-`canonicalFileKey` 临界区内完成读盘、`documentEtag` 校验、保存合同校验和写入。`documentEtag`
-与稳定 `idempotencyKey` 都是必填合同；同一逻辑保存的重试复用同一 key，已完成且源文件仍能证明
-一致的记录会重放原结果，而同 key 的不同请求会以
-`DOCUMENT_SAVE_IDEMPOTENCY_CONFLICT` 拒绝。
+`src/entry-action-group-commit.mjs` 对源文档与文本产物计算 canonical identity，按稳定顺序取得
+多目标锁，并通过 `src/entry-action-group-journal.mjs` 持久记录：
+`group_intent → artifact_committed → source_committed → verified → result_published`。
+每个目标仍复用单文件 child journal、`atomicWrite(...)`、ETag/digest 与幂等提交能力。
 
-`src/commit-journal.mjs` 为 `document_save` 和 `proposal_commit` 持久记录
-`commit_intent → source_replaced → verified → result_published` 四阶段，以及 save type、文件身份、
-前后 ETag、内容 digest 与请求 digest。`src/document-commit-executor.mjs` 只允许按该顺序前进；
-replace 后若阶段落盘失败，会保留 `commit_intent` 作为恢复证据而不回退或猜测覆盖。
-`src/commit-journal-recovery.mjs` 仅在当前 ETag 与 digest 能证明 base 或新内容时收敛；无法证明的
-组合返回 `failed_needs_recovery`。
+该合同不宣称文件系统级瞬时原子事务。崩溃后，恢复器只在当前内容能证明处于 base 或已提交状态时
+继续前向完成；外部漂移、身份不一致或证据不足会进入人工恢复边界，不自动回滚覆盖外部合法修改。
+同一 `runId` 的幂等重放必须与原 group intent 一致。
 
-`src/entry-action-proposal-commit.mjs` 的已授权 proposal 提交复用同一 journal executor，并把
-`runId + proposalDigest` 派生为 `proposal_…` 幂等键。它仍是受控服务能力，未连接到被禁用的
-`/api/entry-actions/run`，因此不改变 legacy 新任务入口的拒绝状态。
-
-### Windows job ownership、fencing 与 recovery 仅服务于安全前置层
+### supervisor、fencing、结果发布与重启恢复属于同一生产编排
 
 `src/job-supervisor.mjs` 为每次 launch 生成独立 UUID `jobInstanceId`，并使用 protocol v2
 的 helper / child 双层 PID + FILETIME 身份证据。`src/fencing-lock.mjs` 按
 `canonicalFileKey` 维护单调 fencing token、不可变 allocation ledger、tail anchor 与
 admission owner；未知 schema、损坏、身份不一致或证据不完整均 fail closed。
 
-`src/entry-action-recovery.mjs` 与 `npm run entry-action:recover -- inspect|recover --project
-<root> --run-id <id>` 使用 claim-first：固定 admission 只能先迁移到唯一 quarantine claim，
-之后只按 claim 内证据判断。`inspect` 对完整的 `active`、`releasable` 或 `insufficient`
-返回 exit 0；不可证明的目标缺失、I/O、JSON 或 schema 问题返回 exit 2。`recover` 只在
-可释放证据下移除 claim，并在成功后写入完整 lease 绑定的 completed recovery record；
-`active` / `insufficient` 返回 exit 3 并保留锁。
-
-批次 D 已在隔离测试面接入严格 proposal 与真实 Codex CLI，但仍没有连接回
-`/api/entry-actions/run`，也没有启用 handoff 或真实项目写回：
-
-- `src/entry-action-proposal.mjs` 只接受 version 1、UUID `runId`、64 位
-  `canonicalFileKey` / `authorityDigest`、fencing、ETag 与一个已存在字段的显式替换；第二目标、
-  整文档 payload、未知字段和字段新增/删除都会拒绝。
-- `src/entry-action-proposal-publisher.mjs` 只有在 Codex 退出码为 0 且 schema 合法时，才在隔离
-  proposal 目录内原子发布；失败、无效 schema 或越界路径不留下 proposal。
-- `tests/entry-action-cli-e2e.test.mjs` 只复制独立 fixture 到临时 scratch。它先建立 fencing
-  admission，再以 `resolveCodexCli()` 定位 CLI；success 仅发布合法 proposal，timeout 在观察到
-  readiness 后以 `terminate("timeout")` 终止 Job，并检查 Job 树退出、fencing 释放、10 秒无晚写与
-  proposal 目录为空。
-
-这些是批次 D 的隔离执行证据；随后完成的批次 E 已补齐 production proposal commit、journal 与
-恢复合同，但仍不构成入口恢复。
-
-批次 C 已在工具层补齐受控提交所需的 authority 基础，但没有改变上述入口门禁：
-
-- `src/entry-action-policy.mjs` 定义 version 1 的严格 writeback policy；顶层、target 和字段
-  rule 出现未知或损坏结构时 fail closed，`validateAuthorizedPatch(...)` 只接受 policy 已授权的
-  file、collection、field 与值类型。
-- `src/automation-profile.mjs` 为 profile 内容提供 ETag compare-and-save；陈旧保存返回
-  `AUTOMATION_PROFILE_ETAG_STALE`。每个启用规则 target 都必须有非空 `writableFields`，缺失
-  字段的旧规则失去启用资格。
-- `src/entry-actions.mjs` 的 Strict RowId resolver 只接受唯一的持久 `__entry_id`，不回退
-  `sourceRowIndex`。
-- `src/entry-action-authority.mjs` 的 snapshot 绑定 policy digest、profile ETag、action、target
-  与字段集合；任何 authority 变化、权限收窄、target 失效或 schema 损坏均以
-  `ENTRY_ACTION_AUTHORITY_STALE` 拒绝。
-
-这些是未启用执行协议的前置能力，不构成 proposal、handoff、真实项目写回或入口恢复。
+`src/entry-action-service.mjs` 将 eligibility、policy/profile authority、fencing admission、
+supervised Codex、proposal 发布、group commit 和终态结果发布串成生产链。服务启动时先恢复
+未完成 group journal，再释放对应 fencing ownership；不能安全证明的恢复不会猜测放行。
 
 ### 运行状态、诊断与同物理文件活动查询使用显式合同
 
@@ -109,50 +68,37 @@ admission owner；未知 schema、损坏、身份不一致或证据不完整均 
 `/api/entry-actions/active?sourcePath=...` 则先取得 `canonicalFileKey`，再返回同一物理文件上所有
 未终态运行；路径别名、大小写或 junction 不会分裂该活动查询范围。
 
-### 条目临时目录清理必须保留无法证明安全的产物
-
-`scripts/service-finalize.mjs` 会枚举 `data-editor-entry-action-*` 临时目录，但只有目录名匹配的
-owner marker、无活动锁、可信终态或已完成 recovery、已验证的进程身份，以及已验证的 fencing 释放
-同时成立时，`src/service-finalizer.mjs` 才会将目录列入删除计划。符号链接或 junction、marker 不匹配、
-活动锁、缺少任一证明，或 `failed_needs_recovery`，都会保留目录并给出跳过原因。
-
-当前 legacy 产物尚不写入可供 finalizer 验证的 PID/FILETIME 与 fencing-release 证明；
-`describeTempDirectory(...)` 因此将两项证明标为 `false`。这意味着现阶段 finalizer 对这类目录的
-正确行为是保留，而不是从命令行、超时或缺失文件推断其可安全删除。
+前端关闭详情后会继续通过正式结果接口恢复运行状态；观察超时不等于 runner 终态。任何状态协议
+更新都必须重启本地服务，确保服务端与前端装载同一 `phase/outcome` 合同。
 
 ## 验证边界
 
-批次 E 完成记录报告 E4 定向测试 13/13、相关回归 28/28 与 TypeScript 检查通过；全量
-`open-stop` 组超过 120 秒时限，但其中的全局禁用入口用例已单独通过。它们支持本页所述的提交
-合同，不替代将来重新启用入口所需的真实项目端到端验证与独立启用授权。
+当前生产链已通过 Data Editor proposal-only 定向测试、Nocturnel owner 合同、typecheck、生产
+构建与正式 Browser 写回验收。该证据只支持上述执行链与项目 owner 边界，不应扩张解释为整个
+仓库的全量测试均通过。
 
 ## 代码锚点
 
 - `server.mjs`
-- `src/file-service.mjs`
-- `src/canonical-file-identity.mjs`
-- `src/atomic-file.mjs`
+- `src/entry-action-route.mjs`
+- `src/entry-action-service.mjs`
+- `src/entry-action-eligibility.mjs`
 - `src/job-supervisor.mjs`
 - `src/fencing-lock.mjs`
-- `src/entry-action-recovery.mjs`
 - `src/entry-action-policy.mjs`
 - `src/entry-action-authority.mjs`
-- `src/entry-action-state.mjs`
-- `src/entry-action-result-wait.ts`
 - `src/entry-action-proposal.mjs`
 - `src/entry-action-proposal-publisher.mjs`
-- `src/document-commit-coordinator.mjs`
+- `src/entry-action-proposal-commit.mjs`
+- `src/entry-action-group-commit.mjs`
+- `src/entry-action-group-journal.mjs`
 - `src/commit-journal.mjs`
 - `src/document-commit-executor.mjs`
-- `src/commit-journal-recovery.mjs`
-- `src/entry-action-proposal-commit.mjs`
-- `src/codex-runtime.mjs`
+- `src/entry-action-state.mjs`
+- `src/entry-action-result-wait.ts`
 - `src/automation-profile.mjs`
 - `src/entry-actions.mjs`
 - `scripts/entry-action-recover.mjs`
-- `scripts/service-finalize.mjs`
-- `src/service-finalizer.mjs`
-- `package.json`
 
 ## 关联决策
 
@@ -190,3 +136,26 @@ commit journal 收敛为同一正式保存合同，并让 proposal commit 复用
 `canonicalFileKey` 查询同物理文件的未终态运行。finalizer 同时开始识别 entry-action 临时目录；
 由于旧生产者尚未提供进程与 fencing 释放证明，它保留这些目录而不进行推断式删除。该演进没有
 恢复 legacy 入口。
+
+<!-- dated: 2026-07-28 -->
+### 本地陈旧服务曾导致已完成记录被显示为运行中
+
+一次本地运行中，服务进程未装载已落地的 `phase/outcome` 读取归一化逻辑，只返回旧 `status`，
+而新版前端按 `phase/outcome` 判断终态。重建并重启后，同一历史记录恢复为
+`terminal/completed_without_changes`，界面不再显示“运行中”。该事件保留为协议升级后的服务
+装载排障依据，不改变 legacy 新任务入口继续硬禁用的决定。
+
+<!-- dated: 2026-07-29 -->
+### 从全局禁用切换到 eligible proposal-only 生产链
+
+生产入口移除了 legacy direct-write 并只接入 proposal-only service。proposal 从单字段 version 1
+升级为同一条目 `changes[]` 加最多一个受控 Markdown 的 version 2；group journal、确定性多目标锁
+与前向恢复进入正式编排。全局 503 因此不再是当前行为，但未列入项目 eligibility allowlist 的
+action 仍以 `ENTRY_ACTION_PROTOCOL_DISABLED` 失败关闭。
+
+<!-- dated: 2026-07-29 -->
+### policy v3 移除通用字段白名单
+
+旧 policy v2 曾用字段类型、validator 与 allowlist 限制 JSON 写回。当前 policy v3 只拥有目标、
+行谓词和文本产物边界；单次 authority snapshot 将目标条目的现有字段提供给具体 Skill。平台仍
+禁止字段新增/删除并执行完整并发提交门禁，但不再替项目或 Skill 决定现有字段中的业务修改范围。

@@ -73,7 +73,7 @@ function normalizeRule(value, seenIds) {
   const targets = normalizeTargets(value.targets, id);
   const payload = normalizePayload(value.payload, id);
   const runtime = normalizeRuntime(value.runtime, id);
-  return { id, label, icon, enabled: enabled && targets.every((target) => target.writableFields.length > 0), targets, payload, ...(runtime ? { runtime } : {}) };
+  return { id, label, icon, enabled, targets, payload, ...(runtime ? { runtime } : {}) };
 }
 
 function normalizeRuntime(value, ruleId) {
@@ -106,7 +106,7 @@ function normalizeTargets(value, ruleId) {
   const files = normalizeRequiredStringArray(value.files, `Entry action rule "${ruleId}" targets.files`);
   const collections = normalizeRequiredStringArray(value.collections, `Entry action rule "${ruleId}" targets.collections`);
   return dedupeTargetPairs(
-    files.flatMap((file) => collections.map((collection) => ({ file, collection, writableFields: normalizeWritableFields(value.writableFields, ruleId) }))),
+    files.flatMap((file) => collections.map((collection) => ({ file, collection }))),
     ruleId,
   );
 }
@@ -120,7 +120,7 @@ function normalizeTargetPairs(value, ruleId) {
     result.push({
       file: normalizeRequiredString(item.file, `Entry action rule "${ruleId}" target.file`),
       collection: normalizeRequiredString(item.collection, `Entry action rule "${ruleId}" target.collection`),
-      writableFields: normalizeWritableFields(item.writableFields, ruleId),
+      ...normalizeTextArtifactId(item.textArtifactId, ruleId),
     });
   }
   return dedupeTargetPairs(result, ruleId);
@@ -141,10 +141,9 @@ function dedupeTargetPairs(value, ruleId) {
   return result;
 }
 
-function normalizeWritableFields(value, ruleId) {
-  if (value == null) return [];
-  if (!Array.isArray(value) || value.length === 0) throw new Error(`Entry action rule "${ruleId}" target.writableFields must be a non-empty array`);
-  return [...new Set(value.map((field) => normalizeRequiredString(field, `Entry action rule "${ruleId}" target.writableFields`)))];
+function normalizeTextArtifactId(value, ruleId) {
+  if (value == null || value === "") return {};
+  return { textArtifactId: normalizeRequiredString(value, `Entry action rule "${ruleId}" target.textArtifactId`) };
 }
 
 function normalizePayload(value, ruleId) {

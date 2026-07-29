@@ -14,7 +14,14 @@ import {
   setNestedValueByRowId,
 } from "../src/model/writeback-adapter.mjs";
 
-const fixturePolicy = { version: 1, targets: [{ file: "fixtures/items.json", collection: "$", writableFields: { name: { type: "string", nullable: false, uniqueScope: "none", validator: "non_empty_string" } } }] };
+const fixturePolicy = {
+  version: 3,
+  targets: [{
+    file: "fixtures/items.json",
+    collection: "$",
+  }],
+  textArtifacts: [],
+};
 
 test("setCellValueByRowId updates the source row addressed by row id", () => {
   const model = buildDocumentModel([
@@ -38,13 +45,15 @@ test("setCellValueByRowId updates the source row addressed by row id", () => {
   assert.equal(model.root[1].name, "Beta Prime");
 });
 
-test("authorized adapter patch cannot expand fixture policy", () => {
+test("authorized adapter patch accepts skill-selected values inside the configured target", () => {
   const model = buildDocumentModel([{ name: "Alpha" }], "json", "memory://items.json");
   const store = buildDocumentStore({ documentId: "items", model });
   const rowId = store.collections.get("$")?.rowViews[0].rowId;
   setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, file: "fixtures/items.json", collectionPath: "$", rowId, fieldName: "name", value: "Beta" });
   assert.equal(model.root[0].name, "Beta");
-  assert.throws(() => setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, file: "fixtures/items.json", collectionPath: "$", rowId, fieldName: "name", value: null }), (error) => error?.code === "ENTRY_ACTION_POLICY_VALUE_DENIED");
+  setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, file: "fixtures/items.json", collectionPath: "$", rowId, fieldName: "name", value: null });
+  assert.equal(model.root[0].name, null);
+  assert.throws(() => setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, file: "fixtures/other.json", collectionPath: "$", rowId, fieldName: "name", value: "Denied" }), (error) => error?.code === "ENTRY_ACTION_POLICY_TARGET_DENIED");
 });
 
 test("setNestedValueByRowId updates nested source paths through row id lookup", () => {

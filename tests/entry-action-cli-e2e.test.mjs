@@ -14,6 +14,9 @@ import { canonicalFileIdentity } from "../src/canonical-file-identity.mjs";
 import { loadEntryActionPolicy } from "../src/entry-action-policy.mjs";
 import { loadAutomationProfile } from "../src/automation-profile.mjs";
 import { createAuthoritySnapshot } from "../src/entry-action-authority.mjs";
+import { commitEntryActionProposal, prepareEntryActionProposalCommit } from "../src/entry-action-proposal-commit.mjs";
+import { createCommitJournal } from "../src/commit-journal.mjs";
+import { defaultAutomationRuntime } from "../src/automation-runtime.mjs";
 
 const fixture = path.resolve("tests/fixtures/entry-action-cli-e2e");
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
@@ -35,10 +38,12 @@ async function preflightCodexCli({ root, cliPath }) {
     assert.match(authentication.output, /Logged in/i, "preflight must confirm Codex authentication");
     assert.match(help.output, /--json/, "preflight must confirm --json support");
     assert.match(help.output, /--skip-git-repo-check/, "preflight must confirm fixed exec arguments");
+    assert.match(help.output, /--ignore-user-config/, "preflight must confirm isolated config support");
+    assert.match(help.output, /--ignore-rules/, "preflight must confirm isolated rules support");
     const record = {
       version: 1, status: "passed", startedAt, completedAt: new Date().toISOString(), cliPath,
-      fixedExecArgs: ["exec", "--json", "--skip-git-repo-check", "-C", "<scratch>", "-"],
-      proposalSchemaVersion: 1, policyVersion: 1, baseline: BASELINE,
+      fixedExecArgs: ["exec", "--ignore-user-config", "--ignore-rules", "--ephemeral", "--json", "--skip-git-repo-check", "--sandbox", "read-only", "-C", "<scratch>", "-"],
+      proposalSchemaVersion: 2, policyVersion: 2, baseline: BASELINE,
       checks: { version, authentication, execHelp: { args: help.args, supportsJson: true, supportsSkipGitRepoCheck: true } },
     };
     await writeFile(artifactPath, `${JSON.stringify(record, null, 2)}\n`);
@@ -77,14 +82,35 @@ async function setup(t) {
   return { root, scratch, cliPath: cli.path, preflight, source: path.join(scratch, "data", "items.json"), markPassed: () => { passed = true; } };
 }
 
-test("real Codex CLI success publishes only a validated proposal", { timeout: BASELINE.scriptMs }, async (t) => {
-  const env = await setup(t); const runId = crypto.randomUUID(); const before = digest(await readFile(env.source));
-  const identity = await canonicalFileIdentity(env.scratch, "data/items.json"); const canonicalFileKey = identity.canonicalFileKey; const policy = await loadEntryActionPolicy(path.join(fixture, "entry-action-policy.json")); const profile = await loadAutomationProfile(env.scratch); const snapshot = createAuthoritySnapshot({ policy, profile, actionId: "fixture-rename", file: "data/items.json", collection: "items" }); const authorityDigest = snapshot.authorityDigest;
-  const prompt = (await readFile(path.join(fixture, "success.prompt.md"), "utf8")).replace("{{RUN_ID}}", runId).replace("{{CANONICAL_FILE_KEY}}", canonicalFileKey).replace("{{AUTHORITY_DIGEST}}", authorityDigest).replace('"fixture-profile"', snapshot.automationProfileEtag);
+test("real Codex CLI success publishes and commits a validated v2 proposal", { timeout: BASELINE.scriptMs }, async (t) => {
+  const env = await setup(t); const runId = crypto.randomUUID(); const beforeText = await readFile(env.source, "utf8"); const before = digest(beforeText);
+  const identity = await canonicalFileIdentity(env.scratch, "data/items.json"); const canonicalFileKey = identity.canonicalFileKey; const policy = await loadEntryActionPolicy(path.join(fixture, "entry-action-policy.json")); const profile = await loadAutomationProfile(env.scratch); const snapshot = createAuthoritySnapshot({ policy, profile, actionId: "fixture-rename", file: "data/items.json", collection: "$", row: JSON.parse(beforeText)[0] }); const authorityDigest = snapshot.authorityDigest;
+  const baseDocumentEtag = `"${digest(beforeText)}"`;
+  const prompt = (await readFile(path.join(fixture, "success.prompt.md"), "utf8")).replace("{{RUN_ID}}", runId).replace("{{CANONICAL_FILE_KEY}}", canonicalFileKey).replace("{{AUTHORITY_DIGEST}}", authorityDigest).replace("{{BASE_DOCUMENT_ETAG}}", JSON.stringify(baseDocumentEtag)).replace("{{AUTOMATION_PROFILE_ETAG}}", JSON.stringify(snapshot.automationProfileEtag));
   const promptPath = path.join(env.root, "success.md"); await writeFile(promptPath, prompt);
-  const output = path.join(env.root, "events.jsonl"); const allocator = createFencingAllocator({ stateRoot: path.join(env.root, "fencing") });
+  const output = path.join(env.root, "events.jsonl");
+  const replyPath = path.join(env.root, "reply.json");
+  const diagnosticsPath = path.join(env.root, "diagnostics.log");
+  const allocator = createFencingAllocator({ stateRoot: path.join(env.root, "fencing") });
   const supervisor = createJobSupervisor({ toolRoot: path.resolve(".") }); t.after(() => supervisor.shutdown()); const jobInstanceId = crypto.randomUUID();
-  const lease = await allocator.allocate({ canonicalFileKey, runId, jobInstanceId }); const handle = await supervisor.start({ command: process.execPath, args: [path.join(fixture, "codex-cli-host.mjs"), env.cliPath, env.scratch, promptPath, output], cwd: env.scratch, timeoutMs: BASELINE.successMs, jobInstanceId });
+  const lease = await allocator.allocate({ canonicalFileKey, runId, jobInstanceId }); const handle = await supervisor.start({
+    command: process.execPath,
+    args: [
+      path.resolve("scripts/run-entry-action-proposal-host.mjs"),
+      "--codex", env.cliPath,
+      "--scratch", env.scratch,
+      "--prompt", promptPath,
+      "--reply", replyPath,
+      "--events", output,
+      "--diagnostics", diagnosticsPath,
+      "--model", defaultAutomationRuntime.model,
+      "--reasoning", defaultAutomationRuntime.reasoning,
+      "--verbosity", defaultAutomationRuntime.verbosity,
+    ],
+    cwd: env.scratch,
+    timeoutMs: BASELINE.successMs,
+    jobInstanceId,
+  });
   const ownershipEvidence = {
     jobInstanceId: handle.jobInstanceId,
     helper: { pid: String(handle.helper.pid), creationFileTime: handle.helper.creationFileTime },
@@ -92,11 +118,29 @@ test("real Codex CLI success publishes only a validated proposal", { timeout: BA
   };
   await allocator.persistOwnedEvidence(lease, ownershipEvidence);
   const completion = await handle.completion; assert.equal(completion.exitCode, 0); assert.equal(completion.timedOut, false);
-  const events = (await readFile(output, "utf8")).trim().split(/\r?\n/).map((line) => JSON.parse(line));
-  const text = events.find((event) => event.type === "item.completed" && event.item?.type === "agent_message")?.item.text;
-  assert.equal(typeof text, "string", "Codex must emit a proposal message");
-  const proposal = JSON.parse(text); await publishEntryActionProposal({ directory: path.join(env.root, "proposals"), runId, exitCode: completion.exitCode, proposal });
-  assert.equal(digest(await readFile(env.source)), before); await allocator.release(lease); env.markPassed();
+  const proposal = JSON.parse(await readFile(replyPath, "utf8"));
+  await publishEntryActionProposal({ directory: path.join(env.root, "proposals"), runId, exitCode: completion.exitCode, proposal });
+  assert.equal(digest(await readFile(env.source)), before);
+  const prepared = await prepareEntryActionProposalCommit({
+    proposal,
+    lease,
+    authoritySnapshot: snapshot,
+    policy,
+    profile,
+    documentText: beforeText,
+    probeLease: (value) => allocator.probe(value),
+  });
+  await commitEntryActionProposal({
+    journal: createCommitJournal({ directory: path.join(env.root, "commit-journal") }),
+    prepared,
+    lease,
+    documentText: beforeText,
+    writeText: (next) => writeFile(env.source, next, "utf8"),
+    readText: () => readFile(env.source, "utf8"),
+    publishResult: async () => {},
+  });
+  assert.equal(JSON.parse(await readFile(env.source, "utf8"))[0].name, "Beta");
+  await allocator.release(lease); env.markPassed();
 });
 
 test("real Codex CLI timeout terminates its Job and publishes nothing", { timeout: BASELINE.scriptMs }, async (t) => {

@@ -2,6 +2,7 @@
 
 这条 truth 只沉淀未来处理 Nocturnel 技能开发文档、预算评分或模板调整时可复用的查找入口和审计边界，不记录任务进度。
 
+<!-- state: current -->
 ## 稳定结论
 
 Nocturnel 玩家主动技能完整 BU 预算模型已经集中到单一权威入口：
@@ -42,7 +43,7 @@ Nocturnel 玩家主动技能完整 BU 预算模型已经集中到单一权威入
 
 ## 同池 BU 校准样本边界
 
-读取 Nocturnel 技能样本时，主数据锚点是 `C:\Code\Nocturnel\data\skills.json` 根对象下的 `skills` 集合，不是 JSON 根数组。后续做同池 BU 校准、data-editor 文档解析或技能对象抽样时，应先进入 `skills` 集合再按 `skill_id` 定位。
+读取 Nocturnel 技能样本时，主数据锚点是 Nocturnel 仓库内 `data/content/skills.json` 根对象下的 `skills` 集合，不是 JSON 根数组。后续做同池 BU 校准、data-editor 文档解析或技能对象抽样时，应先进入 `skills` 集合再按 `skill_id` 定位。
 
 `skill_axe_throw` 的同池 BU 校准样本可以优先参考以下技能对象：
 
@@ -52,7 +53,10 @@ Nocturnel 玩家主动技能完整 BU 预算模型已经集中到单一权威入
 - `skill_armor_break`
 - `skill_weapon_bow_shot`
 
-这些对象适合作为“同池校准样本”，但不应直接当作已验证强度标准。当前四个对照技能的开发文档多数还没有正式评分，且 `C:\Code\Nocturnel\data\skills.json` 中 `skill_throw_knife`、`skill_thrust`、`skill_armor_break`、`skill_weapon_bow_shot` 的 `rating` 为空；做 `skill_axe_throw` 预算校准时，应把它们作为待审计参照，而不是稳定标尺。
+这些对象适合作为“同池校准样本”，但不应直接当作已验证强度标准。正式评分资格和实现完成状态
+回源 [`nocturnel-player-skill-review-and-completion-gates.md`](./nocturnel-player-skill-review-and-completion-gates.md)
+的玩家技能评审门禁；本 Truth 不重复拥有该状态机。做 `skill_axe_throw` 预算校准时，应把未经过
+当前正式评审或缺少当前验证证据的对象作为待审计参照，而不是稳定标尺。
 
 两个样本风险需要优先复核：
 
@@ -69,8 +73,8 @@ Nocturnel 玩家主动技能完整 BU 预算模型已经集中到单一权威入
 
 data-editor 读取该技能文档时，长期验证入口是：
 
-- `/api/document-index?path=data/skills.json&refresh=1` 中 `skill_axe_throw` 应能 resolved。
-- `/api/document-content?path=data/skills.json&id=skill_axe_throw&refresh=1` 应能读到对应 Markdown 内容。
+- `/api/document-index?path=data/content/skills.json&refresh=1` 中 `skill_axe_throw` 应能 resolved。
+- `/api/document-content?path=data/content/skills.json&id=skill_axe_throw&refresh=1` 应能读到对应 Markdown 内容。
 
 ## data-editor 模板文档入口
 
@@ -81,19 +85,28 @@ data-editor 读取该技能文档时，长期验证入口是：
 
 这两份 data-editor 文档只维护模板结构、章节职责和引用关系，不维护完整 BU 分值表。完整预算模型仍统一回源 `C:\Code\Nocturnel\项目文档\标准&指南\技能预算指南（AI 专用）.md`；模板侧只要求产出可审计预算账本，并保留完整评分记录作为评分审计层。
 
-## 生成入口与持久化模板控制点
+## 玩家技能设计入口与持久化模板控制点
 
-后续要落地 Nocturnel 技能开发文档的实际生成时，真正的控制点不在项目计划正文，而在用户侧 `design-skill` 的 skill 指令与 references：
+Nocturnel 玩家技能的当前设计入口是 repo-local
+`.agents/skills/data-design-skill-player/SKILL.md`。它读取
+`data/content/skills.json` 和 `项目文档/开发/技能/<skill_id>.md`，负责设计内容、预算账本和
+待评审证据，但不生成非空正式评分。
 
-- `C:\Users\lans\.codex\skills\design-skill\SKILL.md`
-  - 这里定义了 `Write or update a skill development document` 这条专用路由，明确它是写入 skill `dev_doc` 字段的持久化入口。
-  - 该路由要求优先使用 `references/workflows-and-checklists.md` 里的 `Skill Development Document Template`，而不是交互式 `Formal Output Skeleton`。
-  - 该路由还要求把高价值决策内容前置、保留 `完整评分记录`，并把原始引用清单和字段读数等噪声移出正文主干。
-- `C:\Users\lans\.codex\skills\design-skill\references\workflows-and-checklists.md`
-  - 这里定义了 persisted `dev_doc` 的固定章节顺序：`技能摘要`、`正式规则`、`预算账本`、`风险与待确认`、`评分结论摘要`、`完整评分记录`、`附录：开发记录`。
-  - 这份模板的长期职责是存放可复用设计决策和可审计账本结果，不承担完整 BU 模型本体。
-  - 静态验证确认，`正式规则与关键预算`、`预算拆解` 这类旧持久化模板措辞没有作为默认章节残留在这个 route 里；`引用清单` 仍只属于交互式 `Formal Output Skeleton`。
-- `C:\Users\lans\.codex\skills\design-skill\references\current-skill-fields.md`
-  - 这里补充了当前设计场景的权威来源集合，包含 AI 专用设计指南、玩家品质标准和预算指南，说明技能文档生成时需要同时尊重设计、评分和预算三类真值源。
+正式评分与完成门禁的具体规则回源玩家技能评审 Truth；persisted `dev_doc` 中的预算账本仍沿用
+本 Truth 定义的单点预算模型。这里仅固定设计入口与预算文档边界，不重复定义评分状态机。
 
-因此，后续若要调整 Nocturnel 技能开发文档的实际生成行为，应优先改 `design-skill` 的路由和持久化模板，而不是只改 Nocturnel 项目内的计划文档或样例正文。`dev_doc` 的稳定产物应是“预算账本 + 评分审计”的结果文档，不是把完整 BU 模型复制进每份技能稿。
+后续若要调整玩家技能开发文档的实际生成行为，应优先修改 repo-local
+`data-design-skill-player` 及其 references。用户级通用 `design-skill` 可以继续服务其他设计对象，
+但不再是 Nocturnel 玩家技能 `dev_doc` 的唯一当前控制点。
+
+<!-- state: history -->
+## 演进记录
+
+<!-- dated: 2026-07-29 -->
+### 玩家技能设计入口从用户级通用 Skill 收口到仓库本地 Skill
+
+早期持久化 `dev_doc` 由用户级 `design-skill` 的
+`Write or update a skill development document` 路由及
+`references/workflows-and-checklists.md` 模板控制。该阶段建立的章节职责仍可作为预算文档历史来源，
+但玩家技能当前入口已经迁移到 repo-local `data-design-skill-player`，正式评分也已从设计职责中
+拆出。

@@ -43,11 +43,14 @@
 `__entry_id` 时返回 `ENTRY_ACTION_TARGET_ID_DUPLICATE`。服务端写入 handoff 时使用解析出的
 真实 `sourceRowIndex`，而不是只信前端传入的旧行号。
 
-### 5. 写回核对也已经切到 rowId 优先
+### 5. proposal authority 与提交定位只接受稳定 rowId
 
-`scripts/run-entry-action.mjs::captureWritebackState(...)` 现在同样会优先用 `rowId + sourceRowIndex` 解析目标条目。
+`src/entry-actions.mjs::resolveEntryActionRow(...)`、authority snapshot 与 proposal commit 共同绑定
+稳定 `rowId`。proposal 中的 `sourceRowIndex` 不能替代 `__entry_id`，提交时也会在当前文档模型中
+重新定位并核对该行。
 
-因此写回核对不再只信旧行号，后续对“是否写回”的判断也能跟随稳定身份做重读核对。
+因此 Codex 只提交变更建议，正式写回仍由服务端围绕稳定身份完成，不再依赖已删除的 legacy
+direct-write runner 做前后快照归因。
 
 ### 6. 发起 entry-action 前会先 flush 草稿和保存队列
 
@@ -58,29 +61,19 @@
 
 这保证 entry-action 启动前，当前编辑态不会只停留在前端内存草稿里。
 
-### 7. `/api/entry-actions/result` 已用于轮询启动态与分流后的完成态
+### 7. `/api/entry-actions/result` 用于轮询 proposal-only 运行状态
 
-服务端保留 `/api/entry-actions/result` 供历史运行记录读取 `started`、`completed_with_writeback` 和 `completed_without_observed_writeback`。新任务入口当前不会产生这些 legacy 启动态；它固定返回 `ENTRY_ACTION_PROTOCOL_DISABLED`。
+服务端保留 `/api/entry-actions/result` 读取历史记录，并对当前运行返回规范化的 `phase/outcome`、
+proposal、reply 与 diagnostics 可用性。eligible action 可进入 proposal-only 执行链；未 eligible
+的 action 仍返回 `ENTRY_ACTION_PROTOCOL_DISABLED`。
 
 这让 entry-action 的运行态不再只靠一次性发起请求猜测，结果读取链路也变成了可重复查询的稳定接口。
 
-### 8. 本轮验证显示稳定 rowId 已能覆盖旧行号偏差
+### 8. 稳定 rowId 是 execution 与 writeback 的共同身份边界
 
-本轮验证里：
-
-- `tests/document-model.test.mjs` 通过
-- `tests/document-store.test.mjs` 通过
-- `tests/entry-actions.test.mjs` 通过
-- `tests/maintenance-lookup.test.mjs` 通过
-
-额外的临时真实项目验证也确认：
-
-- 传入错误 `sourceRowIndex = 0`
-- 但提供正确 `rowId = 01JZTESTENTRY0000000000000B`
-
-时，handoff 最终写入的是修正后的 `entry.sourceRowIndex = 1`。
-
-同一条验证里，`skill_id` 为空的目标条目也仍然能够成功发起 action，运行结果先进入 `started`，随后在快速失败宿主下落到 `completed_without_observed_writeback`。
+当前实现与合同测试共同覆盖：前端行号陈旧时以唯一 `__entry_id` 重新定位；缺失或重复 rowId
+失败关闭；proposal authority 与最终提交不能切换到另一条记录。历史 legacy handoff 的行号修正
+证据只保留在下方演进记录，不再作为当前执行协议。
 
 ### 9. `__entry_id` 解决的是内部稳定身份，不会取代业务主键保存链
 

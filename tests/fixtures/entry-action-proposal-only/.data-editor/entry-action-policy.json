@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "targets": [
+    {
+      "file": "data/items.json",
+      "collection": "items",
+      "writableFields": {
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "uniqueScope": "none",
+          "validator": "non_empty_string"
+        },
+        "notes": {
+          "type": "string",
+          "nullable": true,
+          "uniqueScope": "none",
+          "validator": "any"
+        }
+      }
+    }
+  ],
+  "textArtifacts": [
+    {
+      "id": "item-doc",
+      "pathTemplate": "docs/items/{value}.md",
+      "sourceField": "item_id",
+      "allowCreate": true,
+      "allowUpdate": true,
+      "maxBytes": 4096
+    }
+  ]
+}

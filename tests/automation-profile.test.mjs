@@ -44,7 +44,7 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
           icon: "refresh",
           enabled: true,
           targets: [
-            { file: "data/skills.json", collection: "skills", writableFields: ["name"] },
+            { file: "data/skills.json", collection: "skills" },
           ],
           payload: {
             includeRow: false,
@@ -56,6 +56,23 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("automation profile preserves an optional text artifact policy reference", () => {
+  const profile = validateAutomationProfile({
+    rules: [{
+      id: "design",
+      label: "Design",
+      icon: "edit",
+      targets: [{
+        file: "data/skills.json",
+        collection: "skills",
+        textArtifactId: "skill-doc",
+      }],
+      payload: { includeRow: true, includeNeighbors: false },
+    }],
+  });
+  assert.equal(profile.rules[0].targets[0].textArtifactId, "skill-doc");
 });
 
 test("normalizeAutomationProfile rejects duplicate rule ids", () => {
@@ -173,9 +190,9 @@ test("normalizeAutomationProfile migrates legacy file and collection arrays into
   });
 
   assert.deepEqual(profile.rules[0].targets, [
-    { file: "data/skills.json", collection: "skills", writableFields: [] },
-    { file: "data/skills.json", collection: "$", writableFields: [] },
-    { file: "data/traits.json", collection: "skills", writableFields: [] },
-    { file: "data/traits.json", collection: "$", writableFields: [] },
+    { file: "data/skills.json", collection: "skills" },
+    { file: "data/skills.json", collection: "$" },
+    { file: "data/traits.json", collection: "skills" },
+    { file: "data/traits.json", collection: "$" },
   ]);
 });

@@ -1,0 +1,22 @@
+{
+  "rules": [
+    {
+      "id": "fixture-review",
+      "enabled": true,
+      "label": "Fixture review",
+      "icon": "edit",
+      "targets": [
+        {
+          "file": "data/items.json",
+          "collection": "items",
+          "writableFields": ["name", "notes"],
+          "textArtifactId": "item-doc"
+        }
+      ],
+      "payload": {
+        "includeRow": true,
+        "includeNeighbors": false
+      }
+    }
+  ]
+}

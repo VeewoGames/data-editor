@@ -32,6 +32,7 @@ test("saveAutomationBindings writes to machine-local path", async () => {
     assert.equal(result.path, ".data-editor/local/automation-bindings.json");
     const stored = JSON.parse(await readFile(path.join(root, result.path), "utf8"));
     assert.deepEqual(stored, {
+      defaults: {},
       bindings: {
         recheck: {
           provider: "codex",

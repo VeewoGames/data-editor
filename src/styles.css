@@ -3897,10 +3897,37 @@ select {
   width: 42px;
 }
 
+.data-table tbody .row-action-cell {
+  padding: 8px 8px 0;
+  vertical-align: top;
+}
+
 .row-action-handle {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
   color: var(--color-text-muted);
   cursor: pointer;
+  height: 24px;
+  min-height: 24px;
   touch-action: manipulation;
+  width: 24px;
+}
+
+.row-action-handle:hover {
+  background: var(--color-bg-hover);
+  border: 0;
+  box-shadow: none;
+  color: var(--color-text-strong);
+}
+
+.row-action-handle svg {
+  opacity: 0.2;
+}
+
+.row-action-handle:hover svg {
+  opacity: 1;
 }
 
 .row-action-handle[data-row-reorder-enabled="true"] {

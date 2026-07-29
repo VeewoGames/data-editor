@@ -1612,7 +1612,7 @@ test("server saves and loads automation profile and machine-local bindings", asy
   assert.equal(storedBindings.bindings.recheck.skill, "recheck");
 });
 
-test("entry action run is globally disabled while historical artifacts remain readable", async (t) => {
+test("entry action run fails closed without project eligibility while historical artifacts remain readable", async (t) => {
   const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-project-"));
   const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-home-"));
   t.after(async () => {
@@ -1655,9 +1655,11 @@ test("entry action run is globally disabled while historical artifacts remain re
     },
   };
   const historicalResult = {
-    version: 1,
+    version: 2,
     runId: historicalRunId,
-    status: "completed_with_writeback",
+    actionId: "recheck",
+    phase: "terminal",
+    outcome: "completed_with_writeback",
     finishedAt: "2026-07-25T12:01:00.000Z",
   };
   await mkdir(runtimeDir, { recursive: true });
@@ -1666,7 +1668,6 @@ test("entry action run is globally disabled while historical artifacts remain re
   await writeFile(path.join(runtimeDir, `${historicalRunId}.reply.md`), "historical reply\n", "utf8");
   const historicalFileNames = (await readdir(runtimeDir)).sort();
 
-  const invalidRunResponse = await postRaw(port, "/api/entry-actions/run", "{");
   const validRunResponse = await postJson(port, "/api/entry-actions/run", {
     projectId,
     actionId: "recheck",
@@ -1675,17 +1676,10 @@ test("entry action run is globally disabled while historical artifacts remain re
     rowId: "items:1",
     sourceRowIndex: 1,
   });
-  const disabledBody = {
-    error: "条目自动化写回协议正在安全升级，当前禁止启动新任务。",
-    code: "ENTRY_ACTION_PROTOCOL_DISABLED",
-    field: "entryAction",
-    details: { protocolMode: "legacy-disabled" },
-  };
-  for (const response of [invalidRunResponse, validRunResponse]) {
-    assert.equal(response.statusCode, 503, JSON.stringify(response.body));
-    assert.equal(response.headers["cache-control"], "no-store");
-    assert.deepEqual(response.body, disabledBody);
-  }
+  assert.equal(validRunResponse.statusCode, 503, JSON.stringify(validRunResponse.body));
+  assert.equal(validRunResponse.headers["cache-control"], "no-store");
+  assert.equal(validRunResponse.body?.code, "ENTRY_ACTION_PROTOCOL_DISABLED");
+  assert.equal(validRunResponse.body?.error, "Entry-action eligibility manifest is missing.");
   assert.deepEqual((await readdir(runtimeDir)).sort(), historicalFileNames);
 
   const resultResponse = await getJson(port, `/api/entry-actions/result?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(historicalRunId)}`);

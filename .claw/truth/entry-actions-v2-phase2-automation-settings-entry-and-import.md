@@ -17,9 +17,10 @@
 - 用户级 `automation profile`
 - 机器本地 `automation bindings`
 
-详情按钮可见性仍围绕这两层真值判断，而不是再回读项目级旧配置。`run-entry-action`
-只保留为 legacy handler 的历史实现：当前 `POST /api/entry-actions/run` 在进入它之前固定返回
-HTTP 503 `ENTRY_ACTION_PROTOCOL_DISABLED`。新任务门禁由
+详情按钮可见性仍围绕这两层真值判断，而不是再回读项目级旧配置。当前
+`POST /api/entry-actions/run` 只进入 proposal-only service，并额外要求项目/action eligibility、
+policy、authority 与 fencing admission；未 eligible 的 action 返回
+`ENTRY_ACTION_PROTOCOL_DISABLED`。执行边界由
 [`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
 单独拥有。
 
@@ -115,6 +116,44 @@ HTTP 503 `ENTRY_ACTION_PROTOCOL_DISABLED`。新任务门禁由
 
 对应的回归测试也应优先断言中文对话框名、按钮名和 summary chips，而不是旧的英文字符串。这类测试才能覆盖实际可见的产品文案边界。
 
+### 10. 规则草稿的编辑态选择身份与业务 `Rule Id` 解耦
+
+`Rule Id` 是保存前严格校验的业务字段，但在设置页编辑期间允许暂时为空、重复或被修改。因此，
+规则列表的当前选择不能以 `rule.id` 作为身份，否则未完成规则会无法重新选中，修改 `Rule Id`
+也会让详情面板失焦或跳到其他规则。
+
+当前编辑态统一使用原始 `automation profile.rules` 数组索引：
+
+- 搜索结果保留原始数组索引，不把过滤结果下标当作规则身份
+- 规则卡片点击与详情定位都读写 `selectedRuleIndex`
+- 修改 `Rule Id` 不改变当前选择
+- 新增后选择新规则的原始数组索引
+- 删除后按被删位置和剩余长度归一化选择
+- 搜索导致当前规则不可见时，只在可见原始索引集合中归一化选择
+
+这条规则只约束 `Automation Settings` 的未保存编辑态，不改变 `automation profile` 的持久化
+schema、bindings 的 `ruleId` 关联方式或服务端保存校验。排查空白/重复 `Rule Id` 无法编辑、
+搜索后选错规则、删除后详情错位时，应先检查
+`src/automation-rule-selection.mjs` 与 `selectedRuleIndex` 的消费链。
+
+### 11. `Rule Id` 改名与 binding 生命周期必须作为同一草稿事务维护
+
+持久化 binding 仍以合法 `ruleId` 为键，因此编辑 `Rule Id` 时，profile 草稿与
+`automation-bindings.bindings` / `bindingStatuses` 必须同步改键。当前链路固定为：
+
+- `updateRuleId(...)` 从 `profileRef.current` 读取旧 id，更新规则后立即调用
+  `remapAutomationRuleBindingKey(...)`
+- `Rule Id` 暂时清空再重新输入时，binding 会跟随空键迁移，不会丢失或残留旧键
+- 删除规则时通过 `removeAutomationRuleBinding(...)` 同步删除 binding 与状态
+- 打开、加载和保存设置时通过 `pruneOrphanAutomationRuleBindings(...)` 移除 profile 中已无
+  对应规则的孤立 binding
+- 保存使用 `profileRef.current` 与 `bindingsRef.current` 的同步快照，先清理孤立项并校验，再按
+  `saveAutomationProfile(...)`、`saveAutomationBindings(...)` 顺序提交
+
+这条事务只维护草稿一致性，不把空或重复 `Rule Id` 合法化，也不把双保存链描述为原子提交。
+排查“摘要显示无效项为 0，但保存按钮仍被隐藏 binding 禁用”时，应先检查
+`src/automation-rule-draft.mjs`、两个同步 ref 与保存前 prune 链。
+
 ## consequences
 
 - 后续运行时排查 `entryActions` 时，默认先看 `automation profile` 和 `automation bindings`，不要再从 `project.entryActions` 反推正式真值。
@@ -126,6 +165,10 @@ HTTP 503 `ENTRY_ACTION_PROTOCOL_DISABLED`。新任务门禁由
 - 自动化设置弹窗的宽度优化必须同时覆盖 shared dialog base 的宽度上限，否则视觉上不会真正放宽。
 - 侧边栏里的项目管理入口和自动化入口必须保持分离，避免把用户级自动化误归到项目设置里。
 - 自动化设置页面的本地化规则是字段英文、周边中文，回归测试应按中文文案和 summary chip 断言。
+- `Rule Id` 的校验失败不会剥夺规则草稿的编辑身份；列表过滤、字段修改、新增和删除都必须保持
+  原始数组索引语义。
+- `Rule Id` 改名、清空、重新输入或删除时，binding 与状态键必须同步迁移或清理；保存前不得让
+  profile 不再引用的孤立 binding 继续参与全局校验。
 
 ## related code
 
@@ -133,10 +176,14 @@ HTTP 503 `ENTRY_ACTION_PROTOCOL_DISABLED`。新任务门禁由
 - `src/App.tsx`
 - `src/api/client.ts`
 - `src/automation-profile.mjs`
+- `src/automation-rule-selection.mjs`
+- `src/automation-rule-draft.mjs`
 - `src/automation-bindings.mjs`
 - `src/entry-actions.mjs`
 - `server.mjs`
 - `tests/automation-profile.test.mjs`
+- `tests/automation-rule-selection.test.mjs`
+- `tests/automation-rule-draft.test.mjs`
 - `tests/automation-bindings.test.mjs`
 - `tests/data-editor.spec.ts`
 - `tests/open-stop.test.mjs`
@@ -144,4 +191,4 @@ HTTP 503 `ENTRY_ACTION_PROTOCOL_DISABLED`。新任务门禁由
 
 ## search terms
 
-`Automation Settings`、`automation profile`、`automation bindings`、`project.entryActions`、`run-entry-action`、`detail button visibility`、`validation issues`、`missing_binding`、`binding_invalid`、`importLegacyEntryActions`、`validateAutomationProfile`、`validateAutomationBindings`
+`Automation Settings`、`automation profile`、`automation bindings`、`project.entryActions`、`run-entry-action`、`detail button visibility`、`validation issues`、`selectedRuleIndex`、`automation-rule-selection`、`automation-rule-draft`、`Rule Id`、`remapAutomationRuleBindingKey`、`pruneOrphanAutomationRuleBindings`、`missing_binding`、`binding_invalid`、`importLegacyEntryActions`、`validateAutomationProfile`、`validateAutomationBindings`

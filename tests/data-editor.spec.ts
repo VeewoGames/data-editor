@@ -9326,6 +9326,14 @@ test("row action handle opens a keyboard-accessible duplicate and confirmed dele
   await expect(tableRows(page)).toHaveCount(2);
 
   const firstHandle = rowActionHandle(page, 0);
+  const firstHandleIcon = firstHandle.locator("svg");
+  await expect(firstHandleIcon).toHaveCSS("opacity", "0.2");
+  await firstHandle.hover();
+  await expect(firstHandle).toHaveCSS("background-color", "rgb(239, 238, 235)");
+  await expect(firstHandle).toHaveCSS("border-top-style", "none");
+  await expect(firstHandle).toHaveCSS("border-top-width", "0px");
+  await expect(firstHandle).toHaveCSS("border-radius", "4px");
+  await expect(firstHandleIcon).toHaveCSS("opacity", "1");
   await firstHandle.focus();
   await page.keyboard.press("Enter");
   const menu = page.locator(".row-action-menu");
