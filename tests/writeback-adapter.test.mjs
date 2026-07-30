@@ -15,8 +15,9 @@ import {
 } from "../src/model/writeback-adapter.mjs";
 
 const fixturePolicy = {
-  version: 3,
+  version: 4,
   targets: [{
+    actionId: "fixture-rename",
     file: "fixtures/items.json",
     collection: "$",
   }],
@@ -49,11 +50,11 @@ test("authorized adapter patch accepts skill-selected values inside the configur
   const model = buildDocumentModel([{ name: "Alpha" }], "json", "memory://items.json");
   const store = buildDocumentStore({ documentId: "items", model });
   const rowId = store.collections.get("$")?.rowViews[0].rowId;
-  setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, file: "fixtures/items.json", collectionPath: "$", rowId, fieldName: "name", value: "Beta" });
+  setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, actionId: "fixture-rename", file: "fixtures/items.json", collectionPath: "$", rowId, fieldName: "name", value: "Beta" });
   assert.equal(model.root[0].name, "Beta");
-  setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, file: "fixtures/items.json", collectionPath: "$", rowId, fieldName: "name", value: null });
+  setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, actionId: "fixture-rename", file: "fixtures/items.json", collectionPath: "$", rowId, fieldName: "name", value: null });
   assert.equal(model.root[0].name, null);
-  assert.throws(() => setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, file: "fixtures/other.json", collectionPath: "$", rowId, fieldName: "name", value: "Denied" }), (error) => error?.code === "ENTRY_ACTION_POLICY_TARGET_DENIED");
+  assert.throws(() => setAuthorizedCellValueByRowId({ model, store, policy: fixturePolicy, actionId: "fixture-rename", file: "fixtures/other.json", collectionPath: "$", rowId, fieldName: "name", value: "Denied" }), (error) => error?.code === "ENTRY_ACTION_POLICY_TARGET_DENIED");
 });
 
 test("setNestedValueByRowId updates nested source paths through row id lookup", () => {

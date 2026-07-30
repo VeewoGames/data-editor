@@ -10,7 +10,9 @@
 - 共享规则层：`automation profile`
 - 设备本地绑定层：`automation bindings`
 
-这轮实现仍然没有改动旧的 `run-entry-action` 执行真值，也没有移除 `Project Settings` 中的第一版 `entryActions`。因此这里记录的是“phase-1 基础设施已经存在”，而不是“第二版迁移已经完成”。
+这里维护的是 phase-1 基础设施中至今仍有效的存储、校验和 API 合同。旧 `run-entry-action`
+执行真值与 `Project Settings` 第一版入口属于已经退出的阶段快照；当前运行时切换、proposal-only
+准入和 legacy 清理分别由后续 canonical Truth 维护。
 
 ## 结论
 
@@ -79,8 +81,8 @@
 
 每个 target 当前只声明精确的 `file + collection`，并可选引用 `textArtifactId`；
 `automation profile` 不再接受或要求通用 `writableFields`。JSON 字段集合在单次运行时从目标条目
-的现有字段生成，实际修改范围由具体 Skill 决定；平台仍拒绝新增或删除字段，并独立执行
-eligibility、目标/行范围、条目身份、ETag、authority、fencing 与提交恢复门禁。
+的现有字段生成，实际修改范围由具体 Skill 决定；平台仍拒绝新增或删除字段，并独立执行已启用规则、
+可用本机 binding、action 级目标/行范围、条目身份、ETag、authority、fencing 与提交恢复门禁。
 
 ### 5. 第二版配置 API 与 proposal-only 执行资格保持独立
 
@@ -93,15 +95,16 @@ eligibility、目标/行范围、条目身份、ETag、authority、fencing 与�
 
 对应前端 client 锚点在 `src/api/client.ts`，服务端入口在 `server.mjs`。
 
-项目级 `entryActions` 只保留历史配置语义，不是当前执行资格来源：
+项目级 `entryActions` 已退出 registry 正式结构，也不是当前执行资格来源：
 
-- `POST /api/entry-actions/run` 的 proposal-only eligibility 与安全边界由
+- `POST /api/entry-actions/run` 的 proposal-only 启动与安全边界由
   [`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
   统一维护
-- `Project Settings` 里的旧 `entryActions` 编辑入口仍然存在
+- `src/project-registry.mjs::normalizeProjectDefinition(...)` 会剥离 legacy `entryActions`，不提供
+  当前编辑入口、自动迁移或隐式 fallback
 
-因此，profile API 或 ETag 只表达配置状态，不能单独证明 action 已获得
-eligibility、项目 policy、fencing admission 或提交权限。
+因此，profile API 或 ETag 只表达配置状态，不能单独证明 action 已满足已启用规则、可用本机
+binding、action 级 policy、fencing admission 或提交权限。
 
 ### 6. 自动化保存请求和 `saveViewProfile` 一样，当前都不再使用 `keepalive`
 
@@ -141,9 +144,9 @@ eligibility、项目 policy、fencing admission 或提交权限。
 
 不要把 `DATA_EDITOR_PROFILE_HOME` 误当成 bindings 真值源。
 
-### 4. 不能把 profile ETag 或配置 API 误读为 action 已 eligible
+### 4. 不能把 profile ETag 或配置 API 误读为 action 已可执行
 
-当前 API eligibility、proposal 与提交边界见上述 canonical Truth。
+当前 API 启动资格、proposal 与提交边界见上述 canonical Truth。
 
 这时：
 
@@ -197,3 +200,10 @@ phase-1 初始 API 只提供 schema 保存边界。当前 ETag compare-and-save 
 字段级白名单曾同时进入 profile 启用资格和 project policy。当前协议已移除这套配置：
 profile target 只拥有目标范围与可选文本产物引用，policy 只拥有目标、行谓词和文本产物边界；
 单次运行把目标条目的现有字段交给具体 Skill 选择，平台继续禁止字段新增/删除并保持独立提交门禁。
+
+<!-- dated: 2026-07-29 -->
+### phase-1 的旧运行态限制退出当前行为
+
+phase-1 建立存储与 API 时，legacy `run-entry-action` 和 `Project Settings` 项目级入口仍未切换。
+后续阶段已完成双层真值切换并移除项目级 `entryActions` 正式结构；本文继续拥有仍有效的存储、
+ETag、校验与 API 合同，不再把阶段一限制写成当前行为。

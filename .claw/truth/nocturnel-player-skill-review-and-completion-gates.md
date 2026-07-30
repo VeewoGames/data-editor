@@ -24,6 +24,12 @@ Nocturnel 的玩家技能设计、正式评审和实现验证已经分为三个�
 不变，且不得生成非空评分。实质设计变化使旧评分失效时，Skill 只能显式清空旧 `rating`，不能把
 正式评分或完成判断夹带进设计写回。
 
+`review-player-skill` 不再依赖 Nocturnel 的 proposal-only eligibility allowlist。它通过 Data
+Editor 启动时必须同时满足已启用且命中目标的规则、可用本机 binding、action 级 policy、authority
+与 fencing 等门禁；进入该执行链只允许
+发布评审 artifact 和建议章节，不能被解释为已经修改 canonical 数据、生成正式评分或通过实现完成
+验证。
+
 `review-player-skill` 支持两个入口：
 
 - `design_review` 只接受 `dev_status=待评审`，输出
@@ -59,7 +65,7 @@ Nocturnel 的玩家技能设计、正式评审和实现验证已经分为三个�
 - `artifactDigest`：完整产物摘要，用于校验发布内容未被修改。
 
 摘要复核、artifact 发布和建议章节生成必须保持 canonical JSON 与 Markdown 不变。任何正式写回都
-不属于只读评审的隐含结果。Data Editor 的 proposal-only action 现可在独立 action eligibility、
+不属于只读评审的隐含结果。Data Editor 的 proposal-only action 现可在规则、binding、action 级
 project policy 与 profile authority 下，把目标条目的现有字段合同和唯一 canonical Markdown
 交给 repo-local Skill，并只提交该 Skill 实际选择的字段；这不扩大评审 Skill 的只读边界，也不
 授权其生成正式评分或声明实现完成。
@@ -77,7 +83,6 @@ project policy 与 profile authority 下，把目标条目的现有字段合同�
 - `tests/node/player_skill_review_skill_contract_v1.test.js`
 - `tests/node/player_skill_review_tool_v1.test.js`
 - `tests/node/player_skill_verification_producer_v1.test.js`
-- `.data-editor/entry-action-eligibility.json`
 - `.data-editor/entry-action-policy.json`
 - `.data-editor/automation-profile.json`
 
@@ -102,7 +107,8 @@ project policy 与 profile authority 下，把目标条目的现有字段合同�
 <!-- dated: 2026-07-29 -->
 ### 设计 action 接入受控条目与 canonical 文档写回
 
-Nocturnel 将 `data-design-skill-player` 列入 proposal-only eligibility，并用项目 policy/profile
-将其限制为 `owner=player` 与按 `skill_id` 推导的单一开发 Markdown；具体 JSON 字段边界由
+Nocturnel 曾将 `data-design-skill-player` 列入 proposal-only eligibility，并用项目 policy/profile
+将其限制为 `owner=player` 与按 `skill_id` 推导的单一开发 Markdown；该独立白名单随后退出当前
+协议。具体 JSON 字段边界由
 repo-local Skill 合同持有。设计 action 不得生成非空 `rating`，并明确保持实现、运行时和稳定
 身份字段不变；正式评审、评分与完成门禁继续由独立评审和验证职责持有。

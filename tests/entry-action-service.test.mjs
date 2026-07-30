@@ -28,7 +28,9 @@ test("proposal-only service commits an authorized row patch and publishes termin
         sourcePath: handoff.entry.sourcePath,
         canonicalFileKey: handoff.entry.canonicalFileKey,
         collectionPath: handoff.entry.collectionPath,
-        rowId: handoff.entry.rowId,
+        // The model may mistype an immutable identity copied from the prompt.
+        // The service must bind the proposal back to the server-created handoff.
+        rowId: `${handoff.entry.rowId.slice(0, -1)}X`,
         baseDocumentEtag: handoff.proposalContract.baseDocumentEtag,
         automationProfileEtag: handoff.proposalContract.automationProfileEtag,
         authorityDigest: handoff.proposalContract.authorityDigest,
@@ -83,6 +85,8 @@ test("proposal-only service commits an authorized row patch and publishes termin
   const document = JSON.parse(await readFile(path.join(root, "data", "items.json"), "utf8"));
   assert.equal(document.items[0].name, "New");
   assert.equal(document.items[0].__entry_id, "01JTESTENTRY00000000000001");
+  const persistedProposal = JSON.parse(await readFile(path.join(root, ".data-editor", "runtime", "entry-actions", `${started.runId}.proposal.json`), "utf8"));
+  assert.equal(persistedProposal.rowId, "01JTESTENTRY00000000000001");
   assert.deepEqual(await readEntryActionResult(context, started.runId), {
     version: 2,
     runId: started.runId,
@@ -169,17 +173,13 @@ async function writeFixture(context) {
     bindings: { "fixture-rename": { provider: "codex", skill: "fixture-skill", enabled: true } },
   }, null, 2)}\n`);
   await writeFile(context.entryActionPolicyPath, `${JSON.stringify({
-    version: 3,
+    version: 4,
     targets: [{
+      actionId: "fixture-rename",
       file: "data/items.json",
       collection: "items",
     }],
     textArtifacts: [],
-  }, null, 2)}\n`);
-  await writeFile(context.entryActionEligibilityPath, `${JSON.stringify({
-    version: 1,
-    protocolMode: "proposal-only",
-    actions: ["fixture-rename"],
   }, null, 2)}\n`);
   await mkdir(path.join(context.projectRoot, "fixture-skill"), { recursive: true });
   await writeFile(path.join(context.projectRoot, "fixture-skill", "SKILL.md"), "# Fixture\n");

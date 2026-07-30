@@ -1,6 +1,6 @@
 ﻿# detail panel 条目级 Codex 自动化集成边界
 
-status: superseded
+<!-- document-state: superseded -->
 
 ## context
 
@@ -10,7 +10,10 @@ status: superseded
 
 当前长期方向应以 [`./entry-actions-user-local-personalized-configuration.md`](./entry-actions-user-local-personalized-configuration.md) 中的“双层个人化配置”决策为准。
 
-## 仍然有效的决策
+## 初始集成阶段保留过的约束
+
+以下内容只解释该 ADR 被替代前的集成边界；当前配置、执行与写回协议必须分别引用其 canonical
+Truth 和后继 ADR，不能从本节恢复 legacy 实现。
 
 ### 1. 前后端协议使用 `actionId`，不直接暴露 `skillName`
 
@@ -27,7 +30,7 @@ status: superseded
 - 构造最小必要条目 payload
 - 调用受控 executor / handoff 流程
 
-### 3. MVP 不做自动回写仍然成立
+### 3. MVP 阶段不做自动回写
 
 第一版只要求：
 

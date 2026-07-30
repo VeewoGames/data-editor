@@ -49,6 +49,12 @@
 稳定 `rowId`。proposal 中的 `sourceRowIndex` 不能替代 `__entry_id`，提交时也会在当前文档模型中
 重新定位并核对该行。
 
+模型返回 proposal 后，`src/entry-action-service.mjs::bindProposalToHandoff(...)` 会以服务端创建的
+handoff 覆盖 proposal 的 `version`、`runId`、`actionId`、`sourcePath`、`canonicalFileKey`、
+`collectionPath`、`rowId`、两个 etag、`authorityDigest` 与 `fencingToken`。模型只决定 `changes` 与
+summary 等建议内容；它回传的身份字段不构成提交目标。这避免复制 `rowId` 时的单字符误写把写回
+导向不存在或错误的条目。
+
 因此 Codex 只提交变更建议，正式写回仍由服务端围绕稳定身份完成，不再依赖已删除的 legacy
 direct-write runner 做前后快照归因。
 
@@ -64,8 +70,8 @@ direct-write runner 做前后快照归因。
 ### 7. `/api/entry-actions/result` 用于轮询 proposal-only 运行状态
 
 服务端保留 `/api/entry-actions/result` 读取历史记录，并对当前运行返回规范化的 `phase/outcome`、
-proposal、reply 与 diagnostics 可用性。eligible action 可进入 proposal-only 执行链；未 eligible
-的 action 仍返回 `ENTRY_ACTION_PROTOCOL_DISABLED`。
+proposal、reply 与 diagnostics 可用性。已启用且命中目标的规则、可用本机 binding 与 action 级
+policy 共同允许进入 proposal-only 执行链；它们不满足时服务失败关闭。
 
 这让 entry-action 的运行态不再只靠一次性发起请求猜测，结果读取链路也变成了可重复查询的稳定接口。
 
@@ -115,7 +121,7 @@ proposal、reply 与 diagnostics 可用性。eligible action 可进入 proposal-
 
 ### 3. entry-action 的 handoff 与 writeback 核对必须共享同一稳定身份
 
-只要定位链条仍在使用 `rowId`，handoff 和 writebackCheck 就应继续围绕同一个条目身份重读，而不是分别相信不同的临时行号。
+只要定位链条仍在使用 `rowId`，handoff 和 writebackCheck 就应继续围绕同一个条目身份重读，而不是分别相信不同的临时行号。模型返回的 proposal 也必须由服务端 handoff 覆盖所有执行身份与并发合同字段；不得把模型回传的 `rowId`、文件、动作、版本、etag、authority 或 fencing 值作为写回真值。
 
 ### 4. `__entry_id` 与业务主键是两条不同职责链
 
@@ -136,6 +142,7 @@ proposal、reply 与 diagnostics 可用性。eligible action 可进入 proposal-
 - `tests/document-model.test.mjs`
 - `tests/document-store.test.mjs`
 - `tests/entry-actions.test.mjs`
+- `tests/entry-action-service.test.mjs`
 - `tests/maintenance-lookup.test.mjs`
 - 历史真实项目验证：错误 `sourceRowIndex` + 正确 `rowId` 曾能稳定定位并发起 legacy action
 - 临时真实项目验证：清空 `skill_id` 后不再出现“待确认 / 新主键不能为空”阻断
@@ -152,6 +159,7 @@ proposal、reply 与 diagnostics 可用性。eligible action 可进入 proposal-
 - `rowId`
 - `ENTRY_ACTION_TARGET_MISSING`
 - `ENTRY_ACTION_TARGET_ID_DUPLICATE`
+- `bindProposalToHandoff`
 - `primaryKeySyncPlan`
 - `configured business primary key is cleared to empty`
 

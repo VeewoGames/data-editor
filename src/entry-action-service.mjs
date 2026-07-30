@@ -13,10 +13,6 @@ import { createCommitJournal } from "./commit-journal.mjs";
 import { createDocumentCommitCoordinator } from "./document-commit-coordinator.mjs";
 import { buildDocumentModel } from "./document-model.mjs";
 import {
-  assertEntryActionEligible,
-  loadEntryActionEligibility,
-} from "./entry-action-eligibility.mjs";
-import {
   assertAuthorityCurrent,
   createAuthoritySnapshot,
 } from "./entry-action-authority.mjs";
@@ -67,8 +63,6 @@ export async function startProposalOnlyEntryAction({
   const resolveBindingStatus = dependencies.resolveCodexBindingStatus ?? resolveCodexBindingStatus;
   const createAllocator = dependencies.createFencingAllocator ?? createFencingAllocator;
   const actionId = String(request.actionId ?? "").trim();
-  const eligibility = await loadEntryActionEligibility(projectContext);
-  assertEntryActionEligible(eligibility, actionId);
   const [policy, profile, bindings] = await Promise.all([
     loadProjectEntryActionPolicy(projectContext),
     loadAutomationProfile(projectContext),
@@ -197,6 +191,7 @@ export async function startProposalOnlyEntryAction({
       documentCommitCoordinator,
       sourceIdentity,
       documentText,
+      handoff,
       stopHeartbeat,
     });
     return { runId, completion };
@@ -321,7 +316,7 @@ async function finishRun(context) {
     }
     const reply = await readFile(context.replyPath, "utf8");
     await atomicWrite(entryActionOutputPath(projectContext, runId), reply);
-    const proposal = JSON.parse(reply.trim());
+    const proposal = bindProposalToHandoff(JSON.parse(reply.trim()), context.handoff);
     await publishEntryActionProposal({
       directory: path.dirname(entryActionProposalPath(projectContext, runId)),
       runId,
@@ -346,6 +341,25 @@ async function finishRun(context) {
       await rm(context.scratch, { recursive: true, force: true }).catch(() => {});
     }
   }
+}
+
+// Proposal identity belongs to the server-created run, not to the model response.
+// Models still supply only the requested changes and summary.
+function bindProposalToHandoff(proposal, handoff) {
+  return {
+    ...proposal,
+    version: handoff.proposalContract.version,
+    runId: handoff.runId,
+    actionId: handoff.action.id,
+    sourcePath: handoff.entry.sourcePath,
+    canonicalFileKey: handoff.entry.canonicalFileKey,
+    collectionPath: handoff.entry.collectionPath,
+    rowId: handoff.entry.rowId,
+    baseDocumentEtag: handoff.proposalContract.baseDocumentEtag,
+    automationProfileEtag: handoff.proposalContract.automationProfileEtag,
+    authorityDigest: handoff.proposalContract.authorityDigest,
+    fencingToken: handoff.proposalContract.fencingToken,
+  };
 }
 
 async function commitProposal(context, proposal) {

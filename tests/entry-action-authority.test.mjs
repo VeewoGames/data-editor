@@ -3,13 +3,15 @@ import test from "node:test";
 import { assertAuthorityCurrent, createAuthoritySnapshot } from "../src/entry-action-authority.mjs";
 
 const policy = {
-  version: 3,
+  version: 4,
   targets: [{
+    actionId: "recheck",
     file: "fixtures/items.json",
     collection: "items",
     rowMatch: { owner: ["player"] },
   }],
   textArtifacts: [{
+    actionId: "recheck",
     id: "item-doc",
     pathTemplate: "docs/items/{value}.md",
     sourceField: "item_id",

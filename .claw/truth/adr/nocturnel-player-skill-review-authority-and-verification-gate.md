@@ -13,7 +13,7 @@
 `dev_status=完成` 失去可审计含义。
 
 同时，玩家技能的 canonical JSON 与开发 Markdown 都属于 Nocturnel。Data Editor 是通用编辑器，
-不应承载 Nocturnel 专用的评审模式、action、fixture eligibility 或状态写回特判。
+不应承载 Nocturnel 专用的评审模式、action、fixture 配置或状态写回特判。
 
 ## Decision
 
@@ -49,8 +49,9 @@ Skill 自述、`impl_status`、通用测试成功或未绑定到当前设计的�
 正式评审只发布不可变 review artifact 和确定性 Markdown section patch，不直接修改
 `data/content/skills.json` 或 canonical 开发文档。
 
-`data-design-skill-player` 的 Data Editor action 是独立写回入口：项目 policy/profile 只把入口
-限制在 `owner=player` 的技能和按 `skill_id` 推导的唯一 canonical Markdown；通用 Data Editor
+`data-design-skill-player` 的 Data Editor action 是独立写回入口：项目 policy/profile 以该
+`actionId` 把入口限制在 `owner=player` 的技能和按 `skill_id` 推导的唯一 canonical Markdown；
+它不与同文件的 `fill-data-name` 共享 target 授权。通用 Data Editor
 不再配置 Nocturnel 设计字段 allowlist。实际 JSON 字段边界由 repo-local Skill 合同拥有：
 它必须保持 `impl_status`、`nodes`、`action_source`、`use`、`skill_id`、`__entry_id` 与
 `dev_doc` 不变，不得生成非空 `rating`，仅可在实质设计变化后显式清空已失效评分。设计 action
@@ -86,7 +87,7 @@ Data Editor。
 - 正式映射为空或证据不足时，已实现技能仍保持 `verification_missing`，不能因已有评分或启用状态
   自动晋升。
 - 评审产物增加了摘要与 artifact 管理成本，但 canonical 数据不会被只读评审隐式修改。
-- eligible proposal-only action 可把目标条目的现有字段合同与 canonical Markdown 交给
+- 满足规则、binding、action 级 policy、authority 与 fencing 门禁的 proposal-only action 可把目标条目的现有字段合同与 canonical Markdown 交给
   `data-design-skill-player`；具体字段选择受其 repo-local 合同约束，不授予正式评分或实现完成
   判断。
 - Data Editor 不需要为了 Nocturnel 玩家技能评审增加项目专用运行时代码、配置或测试分支。
@@ -105,7 +106,7 @@ Data Editor 当前写回能力与禁用边界仍由
 <!-- dated: 2026-07-29 -->
 ### 设计 action 获得受控条目写回，评审只读边界保持不变
 
-Nocturnel 为 `data-design-skill-player` 配置了 proposal-only eligibility、玩家行谓词和
-canonical Markdown 模板；JSON 字段选择由 repo-local Skill 合同负责，不再在通用 policy 中
+Nocturnel 曾为 `data-design-skill-player` 配置 proposal-only eligibility、玩家行谓词和
+canonical Markdown 模板；独立 eligibility 随后退出当前协议。JSON 字段选择由 repo-local Skill 合同负责，不再在通用 policy 中
 重复配置 allowlist。此前“JSON 与 Markdown 受控写回尚未实现”的事实退出当前状态；正式评审仍
 只发布 artifact 与建议 patch，评分和完成门禁仍由独立职责持有。

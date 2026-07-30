@@ -7,8 +7,9 @@
 这条 truth 只沉淀 `entryActions` 第二版的长期产品与架构判断。
 
 当前条目自动化以 `automation profile + machine-local automation bindings` 承担个人规则与设备绑定，
-并通过 proposal-only service 执行。项目级 `entryActions` 只保留历史迁移语义，不再是按钮或执行
-真值。这里保留的是为什么要采用双层个人化配置，以及哪些边界不应重新打开。
+并通过 proposal-only service 执行。项目级 `entryActions` 已退出 registry 正式结构，加载旧
+registry 时也会被归一化剥离，不再是按钮、执行或迁移真值。这里保留的是为什么要采用双层个人化
+配置，以及哪些边界不应重新打开。
 
 ## 结论
 
@@ -87,25 +88,27 @@
 
 ## 长期规则
 
-### 1. 第一版代码事实仍然成立，但只应作为已验证的 MVP 运行时链路
+### 1. 第一版项目级运行链已经退出当前真值
 
-当前项目里关于 `entryActions` 的第一版事实仍然有效：
+当前实现已经完成以下收口：
 
-- `src/App.tsx` 中的 `ProjectSettingsDialog` 负责项目级维护入口
-- `src/project-registry.mjs` 仍是第一版项目配置真值承载层
-- `src/detail/DetailPanel.tsx` 与 `src/entry-actions.mjs` 仍是现有按钮过滤和 handoff 运行时链路
+- `ProjectSettingsDialog` 不再维护项目级 `entryActions`
+- `src/project-registry.mjs::normalizeProjectDefinition(...)` 不再保留 legacy `entryActions`
+- `src/App.tsx::visibleEntryActions` 由 `automation profile + machine-local bindings` 解析
+- `server.mjs::handleRunEntryAction(...)` 只转交 proposal-only service
 
-这些锚点说明第一版已经验证了动作按钮与执行链路本身，而不是说明项目共享配置应继续作为第二版长期方向。
+`src/detail/DetailPanel.tsx` 仍负责展示已经解析出的动作按钮与状态，但它不拥有规则、绑定或执行
+资格真值。`src/entry-actions.mjs` 中保留的 legacy helper 也不能被解释为当前 registry 或执行入口。
 
-### 1.1 第二版迁移要以“清理旧真值”为目标
+### 1.1 旧项目级真值不得作为兼容路径恢复
 
-既然当前项目仍处于早期草稿阶段，第二版迁移不应为了兼容成本而长期保留：
+后续不得为了兼容重新引入：
 
 - `Project Settings` 里的旧 `entryActions` 编辑入口
 - 项目级 `entryActions` 旧真值
 - 项目级与个人级两套长期双读逻辑
 
-正确方向是：提供一次性的迁移 / 导入能力，然后收口到新的双层个人化配置链。
+旧 registry 中出现 `entryActions` 时，当前语义是归一化剥离，而不是自动导入或隐式 fallback。
 
 ### 2. 后续不要再把“完全本地化”或“完全跨设备同步”当成默认终局
 
@@ -139,6 +142,8 @@
 ## 关联文档
 
 - `docs/plans/2026-07-01-entryActions第二版体验方案.md`
+- `.claw/truth/entry-actions-v2-phase2-automation-settings-entry-and-import.md`
+- `.claw/truth/entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`
 - `.claw/truth/detail-panel-entry-codex-automation-boundary.md`
 
 ## 关键检索词
@@ -150,3 +155,13 @@
 - `shared action rules`
 - `device-local binding`
 - `detail panel codex automation`
+
+<!-- state: history -->
+## 演进记录
+
+<!-- dated: 2026-07-29 -->
+### 第一版项目级运行链退出当前真值
+
+第一版曾由 `ProjectSettingsDialog` 维护 registry 中的 `entryActions`，并由详情面板和 legacy runner
+完成按钮过滤与 handoff 执行。该链路用于验证 MVP，但随后被双层个人化配置与 proposal-only
+service 取代；旧 registry 字段现在会被归一化剥离。

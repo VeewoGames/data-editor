@@ -10,28 +10,29 @@ export class EntryActionPolicyError extends Error {
 }
 
 export function validateEntryActionPolicy(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value) || !exactKeys(value, ["version", "targets", "textArtifacts"]) || value.version !== 3 || !Array.isArray(value.targets) || value.targets.length === 0 || !Array.isArray(value.textArtifacts)) fail("ENTRY_ACTION_POLICY_INVALID", "Policy must be version 3 with targets and textArtifacts.");
+  if (!value || typeof value !== "object" || Array.isArray(value) || !exactKeys(value, ["version", "targets", "textArtifacts"]) || value.version !== 4 || !Array.isArray(value.targets) || value.targets.length === 0 || !Array.isArray(value.textArtifacts)) fail("ENTRY_ACTION_POLICY_INVALID", "Policy must be version 4 with action-scoped targets and textArtifacts.");
   const seen = new Set();
   const targets = value.targets.map((target) => {
     if (!target || typeof target !== "object" || Array.isArray(target)
-      || !(exactKeys(target, ["file", "collection"])
-        || exactKeys(target, ["file", "collection", "rowMatch"]))) {
+      || !(exactKeys(target, ["actionId", "file", "collection"])
+        || exactKeys(target, ["actionId", "file", "collection", "rowMatch"]))) {
       fail("ENTRY_ACTION_POLICY_INVALID", "Policy target must be an object.");
     }
-    const file = required(target.file, "target.file"); const collection = required(target.collection, "target.collection");
-    const key = `${file}\u0000${collection}`; if (seen.has(key)) fail("ENTRY_ACTION_POLICY_INVALID", "Policy targets must be unique."); seen.add(key);
+    const actionId = actionKey(target.actionId, "target.actionId"); const file = required(target.file, "target.file"); const collection = required(target.collection, "target.collection");
+    const key = `${actionId}\u0000${file}\u0000${collection}`; if (seen.has(key)) fail("ENTRY_ACTION_POLICY_INVALID", "Policy targets must be unique per action."); seen.add(key);
     const rowMatch = normalizeRowMatch(target.rowMatch);
-    return { file, collection, rowMatch };
+    return { actionId, file, collection, rowMatch };
   });
   const textArtifactIds = new Set();
   const textArtifacts = value.textArtifacts.map((artifact) => {
     if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)
-      || !exactKeys(artifact, ["id", "pathTemplate", "sourceField", "allowCreate", "allowUpdate", "maxBytes"])) {
+      || !exactKeys(artifact, ["actionId", "id", "pathTemplate", "sourceField", "allowCreate", "allowUpdate", "maxBytes"])) {
       fail("ENTRY_ACTION_POLICY_INVALID", "Policy textArtifact must be an object.");
     }
-    const id = required(artifact.id, "textArtifact.id");
-    if (textArtifactIds.has(id)) fail("ENTRY_ACTION_POLICY_INVALID", "Policy textArtifact ids must be unique.");
-    textArtifactIds.add(id);
+    const actionId = actionKey(artifact.actionId, "textArtifact.actionId"); const id = required(artifact.id, "textArtifact.id");
+    const artifactKey = `${actionId}\u0000${id}`;
+    if (textArtifactIds.has(artifactKey)) fail("ENTRY_ACTION_POLICY_INVALID", "Policy textArtifact ids must be unique per action.");
+    textArtifactIds.add(artifactKey);
     const pathTemplate = normalizeTextArtifactPathTemplate(artifact.pathTemplate);
     const sourceField = required(artifact.sourceField, "textArtifact.sourceField");
     if (typeof artifact.allowCreate !== "boolean" || typeof artifact.allowUpdate !== "boolean"
@@ -40,6 +41,7 @@ export function validateEntryActionPolicy(value) {
       fail("ENTRY_ACTION_POLICY_INVALID", "Policy textArtifact permissions or maxBytes are invalid.");
     }
     return {
+      actionId,
       id,
       pathTemplate,
       sourceField,
@@ -48,7 +50,7 @@ export function validateEntryActionPolicy(value) {
       maxBytes: artifact.maxBytes,
     };
   });
-  return { version: 3, targets, textArtifacts };
+  return { version: 4, targets, textArtifacts };
 }
 
 export async function loadEntryActionPolicy(file) {
@@ -66,17 +68,15 @@ export function authorityDigest(policy) {
   return crypto.createHash("sha256").update(canonicalJson(validateEntryActionPolicy(policy))).digest("hex");
 }
 
-export function validateAuthorizedPatch({ policy, file, collection, field, value }) {
-  const target = validateEntryActionPolicy(policy).targets.find((item) => item.file === file && item.collection === collection);
-  if (!target) fail("ENTRY_ACTION_POLICY_TARGET_DENIED", "Policy does not authorize this target.");
+export function validateAuthorizedPatch({ policy, actionId, file, collection, field, value }) {
+  findTarget(policy, actionId, file, collection);
   required(field, "field");
   if (value === undefined) fail("ENTRY_ACTION_POLICY_VALUE_DENIED", "Policy does not allow undefined.");
   return { uniqueScope: "none" };
 }
 
-export function validateAuthorizedRow({ policy, file, collection, row }) {
-  const target = validateEntryActionPolicy(policy).targets.find((item) => item.file === file && item.collection === collection);
-  if (!target) fail("ENTRY_ACTION_POLICY_TARGET_DENIED", "Policy does not authorize this target.");
+export function validateAuthorizedRow({ policy, actionId, file, collection, row }) {
+  const target = findTarget(policy, actionId, file, collection);
   if (Object.keys(target.rowMatch).length === 0) return target;
   if (!row || typeof row !== "object" || Array.isArray(row)) fail("ENTRY_ACTION_POLICY_ROW_DENIED", "Policy row predicate rejected the entry.");
   for (const [field, allowedValues] of Object.entries(target.rowMatch)) {
@@ -87,8 +87,9 @@ export function validateAuthorizedRow({ policy, file, collection, row }) {
   return target;
 }
 
-export function validateAuthorizedTextArtifact({ policy, artifactId, path, sourceValue, beforeExists, afterContent }) {
-  const artifact = validateEntryActionPolicy(policy).textArtifacts.find((item) => item.id === artifactId);
+export function validateAuthorizedTextArtifact({ policy, actionId, artifactId, path, sourceValue, beforeExists, afterContent }) {
+  const normalizedActionId = actionKey(actionId, "actionId");
+  const artifact = validateEntryActionPolicy(policy).textArtifacts.find((item) => item.actionId === normalizedActionId && item.id === artifactId);
   if (!artifact) fail("ENTRY_ACTION_POLICY_TEXT_ARTIFACT_DENIED", "Policy does not authorize this text artifact.");
   if (typeof sourceValue !== "string" || !PATH_SEGMENT.test(sourceValue)) fail("ENTRY_ACTION_POLICY_TEXT_ARTIFACT_DENIED", "Text artifact source value is not a safe path segment.");
   const expectedPath = artifact.pathTemplate.replace(TEXT_ARTIFACT_TEMPLATE_TOKEN, sourceValue);
@@ -96,6 +97,13 @@ export function validateAuthorizedTextArtifact({ policy, artifactId, path, sourc
   if (beforeExists ? !artifact.allowUpdate : !artifact.allowCreate) fail("ENTRY_ACTION_POLICY_TEXT_ARTIFACT_DENIED", "Policy does not authorize this text artifact operation.");
   if (typeof afterContent !== "string" || Buffer.byteLength(afterContent, "utf8") > artifact.maxBytes) fail("ENTRY_ACTION_POLICY_TEXT_ARTIFACT_DENIED", "Text artifact exceeds the policy size limit.");
   return artifact;
+}
+
+function findTarget(policy, actionId, file, collection) {
+  const normalizedActionId = actionKey(actionId, "actionId");
+  const target = validateEntryActionPolicy(policy).targets.find((item) => item.actionId === normalizedActionId && item.file === file && item.collection === collection);
+  if (!target) fail("ENTRY_ACTION_POLICY_TARGET_DENIED", "Policy does not authorize this action target.");
+  return target;
 }
 
 function normalizeRowMatch(value) {
@@ -121,6 +129,7 @@ function normalizeTextArtifactPathTemplate(value) {
   if (normalized !== template) fail("ENTRY_ACTION_POLICY_INVALID", "Policy textArtifact.pathTemplate must be normalized.");
   return template;
 }
+function actionKey(value, label) { const actionId = required(value, label); if (!/^[a-z0-9_-]+$/.test(actionId)) fail("ENTRY_ACTION_POLICY_INVALID", `${label} is invalid.`); return actionId; }
 function required(value, label) { if (typeof value !== "string" || !value.trim()) fail("ENTRY_ACTION_POLICY_INVALID", `${label} is required.`); return value.trim(); }
 function canonicalJson(value) { if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`; if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`; return JSON.stringify(value); }
 function exactKeys(value, keys) { const actual = Object.keys(value); return actual.length === keys.length && keys.every((key) => Object.hasOwn(value, key)); }

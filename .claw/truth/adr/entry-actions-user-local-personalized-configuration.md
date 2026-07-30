@@ -33,7 +33,9 @@
 
 ### 1. 放弃项目共享 `entryActions` 作为长期产品方向
 
-`project-registry` 中的 `entryActions` 只视为第一版 MVP 的运行时承载，不再作为第二版及后续长期产品形态继续增强。
+`project-registry` 中的 `entryActions` 曾是第一版 MVP 的运行时承载，不再作为第二版及后续长期
+产品形态继续增强。当前 `src/project-registry.mjs::normalizeProjectDefinition(...)` 会剥离该
+legacy 字段，不再把它保留为当前配置或迁移入口。
 
 后续产品和架构设计，不再以“团队共享动作定义”作为目标，也不再围绕 `Project Settings` 扩展这套能力。
 
@@ -101,45 +103,31 @@
 
 既然配置归属已经拆为用户层和设备层，第二版正式入口就不能继续挂在 `Project Settings`。
 
-后续实现应提供独立的用户级自动化配置入口，例如 `Automation Settings`、`My Entry Actions` 或等价语义，而不是继续把这套能力伪装成项目设置的一部分。
+当前正式入口是独立的 `Automation Settings`；`Project Settings` 只维护项目元数据，不再提供
+项目级 `entryActions` 编辑入口。
 
 自动化规则不绑定 `selectedViewProfile`。view profile 负责视图偏好，自动化规则负责个人动作意图，两者语义分离。
 
-### 7. 第二版首批范围只保留双层最小闭环
+### 7. 双层配置只拥有规则与设备绑定，不拥有执行写回安全协议
 
-第二版首批实现只保留：
+本 ADR 当前拥有的配置闭环是：
 
 - 用户级动作配置入口
 - 共享规则编辑器
 - `target file / target collection` 选择器
 - 当前设备绑定编辑器
 
-不把以下能力并入首批重构：
+动作是否可以执行、proposal 能表达什么、如何提交和恢复，不由 profile 或 binding 的就绪状态
+决定，也不由本 ADR 扩张定义。当前 proposal-only 启动资格、policy、authority、fencing、
+组合提交与 recovery 边界由
+[`../entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](../entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
+拥有。
 
-- 结果轮询
-- 自动回写
-- 运行历史面板
-- 模板市场化配置
+### 8. 配置状态不能替代执行结果协议
 
-第一阶段进一步把这个首批范围收窄为“先落新存储与 API，再切运行时真值”。
-
-因此第一阶段明确不做：
-
-- `run-entry-action` 切到新真值
-- 旧 `entryActions` 迁移
-- `Project Settings` 旧入口清理
-
-这些动作留到后续阶段一次性完成，避免在新存储刚建立时同时维护两套长期真值。
-
-### 8. telemetry 只保留最小必要执行信号
-
-在双层个人化方向下，系统只保留支撑本地执行、排障和最小反馈所必需的 telemetry：
-
-- 顶层执行状态继续使用 `started` / `rejected` / `error`
-- 但 `rejected` / `error` 下需要稳定的细分 `reason`，至少覆盖 `binding_missing`、`binding_invalid`、`binding_disabled`、`rule_not_found`、`target_not_matched`、`executor_launch_failed`
-- 服务端继续保留 handoff 文件与启动记录这类最小审计产物
-
-第二版不把跨刷新运行态恢复、执行历史、结果轮询或自动回写状态提升为核心协议的一部分。
+`ready`、`missing_binding`、`invalid_binding` 等设置页状态只解释配置可用性，不能证明 action 已
+可执行、已执行或已完成写回。运行结果、提交证据与 recovery 状态必须引用 proposal-only
+service 的正式合同，不能从 profile/bindings 或旧的 `started / rejected / error` MVP 状态推断。
 
 ### 9. 设置页必须承担“缺绑定 / 失效”的可发现性责任
 
@@ -205,15 +193,16 @@ binding。保存判断使用 profile/bindings 的同步 ref 快照，避免 Reac
 
 ## consequences
 
-- 后续实现重心将从“项目共享配置编辑”转向“用户共享规则 + 设备本地绑定”编辑。
-- `Project Settings` 中现有 `entryActions` 入口属于过渡性 MVP，而不是长期信息架构。
+- 当前配置重心已经从“项目共享配置编辑”转为“用户共享规则 + 设备本地绑定”编辑。
+- `Project Settings` 中的 legacy `entryActions` 入口已移除，旧 registry 字段会在归一化时被剥离。
 - 用户跨电脑时，动作规则仍可保留；但新设备需要单独补齐执行绑定。
 - 第一阶段的正式持久化边界已经固定为“每项目唯一 `automation profile` + project-local `.data-editor/local/automation-bindings.json`”，后续阶段在此基础上继续接管运行时真值。
-- 当前第一版的 `project-registry -> server -> client` 链路只作为一次性迁移来源，不保留长期兼容双读。
+- 第一版的 `project-registry -> server -> client` 动作配置链已退出，不保留自动迁移或长期兼容双读。
 - 第二版运行时已切到 profile/bindings 与 proposal-only service；项目级 `entryActions` 不再是执行真值。
-- action 是否可执行还必须通过项目 eligibility、policy、authority 与 fencing，不能从 profile/binding
-  就绪直接推断。
-- 执行反馈与审计继续保持最小面，避免在架构归属切换阶段把历史、轮询和回写一并固化成长期负担。
+- action 是否可执行还必须同时通过已启用且命中目标的规则、可用本机 binding、action 级 policy、
+  authority 与 fencing，不能从任一配置表面状态直接推断。
+- 执行反馈、审计与 recovery 由 proposal-only service 的独立合同维护，本 ADR 不再固定 MVP
+  状态集合或写回范围。
 - 设置页的最小体验收口不是一次性 UI 美化，而是持续要求“保存前可发现 + 服务端可拒绝 + 错误可回显”，避免非法配置混入正式真值。
 - `automation profile` 与 `automation bindings` 的读写分层会长期保留：`load` 允许宽松归一化，`save` 必须严格校验。
 - 自动化规则的目标范围语义已经固定为 file-scoped collection pair；`$` 只在具体文件上下文里解释，不再单独作为全局目标名使用。
@@ -240,7 +229,6 @@ binding。保存判断使用 profile/bindings 的同步 ref 快照，避免 Reac
 - `server.mjs`
 - `src/entry-action-route.mjs`
 - `src/entry-action-service.mjs`
-- `src/entry-action-eligibility.mjs`
 - `tests/automation-rule-selection.test.mjs`
 - `tests/automation-rule-draft.test.mjs`
 - `docs/plans/2026-07-01-entryActions第二版具体执行方案.md`
@@ -259,5 +247,12 @@ binding。保存判断使用 profile/bindings 的同步 ref 快照，避免 Reac
 ### 双层配置接入 proposal-only 执行链
 
 profile 与 machine-local bindings 从存储/可见性真值扩展为 proposal-only service 的输入；执行资格
-另由项目/action eligibility 和安全 authority 决定。旧 `run-entry-action` direct-write 脚本退出
+另由规则、binding、action 级 policy 和安全 authority 决定。旧 `run-entry-action` direct-write 脚本退出
 生产路径，双层个人化配置决定保持不变。
+
+<!-- dated: 2026-07-29 -->
+### 第一阶段非写回范围与 legacy 配置入口退出
+
+第一阶段曾刻意只建立 profile/bindings 存储与 API，不切换运行时、不清理 `Project Settings`
+入口，也不承担自动回写。后续阶段已完成运行时真值切换、legacy registry 字段清理和
+proposal-only 受控写回；这些变化没有重新打开项目共享配置方向。

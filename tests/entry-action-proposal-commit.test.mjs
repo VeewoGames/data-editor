@@ -16,12 +16,14 @@ const text = '[{"__entry_id":"row-1","item_id":"item_alpha","name":"Alpha","note
 const etag = (value) => `"${crypto.createHash("sha256").update(value, "utf8").digest("hex")}"`;
 const digest = (value) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
 const policy = {
-  version: 3,
+  version: 4,
   targets: [{
+    actionId: "rename",
     file: "data/items.json",
     collection: "$",
   }],
   textArtifacts: [{
+    actionId: "rename",
     id: "item-doc",
     pathTemplate: "docs/items/{value}.md",
     sourceField: "item_id",

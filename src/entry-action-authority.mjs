@@ -8,9 +8,9 @@ export function createAuthoritySnapshot({ policy, profile, actionId, file, colle
   let textArtifact = null;
   try {
     digest = authorityDigest(policy);
-    validateAuthorizedRow({ policy, file, collection, row });
+    validateAuthorizedRow({ policy, actionId, file, collection, row });
     if (target.textArtifactId != null) {
-      const artifact = policy.textArtifacts.find((item) => item.id === target.textArtifactId);
+      const artifact = policy.textArtifacts.find((item) => item.actionId === actionId && item.id === target.textArtifactId);
       const sourceValue = row?.[artifact?.sourceField];
       if (!artifact || typeof sourceValue !== "string") authorityStale();
       textArtifact = Object.freeze({
@@ -40,10 +40,10 @@ export function assertAuthorityCurrent({ snapshot, policy, profile, changes, tex
   const target = action?.targets?.find((item) => item.file === snapshot.file && item.collection === snapshot.collection);
   if (!target || !Array.isArray(changes) || changes.length === 0) authorityStale();
   try {
-    validateAuthorizedRow({ policy, file: snapshot.file, collection: snapshot.collection, row });
+    validateAuthorizedRow({ policy, actionId: snapshot.actionId, file: snapshot.file, collection: snapshot.collection, row });
     const fieldRules = changes.map((change) => {
       if (!snapshot.writableFields.includes(change.field) || !Object.hasOwn(row, change.field)) authorityStale();
-      return validateAuthorizedPatch({ policy, file: snapshot.file, collection: snapshot.collection, field: change.field, value: change.after });
+      return validateAuthorizedPatch({ policy, actionId: snapshot.actionId, file: snapshot.file, collection: snapshot.collection, field: change.field, value: change.after });
     });
     let textArtifactRule = null;
     if ((snapshot.textArtifact === null) !== (textArtifact === null)) authorityStale();
@@ -53,6 +53,7 @@ export function assertAuthorityCurrent({ snapshot, policy, profile, changes, tex
         || row?.[snapshot.textArtifact.sourceField] !== snapshot.textArtifact.sourceValue) authorityStale();
       textArtifactRule = validateAuthorizedTextArtifact({
         policy,
+        actionId: snapshot.actionId,
         artifactId: textArtifact.id,
         path: textArtifact.path,
         sourceValue: snapshot.textArtifact.sourceValue,

@@ -138,8 +138,8 @@ export function setCellValueByRowId({ model, store, collectionPath, rowId, field
 }
 
 /** Applies one already-authorized policy patch; it never derives authority itself. */
-export function setAuthorizedCellValueByRowId({ model, store, policy, file, collectionPath, rowId, fieldName, value }) {
-  validateAuthorizedPatch({ policy, file, collection: collectionPath, field: fieldName, value });
+export function setAuthorizedCellValueByRowId({ model, store, policy, actionId, file, collectionPath, rowId, fieldName, value }) {
+  validateAuthorizedPatch({ policy, actionId, file, collection: collectionPath, field: fieldName, value });
   setCellValueByRowId({ model, store, collectionPath, rowId, fieldName, value });
 }
 

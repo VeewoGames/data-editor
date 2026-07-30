@@ -50,6 +50,7 @@ export async function prepareEntryActionProposalCommit({
       model,
       store,
       policy,
+      actionId: value.actionId,
       file: value.sourcePath,
       collectionPath: value.collectionPath,
       rowId: value.rowId,

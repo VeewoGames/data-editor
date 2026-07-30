@@ -386,7 +386,10 @@ export function SharedViewIconPicker({
               </button>
             </div>
           ) : pickerIconIds.length ? (
-            <div className="view-tab-icon-picker-grid">
+            <div
+              className="view-tab-icon-picker-grid"
+              onWheelCapture={(event) => event.stopPropagation()}
+            >
               {pickerIconIds.map((candidateIconId) => {
                 const candidateLoaded = isSharedViewIconLoaded(candidateIconId);
                 const candidateFavorite = favoriteIconIdSet.has(candidateIconId);

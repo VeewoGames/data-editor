@@ -7,7 +7,6 @@ export const defaultSharedViewConfigPath = ".data-editor/view-config.json";
 export const defaultProjectViewProfilesDir = ".data-editor/view-configs";
 export const defaultAutomationProfilePath = ".data-editor/automation-profile.json";
 export const defaultEntryActionPolicyPath = ".data-editor/entry-action-policy.json";
-export const defaultEntryActionEligibilityPath = ".data-editor/entry-action-eligibility.json";
 export const defaultLocalAutomationBindingsPath = ".data-editor/local/automation-bindings.json";
 export const defaultRuntimeDir = ".data-editor/runtime";
 export const defaultLogsDir = ".data-editor/logs";
@@ -29,8 +28,6 @@ export function createProjectContext(input = {}) {
     ?? path.join(sharedConfigDir, path.basename(defaultAutomationProfilePath));
   const entryActionPolicyPath = input.entryActionPolicyPath
     ?? path.join(projectRoot, defaultEntryActionPolicyPath);
-  const entryActionEligibilityPath = input.entryActionEligibilityPath
-    ?? path.join(projectRoot, defaultEntryActionEligibilityPath);
   const localAutomationBindingsPath = input.localAutomationBindingsPath
     ?? path.join(projectRoot, defaultLocalAutomationBindingsPath);
   return {
@@ -44,7 +41,6 @@ export function createProjectContext(input = {}) {
     userViewProfilesDir,
     automationProfilePath,
     entryActionPolicyPath,
-    entryActionEligibilityPath,
     localAutomationBindingsPath,
     legacyViewProfilesDir: input.legacyViewProfilesDir ?? legacyViewProfilesDir,
     runtimeDir: input.runtimeDir ?? defaultRuntimeDir,

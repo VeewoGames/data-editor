@@ -20,4 +20,43 @@ export function normalizeEntryActionStateRecord(value) {
   throw stateError();
 }
 
+/**
+ * Converts a persisted pre-v2 artifact once. Normal reads must stay v2-only.
+ */
+export function migrateLegacyEntryActionStateRecord(value, artifactKind) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || value.phase) return null;
+  const status = typeof value.status === "string" ? value.status : null;
+  if (!status) return null;
+
+  const { status: _legacyStatus, ...rest } = value;
+  if (artifactKind === "started" && status === "started") {
+    return {
+      ...rest,
+      version: 2,
+      phase: "running",
+      outcome: null,
+      updatedAt: value.updatedAt ?? value.startedAt ?? null,
+    };
+  }
+
+  if (artifactKind !== "result") return null;
+  const outcome = legacyTerminalOutcome(status);
+  if (!outcome) return null;
+  return {
+    ...rest,
+    version: 2,
+    phase: "terminal",
+    outcome,
+    updatedAt: value.updatedAt ?? value.finishedAt ?? null,
+  };
+}
+
+function legacyTerminalOutcome(status) {
+  if (status === "completed_with_writeback") return "completed_with_writeback";
+  if (status === "completed" || status === "completed_without_observed_writeback") return "completed_without_changes";
+  if (status === "failed") return "failed";
+  if (status === "timed_out") return "timed_out";
+  return null;
+}
+
 function stateError() { return Object.assign(new Error("ENTRY_ACTION_STATE_INVALID"), { code: "ENTRY_ACTION_STATE_INVALID" }); }

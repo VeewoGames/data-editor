@@ -1,7 +1,8 @@
 # entry-action completed 与真实写回脱节：最小证据链
 
-status: superseded
+<!-- document-state: historical -->
 
+<!-- state: history -->
 ## context
 
 这条 truth 只固定一个最小且可复用的排障结论：`entry-action` 的旧 `completed` 语义只说明 Codex 过程结束并产出了 `reply/result`，**不等于** 目标文件或目标条目的真实写回已经被观察到。

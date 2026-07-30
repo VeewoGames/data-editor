@@ -15,6 +15,7 @@ import {
   entryActionOutputPath,
   findActiveEntryActionRuns,
   findLatestEntryActionRun,
+  migrateLegacyEntryActionStateArtifacts,
   normalizeEntryActionPath,
   normalizeEntryActionRowId,
   normalizeEntryActionSourceRowIndex,
@@ -58,6 +59,7 @@ const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileUR
 const execFileAsync = promisify(execFile);
 let shuttingDown = false;
 let initialProjectPromise = null;
+const entryActionStateMigrationByProjectRoot = new Map();
 const connectionShutdown = createConnectionShutdown();
 const jobSupervisor = createJobSupervisor({ toolRoot });
 const documentCommitCoordinator = createDocumentCommitCoordinator();
@@ -891,12 +893,27 @@ async function projectContextForId(projectId) {
   const resolvedProjectId = typeof projectId === "string" && projectId.trim() ? projectId.trim() : registry.activeProjectId;
   const project = registry.projects.find((candidate) => candidate.id === resolvedProjectId);
   if (!project) throw new Error(resolvedProjectId ? `Unknown project: ${resolvedProjectId}` : "No active project is configured.");
-  return createProjectContext({
+  const projectContext = createProjectContext({
     projectRoot: project.root,
     adapterId: project.adapter,
     dataSources: project.dataSources,
     filePolicy: project.filePolicy,
   });
+  await ensureEntryActionStateMigration(projectContext);
+  return projectContext;
+}
+
+async function ensureEntryActionStateMigration(projectContext) {
+  const key = projectContext.projectRoot;
+  let migration = entryActionStateMigrationByProjectRoot.get(key);
+  if (!migration) {
+    migration = migrateLegacyEntryActionStateArtifacts(projectContext).catch((error) => {
+      entryActionStateMigrationByProjectRoot.delete(key);
+      throw error;
+    });
+    entryActionStateMigrationByProjectRoot.set(key, migration);
+  }
+  await migration;
 }
 
 function runtimeTargetFromArgs() {

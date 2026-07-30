@@ -6,7 +6,10 @@
 
 这条 truth 只沉淀第二阶段完成后的最终运行时决策，不重复第一阶段的存储/API 基础设施，也不重复第二版为什么要转成双层个人化配置的方向性判断。
 
-第二阶段完成后，`entryActions` 的正式运行时真值已经从旧的 `project.entryActions` 切到 `automation profile + machine-local automation bindings`。`Automation Settings` 负责个人自动化编辑与迁移导入，`Project Settings` 只保留项目元数据职责。
+第二阶段完成后，`entryActions` 的正式运行时真值已经从旧的 `project.entryActions` 切到
+`automation profile + machine-local automation bindings`。`Automation Settings` 负责个人
+自动化编辑，`Project Settings` 只保留项目元数据职责；当前 registry 归一化会直接剥离 legacy
+`entryActions`，不再提供自动迁移入口。
 
 ## decision
 
@@ -18,21 +21,24 @@
 - 机器本地 `automation bindings`
 
 详情按钮可见性仍围绕这两层真值判断，而不是再回读项目级旧配置。当前
-`POST /api/entry-actions/run` 只进入 proposal-only service，并额外要求项目/action eligibility、
-policy、authority 与 fencing admission；未 eligible 的 action 返回
-`ENTRY_ACTION_PROTOCOL_DISABLED`。执行边界由
+`POST /api/entry-actions/run` 只进入 proposal-only service，并额外要求已启用且命中目标的规则、
+可用本机 binding、action 级 policy、authority 与 fencing admission。执行边界由
 [`entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md`](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
 单独拥有。
 
-### 2. `project.entryActions` 只保留迁移来源语义
+### 2. `project.entryActions` 只保留历史来源语义
 
-旧 `project.entryActions` 现在只作为一次性迁移来源，不再承担以下职责：
+旧 `project.entryActions` 不再进入规范化后的 project definition。加载 legacy registry 时，
+`src/project-registry.mjs::normalizeProjectDefinition(...)` 只保留正式项目字段并剥离该属性。
+它不再承担以下职责：
 
 - 详情按钮是否显示
 - 已禁用入口是否允许进入执行
 - 新入口里规则层的长期编辑职责
+- 自动导入到 `automation profile`
 
-后续代码和排障语义里，只能把它理解为历史来源，不应再把它当成正式运行时真值或长期 fallback。
+后续代码和排障语义里，只能把它理解为历史输入，不应再把它当成正式运行时真值、迁移来源或
+长期 fallback。
 
 ### 3. 详情按钮和服务端前置校验都按双层真值收敛
 
@@ -43,13 +49,13 @@ policy、authority 与 fencing admission；未 eligible 的 action 返回
 
 服务端在执行前也必须做同一套双层前置校验，再返回稳定的 `started / rejected / error` 结果和原因码。换句话说，前端可见性和后端执行准入使用的是同一套最终语义，不允许出现“按钮显示逻辑”和“实际执行校验”分叉的长期状态。
 
-### 4. 旧规则层自动迁移到个人 automation profile，但 bindings 不自动迁移
+### 4. legacy registry 不再触发自动迁移
 
-第二阶段允许把旧项目级规则一次性导入到个人 `automation profile`，但不迁移 `automation bindings`。
+当前实现不再从旧项目级规则自动生成 `automation profile`，也不迁移 `automation bindings`。
+遇到 legacy registry 字段时，registry 归一化负责剥离，而不是生成新的个人配置。
 
-不自动迁移 bindings 的原因是它们是 machine-local 语义，绑定内容天然依赖当前设备上的 provider、skill 和本地执行环境。把这些内容自动迁到另一层只会制造错误可用性假象，或者把设备专属绑定污染成跨设备假设。
-
-因此，迁移只负责把旧规则层搬进新规则层；设备绑定仍然要由当前机器在新入口里重新确认和补全。
+这不会改变 bindings 的 machine-local 边界：新设备仍必须在 `Automation Settings` 中单独配置
+当前设备上的 provider、skill 与执行参数，不能从 legacy 项目字段推断设备绑定。
 
 ### 5. `Automation Settings` 是正式个人自动化入口，不再是 `Project Settings` 的附属页面
 
@@ -157,11 +163,11 @@ schema、bindings 的 `ruleId` 关联方式或服务端保存校验。排查空�
 ## consequences
 
 - 后续运行时排查 `entryActions` 时，默认先看 `automation profile` 和 `automation bindings`，不要再从 `project.entryActions` 反推正式真值。
-- 新设备可以沿用已迁移的规则层，但必须单独补齐本机 bindings。
+- 新设备使用已有 `automation profile` 时，仍必须单独补齐本机 bindings。
 - 详情按钮“没显示”不再是黑盒现象，它要么是规则没命中，要么是本机 bindings 不可用。
 - 服务端执行失败时，原因码应优先区分规则缺失、规则禁用、目标不匹配、绑定缺失、绑定禁用和绑定无效，而不是笼统吞成通用错误。
 - 设置页保存前会先暴露最小本地 issues，防止非法 `automation profile` / `automation bindings` 被写入。
-- 旧 `project.entryActions` 只保留为一次性迁移来源，不再保留长期双读或隐式 fallback。
+- 旧 `project.entryActions` 会在 registry 归一化时被剥离，不再提供自动迁移、长期双读或隐式 fallback。
 - 自动化设置弹窗的宽度优化必须同时覆盖 shared dialog base 的宽度上限，否则视觉上不会真正放宽。
 - 侧边栏里的项目管理入口和自动化入口必须保持分离，避免把用户级自动化误归到项目设置里。
 - 自动化设置页面的本地化规则是字段英文、周边中文，回归测试应按中文文案和 summary chip 断言。
@@ -191,4 +197,14 @@ schema、bindings 的 `ruleId` 关联方式或服务端保存校验。排查空�
 
 ## search terms
 
-`Automation Settings`、`automation profile`、`automation bindings`、`project.entryActions`、`run-entry-action`、`detail button visibility`、`validation issues`、`selectedRuleIndex`、`automation-rule-selection`、`automation-rule-draft`、`Rule Id`、`remapAutomationRuleBindingKey`、`pruneOrphanAutomationRuleBindings`、`missing_binding`、`binding_invalid`、`importLegacyEntryActions`、`validateAutomationProfile`、`validateAutomationBindings`
+`Automation Settings`、`automation profile`、`automation bindings`、`project.entryActions`、`normalizeProjectDefinition`、`run-entry-action`、`detail button visibility`、`validation issues`、`selectedRuleIndex`、`automation-rule-selection`、`automation-rule-draft`、`Rule Id`、`remapAutomationRuleBindingKey`、`pruneOrphanAutomationRuleBindings`、`missing_binding`、`binding_invalid`、`validateAutomationProfile`、`validateAutomationBindings`
+
+<!-- state: history -->
+## 演进记录
+
+<!-- dated: 2026-07-29 -->
+### 一次性导入方案退出当前链路
+
+第二阶段曾允许在 `automation profile` 为空时把旧 `project.entryActions` 导入个人规则层，同时要求
+用户另行补齐 machine-local bindings。旧项目字段随后退出 registry 正式结构；当前加载链直接
+剥离该属性，不再把历史项目配置自动提升为个人自动化真值。

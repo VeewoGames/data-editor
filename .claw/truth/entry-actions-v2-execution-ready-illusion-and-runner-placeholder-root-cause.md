@@ -1,7 +1,8 @@
 # entryActions 第二版：绑定看起来已就绪但实际不执行的根因
 
-status: superseded
+<!-- document-state: historical -->
 
+<!-- state: history -->
 ## context
 
 这条 truth 只沉淀 `entryActions` 第二版里一个可复用的长期排障事实：**Automation Settings 顶部出现“绑定就绪”并不等于本机真的具备可执行自动化能力**。

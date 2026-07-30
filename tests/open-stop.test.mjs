@@ -1612,7 +1612,7 @@ test("server saves and loads automation profile and machine-local bindings", asy
   assert.equal(storedBindings.bindings.recheck.skill, "recheck");
 });
 
-test("entry action run fails closed without project eligibility while historical artifacts remain readable", async (t) => {
+test("entry action run fails closed without a writeback policy while historical artifacts remain readable", async (t) => {
   const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-project-"));
   const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-home-"));
   t.after(async () => {
@@ -1676,10 +1676,10 @@ test("entry action run fails closed without project eligibility while historical
     rowId: "items:1",
     sourceRowIndex: 1,
   });
-  assert.equal(validRunResponse.statusCode, 503, JSON.stringify(validRunResponse.body));
+  assert.equal(validRunResponse.statusCode, 500, JSON.stringify(validRunResponse.body));
   assert.equal(validRunResponse.headers["cache-control"], "no-store");
-  assert.equal(validRunResponse.body?.code, "ENTRY_ACTION_PROTOCOL_DISABLED");
-  assert.equal(validRunResponse.body?.error, "Entry-action eligibility manifest is missing.");
+  assert.equal(validRunResponse.body?.code, "ENTRY_ACTION_POLICY_MISSING");
+  assert.equal(validRunResponse.body?.error, "Entry-action writeback policy is missing.");
   assert.deepEqual((await readdir(runtimeDir)).sort(), historicalFileNames);
 
   const resultResponse = await getJson(port, `/api/entry-actions/result?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(historicalRunId)}`);

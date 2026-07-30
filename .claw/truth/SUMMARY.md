@@ -1,5 +1,7 @@
 ﻿# data-editor Truth Summary
 
+- [npm 依赖安全基线：同主版本修复、锁文件状态与验证边界](./npm-dependency-security-baseline.md)
+- [npm 依赖漏洞治理：同主版本优先与分层验证策略](./adr/npm-dependency-vulnerability-remediation-policy.md)
 - [正式产品文档集与历史材料收口：`docs/README.md` 加 `01` 至 `09`，验证事实归档后清理方案、规格与原型](./formal-documentation-corpus-boundary.md)
 - [skills Targeting 项目级合同与保存门禁：`skill_nodes` 单一真值、`selection/area/affects` 正式结构、只读失配策略、`version + ETag + token` 校验与双接入测试路径](./adr/skill-targeting-project-contract-and-save-gate.md)
 - [技能 Targeting 合同完成态：`4539067f` 脏工作树增量合入、项目级 `skill_nodes` 单一真值、`selection/area/affects` 正式结构、失败关闭、ETag/save token 门禁、派生字段与视图迁移](./skill-targeting-contract-commit-integration-boundary.md)
@@ -39,6 +41,7 @@
 - [共享视图图标未加载态零元信息边界：manifest 按需加载与搜索池收缩](./shared-view-icon-final-closeout.md)
 - [shared view 图标多轮保存 follow-up：剩余真实根因、当前验证边界与复现收口](./shared-view-icon-multi-save-followup-closeout.md)
 - [Automation Settings 图标选择器：shared icon runtime 复用边界与单一状态源](./automation-settings-icon-picker-runtime-reuse-boundary.md)
+- [Automation Settings 图标选择器滚轮事件边界：网格捕获阶段隔离、共享 picker 复用与浏览器实测限制](./automation-settings-icon-picker-wheel-scroll-boundary.md)
 - [Automation Settings Skill 真值链与最小保存边界](./automation-settings-skill-truth-chain-and-save-boundary.md)
 - [共享视图图标 Playwright 冷启动链路：planning 执行入口与边界收敛](./shared-view-icon-playwright-cold-start-planning-entry.md)
 - [共享视图图标 Playwright 冷启动修复：静态 webServer 链路与高位端口隔离](./shared-view-icon-playwright-cold-start-fix.md)
@@ -73,10 +76,10 @@
 - [entry-action completed 与真实写回脱节：最小证据链](./entry-actions-v2-completed-and-writeback-observation-gap-minimal-evidence.md)
 - [entry-action 观察到写回状态已分流：`completed_with_writeback` / `completed_without_observed_writeback`](./entry-actions-v2-observed-writeback-status-split-and-project-verification.md)
 - [entry-action 同源文件并发直写与超时证据缺口](./entry-actions-same-source-concurrency-and-timeout-evidence-gap.md)
-- [entry-action proposal-only 安全执行：显式 eligibility、policy v3 目标/行边界、Skill 选择现有字段、组合 journal 与前向恢复](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
+- [entry-action proposal-only 安全执行：规则、binding 与 policy v4 action 级目标/行边界、Skill 选择现有字段、组合 journal 与前向恢复](./entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md)
 - [持久内部条目 ID 与 entry-action 稳定定位已落地：`__entry_id` 内部身份与业务主键清空不阻断保存](./entry-actions-v2-persistent-entry-id-and-stable-location.md)
 - [entryActions 真实执行面固定为本机 codex exec 的运行时协议](./adr/entry-actions-codex-exec-runtime-protocol.md)
-- [entry-action legacy direct-write 永久禁用、proposal-only 按 action 启用与通用字段白名单退出边界](./adr/entry-actions-legacy-direct-write-hard-disable.md)
+- [entry-action legacy direct-write 永久禁用、proposal-only 启动门禁与通用字段白名单退出边界](./adr/entry-actions-legacy-direct-write-hard-disable.md)
 - [持久内部条目 ID 与 entry-action 稳定定位：`__entry_id`、rowId 复用与独立结果轮询](./adr/persistent-internal-entry-id-and-entry-action-stable-locating.md)
 - [entryActions 第二版：绑定看起来已就绪但实际不执行的根因](./entry-actions-v2-execution-ready-illusion-and-runner-placeholder-root-cause.md)
 - [detail panel 条目级 Codex 自动化集成边界（已被正式运行时 truth 部分替代）](./adr/detail-panel-entry-codex-automation-integration.md)

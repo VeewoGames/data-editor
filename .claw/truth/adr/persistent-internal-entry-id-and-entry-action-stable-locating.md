@@ -44,7 +44,16 @@ entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/resu
 `phase/outcome`。proposal-only 发起响应只表示任务已进入执行链，不能被视为写回完成；关闭详情后
 仍应通过结果接口恢复终态。
 
-### 5. 业务主键同步维护只在“非空旧值 -> 非空新值”时介入
+### 5. proposal 的执行身份只由服务端创建的 handoff 决定
+
+模型生成的 proposal 可以包含身份字段以满足协议形状，但这些字段不是写回权威。服务端在持久化
+proposal 前必须以本次 run 的 handoff 覆盖 `runId`、action、文件、collection、`rowId`、版本、
+etag、authority digest 与 fencing token；模型只可表达变更内容及其说明。
+
+这样，模型抄写错误、陈旧上下文或恶意回传都不能将已获准的 proposal 重新指向另一条记录、另一份
+文档或另一份并发合同。最终提交仍从 handoff 绑定后的身份重新定位 `__entry_id`。
+
+### 6. 业务主键同步维护只在“非空旧值 -> 非空新值”时介入
 
 业务主键同步维护只负责“已有业务主键被另一个非空业务主键替换”的场景。
 
@@ -56,6 +65,7 @@ entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/resu
 - entry-action 的目标定位和写回核对可以统一复用同一身份锚点，减少对业务主键空值和顺序变化的依赖。
 - `__entry_id` 不参与默认展示和候选推断后，UI 和字段分析不会被内部实现细节污染。
 - 发起响应不能当作完成信号，前端必须等待 `/api/entry-actions/result` 的独立终态。
+- proposal 中的执行身份不再依赖模型逐字段复述，`__entry_id` 与同一 run 的并发合同由 handoff 统一锚定。
 - 这条协议也为后续更可靠的执行审计和写回确认留下了明确接口边界。
 - 保存链不再把“业务主键为空”误判为内部身份缺失；业务字段可以为空或被清空，而不破坏条目级保存与后续定位。
 
@@ -67,6 +77,7 @@ entry-action 前端闭环需要通过独立结果接口 `/api/entry-actions/resu
 - `src/entry-actions.mjs`
 - `src/entry-action-service.mjs`
 - `src/entry-action-proposal-commit.mjs`
+- `tests/entry-action-service.test.mjs`
 - `src/entry-action-group-commit.mjs`
 - `server.mjs`
 - `src/App.tsx`

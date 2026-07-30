@@ -13,10 +13,10 @@ legacy direct-write 不再是可恢复或可配置的运行模式。`POST /api/e
 proposal-only service；环境变量、旧 handler、旧结果、前端开关或测试 fallback 都不得重新接回
 可写工作区 runner。
 
-proposal-only 的启用采用项目/action 显式 allowlist。项目必须声明
-`protocolMode: "proposal-only"` 并列出 action；缺失、损坏或未列入的 action 继续返回
-`ENTRY_ACTION_PROTOCOL_DISABLED`。profile 的 `enabled` 只决定界面与规则可见性，不能替代
-eligibility、policy、authority 或 fencing admission。
+proposal-only 的启用不再采用项目/action 显式 allowlist。项目级
+`.data-editor/entry-action-eligibility.json` 已退出协议；当前启动资格由已启用且命中目标的
+automation rule、可用且已启用的 machine-local binding、action 级 policy target/rowMatch、
+authority 和 fencing admission 共同决定。任一门禁不满足时必须失败关闭。
 
 受控写回采用收敛的 compound proposal，而不是任意跨文件事务：同一稳定 `rowId` 的
 `changes[]` 加最多一个由 policy 模板推导的 Markdown `textArtifact`。JSON/CSV 与 Markdown
@@ -24,12 +24,13 @@ eligibility、policy、authority 或 fencing admission。
 瞬时原子性，也不自动回滚覆盖外部合法修改。
 
 Data Editor 只拥有通用 proposal、policy、authority、supervisor、commit 与 recovery 机制。
-项目字段、行级谓词、文本路径和 action eligibility 由项目配置与 repo-local Skill 持有，不得向
+项目字段、行级谓词、文本路径和 action 级目标范围由项目配置与 repo-local Skill 持有，不得向
 通用服务注入 Nocturnel 等项目专用语义。
 
-通用配置不再提供 JSON `writableFields` 白名单或字段选择器。policy 只限定目标文件、集合、可选
-行谓词与文本产物；单次 authority snapshot 把目标条目的全部现有字段交给具体 Skill，Skill 决定
-实际修改哪些字段。Data Editor 仍负责禁止字段新增/删除、核对 before 值与条目身份，并执行
+通用配置不再提供 JSON `writableFields` 白名单或字段选择器。policy 以 `actionId + file + collection`
+限定目标范围，并可附加行谓词和 action 级文本产物；不同 action 即使面向同一文件，也不得共享或
+借用 target 授权。单次 authority snapshot 把已匹配 target 条目的全部现有字段交给具体 Skill，Skill
+决定实际修改哪些字段。Data Editor 仍负责禁止字段新增/删除、核对 before 值与条目身份，并执行
 ETag、authority、fencing、journal 和恢复门禁。业务字段职责由 Skill 合同拥有，不能反向扩张为
 绕过平台提交安全的任意写入权限。
 
@@ -38,7 +39,9 @@ ETag、authority、fencing、journal 和恢复门禁。业务字段职责由 Ski
 - 继续接受 legacy direct-write：拒绝，因为旧链路不能证明同源写入隔离或安全恢复。
 - 只用环境变量或前端隐藏开关：拒绝，因为这会保留可绕过的服务端启动路径。
 - 用单一全局开关恢复所有 action：拒绝。不同项目与 action 的 policy、authority 和安全成熟度
-  不同，必须逐 action 显式 eligible。
+  不同，必须逐 action 通过独立规则、binding 与 policy 门禁。
+- 通过放宽共享 target 修复单个 action 的范围冲突：拒绝。同一文件上的不同 action 可能有不同
+  行级或内容范围；必须把 target 和文本产物绑定到 actionId，并在启动与提交时复核该身份。
 - 支持任意文件列表的通用事务：拒绝。当前可复用需求可收敛为一个条目与一个受控 Markdown；
   任意目标会扩大 authority、恢复和审计面。
 - 把 JSON 与 Markdown 拆成两个独立 action：拒绝。中途失败会产生无法归属于同一设计结果的
@@ -51,14 +54,16 @@ ETag、authority、fencing、journal 和恢复门禁。业务字段职责由 Ski
 
 ## Consequences
 
-- 未 eligible 的 action 在 API 边界失败关闭；历史结果读取不因此删除。
-- eligible action 只能提交严格 proposal，Codex 不直接写 canonical 数据。
+- 不满足规则、binding、policy、authority 或 fencing 门禁的 action 在 API 边界失败关闭；历史结果读取不因此删除。
+- 满足启动门禁的 action 只能提交严格 proposal，Codex 不直接写 canonical 数据。
 - policy/profile/row identity/ETag/fencing 任一漂移都会拒绝提交。
 - 字段级业务范围不再由 profile/policy 配置；Skill 获得的是目标条目现有字段集合，平台仍拒绝
   新增/删除字段并保留全部并发与恢复门禁。
 - group journal 增加了多阶段状态和恢复成本，但能让中断后的半完成状态可识别、可前向收敛。
 - 无法证明当前内容属于 base 或已提交状态时保留 admission 并要求人工恢复，不猜测释放。
-- 项目接入必须同时维护 eligibility、policy、profile、repo-local Skill 合同与项目合同测试。
+- 项目接入必须维护规则、machine-local binding、policy、repo-local Skill 合同与项目合同测试。
+- 同一文件/集合的不同 action 可拥有不同 target，但配置、authority snapshot 和提交复核必须始终
+  使用同一 actionId；范围不匹配时失败关闭。
 
 <!-- state: history -->
 ## Evolution history
@@ -92,10 +97,10 @@ proposal 只能在隔离目录发布，真实 CLI E2E 也只运行于 scratch fi
 <!-- dated: 2026-07-29 -->
 ### proposal-only 生产链获得按 action 启用授权
 
-生产入口只保留 proposal-only service，legacy runner 与脚本被移除。启用单位从全局门禁收敛为
+生产入口只保留 proposal-only service，legacy runner 与脚本被移除。当时启用单位从全局门禁收敛为
 项目/action eligibility；严格 version 2 compound proposal、group journal、多目标锁和前向恢复
-补齐了 JSON/CSV 与单一 Markdown 的受控整体提交。原“所有新任务固定 503”的决定退出当前状态，
-但 legacy direct-write 永久禁用与未 eligible action 失败关闭继续有效。
+补齐了 JSON/CSV 与单一 Markdown 的受控整体提交。原“所有新任务固定 503”的决定退出当前状态；
+后续独立白名单已退出，失败关闭由其他正式门禁承接。
 
 <!-- dated: 2026-07-29 -->
 ### 通用字段白名单退出 authority 分工
@@ -103,3 +108,18 @@ proposal 只能在隔离目录发布，真实 CLI E2E 也只运行于 scratch fi
 曾接受的 policy 字段 allowlist 与类型 validator 被 policy v3 取代。当前决定把 JSON 业务字段
 选择交还给具体 Skill，Data Editor 只拥有目标/行范围、既有字段约束和并发提交安全；这不会恢复
 legacy direct-write，也不会允许 Skill 绕过 proposal schema 与 authority snapshot。
+
+<!-- dated: 2026-07-29 -->
+### 共享 target 改为 action 级授权
+
+policy v3 的共享 target 会让一个 action 的范围扩张影响同文件上的其他 action。当前决定采用
+version 4：target 与文本产物都以 `actionId` 为身份的一部分；Nocturnel 的 `fill-data-name` 获得
+`skills`、`traits`、`runes` 的独立范围，玩家技能设计与评审仍保留 `owner=player` 范围。该调整只
+收敛 proposal-only 的权限边界，不改变 legacy direct-write 永久禁用或当时逐 action eligibility 的历史事实。
+
+<!-- dated: 2026-07-30 -->
+### 项目级 eligibility 白名单退出
+
+独立 eligibility manifest 重复了规则、binding 和 action 级 policy 已拥有的启动资格，并会形成
+额外漂移点。当前决定保留 proposal-only、legacy direct-write 永久禁用、authority 与 fencing 的安全
+边界，但不再以项目白名单作为门禁；规则、binding 与 action 级 policy 共同承担启动资格。

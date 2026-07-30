@@ -4,7 +4,7 @@ import { access, mkdir, readFile, readdir } from "node:fs/promises";
 import { getRows } from "./document-model.mjs";
 import { readPersistentEntryId } from "./model/persistent-entry-id.mjs";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
-import { isTerminalEntryActionState, normalizeEntryActionStateRecord } from "./entry-action-state.mjs";
+import { isTerminalEntryActionState, migrateLegacyEntryActionStateRecord, normalizeEntryActionStateRecord } from "./entry-action-state.mjs";
 import { canonicalFileIdentity } from "./canonical-file-identity.mjs";
 import { atomicWrite, exclusiveCreateLock } from "./atomic-file.mjs";
 
@@ -185,6 +185,38 @@ export async function readEntryActionStarted(projectContextOrRoot, runId) {
 export async function readEntryActionResult(projectContextOrRoot, runId) {
   const targetPath = entryActionResultPath(projectContextOrRoot, runId);
   return normalizeEntryActionStateRecord(JSON.parse(await readFile(targetPath, "utf8")));
+}
+
+/**
+ * Permanently upgrades known pre-v2 runtime state files before normal reads.
+ */
+export async function migrateLegacyEntryActionStateArtifacts(projectContextOrRoot) {
+  const runtimeDir = entryActionsRuntimeDir(projectContextOrRoot);
+  let fileNames = [];
+  try {
+    fileNames = await readdir(runtimeDir);
+  } catch {
+    return { migrated: [] };
+  }
+
+  const migrated = [];
+  for (const fileName of fileNames) {
+    const artifactKind = fileName.endsWith(".started.json") ? "started"
+      : fileName.endsWith(".result.json") ? "result"
+        : null;
+    if (!artifactKind) continue;
+    const targetPath = path.join(runtimeDir, fileName);
+    try {
+      const legacy = JSON.parse(await readFile(targetPath, "utf8"));
+      const next = migrateLegacyEntryActionStateRecord(legacy, artifactKind);
+      if (!next) continue;
+      await atomicWrite(targetPath, `${JSON.stringify(next, null, 2)}\n`);
+      migrated.push(targetPath);
+    } catch {
+      // Malformed or unknown artifacts remain untouched for manual diagnosis.
+    }
+  }
+  return { migrated };
 }
 
 export async function findLatestEntryActionRun(projectContextOrRoot, identity) {
