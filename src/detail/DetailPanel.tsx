@@ -24,9 +24,10 @@ import { StableTextInput, StableTextarea, type ActiveTextEditorHandle, type Acti
 import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { DocumentPanel, type DocumentPanelSnapshot } from "./DocumentPanel";
 import { NodeEditorHost } from "./NodeEditorHost";
-import { matchesContractSkillSource, resolveNestedNodeSchema } from "./node-schema-registry.mjs";
+import { matchesContractSkillSource } from "./node-schema-registry.mjs";
 import type { ResolveNestedNodeSchemaContext, ResolveNestedNodeSchemaResult } from "./node-schema";
 import type { SkillNodeContractFormModel } from "./skill-node-contract-form-model";
+import type { NestedSchemaCapabilityResolver } from "./nested-schema-capability";
 import { mergeDetailFieldOrder } from "../model/document-field-state.mjs";
 import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 import { isPersistentEntryIdField } from "../model/persistent-entry-id.mjs";
@@ -45,6 +46,8 @@ export type DetailSnapshot = {
   previousRowTarget: { sourceRowIndex: number; rowId: string | null } | null;
   nextRowTarget: { sourceRowIndex: number; rowId: string | null } | null;
   sourcePath: string | null;
+  dataSourceId: string | null;
+  dataSourcePath: string | null;
   collectionPath: string;
   titleField: string | null;
   primaryKeyField: string | null;
@@ -78,6 +81,7 @@ export type DetailEntryActionStatus = NonNullable<DetailSnapshot["entryActionSta
 type DetailPanelProps = {
   snapshot: DetailSnapshot;
   contractFormModel?: SkillNodeContractFormModel | null;
+  nestedSchemaResolver?: NestedSchemaCapabilityResolver | null;
   initialNestedTarget: {
     fieldName: string;
     requestKey: number;
@@ -116,6 +120,7 @@ type NestedPanelState = {
 export function DetailPanel({
   snapshot,
   contractFormModel,
+  nestedSchemaResolver = null,
   initialNestedTarget,
   onConsumeInitialNestedTarget,
   onCommitMultiSelectDraft,
@@ -150,6 +155,8 @@ export function DetailPanel({
     previousRowTarget,
     nextRowTarget,
     sourcePath,
+    dataSourceId,
+    dataSourcePath,
     collectionPath,
     titleField,
     primaryKeyField,
@@ -170,22 +177,24 @@ export function DetailPanel({
     entryActionStatus,
   } = snapshot;
   const resolveNodeSchema = (context: ResolveNestedNodeSchemaContext): ResolveNestedNodeSchemaResult => (
-    matchesContractSkillSource({ sourcePath: context.sourcePath, collectionPath: context.collectionPath, rootField: context.rootField })
+    matchesContractSkillSource({ collectionPath: context.collectionPath, rootField: context.rootField })
       ? contractFormModel?.resolveNestedNodeSchema(context) ?? {
         kind: "unsupported",
         lookupKey: "skill-node-contract:missing-form-model",
         reason: "技能节点合同表单未加载，当前节点只读且禁止保存。",
       } as ResolveNestedNodeSchemaResult
-      : resolveNestedNodeSchema({
+      : nestedSchemaResolver?.resolve({
+        dataSourceId: dataSourceId ?? "",
+        path: dataSourcePath ?? "",
         sourcePath: context.sourcePath,
         collectionPath: context.collectionPath,
         rootField: context.rootField,
         nestedPath: context.nestedPath,
         value: context.value,
         contextValue: context.contextValue,
-      }) as ResolveNestedNodeSchemaResult
+      }) ?? { kind: "unsupported", lookupKey: "nested-schema-capability:missing", reason: "No nested schema capability is available for this value." } as ResolveNestedNodeSchemaResult
   );
-  const contractNodesReadonly = matchesContractSkillSource({ sourcePath, collectionPath, rootField: "nodes" })
+  const contractNodesReadonly = matchesContractSkillSource({ collectionPath, rootField: "nodes" })
     && contractFormModel?.canEdit !== true;
   const panelRef = useRef<HTMLElement | null>(null);
   const documentPanelRef = useRef<HTMLElement | null>(null);
@@ -709,7 +718,7 @@ export function DetailPanel({
                 value: {},
                 contextValue: null,
               });
-              if (matchesContractSkillSource({ sourcePath, collectionPath, rootField: activeArrayNested.rootField })
+              if (matchesContractSkillSource({ collectionPath, rootField: activeArrayNested.rootField })
                 && schemaDefault.kind !== "supported") return;
               const nextItem = schemaDefault.kind === "supported"
                 ? cloneNestedValue(schemaDefault.schema.defaultValue)
@@ -752,6 +761,9 @@ export function DetailPanel({
         ) : activeNested && isPlainObjectValue(activeNestedValue) ? (
           <NodeEditorHost
             contractFormModel={contractFormModel}
+            nestedSchemaResolver={nestedSchemaResolver}
+            dataSourceId={dataSourceId}
+            dataSourcePath={dataSourcePath}
             rootValue={currentRow}
             title={activeNested.title}
             value={activeNestedValue}
@@ -811,7 +823,7 @@ export function DetailPanel({
                 value: {},
                 contextValue: null,
               });
-              if (matchesContractSkillSource({ sourcePath, collectionPath, rootField: tertiaryNested.rootField })
+              if (matchesContractSkillSource({ collectionPath, rootField: tertiaryNested.rootField })
                 && schemaDefault.kind !== "supported") return;
               const nextItem = schemaDefault.kind === "supported"
                 ? cloneNestedValue(schemaDefault.schema.defaultValue)
@@ -854,6 +866,9 @@ export function DetailPanel({
         ) : tertiaryNested && isPlainObjectValue(activeNestedValue) ? (
           <NodeEditorHost
             contractFormModel={contractFormModel}
+            nestedSchemaResolver={nestedSchemaResolver}
+            dataSourceId={dataSourceId}
+            dataSourcePath={dataSourcePath}
             rootValue={currentRow}
             title={tertiaryNested.title}
             value={activeNestedValue}
@@ -883,6 +898,9 @@ export function DetailPanel({
           activeArraySelectedItemSchema?.kind === "supported" && isPlainObjectValue(activeArraySelectedItem) ? (
             <NodeEditorHost
               contractFormModel={contractFormModel}
+              nestedSchemaResolver={nestedSchemaResolver}
+              dataSourceId={dataSourceId}
+              dataSourcePath={dataSourcePath}
               rootValue={currentRow}
               title={String(buildNestedItemCard(activeArraySelectedItem, activeArrayNested.selectedIndex, activeArraySelectedItemSchema).title)}
               value={activeArraySelectedItem}

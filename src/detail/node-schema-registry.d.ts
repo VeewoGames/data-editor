@@ -8,8 +8,7 @@ export {
   type ResolveNestedNodeSchemaResult,
 } from "./node-schema";
 
-export function resolveNestedNodeSchema(context: import("./node-schema").ResolveNestedNodeSchemaContext): import("./node-schema").ResolveNestedNodeSchemaResult;
-export function matchesContractSkillSource(context: Pick<import("./node-schema").ResolveNestedNodeSchemaContext, "sourcePath" | "collectionPath" | "rootField">): boolean;
+export function matchesContractSkillSource(context: Pick<import("./node-schema").ResolveNestedNodeSchemaContext, "collectionPath" | "rootField">): boolean;
 
 export type SkillNodeContractRegistryAdapter = {
   contractVersion: number;

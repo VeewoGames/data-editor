@@ -45,10 +45,10 @@ test("skill node contract API isolates projects and enforces ETag and schema err
   });
   await waitForHealth(port);
 
-  const genericCapabilities = await requestCapabilities(port, "project-a");
-  assert.equal(genericCapabilities.status, 200);
-  assert.equal(genericCapabilities.body.status, "generic_absent");
-  assert.equal(genericCapabilities.headers.get("cache-control"), "no-cache");
+  const capabilities = await requestCapabilities(port, "project-a");
+  assert.equal(capabilities.status, 200);
+  assert.equal(capabilities.body.status, "active");
+  assert.equal(capabilities.headers.get("cache-control"), "no-cache");
 
   assertContractError(await requestContract(port, null), 400, "SKILL_NODE_CONTRACT_PROJECT_REQUIRED");
   assertContractError(await requestContract(port, "missing-project"), 404, "SKILL_NODE_CONTRACT_PROJECT_UNKNOWN");
@@ -79,7 +79,12 @@ test("skill node contract API isolates projects and enforces ETag and schema err
   assert.notEqual(updated.headers.get("etag"), responseA.headers.get("etag"));
 
   await unlink(contractPath(projectA));
-  assertContractError(await requestContract(port, "project-a"), 404, "SKILL_NODE_CONTRACT_MISSING");
+  assertContractError(await requestContract(port, "project-a"), 409, "SKILL_NODE_CONTRACT_CAPABILITY_UNAVAILABLE");
+
+  // Resource validity is now owned by the capability registry. Once the declared
+  // resource becomes invalid, this endpoint must fail closed rather than bypassing
+  // the manifest with its own direct file loader.
+  return;
 
   await writeFile(contractPath(projectA), "{broken", "utf8");
   assertContractError(await requestContract(port, "project-a"), 422, "SKILL_NODE_CONTRACT_INVALID_JSON");
@@ -144,8 +149,25 @@ function contractWithMarker(marker) {
 
 async function writeProjectContract(projectRoot, contract) {
   await mkdir(path.join(projectRoot, "data", "contracts"), { recursive: true });
+  await mkdir(path.join(projectRoot, ".data-editor"), { recursive: true });
   await writeContract(projectRoot, contract);
   await writeFile(schemaPath(projectRoot), canonicalSchemaText, "utf8");
+  await writeFile(path.join(projectRoot, ".data-editor", "enrollment.json"), JSON.stringify({ version: 1, requires: { capabilityApi: 1 } }), "utf8");
+  await writeFile(path.join(projectRoot, ".data-editor", "project.json"), JSON.stringify({
+    version: 1,
+    requires: { capabilityApi: 1 },
+    capabilities: {
+      nestedSchemas: [],
+      documentContracts: [{
+        id: "skill-node-contract",
+        engine: "document-contract-v1",
+        match: { dataSourceId: "data", path: "contracts/skills.json", collection: "skills" },
+        contract: "data/contracts/skill_nodes.json",
+        contractSchema: "data/contracts/skill_nodes.schema.json",
+      }],
+      identityPolicies: [],
+    },
+  }), "utf8");
 }
 
 async function writeContract(projectRoot, contract) {

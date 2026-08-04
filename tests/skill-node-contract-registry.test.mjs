@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import {
   createSkillNodeContractRegistryAdapter,
-  resolveNestedNodeSchema,
 } from "../src/detail/node-schema-registry.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -64,23 +63,20 @@ test("shared contract adapter rejects incomplete or ambiguous affects constraint
   );
 });
 
-test("shared contract adapter is isolated from the static production registry and matches only the formal skill path", () => {
-  const staticResult = resolveNestedNodeSchema({ ...baseContext, nestedPath: [0], value: { type: "targeting" } });
-  assert.equal(staticResult.kind, "unsupported");
-
+test("shared contract adapter is isolated from project file paths", () => {
   const adapter = createSkillNodeContractRegistryAdapter(contract);
   const supported = adapter.resolveNestedNodeSchema({ ...baseContext, nestedPath: [0], value: { type: "targeting" } });
   assert.equal(supported.kind, "supported");
   assert.equal(supported.currentDiscriminator, "targeting");
   assert.deepEqual(supported.schema.fields.map((field) => field.fieldName), ["selection", "area", "affects"]);
 
-  const legacyPath = adapter.resolveNestedNodeSchema({
+  const differentProjectPath = adapter.resolveNestedNodeSchema({
     ...baseContext,
-    sourcePath: "C:/Code/Nocturnel/data/skills.json",
+    sourcePath: "C:/Example/other-project/content/skills.json",
     nestedPath: [0],
     value: { type: "targeting" },
   });
-  assert.equal(legacyPath.kind, "unsupported");
+  assert.equal(differentProjectPath.kind, "supported");
 
   const windowsCase = adapter.resolveNestedNodeSchema({
     ...baseContext,
@@ -90,18 +86,6 @@ test("shared contract adapter is isolated from the static production registry an
   });
   assert.equal(windowsCase.kind, "supported");
 
-  for (const sourcePath of [
-    "C:/Code/Nocturnel/metadata/content/skills.json",
-    "C:/Code/Nocturnel/xdata/content/skills.json",
-  ]) {
-    const falsePositive = adapter.resolveNestedNodeSchema({
-      ...baseContext,
-      sourcePath,
-      nestedPath: [0],
-      value: { type: "targeting" },
-    });
-    assert.equal(falsePositive.kind, "unsupported");
-  }
 });
 
 test("shared contract adapter creates the first draft for an empty nodes array without static fallback", () => {

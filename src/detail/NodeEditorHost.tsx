@@ -12,8 +12,9 @@ import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
 import { forwardOptionFieldSurfaceClick } from "../table/OptionFieldEditor";
 import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
-import { matchesContractSkillSource, resolveNestedNodeSchema } from "./node-schema-registry.mjs";
+import { matchesContractSkillSource } from "./node-schema-registry.mjs";
 import type { SkillNodeContractFormModel } from "./skill-node-contract-form-model";
+import type { NestedSchemaCapabilityResolver } from "./nested-schema-capability";
 import type { NodeFieldSchema, ObjectNodeSchema } from "./node-schema";
 
 type NodePathSegment = string | number;
@@ -26,9 +27,12 @@ type NodeEditorHostProps = {
   relationOptions: Record<string, RelationOption[]>;
   relationConfigs?: Record<string, RelationConfig>;
   sourcePath?: string | null;
+  dataSourceId?: string | null;
+  dataSourcePath?: string | null;
   collectionPath?: string;
   schemaContextValue?: Record<string, unknown> | null;
   contractFormModel?: SkillNodeContractFormModel | null;
+  nestedSchemaResolver?: NestedSchemaCapabilityResolver | null;
   rootValue?: Record<string, unknown>;
   embedded?: boolean;
   onBack: () => void;
@@ -39,7 +43,6 @@ type NodeEditorHostProps = {
 
 export function NodeEditorHost(props: NodeEditorHostProps) {
   const contractScope = matchesContractSkillSource({
-    sourcePath: props.sourcePath,
     collectionPath: props.collectionPath,
     rootField: props.rootField,
   });
@@ -52,13 +55,20 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
       value: props.value,
       contextValue: props.schemaContextValue ?? null,
     };
-    if (!contractScope) return resolveNestedNodeSchema(context);
+    if (!contractScope) {
+      const resolvedCapability = props.nestedSchemaResolver?.resolve({
+        dataSourceId: props.dataSourceId ?? "",
+        path: props.dataSourcePath ?? "",
+        ...context,
+      });
+      return resolvedCapability ?? { kind: "unsupported" as const, lookupKey: "nested-schema-capability:missing", reason: "No nested schema capability is available for this value." };
+    }
     return props.contractFormModel?.resolveNestedNodeSchema(context) ?? {
       kind: "unsupported" as const,
       lookupKey: "skill-node-contract:missing-form-model",
       reason: "技能节点合同表单未加载，当前节点只读且禁止保存。",
     };
-  }, [contractScope, props.basePath, props.collectionPath, props.contractFormModel, props.rootField, props.schemaContextValue, props.sourcePath, props.value]);
+  }, [contractScope, props.basePath, props.collectionPath, props.contractFormModel, props.dataSourceId, props.dataSourcePath, props.rootField, props.schemaContextValue, props.sourcePath, props.value]);
   const canEdit = !contractScope || props.contractFormModel?.canEdit === true;
 
   const resetDefaultValue = resolved.kind === "supported"

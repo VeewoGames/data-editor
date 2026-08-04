@@ -126,6 +126,11 @@ export type ProjectCapabilities = {
   bindings: ProjectCapabilityBindings;
   error?: { code: string; message?: string; details?: unknown };
 };
+export type LoadedNestedSchemaCapabilities = {
+  projectId: string;
+  generation: number;
+  bindings: Array<{ id: string; match: Record<string, unknown>; definition: unknown }>;
+};
 export type SkillNodeContractSaveGate = {
   contractVersion: number;
   contractEtag: string;
@@ -587,6 +592,10 @@ export async function loadDocument(path: string, projectId?: string | null): Pro
 
 export async function loadProjectCapabilities(projectId?: string | null): Promise<ProjectCapabilities> {
   return fetchJson(withProjectId("/api/project-capabilities", projectId));
+}
+
+export async function loadNestedSchemaCapabilities(projectId?: string | null): Promise<LoadedNestedSchemaCapabilities> {
+  return fetchJson(withProjectId("/api/nested-schema-capabilities", projectId));
 }
 
 export async function loadDocumentContracts(projectId: string, path: string) {
