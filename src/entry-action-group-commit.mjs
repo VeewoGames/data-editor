@@ -37,8 +37,7 @@ export function createEntryActionGroupJournalEntry({ prepared, lease, documentTe
     idempotencyKey: `group_${digest(prepared.proposal.runId)}`,
     runId: prepared.proposal.runId,
     proposalDigest,
-    authorityDigest: prepared.proposal.authorityDigest,
-    automationProfileEtag: prepared.proposal.automationProfileEtag,
+    ruleDigest: prepared.proposal.ruleDigest,
     ownership: {
       canonicalFileKey: lease.canonicalFileKey,
       ownerToken: lease.ownerToken,
@@ -115,8 +114,7 @@ export async function commitEntryActionGroup({
     if (existing === null) {
       await verifyOwnership(groupEntry.ownership);
       await verifyAuthority({
-        authorityDigest: groupEntry.authorityDigest,
-        automationProfileEtag: groupEntry.automationProfileEtag,
+        ruleDigest: groupEntry.ruleDigest,
       });
       await assertIdentitiesCurrent(groupEntry, refreshIdentities);
       const initialStates = await readStates({ readSource, readArtifact });
@@ -153,8 +151,7 @@ export async function commitEntryActionGroup({
         beforeWrite: async () => {
           await verifyOwnership(group.ownership);
           await verifyAuthority({
-            authorityDigest: group.authorityDigest,
-            automationProfileEtag: group.automationProfileEtag,
+            ruleDigest: group.ruleDigest,
           });
           await assertIdentitiesCurrent(group, refreshIdentities);
         },
@@ -175,8 +172,7 @@ export async function commitEntryActionGroup({
         beforeWrite: async () => {
           await verifyOwnership(group.ownership);
           await verifyAuthority({
-            authorityDigest: group.authorityDigest,
-            automationProfileEtag: group.automationProfileEtag,
+            ruleDigest: group.ruleDigest,
           });
           await assertIdentitiesCurrent(group, refreshIdentities);
         },

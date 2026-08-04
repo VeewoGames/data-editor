@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { publishEntryActionProposal } from "../src/entry-action-proposal-publisher.mjs";
 
 const proposal = {
-  version: 2,
+  version: 3,
   runId: "10000000-0000-4000-8000-000000000001",
   actionId: "recheck",
   sourcePath: "fixtures/items.json",
@@ -14,8 +14,7 @@ const proposal = {
   collectionPath: "items",
   rowId: "entry",
   baseDocumentEtag: "\"doc\"",
-  automationProfileEtag: "\"profile\"",
-  authorityDigest: "b".repeat(64),
+  ruleDigest: "b".repeat(64),
   fencingToken: 1,
   changes: [{ field: "name", beforeExists: true, before: "Alpha", afterExists: true, after: "Beta" }],
   textArtifact: null,

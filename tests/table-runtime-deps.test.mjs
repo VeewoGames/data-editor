@@ -60,6 +60,7 @@ test("buildTableRuntimeDeps resolves document labels by field", () => {
     ],
     sourcePath: "data/items.json",
     collectionPath: "$",
+    primaryKeyField: "doc_id",
     displayTypes: {
       doc_id: "Document",
     },

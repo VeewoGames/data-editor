@@ -13,6 +13,7 @@ import {
   loadRecoveryBridgeState,
   loadServiceState,
   recoveryBridgeStatePath,
+  runtimeStateProtocolVersion,
   saveControllerState,
   saveRecoveryBridgeState,
   saveServiceState,
@@ -43,6 +44,7 @@ test("runtime state supports legacy toolRoot .runtime storage", async (t) => {
 
   const file = JSON.parse(await readFile(runtimeStatePath(toolRoot), "utf8"));
   assert.equal(file.pid, 4321);
+  assert.equal(file.protocolVersion, runtimeStateProtocolVersion);
   assert.equal(file.projectRoot, projectRoot);
   assert.equal(
     runtimeStatePath(toolRoot),
@@ -59,6 +61,7 @@ test("runtime state supports legacy toolRoot .runtime storage", async (t) => {
   });
   const controllerFile = JSON.parse(await readFile(controllerStatePath(toolRoot), "utf8"));
   assert.equal(controllerFile.controllerPid, 9876);
+  assert.equal(controllerFile.protocolVersion, runtimeStateProtocolVersion);
   assert.equal(controllerFile.servicePid, 4321);
   assert.equal(
     controllerStatePath(toolRoot),
@@ -84,6 +87,7 @@ test("runtime state stores project context state under project .data-editor runt
 
   const file = JSON.parse(await readFile(runtimeStatePath(runtimeTarget), "utf8"));
   assert.equal(file.pid, 4321);
+  assert.equal(file.protocolVersion, runtimeStateProtocolVersion);
   assert.equal(file.projectRoot, projectRoot);
   assert.equal(
     runtimeStatePath(runtimeTarget),
@@ -155,6 +159,15 @@ test("loadControllerState returns null for invalid controller state json", async
   await writeFile(controllerStatePath(toolRoot), "{invalid json", "utf8");
 
   assert.equal(await loadControllerState(toolRoot), null);
+});
+
+test("runtime state loaders refuse to reuse an older protocol", async (t) => {
+  const toolRoot = await makeToolRoot(t);
+  await ensureRuntimeDir(toolRoot);
+  await writeFile(controllerStatePath(toolRoot), JSON.stringify({ protocolVersion: 1, controllerPid: 1234 }), "utf8");
+  await writeFile(recoveryBridgeStatePath(toolRoot), JSON.stringify({ protocolVersion: 1, pid: 1234 }), "utf8");
+  assert.equal(await loadControllerState(toolRoot), null);
+  assert.equal(await loadRecoveryBridgeState(toolRoot), null);
 });
 
 test("system boot time helper derives boot timestamp from uptime", () => {

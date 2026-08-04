@@ -1,0 +1,9 @@
+[
+  {
+    "id": 1,
+    "keyword_id": "buildup",
+    "effect_name": "Buildup",
+    "description": "Synthetic status effect used by relation and backlink smoke coverage.",
+    "tags": ["debuff"]
+  }
+]

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import path from "node:path";
 
-const REQUIRED = ["version", "runId", "actionId", "sourcePath", "canonicalFileKey", "collectionPath", "rowId", "baseDocumentEtag", "automationProfileEtag", "authorityDigest", "fencingToken", "changes", "textArtifact", "summary"];
+const REQUIRED = ["version", "runId", "actionId", "sourcePath", "canonicalFileKey", "collectionPath", "rowId", "baseDocumentEtag", "ruleDigest", "fencingToken", "changes", "textArtifact", "summary"];
 const CHANGE = ["field", "beforeExists", "before", "afterExists", "after"];
 const TEXT_ARTIFACT = ["id", "path", "beforeExists", "beforeDigest", "afterContent", "afterDigest"];
 const KEY = /^[0-9a-f]{64}$/;
@@ -11,8 +11,8 @@ const MAX_TEXT_ARTIFACT_BYTES = 1024 * 1024;
 
 export function validateEntryActionProposal(value) {
   exact(value, REQUIRED, "proposal");
-  for (const field of ["runId", "actionId", "sourcePath", "collectionPath", "rowId", "baseDocumentEtag", "automationProfileEtag", "authorityDigest", "summary"]) required(value[field], field);
-  if (value.version !== 2 || !UUID.test(value.runId) || !KEY.test(value.canonicalFileKey) || !KEY.test(value.authorityDigest) || !Number.isSafeInteger(value.fencingToken) || value.fencingToken < 1) invalid("proposal identity is invalid");
+  for (const field of ["runId", "actionId", "sourcePath", "collectionPath", "rowId", "baseDocumentEtag", "ruleDigest", "summary"]) required(value[field], field);
+  if (value.version !== 3 || !UUID.test(value.runId) || !KEY.test(value.canonicalFileKey) || !KEY.test(value.ruleDigest) || !Number.isSafeInteger(value.fencingToken) || value.fencingToken < 1) invalid("proposal identity is invalid");
   if (!Array.isArray(value.changes) || value.changes.length === 0 || value.changes.length > MAX_CHANGES) invalid(`proposal changes must contain 1-${MAX_CHANGES} items`);
   const fields = new Set();
   for (const [index, change] of value.changes.entries()) {

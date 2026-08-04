@@ -31,6 +31,15 @@ test("different canonical keys isolate admission", async (t) => {
   assert.equal(second.fencingToken, 1);
 });
 
+test("promotion reservation fences the file until explicit activation or cancellation", async (t) => {
+  const fixture = await makeFixture(t);
+  const lease = await fixture.allocator.reservePromotion(request(KEY_A, "pending"));
+  assert.equal((await fixture.allocator.probe({ canonicalFileKey: KEY_A })).phase, "promotion_pending");
+  await assert.rejects(() => fixture.allocator.allocate(request(KEY_A, "blocked")), hasCode("ENTRY_ACTION_ADMISSION_BUSY"));
+  await fixture.allocator.activatePromotion(lease);
+  assert.equal((await fixture.allocator.probe({ canonicalFileKey: KEY_A })).phase, "launching");
+});
+
 test("the fixed claimable admission directory is empty and owned by its durable head", async (t) => {
   const fixture = await makeFixture(t);
   const lease = await fixture.allocator.allocate(request(KEY_A, "empty-lock"));

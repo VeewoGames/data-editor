@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildEntryActionProposalPrompt } from "../src/entry-action-proposal-prompt.mjs";
 
-test("proposal prompt requires the exact v2 output contract", () => {
+test("proposal prompt requires the exact v3 output contract", () => {
   const prompt = buildEntryActionProposalPrompt({
     skillPath: "C:/skills/example/SKILL.md",
     skillContent: "# Example",
     handoff: {
-      version: 2,
+      version: 3,
       proposalContract: {
         writableFields: ["name"],
         textArtifact: null,

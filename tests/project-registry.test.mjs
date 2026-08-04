@@ -31,7 +31,7 @@ test("loadProjectRegistry returns an empty registry when the file does not exist
   const registry = await loadProjectRegistry({ home });
 
   assert.deepEqual(registry, {
-    version: 1,
+    version: 2,
     activeProjectId: null,
     projects: [],
   });
@@ -41,14 +41,14 @@ test("loadProjectRegistry accepts UTF-8 BOM registry files", async (t) => {
   const home = await makeHome(t);
   await mkdir(home, { recursive: true });
   await writeFile(projectRegistryPath({ home }), `\ufeff${JSON.stringify({
-    version: 1,
+    version: 2,
     activeProjectId: null,
     projects: [],
   })}`, "utf8");
 
   const registry = await loadProjectRegistry({ home });
   assert.deepEqual(registry, {
-    version: 1,
+    version: 2,
     activeProjectId: null,
     projects: [],
   });
@@ -64,7 +64,6 @@ test("saveProjectRegistry rejects invalid ids", async (t) => {
         id: "bad/id",
         name: "Bad",
         root: home,
-        adapter: "nocturnel",
         dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
         filePolicy: { includeExtensions: [".json", ".csv"] },
       }],
@@ -81,7 +80,6 @@ test("concurrent project registry saves always leave parseable complete JSON", a
       id: `project-${index}`,
       name: `Project ${index}`,
       root: path.join(home, `Project-${index}`),
-      adapter: "nocturnel",
       dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
       filePolicy: { includeExtensions: [".json", ".csv"] },
     }],
@@ -98,8 +96,8 @@ test("addOrActivateProject creates a default data source and avoids duplicate ro
   const projectRoot = path.join(home, "ProjectA");
   await mkdir(projectRoot, { recursive: true });
 
-  const first = await addOrActivateProject({ root: projectRoot, adapter: "nocturnel" }, { home });
-  const second = await addOrActivateProject({ root: projectRoot.toUpperCase(), adapter: "other" }, { home });
+  const first = await addOrActivateProject({ root: projectRoot }, { home });
+  const second = await addOrActivateProject({ root: projectRoot.toUpperCase() }, { home });
 
   assert.equal(first.project.id, second.project.id);
   assert.equal(second.registry.projects.length, 1);
@@ -120,12 +118,12 @@ test("addOrActivateProject rejects a project root that does not exist", async (t
   const missingRoot = path.join(home, "missing", "Nocturnel");
 
   await assert.rejects(
-    () => addOrActivateProject({ root: missingRoot, adapter: "nocturnel" }, { home }),
+    () => addOrActivateProject({ root: missingRoot }, { home }),
     /Project root does not exist/,
   );
 
   assert.deepEqual(await loadProjectRegistry({ home }), {
-    version: 1,
+    version: 2,
     activeProjectId: null,
     projects: [],
   });
@@ -136,14 +134,13 @@ test("loadProjectRegistry drops filesystem-root projects and restores a valid ac
   const validRoot = path.join(home, "Nocturnel");
   await mkdir(validRoot, { recursive: true });
   await writeFile(projectRegistryPath({ home }), `${JSON.stringify({
-    version: 1,
+    version: 2,
     activeProjectId: "project-59d75dd6",
     projects: [
       {
         id: "nocturnel-e621a436",
         name: "Nocturnel",
         root: validRoot,
-        adapter: "nocturnel",
         dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
         filePolicy: { includeExtensions: [".json", ".csv"] },
       },
@@ -151,7 +148,6 @@ test("loadProjectRegistry drops filesystem-root projects and restores a valid ac
         id: "project-59d75dd6",
         name: "Project",
         root: path.parse(validRoot).root,
-        adapter: "nocturnel",
         dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
         filePolicy: { includeExtensions: [".json", ".csv"] },
       },
@@ -165,18 +161,17 @@ test("loadProjectRegistry drops filesystem-root projects and restores a valid ac
   assert.equal(registry.activeProjectId, "nocturnel-e621a436");
 });
 
-test("loadProjectRegistry strips legacy entryActions from stored projects", async (t) => {
+test("loadProjectRegistry rejects legacy fields from a v2 registry", async (t) => {
   const home = await makeHome(t);
   const validRoot = path.join(home, "Nocturnel");
   await mkdir(validRoot, { recursive: true });
   await writeFile(projectRegistryPath({ home }), `${JSON.stringify({
-    version: 1,
+    version: 2,
     activeProjectId: "nocturnel-e621a436",
     projects: [{
       id: "nocturnel-e621a436",
       name: "Nocturnel",
       root: validRoot,
-      adapter: "nocturnel",
       dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
       filePolicy: { includeExtensions: [".json", ".csv"] },
       entryActions: [{
@@ -195,6 +190,24 @@ test("loadProjectRegistry strips legacy entryActions from stored projects", asyn
     }],
   }, null, 2)}\n`, "utf8");
 
-  const registry = await loadProjectRegistry({ home });
-  assert.equal("entryActions" in registry.projects[0], false);
+  await assert.rejects(() => loadProjectRegistry({ home }), /Unknown project registry field: entryActions/);
+});
+
+test("loadProjectRegistry rejects adapter fields from a v2 registry", async (t) => {
+  const home = await makeHome(t);
+  const root = path.join(home, "Project");
+  await mkdir(root, { recursive: true });
+  await writeFile(projectRegistryPath({ home }), `${JSON.stringify({
+    version: 2,
+    activeProjectId: "project",
+    projects: [{
+      id: "project",
+      name: "Project",
+      root,
+      adapter: "nocturnel",
+      dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
+      filePolicy: { includeExtensions: [".json", ".csv"] },
+    }],
+  }, null, 2)}\n`, "utf8");
+  await assert.rejects(() => loadProjectRegistry({ home }), /Unknown project registry field: adapter/);
 });

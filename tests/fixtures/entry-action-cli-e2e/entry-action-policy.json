@@ -1,9 +1,0 @@
-{
-  "version": 4,
-  "targets": [{
-    "actionId": "fixture-rename",
-    "file": "data/items.json",
-    "collection": "$"
-  }],
-  "textArtifacts": []
-}

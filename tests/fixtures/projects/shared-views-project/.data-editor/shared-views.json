@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "collections": {
+    "data/traits.json:traits": {
+      "defaultViewId": "resource-tradeoffs",
+      "items": [
+        {
+          "kind": "group",
+          "id": "tradeoffs",
+          "name": "代价",
+          "views": [
+            {
+              "kind": "view",
+              "view": {
+                "id": "resource-tradeoffs",
+                "name": "资源代价",
+                "type": "table",
+                "query": "",
+                "filters": {
+                  "topLevelRules": [],
+                  "advancedRoot": {
+                    "kind": "group",
+                    "id": "resource-tradeoffs-root",
+                    "op": "and",
+                    "children": [
+                      {
+                        "kind": "group",
+                        "id": "resource-tradeoffs-tags",
+                        "op": "or",
+                        "children": [
+                          { "kind": "rule", "id": "resource-tradeoffs-input", "field": "input_tags", "operator": "contains", "value": ["resource"] },
+                          { "kind": "rule", "id": "resource-tradeoffs-output", "field": "output_tags", "operator": "contains", "value": ["resource"] }
+                        ]
+                      },
+                      { "kind": "rule", "id": "resource-tradeoffs-type", "field": "type", "operator": "contains", "value": ["tradeoff"] }
+                    ]
+                  }
+                },
+                "sorts": [],
+                "hidden": [],
+                "wrapped": [],
+                "order": [],
+                "detailOrder": [],
+                "widths": {}
+              }
+            },
+            {
+              "kind": "view",
+              "view": {
+                "id": "timing-tradeoffs",
+                "name": "时序代价",
+                "type": "table",
+                "query": "",
+                "filters": {
+                  "topLevelRules": [],
+                  "advancedRoot": {
+                    "kind": "group",
+                    "id": "timing-tradeoffs-root",
+                    "op": "and",
+                    "children": [
+                      {
+                        "kind": "group",
+                        "id": "timing-tradeoffs-tags",
+                        "op": "or",
+                        "children": [
+                          { "kind": "rule", "id": "timing-tradeoffs-input", "field": "input_tags", "operator": "contains", "value": ["timing"] },
+                          { "kind": "rule", "id": "timing-tradeoffs-output", "field": "output_tags", "operator": "contains", "value": ["timing"] }
+                        ]
+                      },
+                      { "kind": "rule", "id": "timing-tradeoffs-type", "field": "type", "operator": "contains", "value": ["tradeoff"] }
+                    ]
+                  }
+                },
+                "sorts": [],
+                "hidden": [],
+                "wrapped": [],
+                "order": [],
+                "detailOrder": [],
+                "widths": {}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

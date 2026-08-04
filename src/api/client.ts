@@ -25,7 +25,6 @@ export type ProjectDefinition = {
   id: string;
   name: string;
   root: string;
-  adapter: string;
   dataSources: DataSourceDefinition[];
   filePolicy: { includeExtensions: string[] };
 };
@@ -49,7 +48,13 @@ export type EntryActionRule = {
 export type EntryActionTarget = {
   file: string;
   collection: string;
-  textArtifactId?: string;
+  textArtifact?: {
+    pathTemplate: string;
+    sourceField: string;
+    allowCreate: boolean;
+    allowUpdate: boolean;
+    maxBytes: number;
+  };
 };
 export type UserAutomationProfile = {
   rules: EntryActionRule[];
@@ -107,6 +112,20 @@ export type SaveDocumentsResult = {
   errorField: string | null;
   documentEtags: Record<string, string>;
 };
+export type ProjectCapabilityStatus = "generic_absent" | "active" | "manifest_invalid" | "binding_degraded" | "contract_invalid";
+export type ProjectCapabilityBindings = {
+  nestedSchemas: Array<{ id: string; engine: "nested-schema-v1"; match: Record<string, unknown>; manifest: string }>;
+  documentContracts: Array<{ id: string; engine: "document-contract-v1"; match: Record<string, unknown>; contract: string; contractSchema: string }>;
+  identityPolicies: Array<{ id: string; engine: "identity-policy-v1"; match: Record<string, unknown>; provider: { kind: "embedded-v1" | "declared-key-v1"; field?: string }; protectedIdentityFields: string[] }>;
+};
+export type ProjectCapabilities = {
+  status: ProjectCapabilityStatus;
+  projectId: string;
+  generation: number;
+  manifestDigest: string | null;
+  bindings: ProjectCapabilityBindings;
+  error?: { code: string; message?: string; details?: unknown };
+};
 export type SkillNodeContractSaveGate = {
   contractVersion: number;
   contractEtag: string;
@@ -138,8 +157,10 @@ export type RunEntryActionRequest = {
   collectionPath: string;
   rowId?: string | null;
   sourceRowIndex: number;
+  expectedRowDigest?: string;
+  idempotencyKey: string;
 };
-export type RunEntryActionResponse = {
+export type StartedEntryActionResponse = {
   ok: true;
   status: "started" | "completed";
   runId: string;
@@ -147,6 +168,16 @@ export type RunEntryActionResponse = {
   outputPath?: string | null;
   message?: string | null;
 };
+export type PendingEntryActionPromotionResponse = {
+  ok: true;
+  status: "promotion_pending";
+  pendingActionToken: string;
+  receipt: { durableId: string; documentEtag: string; canonicalRowDigest: string };
+  root: unknown;
+  format: string;
+  documentEtag: string;
+};
+export type RunEntryActionResponse = StartedEntryActionResponse | PendingEntryActionPromotionResponse;
 export type EntryActionRunResult = {
   version?: number;
   runId: string;
@@ -554,13 +585,21 @@ export async function loadDocument(path: string, projectId?: string | null): Pro
   return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
 }
 
+export async function loadProjectCapabilities(projectId?: string | null): Promise<ProjectCapabilities> {
+  return fetchJson(withProjectId("/api/project-capabilities", projectId));
+}
+
+export async function loadDocumentContracts(projectId: string, path: string) {
+  return fetchJson(`/api/document-contracts?projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(path)}`);
+}
+
 export async function saveDocument(path: string, root: unknown, projectId?: string | null, documentEtag?: string, idempotencyKey = crypto.randomUUID()): Promise<SaveDocumentResult> {
   const result = await saveDocumentsWith(
     [{ path, root }],
     (savePath: string, saveRoot: unknown, contractGate: SkillNodeContractSaveGate | null) => (
       postDocumentSave(savePath, saveRoot, projectId, contractGate, documentEtag, idempotencyKey)
     ),
-    { projectId, loadSkillNodeContract },
+    { projectId, loadDocumentContracts },
   );
   if (!result.ok) throw saveDocumentsError(result);
   return { ok: true, documentEtag: result.documentEtags?.[path] };
@@ -587,7 +626,7 @@ export async function saveDocuments(items: PendingDocumentSave[], projectId?: st
     (path: string, root: unknown, contractGate: SkillNodeContractSaveGate | null, documentEtag: string, idempotencyKey: string) => (
       postDocumentSave(path, root, projectId, contractGate, documentEtag, idempotencyKey)
     ),
-    { projectId, loadSkillNodeContract },
+    { projectId, loadDocumentContracts },
   );
 }
 
@@ -700,6 +739,14 @@ export async function runEntryAction(request: RunEntryActionRequest): Promise<Ru
 
 export async function loadEntryActionResult(runId: string, projectId?: string | null): Promise<EntryActionRunResult> {
   return fetchJson(withProjectId(`/api/entry-actions/result?runId=${encodeURIComponent(runId)}`, projectId));
+}
+
+export async function ackStartEntryAction(request: { projectId: string; pendingActionToken: string }): Promise<StartedEntryActionResponse> {
+  return fetchJson("/api/entry-actions/ack-start", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(request),
+  });
 }
 
 export async function loadLatestEntryActionResult(
@@ -842,7 +889,7 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
     return dedupeFetchedEntryActionTargets(value.map((item) => ({
       file: typeof (item as { file?: unknown } | null)?.file === "string" ? (item as { file: string }).file.trim() : "",
       collection: typeof (item as { collection?: unknown } | null)?.collection === "string" ? (item as { collection: string }).collection.trim() : "",
-      ...normalizeFetchedTextArtifactId((item as { textArtifactId?: unknown } | null)?.textArtifactId),
+      ...normalizeFetchedTextArtifact((item as { textArtifact?: unknown } | null)?.textArtifact),
     })));
   }
   if (value && typeof value === "object") {
@@ -854,8 +901,19 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
   return [];
 }
 
-function normalizeFetchedTextArtifactId(value: unknown): Pick<EntryActionTarget, "textArtifactId"> {
-  return typeof value === "string" && value.trim() ? { textArtifactId: value.trim() } : {};
+function normalizeFetchedTextArtifact(value: unknown): Pick<EntryActionTarget, "textArtifact"> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const artifact = value as Partial<NonNullable<EntryActionTarget["textArtifact"]>>;
+  if (typeof artifact.pathTemplate !== "string" || typeof artifact.sourceField !== "string"
+    || typeof artifact.allowCreate !== "boolean" || typeof artifact.allowUpdate !== "boolean"
+    || !Number.isInteger(artifact.maxBytes) || Number(artifact.maxBytes) < 1) return {};
+  return { textArtifact: {
+    pathTemplate: artifact.pathTemplate,
+    sourceField: artifact.sourceField,
+    allowCreate: artifact.allowCreate,
+    allowUpdate: artifact.allowUpdate,
+    maxBytes: Number(artifact.maxBytes),
+  } };
 }
 
 function normalizeFetchedStringArray(value: unknown) {

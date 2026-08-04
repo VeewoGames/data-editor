@@ -21,7 +21,7 @@ import {
   createEntryActionGroupJournalEntry,
 } from "./entry-action-group-commit.mjs";
 import { createEntryActionGroupJournal } from "./entry-action-group-journal.mjs";
-import { loadProjectEntryActionPolicy } from "./entry-action-policy.mjs";
+import { migrateLegacyEntryActionPolicy } from "./entry-action-policy-migration.mjs";
 import { buildEntryActionProposalPrompt } from "./entry-action-proposal-prompt.mjs";
 import {
   commitEntryActionProposal,
@@ -50,6 +50,7 @@ import { readTextFile, writeTextFile } from "./file-service.mjs";
 import { parseCsv } from "./csv-codec.mjs";
 import { parseJson } from "./json-codec.mjs";
 import { resolveInsideRoot } from "./project-context.mjs";
+import { rowDigest } from "./row-digest.mjs";
 
 export async function startProposalOnlyEntryAction({
   projectContext,
@@ -63,8 +64,8 @@ export async function startProposalOnlyEntryAction({
   const resolveBindingStatus = dependencies.resolveCodexBindingStatus ?? resolveCodexBindingStatus;
   const createAllocator = dependencies.createFencingAllocator ?? createFencingAllocator;
   const actionId = String(request.actionId ?? "").trim();
-  const [policy, profile, bindings] = await Promise.all([
-    loadProjectEntryActionPolicy(projectContext),
+  await migrateLegacyEntryActionPolicy(projectContext);
+  const [profile, bindings] = await Promise.all([
     loadAutomationProfile(projectContext),
     loadAutomationBindings(projectContext),
   ]);
@@ -84,8 +85,11 @@ export async function startProposalOnlyEntryAction({
   const parsed = parseDocument(sourcePath, documentText);
   const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
   const rowContext = resolveEntryActionRow(model, collectionPath, sourceRowIndex, rowId);
+  if (typeof request.expectedRowDigest !== "string" || !request.expectedRowDigest
+    || rowDigest(rowContext.row) !== request.expectedRowDigest) {
+    protocolError("ENTRY_ACTION_TARGET_STALE", "The canonical target row no longer matches the requested digest.", 409);
+  }
   const authoritySnapshot = createAuthoritySnapshot({
-    policy,
     profile,
     actionId,
     file: sourcePath,
@@ -94,10 +98,10 @@ export async function startProposalOnlyEntryAction({
   });
   const handoffArtifactState = await readArtifactState(projectContext, authoritySnapshot.textArtifact);
   const runtime = resolveAutomationExecutionConfig({ rule: action, binding, defaults: bindings.defaults }).runtime;
-  const runId = createEntryActionRunId();
-  const jobInstanceId = crypto.randomUUID();
+  const runId = dependencies.runId ?? createEntryActionRunId();
+  const jobInstanceId = dependencies.jobInstanceId ?? crypto.randomUUID();
   const allocator = createAllocator({ stateRoot: fencingRoot(projectContext) });
-  const lease = await allocator.allocate({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
+  const lease = dependencies.lease ?? await allocator.allocate({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
   const scratch = path.join(os.tmpdir(), `data-editor-entry-action-${runId}`);
   let handle = null;
   let evidencePersisted = false;
@@ -125,7 +129,6 @@ export async function startProposalOnlyEntryAction({
       rowContext,
       authoritySnapshot,
       handoffArtifactState,
-      policy,
       lease,
     });
     await writeEntryActionHandoff(projectContext, runId, handoff);
@@ -178,7 +181,6 @@ export async function startProposalOnlyEntryAction({
     const completion = finishRun({
       projectContext,
       action,
-      policy,
       profile,
       authoritySnapshot,
       lease,
@@ -265,8 +267,7 @@ export async function recoverProposalOnlyEntryActionGroup({
       }
     },
     verifyAuthority: async (expected) => {
-      const [policy, profile, sourceText] = await Promise.all([
-        loadProjectEntryActionPolicy(projectContext),
+      const [profile, sourceText] = await Promise.all([
         loadAutomationProfile(projectContext),
         readTextFile(projectContext, proposal.sourcePath),
       ]);
@@ -274,7 +275,6 @@ export async function recoverProposalOnlyEntryActionGroup({
       const model = buildDocumentModel(parsed.data, parsed.format, proposal.sourcePath);
       const { row } = resolveEntryActionRow(model, proposal.collectionPath, null, proposal.rowId);
       const snapshot = createAuthoritySnapshot({
-        policy,
         profile,
         actionId: proposal.actionId,
         file: proposal.sourcePath,
@@ -283,7 +283,6 @@ export async function recoverProposalOnlyEntryActionGroup({
       });
       assertAuthorityCurrent({
         snapshot: { ...snapshot, ...expected },
-        policy,
         profile,
         changes: proposal.changes,
         textArtifact: proposal.textArtifact,
@@ -356,8 +355,7 @@ function bindProposalToHandoff(proposal, handoff) {
     collectionPath: handoff.entry.collectionPath,
     rowId: handoff.entry.rowId,
     baseDocumentEtag: handoff.proposalContract.baseDocumentEtag,
-    automationProfileEtag: handoff.proposalContract.automationProfileEtag,
-    authorityDigest: handoff.proposalContract.authorityDigest,
+    ruleDigest: handoff.proposalContract.ruleDigest,
     fencingToken: handoff.proposalContract.fencingToken,
   };
 }
@@ -375,13 +373,11 @@ async function commitProposal(context, proposal) {
   await advanceEntryActionPhase(projectContext, proposal.runId, "committing");
   const currentDocumentText = await readTextFile(projectContext, proposal.sourcePath);
   const artifactState = await readArtifactState(projectContext, proposal.textArtifact);
-  const currentPolicy = await loadProjectEntryActionPolicy(projectContext);
   const currentProfile = await loadAutomationProfile(projectContext);
   const prepared = await prepareEntryActionProposalCommit({
     proposal,
     lease,
     authoritySnapshot,
-    policy: currentPolicy,
     profile: currentProfile,
     documentText: currentDocumentText,
     textArtifactCurrentText: artifactState.text,
@@ -400,13 +396,11 @@ async function commitProposal(context, proposal) {
   if (!prepared.textArtifact) {
     await documentCommitCoordinator.withCommit({ projectContext, sourcePath: proposal.sourcePath }, async () => {
       const latestText = await readTextFile(projectContext, proposal.sourcePath);
-      const latestPolicy = await loadProjectEntryActionPolicy(projectContext);
       const latestProfile = await loadAutomationProfile(projectContext);
       const latestPrepared = await prepareEntryActionProposalCommit({
         proposal,
         lease,
         authoritySnapshot,
-        policy: latestPolicy,
         profile: latestProfile,
         documentText: latestText,
         format: prepared.format,
@@ -455,8 +449,7 @@ async function commitProposal(context, proposal) {
       }
     },
     verifyAuthority: async (expected) => {
-      const [policy, profile] = await Promise.all([
-        loadProjectEntryActionPolicy(projectContext),
+      const [profile] = await Promise.all([
         loadAutomationProfile(projectContext),
       ]);
       const sourceText = await readTextFile(projectContext, proposal.sourcePath);
@@ -465,7 +458,6 @@ async function commitProposal(context, proposal) {
       const { row } = resolveEntryActionRow(model, proposal.collectionPath, null, proposal.rowId);
       assertAuthorityCurrent({
         snapshot: { ...authoritySnapshot, ...expected },
-        policy,
         profile,
         changes: proposal.changes,
         textArtifact: proposal.textArtifact,
@@ -494,7 +486,6 @@ function buildProposalHandoff({
   rowContext,
   authoritySnapshot,
   handoffArtifactState,
-  policy,
   lease,
 }) {
   return {
@@ -515,10 +506,9 @@ function buildProposalHandoff({
       nextRow: action.payload.includeNeighbors ? structuredClone(rowContext.nextRow) : null,
     },
     proposalContract: {
-      version: 2,
+      version: 3,
       baseDocumentEtag: etag(documentText),
-      automationProfileEtag: authoritySnapshot.automationProfileEtag,
-      authorityDigest: authoritySnapshot.authorityDigest,
+      ruleDigest: authoritySnapshot.ruleDigest,
       fencingToken: lease.fencingToken,
       writableFields: [...authoritySnapshot.writableFields],
       textArtifact: authoritySnapshot.textArtifact ? {
@@ -527,7 +517,6 @@ function buildProposalHandoff({
         beforeDigest: handoffArtifactState.text === null ? null : digest(handoffArtifactState.text),
         currentContent: handoffArtifactState.text,
       } : null,
-      policyVersion: policy.version,
     },
   };
 }

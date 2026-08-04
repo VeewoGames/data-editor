@@ -4,6 +4,8 @@ import { mkdir, readFile, rm } from "node:fs/promises";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
 import { atomicWrite } from "./atomic-file.mjs";
 
+export const runtimeStateProtocolVersion = 2;
+
 export function runtimeDir(target) {
   if (typeof target === "string") return path.resolve(target, ".runtime");
   const context = createProjectContext(target);
@@ -47,6 +49,7 @@ export async function loadControllerState(target) {
 async function loadRuntimeState(targetPath) {
   try {
     const parsed = JSON.parse(await readFile(targetPath, "utf8"));
+    if (!hasCurrentRuntimeStateProtocol(parsed)) return null;
     if (isRuntimeStateStaleAfterSystemRestart(parsed)) {
       await rm(targetPath, { force: true });
       return null;
@@ -112,7 +115,11 @@ export async function saveControllerState(target, state) {
 
 async function saveRuntimeState(target, targetPath, state) {
   await ensureRuntimeDir(target);
-  await atomicWrite(targetPath, JSON.stringify(state, null, 2) + "\n");
+  await atomicWrite(targetPath, JSON.stringify({ ...state, protocolVersion: runtimeStateProtocolVersion }, null, 2) + "\n");
+}
+
+function hasCurrentRuntimeStateProtocol(state) {
+  return Boolean(state && typeof state === "object" && state.protocolVersion === runtimeStateProtocolVersion);
 }
 
 export async function clearServiceState(target) {

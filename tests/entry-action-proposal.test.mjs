@@ -5,7 +5,7 @@ import { validateEntryActionProposal } from "../src/entry-action-proposal.mjs";
 
 const digest = (value) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
 const proposal = {
-  version: 2,
+  version: 3,
   runId: "10000000-0000-4000-8000-000000000001",
   actionId: "recheck",
   sourcePath: "fixtures/items.json",
@@ -13,8 +13,7 @@ const proposal = {
   collectionPath: "items",
   rowId: "entry",
   baseDocumentEtag: "\"doc\"",
-  automationProfileEtag: "\"profile\"",
-  authorityDigest: "b".repeat(64),
+  ruleDigest: "b".repeat(64),
   fencingToken: 1,
   changes: [
     { field: "name", beforeExists: true, before: "Alpha", afterExists: true, after: "Beta" },
@@ -49,7 +48,7 @@ test("proposal rejects ambiguous, duplicate, no-op, escaping and unbound content
   assert.throws(() => validateEntryActionProposal({ ...proposal, secondTarget: "x" }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, version: 1 }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, runId: "../../escape" }), invalid);
-  assert.throws(() => validateEntryActionProposal({ ...proposal, authorityDigest: "not-a-digest" }), invalid);
+  assert.throws(() => validateEntryActionProposal({ ...proposal, ruleDigest: "not-a-digest" }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, changes: [] }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, changes: [proposal.changes[0], proposal.changes[0]] }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, changes: [{ ...proposal.changes[0], after: "Alpha" }] }), invalid);

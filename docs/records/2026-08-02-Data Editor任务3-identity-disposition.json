@@ -1,0 +1,164 @@
+{
+  "recordVersion": 1,
+  "workPackage": {
+    "plan": "Data Editor 通用化与夜曲解耦总任务：按需长期条目身份专项并入",
+    "taskId": 3,
+    "title": "冻结耦合证据、旧行为与 identity disposition",
+    "scope": "readonly investigation and freeze artifacts only",
+    "completedAt": "2026-08-02",
+    "authorization": "用户明确授权仅执行任务 3；禁止修改 runtime、tests、数据、配置、Nocturnel、submodule/gitlink，禁止提交和推送。"
+  },
+  "baseline": {
+    "dataEditor": {
+      "root": "C:\\Code\\data-editor",
+      "head": "66403f88cf6513d15195b17ba82ffed9a4cf85c3",
+      "branch": "master",
+      "unstagedDiffHash": "c210720c4a822edffc06162e7e65b020ef568885",
+      "stagedDiffHash": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "submodules": []
+    },
+    "nocturnel": {
+      "root": "C:\\Code\\Nocturnel",
+      "head": "66c4d92d4174d122f48c33787d74356ec2d1c7c2",
+      "branch": "master",
+      "unstagedDiffHash": "761eb12a24445e3b17618426facf62a42db15412",
+      "stagedDiffHash": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "submodules": [
+        { "path": ".godot-mcp", "gitlink": "e37ffccbb8fbf8fef699a9a64645e84b1da00949" },
+        { "path": "tools/data-editor", "gitlink": "f298d3ff684ac411fdc796a711d1e2431d389a43", "state": "clean; submodule branch behind upstream by 3 commits" }
+      ]
+    }
+  },
+  "finalObservation": {
+    "dataEditor": {
+      "head": "66403f88cf6513d15195b17ba82ffed9a4cf85c3",
+      "trackedUnstagedDiffHash": "c210720c4a822edffc06162e7e65b020ef568885",
+      "note": "Task 3 added only this record and its Markdown receipt as untracked documentation artifacts; the pre-existing tracked patch hash did not change."
+    },
+    "nocturnel": {
+      "head": "66c4d92d4174d122f48c33787d74356ec2d1c7c2",
+      "trackedUnstagedDiffHash": "4769a367870d18675d5154ea54407d3300600da9",
+      "note": "The tracked patch hash changed during this read-only audit. Newly observed dirty paths were tests/manifests/test_catalog.json and tests/node/testing_governance_scenario_catalog_v1.test.js; task 3 did not write Nocturnel and therefore does not assign or absorb that drift. Any future receiver must take a fresh owner handoff."
+    }
+  },
+  "identityDisposition": [
+    {
+      "scope": "Data Editor generic document model",
+      "collectionShape": "JSON object array and root array",
+      "producer": ["src/model/persistent-entry-id.mjs", "src/document-model.mjs", "src/App.tsx::openDocumentAt"],
+      "consumers": ["src/model/document-store.mjs", "src/model/writeback-adapter.mjs", "src/entry-actions.mjs"],
+      "savePath": "App -> api/client -> server journaled commit; open-time supplementation can become a persisted write",
+      "referenceStatus": "Entry Action requires non-empty unique durable ID; normal writeback can use session identity",
+      "contractStatus": "current generic model has no project-declared identity policy; legacy behavior is globally implicit",
+      "formatStatus": "producer emits 26-character Crockford Base32 strings; existing project collections need project audit",
+      "uniquenessStatus": "Entry Action fails closed for missing or duplicate IDs",
+      "disposition": "retain-and-freeze; replace global supplementation only in task 7 after capability and save-guard prerequisites"
+    },
+    {
+      "scope": "Nocturnel data/content/skills.json:skills",
+      "collectionShape": "object.skills array",
+      "formatStatus": "169 current entries; all non-empty strings",
+      "uniquenessStatus": "169 unique values within collection",
+      "referenceStatus": "Data Editor policy/profile/shared views; player-skill review and migration; Godot SkillDataModel save merge",
+      "contractStatus": "dual identity evidence: __entry_id plus skill_id; runtime fallback to skill_id exists, so deletion safety is not established",
+      "disposition": "retain-and-freeze; content owner only; any mutation needs preimage/digest handoff"
+    },
+    {
+      "scope": "Nocturnel data/content/traits.json:traits and runes.json:$",
+      "collectionShape": "object.traits array; root array",
+      "formatStatus": "traits 307 and runes 280 current entries; all non-empty strings",
+      "uniquenessStatus": "no duplicate values within either collection",
+      "referenceStatus": "Data Editor policy/profile/shared views; analysis tools may use business-key-or-entry-id selectors",
+      "contractStatus": "runtime primary-key and migration reference inventories are incomplete for deletion purposes",
+      "disposition": "retain-and-freeze; Nocturnel content owner audit required before any governance"
+    },
+    {
+      "scope": "Nocturnel data/rules/stats.json:$ and data/governance/glossary.json:terms",
+      "collectionShape": "root array; object.terms array",
+      "formatStatus": "stats 61 and glossary 44 current entries; all non-empty strings",
+      "uniquenessStatus": "no duplicate values within either collection",
+      "referenceStatus": "stats validator requires the field but runtime identity is stat_id; glossary generator validates it and forbids gameplay/runtime propagation",
+      "contractStatus": "explicit special contracts exist, but no physical-governance authorization exists",
+      "disposition": "retain-and-freeze; do not infer removability from runtime non-use"
+    },
+    {
+      "scope": "Other current direct object arrays under Nocturnel data",
+      "collectionShape": "content, analysis, contracts, governance and rules arrays",
+      "formatStatus": "scan found non-empty strings and no per-collection duplicates in discovered arrays",
+      "uniquenessStatus": "valid only within each scanned collection, not a cross-file namespace claim",
+      "referenceStatus": "not exhaustively proven for every producer/consumer/save path",
+      "contractStatus": "unknown for physical-governance purposes",
+      "disposition": "retain-and-freeze; needs collection-specific producer/consumer/save/data/reference audit before any action"
+    }
+  ],
+  "sharedDirtyPathOwnerMap": [
+    {
+      "repository": "data-editor",
+      "pathSet": ["src/App.tsx", "src/api/client.ts", "src/automation-profile.mjs", "src/entry-action-*.mjs", "src/model/writeback-adapter.mjs", "tests/automation-profile.test.mjs", "tests/entry-action-*.test.mjs", "tests/open-stop.test.mjs", "tests/fixtures/entry-action-cli-e2e/**", "src/entry-action-policy-migration.mjs", "tests/entry-action-policy-migration.test.mjs"],
+      "ownerTaskId": "existing-entry-action-authority/proposal/group-commit owner (identity not yet receipted)",
+      "state": "owned",
+      "baselineDiffHash": "c210720c4a822edffc06162e7e65b020ef568885",
+      "allowedModificationSet": "only the existing owner’s scoped Entry Action authority/policy migration changes; task 3 made none",
+      "serialHandoff": "required before any task 5-7 write touches an expanded concrete path; recipient must re-read final diff/hash and receive path set plus receipt",
+      "handoffReceipt": null
+    },
+    {
+      "repository": "data-editor",
+      "pathSet": ["src/model/persistent-entry-id.mjs", "src/model/document-store.mjs", "src/document-model.mjs", "src/entry-actions.mjs", "server.mjs", "src/skill-node-contract-service.mjs", "src/detail/node-schema-registry.mjs", "tests/document-model.test.mjs", "tests/document-store.test.mjs", "tests/writeback-adapter.test.mjs", "tests/skill-node-contract-*.test.mjs", "tests/node-schema-registry.test.mjs"],
+      "ownerTaskId": "unassigned; future Data Editor identity/capability/document-contract work-package owner",
+      "state": "quiescent",
+      "baselineDiffHash": "c210720c4a822edffc06162e7e65b020ef568885",
+      "allowedModificationSet": "none under task 3; later only the approved task-specific scope after handoff from any newly active owner",
+      "serialHandoff": "required if a path becomes dirty or overlaps Entry Action owner scope; document-contract and identity writes remain serial where behavior overlaps",
+      "handoffReceipt": null
+    },
+    {
+      "repository": "Nocturnel",
+      "pathSet": [".data-editor/shared-views.json", ".data-editor/automation-profile.json", ".data-editor/entry-action-policy.json", ".data-editor/view-config.json", ".data-editor/view-configs/**"],
+      "ownerTaskId": "Nocturnel integration/entry-action configuration owner (not receipted)",
+      "state": "owned",
+      "baselineDiffHash": "761eb12a24445e3b17618426facf62a42db15412",
+      "allowedModificationSet": "current owner’s configuration work only; task 3 made none",
+      "serialHandoff": "required before Data Editor stage 7 consumes or changes project enrollment/capability configuration; shared-views is already dirty",
+      "handoffReceipt": null
+    },
+    {
+      "repository": "Nocturnel",
+      "pathSet": ["data/content/skills.json", "data/content/traits.json", "data/content/runes.json", "data/rules/stats.json", "data/governance/glossary.json", "data/content/board_objects.json"],
+      "ownerTaskId": "Nocturnel content and data-contract owner (not receipted)",
+      "state": "owned",
+      "baselineDiffHash": "761eb12a24445e3b17618426facf62a42db15412",
+      "allowedModificationSet": "Nocturnel content owner only; Data Editor task 3 made no content changes",
+      "serialHandoff": "mandatory for any Data Editor action/promotion or data-governance work; skills and board_objects are already dirty; identity mutation requires target preimage and post-write canonical reread",
+      "handoffReceipt": null
+    },
+    {
+      "repository": "Nocturnel",
+      "pathSet": ["tools/data-editor", ".gitmodules", "scripts/tools/open-data-editor.ps1", "tests/node/player_skill_entry_action_owner_handoff_v2.test.js", "scripts/tools/skills/audit_targeting_code_consumers.gd", ".agents/skills/data-design-*"] ,
+      "ownerTaskId": "Data Editor release owner then Nocturnel integration owner",
+      "state": "quiescent",
+      "baselineDiffHash": "tools/data-editor gitlink=f298d3ff684ac411fdc796a711d1e2431d389a43; parent repository diff=761eb12a24445e3b17618426facf62a42db15412",
+      "allowedModificationSet": "none under task 3; only Data Editor stage 7/task 10 after Data Editor release is remotely reachable and a fresh Nocturnel handoff is receipted",
+      "serialHandoff": "strict two-repository serial handoff; never update gitlink, adapter launch script or project contract while either predecessor’s dirty scope is unresolved",
+      "handoffReceipt": null
+    }
+  ],
+  "unauthorizedPhysicalDeletion": [
+    { "target": "all historical __entry_id fields", "status": "blocked", "reason": "No separate physical-governance authorization; producer/consumer/save/data/reference dispositions are incomplete for many collections." },
+    { "target": "data/content/skills.json:skills.__entry_id", "status": "blocked", "reason": "active project configuration, review/migration and Godot save consumers exist." },
+    { "target": "data/content/traits.json:traits.__entry_id and data/content/runes.json:$.__entry_id", "status": "blocked", "reason": "project automation references exist and complete runtime/reference audit is absent." },
+    { "target": "data/rules/stats.json:$.__entry_id and data/governance/glossary.json:terms.__entry_id", "status": "blocked", "reason": "explicit validator/generator contracts exist even where gameplay identity is another field." },
+    { "target": "tests/fixtures/entry-action-cli-e2e/entry-action-policy.json", "status": "not-this-work-package", "reason": "pre-existing deletion belongs to the current Entry Action owner; task 3 neither accepts, restores nor deletes it." }
+  ],
+  "verification": [
+    "git rev-parse HEAD; git status --porcelain=v1 --untracked-files=all; git diff --binary | git hash-object --stdin; git diff --cached --binary | git hash-object --stdin; git submodule status --recursive in both repositories",
+    "rg __entry_id and Data Editor/Nocturnel coupling terms followed by targeted source reads",
+    "PowerShell JSON traversal of Nocturnel data/**/*.json for collection-local non-empty and duplicate checks",
+    "Nocturnel git diff --check and git diff --cached --check: exit 0"
+  ],
+  "blockingItems": [
+    "Existing Data Editor Entry Action authority/proposal/group-commit dirty scope has no serial handoff receipt.",
+    "Nocturnel project configuration and content owners are not yet identified by a signed handoff receipt.",
+    "Historical ID physical governance is intentionally outside task 3 and requires a separate approved work package."
+  ]
+}

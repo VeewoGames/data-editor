@@ -13,6 +13,7 @@ import {
   loadAutomationBindings,
   loadAutomationProfile,
   loadAutomationSkillCatalog,
+  loadProjectCapabilities,
   loadSkillNodeContract,
   listViewProfiles,
   loadDocument,
@@ -28,6 +29,7 @@ import {
   loadLatestEntryActionResult,
   loadEntryActionOutput,
   runEntryAction,
+  ackStartEntryAction,
   saveDocument,
   saveDocuments,
   saveAutomationBindings,
@@ -102,7 +104,6 @@ import { stabilizeViewResult } from "./view/stable-view-result.mjs";
 import { buildStableViewEngineRows } from "./view/stable-view-engine-rows.mjs";
 import type { DataRecord, DocumentModel } from "./model/documentModel";
 import { addField, addRow, buildDocumentModel, deleteField, deleteRow, getMainColumns, getNestedFields, getRows, setCellValue } from "./model/documentModel";
-import { ensurePersistentEntryIds } from "./model/persistent-entry-id.mjs";
 import type { FieldDisplayType } from "./model/fieldTypes";
 import { defaultTypeFor, isCompatible, resolveCompatibleDisplayType } from "./model/fieldTypes";
 import type { RelationOption } from "./model/relations";
@@ -121,6 +122,7 @@ import { parseRelationKey, type PrimaryKeyImpact, type PrimaryKeySyncPlan, type 
 import { deriveBacklinkConfigs, syncBacklinksWithRelations } from "./model/fieldRole";
 import { resolveAutoSuffixedPrimaryKeyValue } from "./model/primary-key-auto-suffix.mjs";
 import { duplicateRowByRowId, reorderRowsByRowId } from "./model/writeback-adapter";
+import { rowDigest } from "./row-digest.mjs";
 import { resolveCanReorderRows } from "./table/row-reorder-policy.mjs";
 import { analyzePrimaryKeyCandidates, buildCollectionKey, type FilteredPrimaryKeyCandidate, type PrimaryKeyCandidate, type PrimaryKeyCandidateAnalysis } from "./model/primaryKeyCandidate";
 import { findTitleField, getRecordTitle } from "./model/titleField";
@@ -998,9 +1000,23 @@ export function App() {
     }
     let cancelled = false;
     setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status: "loading" }));
-    loadSkillNodeContract(activeProjectId)
+    loadProjectCapabilities(activeProjectId)
+      .then((capabilities) => {
+        const hasSkillContractBinding = capabilities.status === "active"
+          && capabilities.bindings.documentContracts.some((binding) => (
+            binding.match.dataSourceId === "data"
+            && binding.match.path === "content/skills.json"
+            && binding.match.collection === "skills"
+          ));
+        if (!hasSkillContractBinding) return null;
+        return loadSkillNodeContract(activeProjectId);
+      })
       .then((loaded) => {
         if (cancelled) return;
+        if (!loaded) {
+          setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status: "error" }));
+          return;
+        }
         setSkillNodeContractEditorState(createSkillNodeContractEditorState({
           status: "ready",
           contract: loaded.contract,
@@ -1329,7 +1345,7 @@ export function App() {
 
   async function createProjectFromSettings(input: { name: string; root: string }) {
     try {
-      await createProject({ name: input.name, root: input.root, adapter: "nocturnel" });
+      await createProject({ name: input.name, root: input.root });
       const registry = await listProjects();
       setProjects(registry.projects);
       setActiveProjectId(registry.activeProjectId);
@@ -1645,7 +1661,6 @@ export function App() {
       return null;
     }
     if (requestId !== openRequestRef.current) return null;
-    const persistentEntryIdResult = ensurePersistentEntryIds(documentModel);
     const nextCollection = resolveDocumentCollection(documentModel, targetCollection);
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
     const nextStore = buildDocumentStoreTyped({ documentId: path, model: documentModel });
@@ -1667,10 +1682,9 @@ export function App() {
     setSelectedRowIndex(nextSelectedRowIndex);
     setSelectedRowIdState(nextSelectedRowId);
     setDetailOpen(openDetailPanel);
-    setDataDirty(persistentEntryIdResult.changed);
-    dataDirtyRef.current = persistentEntryIdResult.changed;
-    if (persistentEntryIdResult.changed) saveCoordinator.markDirty("document");
-    setStatus(persistentEntryIdResult.changed ? `已为 ${persistentEntryIdResult.changedCount} 条记录补充内部条目 ID，待自动保存。` : "");
+    setDataDirty(false);
+    dataDirtyRef.current = false;
+    setStatus("");
     return { path, collectionPath: nextCollection, rowId: nextSelectedRowId };
   }
 
@@ -4167,6 +4181,8 @@ export function App() {
         });
         return;
       }
+      const sourceRow = getRows(model, collectionPath)[selectedSourceRowIndex];
+      if (!sourceRow || typeof sourceRow !== "object") throw new Error("当前条目已变化，无法建立安全的自动化目标。");
       const result = await runEntryAction({
         projectId: activeProjectId,
         actionId,
@@ -4174,16 +4190,24 @@ export function App() {
         collectionPath,
         rowId: selectedRowId,
         sourceRowIndex: selectedSourceRowIndex,
+        expectedRowDigest: rowDigest(sourceRow),
+        idempotencyKey: crypto.randomUUID(),
       });
-      if (result.message) {
-        setEntryActionErrorMessage(result.message);
+      const started = result.status === "promotion_pending"
+        ? await (async () => {
+          await openDocumentAt(selectedPath, collectionPath, undefined, detailOpen, activeProjectId, result.receipt.durableId);
+          return ackStartEntryAction({ projectId: activeProjectId, pendingActionToken: result.pendingActionToken });
+        })()
+        : result;
+      if (started.message) {
+        setEntryActionErrorMessage(started.message);
       }
       const waitOutcome = await waitForEntryActionResultWithBackground({
         loadResult: loadEntryActionResult,
         onEnterBackgroundWait: () => {
           setEntryActionStatus({
             actionId,
-            runId: result.runId,
+            runId: started.runId,
             tone: "running",
             title: `${actionLabel} 仍在执行`,
             detail: "自动化耗时较长，仍在后台等待完成结果。结果返回后会自动更新。",
@@ -4193,7 +4217,7 @@ export function App() {
           setEntryActionStatus(buildEntryActionDetailStatus(actionId, actionLabel, pendingResult));
         },
         projectId: activeProjectId,
-        runId: result.runId,
+        runId: started.runId,
         shouldContinue: () => entryActionWatchIdRef.current === watchId,
       });
       const finalResult = resolveEntryActionWaitOutcome(actionId, actionLabel, waitOutcome);
@@ -5288,7 +5312,7 @@ export function App() {
     let currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
     if (!dirtyDomains.length) return { outcome: "idle" } as const;
     if (commandSavingRef.current || closingRef.current || rebuildingRef.current || restartingRef.current) return { outcome: "deferred" } as const;
-    if (dirtyDomains.includes("document") && currentDataDirty && currentModel && isFormalSkillsDocumentPath(currentSelectedPath)) {
+    if (dirtyDomains.includes("document") && currentDataDirty && currentModel && isFormalSkillsDocumentPath(currentSelectedPath) && skillNodeContractEditorStateRef.current.contract) {
       const contractState = skillNodeContractEditorStateRef.current;
       const derivedRuleCheck = contractState.contract
         ? validateSkillNodeDerivedRuleConflicts(contractState.contract, currentModel.root)
@@ -6577,6 +6601,7 @@ function AutomationSettingsDialog(props: {
         if (currentIndex !== targetIndex) return target;
         const collectionOptions = resolveTargetCollectionOptions(targetCatalogByFile, file, target.collection);
         return {
+          ...target,
           file,
           collection: collectionOptions[0] ?? target.collection,
         };
@@ -6589,6 +6614,40 @@ function AutomationSettingsDialog(props: {
       ...rule,
       targets: rule.targets.map((target, currentIndex) => (
         currentIndex === targetIndex ? { ...target, collection } : target
+      )),
+    }));
+  }
+
+  function updateRuleTargetTextArtifact(index: number, targetIndex: number, enabled: boolean) {
+    updateRuleWith(index, (rule) => ({
+      ...rule,
+      targets: rule.targets.map((target, currentIndex) => {
+        if (currentIndex !== targetIndex) return target;
+        if (!enabled) {
+          const { textArtifact: _textArtifact, ...nextTarget } = target;
+          return nextTarget;
+        }
+        return {
+          ...target,
+          textArtifact: target.textArtifact ?? {
+            pathTemplate: "docs/{value}.md",
+            sourceField: "id",
+            allowCreate: true,
+            allowUpdate: true,
+            maxBytes: 131072,
+          },
+        };
+      }),
+    }));
+  }
+
+  function updateRuleTargetTextArtifactField(index: number, targetIndex: number, field: keyof NonNullable<EntryActionTarget["textArtifact"]>, value: string | boolean | number) {
+    updateRuleWith(index, (rule) => ({
+      ...rule,
+      targets: rule.targets.map((target, currentIndex) => (
+        currentIndex === targetIndex && target.textArtifact
+          ? { ...target, textArtifact: { ...target.textArtifact, [field]: value } }
+          : target
       )),
     }));
   }
@@ -7202,6 +7261,35 @@ function AutomationSettingsDialog(props: {
                                           <icons.close size={15} />
                                         </button>
                                       </div>
+                                      <div className="automation-target-artifact">
+                                        <label className="dialog-check">
+                                          <input
+                                            checked={Boolean(target.textArtifact)}
+                                            disabled={controlsDisabled}
+                                            onChange={(event) => updateRuleTargetTextArtifact(selectedIndex, targetIndex, event.target.checked)}
+                                            type="checkbox"
+                                          />
+                                          <span>允许此目标读写 Markdown 文档</span>
+                                        </label>
+                                        {target.textArtifact ? (
+                                          <div className="automation-target-artifact__fields">
+                                            <label className="dialog-field">
+                                              <span>文档路径模板</span>
+                                              <input disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "pathTemplate", event.target.value)} value={target.textArtifact.pathTemplate} />
+                                            </label>
+                                            <label className="dialog-field">
+                                              <span>条目标识字段</span>
+                                              <input disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "sourceField", event.target.value)} value={target.textArtifact.sourceField} />
+                                            </label>
+                                            <label className="dialog-field">
+                                              <span>最大字节数</span>
+                                              <input disabled={controlsDisabled} min={1} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "maxBytes", Number(event.target.value))} type="number" value={target.textArtifact.maxBytes} />
+                                            </label>
+                                            <label className="dialog-check"><input checked={target.textArtifact.allowCreate} disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "allowCreate", event.target.checked)} type="checkbox" /><span>允许新建</span></label>
+                                            <label className="dialog-check"><input checked={target.textArtifact.allowUpdate} disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "allowUpdate", event.target.checked)} type="checkbox" /><span>允许更新</span></label>
+                                          </div>
+                                        ) : null}
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -7476,6 +7564,12 @@ function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile,
     for (const target of rule.targets) {
       if (!target.file.trim()) ruleIssues.push("目标文件不能为空。");
       if (!target.collection.trim()) ruleIssues.push("目标集合不能为空。");
+      if (target.textArtifact) {
+        if (!target.textArtifact.pathTemplate.trim() || !target.textArtifact.pathTemplate.endsWith(".md") || (target.textArtifact.pathTemplate.match(/\{value\}/g) ?? []).length !== 1) ruleIssues.push("文档路径模板必须是含一个 `{value}` 的 Markdown 路径。");
+        if (!target.textArtifact.sourceField.trim()) ruleIssues.push("文档条目标识字段不能为空。");
+        if (!Number.isInteger(target.textArtifact.maxBytes) || target.textArtifact.maxBytes <= 0) ruleIssues.push("文档最大字节数必须为正整数。");
+        if (!target.textArtifact.allowCreate && !target.textArtifact.allowUpdate) ruleIssues.push("文档至少要允许新建或更新其中一种操作。");
+      }
     }
     if (rule.runtime?.reasoning != null && !["none", "low", "medium", "high", "xhigh"].includes(rule.runtime.reasoning)) {
       ruleIssues.push("规则推理强度必须为 none / low / medium / high / xhigh。");
@@ -7528,6 +7622,12 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
         const key = `${target.file}\u0000${target.collection}`;
         if (seenTargets.has(key)) issues.push(`${prefix}: 目标 "${target.file} / ${target.collection}" 重复。`);
         seenTargets.add(key);
+        if (target.textArtifact) {
+          if (!target.textArtifact.pathTemplate.trim() || !target.textArtifact.pathTemplate.endsWith(".md") || (target.textArtifact.pathTemplate.match(/\{value\}/g) ?? []).length !== 1) issues.push(`${prefix}: 文档路径模板必须是含一个 \`{value}\` 的 Markdown 路径。`);
+          if (!target.textArtifact.sourceField.trim()) issues.push(`${prefix}: 文档条目标识字段不能为空。`);
+          if (!Number.isInteger(target.textArtifact.maxBytes) || target.textArtifact.maxBytes <= 0) issues.push(`${prefix}: 文档最大字节数必须为正整数。`);
+          if (!target.textArtifact.allowCreate && !target.textArtifact.allowUpdate) issues.push(`${prefix}: 文档至少要允许新建或更新其中一种操作。`);
+        }
       }
     }
     if (rule.runtime?.reasoning != null && !["none", "low", "medium", "high", "xhigh"].includes(rule.runtime.reasoning)) {

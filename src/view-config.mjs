@@ -19,7 +19,7 @@ export async function loadViewConfig(projectContextOrRoot) {
     const parsed = JSON.parse(await readFile(target, "utf8"));
     return normalizeViewConfig(parsed);
   } catch (error) {
-    if (error?.code === "ENOENT") return loadLegacyViewConfig(context);
+    if (error?.code === "ENOENT") return emptyViewConfig();
     throw error;
   }
 }
@@ -30,18 +30,6 @@ export async function saveViewConfig(projectContextOrRoot, config) {
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, `${JSON.stringify(normalizeViewConfig(config), null, 2)}\n`, "utf8");
   return { path: displayProjectPath(context, target) };
-}
-
-async function loadLegacyViewConfig(context) {
-  if (!context.legacySharedViewConfigPath) return emptyViewConfig();
-  const legacyTarget = resolveInsideRoot(context.projectRoot, context.legacySharedViewConfigPath);
-  try {
-    const parsed = JSON.parse(await readFile(legacyTarget, "utf8"));
-    return normalizeViewConfig(parsed);
-  } catch (error) {
-    if (error?.code === "ENOENT") return emptyViewConfig();
-    throw error;
-  }
 }
 
 export function emptyViewConfig() {

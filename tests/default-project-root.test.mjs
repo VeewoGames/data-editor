@@ -35,11 +35,11 @@ test("standalone repo prefers the active registry project over the tool root par
   await writeFile(
     path.join(registryHome, "projects.json"),
     `${JSON.stringify({
-      version: 1,
+      version: 2,
       activeProjectId: "nocturnel-e621a436",
       projects: [
-        { id: "nocturnel-e621a436", name: "Nocturnel", root: activeProjectRoot, adapter: "nocturnel", dataSources: [], filePolicy: { includeExtensions: [".json"] } },
-        { id: "project-59d75dd6", name: "Project", root: "C:\\", adapter: "nocturnel", dataSources: [], filePolicy: { includeExtensions: [".json"] } },
+        { id: "nocturnel-e621a436", name: "Nocturnel", root: activeProjectRoot, dataSources: [], filePolicy: { includeExtensions: [".json"] } },
+        { id: "project-59d75dd6", name: "Project", root: "C:\\", dataSources: [], filePolicy: { includeExtensions: [".json"] } },
       ],
     }, null, 2)}\n`,
     "utf8",

@@ -3,8 +3,8 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Locator } from "@playwright/test";
 
-const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(process.cwd(), "..", "Nocturnel"));
-const fixtureRunesPath = path.join(fixtureProjectRoot, "data", "runes.json");
+const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(process.cwd(), "tests", "fixtures", "projects", "e2e-schema-project"));
+const fixtureRunesPath = path.join(fixtureProjectRoot, "data", "content", "runes.json");
 
 test.setTimeout(60_000);
 
@@ -3984,7 +3984,7 @@ test("detail panel number fields reject non-numeric text input", async ({ page }
 test("detail and document panels keep a shared 200px bottom buffer", async ({ page }) => {
   const dataPath = path.resolve("tests/.scratch/data/e2e_document_field.json");
   const docsRoot = path.resolve("tests/.scratch/docs/e2e_document_field");
-  const viewConfigPath = path.resolve("tests/.scratch/tools/data-editor/view-config.json");
+  const viewConfigPath = path.resolve("tests/.scratch/.data-editor/view-config.json");
   const originalViewConfig = await readFile(viewConfigPath, "utf8");
   const fieldKey = "data/e2e_document_field.json:$:doc_id";
 
@@ -4026,6 +4026,10 @@ test("detail and document panels keep a shared 200px bottom buffer", async ({ pa
   nextViewConfig.documentFiles = {
     ...(nextViewConfig.documentFiles ?? {}),
     "data/e2e_document_field.json": { docRoot: "docs/e2e_document_field" },
+  };
+  nextViewConfig.primaryKeys = {
+    ...(nextViewConfig.primaryKeys ?? {}),
+    "data/e2e_document_field.json:$": "id",
   };
   nextViewConfig.documentFields = {
     ...(nextViewConfig.documentFields ?? {}),
@@ -7472,13 +7476,12 @@ test("sidebar tree label alignment stays stable across row types and expansion s
 
 test("sidebar tree rows keep a consistent slot skeleton across source folder and file kinds", async ({ page }) => {
   const registry = {
-    version: 1,
+    version: 2,
     activeProjectId: "multi-source-project",
     projects: [{
       id: "multi-source-project",
       name: "Multi Source Project",
       root: "C:\\Code\\DataEditorFixture",
-      adapter: "nocturnel",
       dataSources: [
         { id: "data", label: "Data", kind: "relative", path: "data" },
         { id: "mods", label: "Mods", kind: "relative", path: "mods" },
@@ -7959,8 +7962,9 @@ test("document field opens left panel and persists its open state and width", as
   const dataPath = path.resolve("tests/.scratch/data/e2e_document_field.json");
   const docsRoot = path.resolve("tests/.scratch/docs/e2e_document_field");
   const docPath = path.join(docsRoot, "fireball.md");
-  const viewConfigPath = path.resolve("tests/.scratch/tools/data-editor/view-config.json");
-  const originalViewConfig = await readFile(viewConfigPath, "utf8");
+  const originalViewConfigResponse = await page.request.get("/api/view-config");
+  expect(originalViewConfigResponse.ok()).toBe(true);
+  const originalViewConfig = await originalViewConfigResponse.json();
   const fieldKey = "data/e2e_document_field.json:$:doc_id";
 
   await mkdir(docsRoot, { recursive: true });
@@ -7971,7 +7975,7 @@ test("document field opens left panel and persists its open state and width", as
   ], null, 2), "utf8");
   await writeFile(docPath, "# Fireball Guide\n\nA linked markdown document.\n", "utf8");
 
-  const nextViewConfig = JSON.parse(originalViewConfig);
+  const nextViewConfig = structuredClone(originalViewConfig);
   nextViewConfig.fields = {
     ...(nextViewConfig.fields ?? {}),
     [fieldKey]: {
@@ -7996,7 +8000,12 @@ test("document field opens left panel and persists its open state and width", as
     [fieldKey]: { enabled: true },
     "data/e2e_document_field.json:$:extra_doc": { enabled: true },
   };
-  await writeFile(viewConfigPath, JSON.stringify(nextViewConfig, null, 2), "utf8");
+  const saveViewConfigResponse = await page.request.post("/api/view-config", { data: { config: nextViewConfig } });
+  expect(saveViewConfigResponse.ok()).toBe(true);
+  const documentIndexResponse = await page.request.get("/api/document-index?path=data%2Fe2e_document_field.json&refresh=1");
+  expect(documentIndexResponse.ok()).toBe(true);
+  const documentIndex = await documentIndexResponse.json();
+  expect(documentIndex.entries.fireball?.status).toBe("resolved");
 
   try {
     await page.goto("/");
@@ -8006,7 +8015,7 @@ test("document field opens left panel and persists its open state and width", as
     await expect(page.locator(".data-table")).toBeVisible();
     await tableRow(page, 0).locator('[data-cell-role="title-action"]').click();
     await expect(page.locator(".detail-panel.primary")).toBeVisible();
-    await expect(tableCell(page, 0, "doc_id")).toContainText("Fireball Guide");
+    await expect(tableCell(page, 0, "doc_id")).toContainText("fireball");
 
     const documentBlock = page.locator(".detail-panel.primary .property-block").filter({ hasText: "doc_id" });
     await expect(documentBlock.locator(".document-field-trigger")).toContainText("Fireball Guide");
@@ -8091,7 +8100,10 @@ test("document field opens left panel and persists its open state and width", as
     await expect(page.locator(".detail-panel.document.open")).toHaveCount(0);
     await expect(page.locator(".detail-panel.document")).not.toBeVisible();
   } finally {
-    await bestEffortRestore("view-config.json", () => writeFile(viewConfigPath, originalViewConfig, "utf8"));
+    await bestEffortRestore("view-config.json", async () => {
+      const restoreResponse = await page.request.post("/api/view-config", { data: { config: originalViewConfig } });
+      if (!restoreResponse.ok()) throw new Error(`Failed to restore view config: ${restoreResponse.status()}`);
+    });
     await bestEffortRestore("e2e_document_field.json", () => rm(dataPath, { force: true }));
     await bestEffortRestore("e2e_document_field docs", () => rm(docsRoot, { recursive: true, force: true }));
   }
@@ -8101,8 +8113,9 @@ test("linked document content reloads after markdown file changes and page refre
   const dataPath = path.resolve("tests/.scratch/data/e2e_document_refresh.json");
   const docsRoot = path.resolve("tests/.scratch/docs/e2e_document_refresh");
   const docPath = path.join(docsRoot, "fireball.md");
-  const viewConfigPath = path.resolve("tests/.scratch/tools/data-editor/view-config.json");
-  const originalViewConfig = await readFile(viewConfigPath, "utf8");
+  const originalViewConfigResponse = await page.request.get("/api/view-config");
+  expect(originalViewConfigResponse.ok()).toBe(true);
+  const originalViewConfig = await originalViewConfigResponse.json();
   const fieldKey = "data/e2e_document_refresh.json:$:doc_id";
 
   await mkdir(docsRoot, { recursive: true });
@@ -8111,7 +8124,7 @@ test("linked document content reloads after markdown file changes and page refre
   ], null, 2), "utf8");
   await writeFile(docPath, "# Fireball Guide\n\nOriginal linked markdown document.\n", "utf8");
 
-  const nextViewConfig = JSON.parse(originalViewConfig);
+  const nextViewConfig = structuredClone(originalViewConfig);
   nextViewConfig.fields = {
     ...(nextViewConfig.fields ?? {}),
     [fieldKey]: {
@@ -8133,7 +8146,8 @@ test("linked document content reloads after markdown file changes and page refre
     ...(nextViewConfig.documentFields ?? {}),
     [fieldKey]: { enabled: true },
   };
-  await writeFile(viewConfigPath, JSON.stringify(nextViewConfig, null, 2), "utf8");
+  const saveViewConfigResponse = await page.request.post("/api/view-config", { data: { config: nextViewConfig } });
+  expect(saveViewConfigResponse.ok()).toBe(true);
 
   try {
     await page.goto("/");
@@ -8160,7 +8174,10 @@ test("linked document content reloads after markdown file changes and page refre
     await expect(page.locator(".detail-panel.document.open")).toBeVisible();
     await expect(page.locator(".detail-panel.document")).toContainText("Updated linked markdown document.");
   } finally {
-    await bestEffortRestore("view-config.json", () => writeFile(viewConfigPath, originalViewConfig, "utf8"));
+    await bestEffortRestore("view-config.json", async () => {
+      const restoreResponse = await page.request.post("/api/view-config", { data: { config: originalViewConfig } });
+      if (!restoreResponse.ok()) throw new Error(`Failed to restore view config: ${restoreResponse.status()}`);
+    });
     await bestEffortRestore("e2e_document_refresh.json", () => rm(dataPath, { force: true }));
     await bestEffortRestore("e2e_document_refresh docs", () => rm(docsRoot, { recursive: true, force: true }));
   }
@@ -11288,13 +11305,12 @@ test("refresh build asks for confirmation when unsaved changes would be lost", a
 
 test("project settings opens from the empty workspace state", async ({ page }) => {
   const registry = {
-    version: 1,
+    version: 2,
     activeProjectId: "empty-project",
     projects: [{
       id: "empty-project",
       name: "Empty Project",
       root: "C:\\Code\\EmptyProject",
-      adapter: "nocturnel",
       dataSources: [{ id: "data", label: "Data", kind: "relative", path: "data" }],
     }],
   };

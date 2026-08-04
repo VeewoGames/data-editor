@@ -174,8 +174,6 @@ async function spawnMainService(requested, deps) {
           requested.toolRoot,
           "--bridge-port",
           String(requested.bridgePort),
-          "--adapter",
-          requested.adapterId,
           "--registry-home",
           requested.registryHome,
           "--runtime-dir",
@@ -195,8 +193,6 @@ async function spawnMainService(requested, deps) {
           requested.toolRoot,
           "--bridge-port",
           String(requested.bridgePort),
-          "--adapter",
-          requested.adapterId,
           "--registry-home",
           requested.registryHome,
           "--runtime-dir",
@@ -232,7 +228,6 @@ async function spawnMainService(requested, deps) {
       mode: requested.mode,
       projectRoot: requested.projectRoot,
       registryHome: requested.registryHome,
-      adapterId: requested.adapterId,
     };
     await waitForServiceReadyImpl(child, expectedState);
     await saveServiceStateImpl(requested.runtimeTarget, {
@@ -241,7 +236,6 @@ async function spawnMainService(requested, deps) {
       mode: requested.mode,
       projectRoot: requested.projectRoot,
       registryHome: requested.registryHome,
-      adapterId: requested.adapterId,
       command: [process.execPath, ...spawnArgs],
       startedAt: new Date().toISOString(),
     });
@@ -323,7 +317,6 @@ function normalizeMainServiceOptions(options) {
     runtimeDir: options.runtimeDir ?? ".data-editor/runtime",
     logsDir: options.logsDir ?? ".data-editor/logs",
     runtimeTarget: options.runtimeTarget ?? runtimeHome({ home: registryHome }),
-    adapterId: options.adapterId ?? "nocturnel",
     port: Number(options.port ?? 8787),
     mode: options.mode === "dev" ? "dev" : "static",
     bridgePort: Number(options.bridgePort ?? 8791),

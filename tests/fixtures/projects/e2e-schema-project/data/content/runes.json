@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "rune_id": "rune_firebolt",
+    "rune_name": "Firebolt",
+    "description": "A reliable fire rune for editor smoke coverage.",
+    "description_zh": "用于编辑器冒烟测试的火焰符文。",
+    "category": "damage",
+    "rarity": "common",
+    "tags": ["fire", "damage"]
+  },
+  {
+    "id": 2,
+    "rune_id": "rune_support_focus",
+    "rune_name": "Focus",
+    "description": "A support rune with a deliberately longer description for column layout coverage.",
+    "description_zh": "用于列布局覆盖的辅助符文。",
+    "category": "support",
+    "rarity": "rare",
+    "tags": ["support", "focus"]
+  }
+]

@@ -1,19 +1,29 @@
 import { createProjectContext } from "./project-context.mjs";
+import { resolveInsideRoot } from "./project-context.mjs";
+import crypto from "node:crypto";
+import path from "node:path";
+import { canonicalFileIdentity } from "./canonical-file-identity.mjs";
+import { createFencingAllocator } from "./fencing-lock.mjs";
 import { entryActionHandoffPath } from "./entry-actions.mjs";
 import { startProposalOnlyEntryAction } from "./entry-action-service.mjs";
+import { preflightEntryActionAdmission } from "./entry-action-admission.mjs";
+import { createPendingEntryActionStore } from "./pending-entry-action.mjs";
 
 export function createEntryActionRunRoute({
   loadRegistry,
   toolRoot,
   jobSupervisor,
   documentCommitCoordinator,
+  promoteIdentity = null,
+  resolveCapabilityState = null,
+  preflightEntryAction = preflightEntryActionAdmission,
   startEntryAction = startProposalOnlyEntryAction,
   onCompletion = () => {},
 }) {
   if (typeof loadRegistry !== "function") throw new TypeError("loadRegistry is required.");
   if (typeof startEntryAction !== "function") throw new TypeError("startEntryAction is required.");
 
-  return async function runEntryAction(body) {
+  async function resolveProject(body) {
     const projectId = String(body?.projectId ?? "").trim();
     if (!projectId) routeError("ENTRY_ACTION_PROJECT_REQUIRED", "Missing projectId", 400);
 
@@ -31,10 +41,14 @@ export function createEntryActionRunRoute({
     const projectContext = createProjectContext({
       projectRoot: project.root,
       projectId: project.id,
-      adapterId: project.adapter,
       dataSources: project.dataSources,
       filePolicy: project.filePolicy,
     });
+    return { project, projectContext };
+  }
+
+  async function start(body, dependencies = {}) {
+    const { project, projectContext } = await resolveProject(body);
     const started = await startEntryAction({
       projectContext,
       project,
@@ -42,6 +56,7 @@ export function createEntryActionRunRoute({
       toolRoot,
       jobSupervisor,
       documentCommitCoordinator,
+      dependencies,
     });
     onCompletion(started);
     return {
@@ -50,6 +65,63 @@ export function createEntryActionRunRoute({
       runId: started.runId,
       handoffPath: entryActionHandoffPath(projectContext, started.runId),
     };
+  }
+
+  return {
+    async run(body) {
+      const { project, projectContext } = await resolveProject(body);
+      if (typeof promoteIdentity !== "function" || typeof resolveCapabilityState !== "function") return start(body);
+      const capabilityState = await resolveCapabilityState(project);
+      // Capability admission is checked before action authority; candidate contract
+      // validation is then repeated inside the promotion commit mutex.
+      if (capabilityState?.status !== "active") routeError("IDENTITY_PROMOTION_CAPABILITY_UNAVAILABLE", "Capability state is not active for durable identity promotion.", 409);
+      await preflightEntryAction({ projectContext, request: body });
+      const sourceIdentity = await canonicalFileIdentity(projectContext, body.sourcePath);
+      const runId = crypto.randomUUID();
+      const jobInstanceId = crypto.randomUUID();
+      const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(projectContext.projectRoot, path.join(projectContext.runtimeDir, "entry-action-fencing")) });
+      const lease = await allocator.reservePromotion({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
+      const idempotencyKey = String(body?.idempotencyKey ?? "").trim();
+      let promotion;
+      try {
+        promotion = await promoteIdentity({
+          projectContext, capabilityState, sourcePath: body.sourcePath, collectionPath: body.collectionPath,
+          sourceRowIndex: body.sourceRowIndex, expectedRowDigest: body.expectedRowDigest, idempotencyKey,
+          documentCommitCoordinator,
+        });
+      } catch (error) {
+        await allocator.cancelPromotion(lease).catch(() => {});
+        throw error;
+      }
+      const store = createPendingEntryActionStore({ projectContext });
+      const pending = await store.create({
+        projectId: project.id, actionId: body.actionId, sourcePath: body.sourcePath, collectionPath: body.collectionPath,
+        rowId: promotion.receipt.durableId, expectedRowDigest: promotion.receipt.canonicalRowDigest,
+        capabilityGeneration: capabilityState.generation, manifestDigest: capabilityState.manifestDigest,
+        idempotencyKey, receipt: promotion.receipt, runId, jobInstanceId, lease,
+      });
+      return { ok: true, status: "promotion_pending", pendingActionToken: pending.token, receipt: promotion.receipt, root: promotion.root, format: promotion.format, documentEtag: promotion.documentEtag };
+    },
+    async ackStart(body) {
+      const token = String(body?.pendingActionToken ?? "").trim();
+      const projectId = String(body?.projectId ?? "").trim();
+      const { project, projectContext } = await resolveProject({ projectId });
+      const store = createPendingEntryActionStore({ projectContext });
+      const pending = await store.read(token);
+      if (!pending || pending.projectId !== project.id) routeError("ENTRY_ACTION_PENDING_TOKEN_UNKNOWN", "Pending action token is unavailable.", 404);
+      if (pending.state === "started") return { ok: true, status: "started", runId: pending.runId, handoffPath: pending.handoffPath, replayed: true };
+      const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(projectContext.projectRoot, path.join(projectContext.runtimeDir, "entry-action-fencing")) });
+      if (pending.state !== "pending" || store.isExpired(pending)) {
+        if (pending.state === "pending") await allocator.cancelPromotion(pending.lease).then(() => store.write({ ...pending, state: "expired", expiredAt: new Date().toISOString() })).catch(() => {});
+        routeError("ENTRY_ACTION_PENDING_TOKEN_EXPIRED", "Pending action token has expired.", 409);
+      }
+      const state = await resolveCapabilityState(project);
+      if (state.status !== "active" || state.generation !== pending.capabilityGeneration || state.manifestDigest !== pending.manifestDigest) routeError("ENTRY_ACTION_PENDING_AUTHORITY_STALE", "Capability authority changed before action start.", 409);
+      await allocator.activatePromotion(pending.lease);
+      const started = await start({ ...pending, projectId: project.id, sourceRowIndex: null }, { lease: pending.lease, runId: pending.runId, jobInstanceId: pending.jobInstanceId });
+      await store.write({ ...pending, state: "started", startedAt: new Date().toISOString(), runId: started.runId, handoffPath: started.handoffPath });
+      return started;
+    },
   };
 }
 

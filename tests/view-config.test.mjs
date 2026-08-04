@@ -69,7 +69,7 @@ test("saveViewConfig preserves field type and select options", async () => {
   }
 });
 
-test("loadViewConfig falls back to legacy project config path", async () => {
+test("loadViewConfig ignores removed legacy project config path", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
   try {
     const legacyPath = path.join(root, "tools", "data-editor", "view-config.json");
@@ -84,7 +84,7 @@ test("loadViewConfig falls back to legacy project config path", async () => {
       relationsVersion: currentRelationsVersion,
     }), "utf8");
     const loaded = await loadViewConfig(root);
-    assert.equal(loaded.primaryKeys["data/equipment_bases.json:equipment_bases"], "equipment_base_id");
+    assert.equal(loaded.primaryKeys["data/equipment_bases.json:equipment_bases"], undefined);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

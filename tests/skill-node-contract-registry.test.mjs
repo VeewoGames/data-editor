@@ -10,13 +10,9 @@ import {
 } from "../src/detail/node-schema-registry.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nocturnelRoot = process.env.NOCTURNEL_ROOT
-  ? path.resolve(process.env.NOCTURNEL_ROOT)
-  : path.basename(path.dirname(repoRoot)) === "tools"
-    ? path.resolve(repoRoot, "..", "..")
-    : path.resolve(repoRoot, "..", "Nocturnel");
-const contract = JSON.parse(await readFile(path.resolve(nocturnelRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
-const contractMetaSchema = JSON.parse(await readFile(path.resolve(nocturnelRoot, "data", "contracts", "skill_nodes.schema.json"), "utf8"));
+const contractFixtureRoot = path.join(repoRoot, "tests", "fixtures", "projects", "contract-project");
+const contract = JSON.parse(await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
+const contractMetaSchema = JSON.parse(await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.schema.json"), "utf8"));
 const baseContext = {
   sourcePath: "C:/Code/Nocturnel/data/content/skills.json",
   collectionPath: "skills",

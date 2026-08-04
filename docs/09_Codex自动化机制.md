@@ -48,9 +48,15 @@ Data Editor 的条目级 Codex 自动化仍在安全升级中。当前正式产�
 
 ## 配置与可用性
 
-`.data-editor/automation-profile.json`、本机 bindings、policy 与 authority snapshot 仍是受控执行协议的
-输入和验证基础；当前它们不能绕过入口禁用。用户界面或配置中出现的动作、绑定或历史运行记录，
-都不代表可以启动新的写回任务。
+`.data-editor/automation-profile.json`、本机 bindings、
+`.data-editor/entry-action-policy.json` 与 authority snapshot 仍共同构成受控执行协议的输入和验证
+基础；其中 profile 与 policy 都会参与动作目标的授权判断。当前它们不能绕过入口禁用。用户界面或
+配置中出现的动作、绑定或历史运行记录，都不代表可以启动新的写回任务。
+
+已确认的配置断裂是：某个动作即使已经在 Automation Settings 中启用并配置了目标文件和合集，只要
+`entry-action-policy.json` 未声明同一 `actionId + file + collection`，authority snapshot 仍会将其
+视为授权过期，并以 `ENTRY_ACTION_AUTHORITY_STALE` 拒绝。这是两份动作目标配置未同步造成的当前
+限制，不代表所选条目内容本身无效。
 
 ## 后续边界
 

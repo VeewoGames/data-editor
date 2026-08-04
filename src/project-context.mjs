@@ -1,8 +1,5 @@
 import path from "node:path";
 
-export const legacySharedViewConfigPath = "tools/data-editor/view-config.json";
-export const legacyViewProfilesDir = "tools/data-editor/view-configs";
-
 export const defaultSharedViewConfigPath = ".data-editor/view-config.json";
 export const defaultProjectViewProfilesDir = ".data-editor/view-configs";
 export const defaultAutomationProfilePath = ".data-editor/automation-profile.json";
@@ -33,16 +30,13 @@ export function createProjectContext(input = {}) {
   return {
     projectRoot,
     projectId,
-    adapterId: input.adapterId ?? "nocturnel",
     dataRoot: input.dataRoot ?? "data",
     dataSources: normalizeDataSources(input.dataSources, input.dataRoot ?? "data"),
     sharedViewConfigPath: input.sharedViewConfigPath ?? defaultSharedViewConfigPath,
-    legacySharedViewConfigPath: input.legacySharedViewConfigPath ?? legacySharedViewConfigPath,
     userViewProfilesDir,
     automationProfilePath,
     entryActionPolicyPath,
     localAutomationBindingsPath,
-    legacyViewProfilesDir: input.legacyViewProfilesDir ?? legacyViewProfilesDir,
     runtimeDir: input.runtimeDir ?? defaultRuntimeDir,
     logsDir: input.logsDir ?? defaultLogsDir,
     filePolicy: input.filePolicy ?? {

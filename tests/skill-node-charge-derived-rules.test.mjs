@@ -11,8 +11,8 @@ import {
 } from "../src/detail/skill-node-derived-rules.mjs";
 
 const editorRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nocturnelRoot = path.resolve(editorRoot, "..", "..");
-const contract = JSON.parse(await readFile(path.join(nocturnelRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
+const contractFixtureRoot = path.join(editorRoot, "tests", "fixtures", "projects", "contract-project");
+const contract = JSON.parse(await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
 
 test("charge targeting only exposes distance and relations plus a non-persistent derived summary", () => {
   const skill = validChargeSkill();

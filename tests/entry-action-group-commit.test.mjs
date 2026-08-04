@@ -18,23 +18,6 @@ const digest = (value) => crypto.createHash("sha256").update(value, "utf8").dige
 const etag = (value) => `"${digest(value)}"`;
 const documentText = '[{"__entry_id":"row-1","item_id":"item_alpha","name":"Alpha","notes":""}]';
 const row = { __entry_id: "row-1", item_id: "item_alpha", name: "Alpha", notes: "" };
-const policy = {
-  version: 4,
-  targets: [{
-    actionId: "rename",
-    file: "data/items.json",
-    collection: "$",
-  }],
-  textArtifacts: [{
-    actionId: "rename",
-    id: "item-doc",
-    pathTemplate: "docs/items/{value}.md",
-    sourceField: "item_id",
-    allowCreate: true,
-    allowUpdate: true,
-    maxBytes: 4096,
-  }],
-};
 const profile = {
   etag: '"profile"',
   rules: [{
@@ -48,11 +31,11 @@ const profile = {
     targets: [{
       file: "data/items.json",
       collection: "$",
-      textArtifactId: "item-doc",
+      textArtifact: { pathTemplate: "docs/items/{value}.md", sourceField: "item_id", allowCreate: true, allowUpdate: true, maxBytes: 4096 },
     }],
   }],
 };
-const snapshot = createAuthoritySnapshot({ policy, profile, actionId: "rename", file: "data/items.json", collection: "$", row });
+const snapshot = createAuthoritySnapshot({ profile, actionId: "rename", file: "data/items.json", collection: "$", row });
 const lease = {
   canonicalFileKey: "a".repeat(64),
   runId: "10000000-0000-4000-8000-000000000001",
@@ -63,7 +46,7 @@ const lease = {
 };
 const afterArtifact = "# Alpha\n";
 const proposal = {
-  version: 2,
+  version: 3,
   runId: lease.runId,
   actionId: "rename",
   sourcePath: "data/items.json",
@@ -71,8 +54,7 @@ const proposal = {
   collectionPath: "$",
   rowId: "row-1",
   baseDocumentEtag: etag(documentText),
-  automationProfileEtag: profile.etag,
-  authorityDigest: snapshot.authorityDigest,
+  ruleDigest: snapshot.ruleDigest,
   fencingToken: 1,
   changes: [
     { field: "name", beforeExists: true, before: "Alpha", afterExists: true, after: "Beta" },
@@ -99,7 +81,6 @@ async function makeFixture(t) {
     proposal,
     lease,
     authoritySnapshot: snapshot,
-    policy,
     profile,
     documentText,
     textArtifactCurrentText: null,
@@ -126,8 +107,7 @@ async function makeFixture(t) {
       assert.equal(ownership.fencingToken, lease.fencingToken);
     },
     verifyAuthority: async (authority) => {
-      assert.equal(authority.authorityDigest, snapshot.authorityDigest);
-      assert.equal(authority.automationProfileEtag, profile.etag);
+      assert.equal(authority.ruleDigest, snapshot.ruleDigest);
     },
     refreshIdentities: async () => ({
       source: sourceIdentity,

@@ -30,7 +30,8 @@ const stopScriptPath = path.join(repoRoot, "stop.mjs");
 const openScriptPath = path.join(repoRoot, "open.mjs");
 const serverScriptPath = path.join(repoRoot, "server.mjs");
 const serviceFinalizeScriptPath = path.join(repoRoot, "scripts", "service-finalize.mjs");
-const projectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(repoRoot, "..", "Nocturnel"));
+const defaultFixtureProjectRoot = fileURLToPath(new URL("./fixtures/projects/e2e-schema-project/", import.meta.url));
+const projectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? defaultFixtureProjectRoot);
 const execFileAsync = promisify(execFile);
 const activeOpenToolRoots = new Set();
 
@@ -1604,7 +1605,7 @@ test("server saves and loads automation profile and machine-local bindings", asy
   const bindings = await waitForJsonOk(port, `/api/automation-bindings?projectId=${encodeURIComponent(projectId)}`);
   assert.equal(bindings.bindings.recheck.provider, "codex");
 
-  const sharedProfilePath = path.join(profileHome, Buffer.from(path.resolve(project).toLowerCase()).toString("base64url"), "automation-profile.json");
+  const sharedProfilePath = path.join(profileHome, projectId, "automation-profile.json");
   const localBindingsPath = path.join(project, ".data-editor", "local", "automation-bindings.json");
   const storedProfile = JSON.parse(await readFile(sharedProfilePath, "utf8"));
   const storedBindings = JSON.parse(await readFile(localBindingsPath, "utf8"));
@@ -1612,7 +1613,7 @@ test("server saves and loads automation profile and machine-local bindings", asy
   assert.equal(storedBindings.bindings.recheck.skill, "recheck");
 });
 
-test("entry action run fails closed without a writeback policy while historical artifacts remain readable", async (t) => {
+test("entry action run fails closed when durable identity is required but unavailable", async (t) => {
   const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-project-"));
   const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-home-"));
   t.after(async () => {
@@ -1676,10 +1677,9 @@ test("entry action run fails closed without a writeback policy while historical 
     rowId: "items:1",
     sourceRowIndex: 1,
   });
-  assert.equal(validRunResponse.statusCode, 500, JSON.stringify(validRunResponse.body));
+  assert.equal(validRunResponse.statusCode, 409, JSON.stringify(validRunResponse.body));
   assert.equal(validRunResponse.headers["cache-control"], "no-store");
-  assert.equal(validRunResponse.body?.code, "ENTRY_ACTION_POLICY_MISSING");
-  assert.equal(validRunResponse.body?.error, "Entry-action writeback policy is missing.");
+  assert.equal(validRunResponse.body?.code, "IDENTITY_PROMOTION_CAPABILITY_UNAVAILABLE");
   assert.deepEqual((await readdir(runtimeDir)).sort(), historicalFileNames);
 
   const resultResponse = await getJson(port, `/api/entry-actions/result?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(historicalRunId)}`);

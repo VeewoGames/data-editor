@@ -58,7 +58,6 @@ if (isMainModule) {
       port: options.port,
       servicePort: options.servicePort,
       serviceMode: options.serviceMode,
-      adapterId: options.adapterId,
       command: [
         process.execPath,
         fileURLToPath(import.meta.url),
@@ -74,8 +73,6 @@ if (isMainModule) {
         String(options.servicePort),
         "--service-mode",
         options.serviceMode,
-        "--adapter",
-        options.adapterId,
       ],
       startedAt: new Date().toISOString(),
     });
@@ -147,7 +144,6 @@ async function startServiceThroughController() {
       logsDir: options.logsDir,
       port: options.servicePort,
       mode: options.serviceMode,
-      adapterId: options.adapterId,
       bridgePort: options.port,
     },
     {
@@ -262,7 +258,6 @@ function parseArgs(argv) {
     port: 8791,
     servicePort: 8787,
     serviceMode: "static",
-    adapterId: "nocturnel",
     runtimeDir: ".data-editor/runtime",
     logsDir: ".data-editor/logs",
   };
@@ -275,7 +270,7 @@ function parseArgs(argv) {
     else if (token === "--port") parsed.port = Number(argv[++index]);
     else if (token === "--service-port") parsed.servicePort = Number(argv[++index]);
     else if (token === "--service-mode") parsed.serviceMode = argv[++index] === "dev" ? "dev" : "static";
-    else if (token === "--adapter") parsed.adapterId = argv[++index] || "nocturnel";
+    else if (token === "--adapter") throw new Error("--adapter is no longer supported.");
     else if (token === "--runtime-dir") parsed.runtimeDir = argv[++index];
     else if (token === "--logs-dir") parsed.logsDir = argv[++index];
   }

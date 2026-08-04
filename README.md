@@ -14,14 +14,14 @@ npm run build
 
 ## 打开和切换项目
 
-首次编辑 Nocturnel：
+首次编辑一个项目：
 
 ```powershell
 cd C:\Code\data-editor
-npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
+npm run open -- --project C:\Code\MyProject
 ```
 
-这条命令会把 `C:\Code\Nocturnel` 注册到本机 registry，并设为当前 active project。后续可以在左侧 Sidebar 顶部的项目下拉框中切换项目，也可以点击旁边的设置按钮新增项目、修改项目根目录和自定义数据源。
+这条命令会把目标目录注册到本机 registry，并设为当前 active project。后续可以在左侧 Sidebar 顶部的项目下拉框中切换项目，也可以点击旁边的设置按钮新增项目、修改项目根目录和自定义数据源。
 
 默认地址：
 
@@ -33,7 +33,7 @@ http://127.0.0.1:8787/
 
 ```powershell
 $env:DATA_EDITOR_HOME = "C:\Users\lans\.data-editor"
-npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
+npm run open -- --project C:\Code\MyProject
 ```
 
 ## 关闭服务
@@ -49,7 +49,7 @@ npm run stop
 
 ```powershell
 cd C:\Code\data-editor
-npm run dev -- --project C:\Code\Nocturnel --adapter nocturnel
+npm run dev -- --project C:\Code\MyProject
 ```
 
 ## 配置与运行时位置
@@ -103,12 +103,6 @@ shared|Shared|absolute|D:\GameData\shared
 
 文件列表中的路径会以数据源 id 作为前缀，例如 `balance/items.json`。保存时后端会重新解析该虚拟路径，并限制写入在已注册的数据源范围内。
 
-## 示例
+## 项目声明
 
-Nocturnel 项目配置示例见：
-
-```text
-examples/nocturnel/data-editor.project.json
-```
-
-该示例用于说明一个业务项目如何声明数据目录、配置路径、可写范围、主键策略和关联策略。
+项目专用能力在 `<project>/.data-editor/project.json` 中声明。Data Editor 只读取通用 capability manifest、数据源与文件策略，不内置任何业务项目的 adapter。

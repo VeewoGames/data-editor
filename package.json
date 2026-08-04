@@ -11,6 +11,7 @@
     "stop": "node stop.mjs",
     "service:status": "node scripts/service-finalize.mjs --status",
     "service:finalize": "node scripts/service-finalize.mjs --cleanup --recover",
+    "registry:migrate:v2": "node scripts/registry-migrate-v2.mjs",
     "build:job-helper": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-job-helper.ps1",
     "entry-action:recover": "node scripts/entry-action-recover.mjs",
     "test:entry-action-cli-e2e": "node --test tests/entry-action-cli-e2e.test.mjs",

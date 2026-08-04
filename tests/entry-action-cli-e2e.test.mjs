@@ -11,7 +11,6 @@ import { resolveCodexCli } from "../src/codex-runtime.mjs";
 import { createFencingAllocator } from "../src/fencing-lock.mjs";
 import { publishEntryActionProposal } from "../src/entry-action-proposal-publisher.mjs";
 import { canonicalFileIdentity } from "../src/canonical-file-identity.mjs";
-import { loadEntryActionPolicy } from "../src/entry-action-policy.mjs";
 import { loadAutomationProfile } from "../src/automation-profile.mjs";
 import { createAuthoritySnapshot } from "../src/entry-action-authority.mjs";
 import { commitEntryActionProposal, prepareEntryActionProposalCommit } from "../src/entry-action-proposal-commit.mjs";
@@ -43,7 +42,7 @@ async function preflightCodexCli({ root, cliPath }) {
     const record = {
       version: 1, status: "passed", startedAt, completedAt: new Date().toISOString(), cliPath,
       fixedExecArgs: ["exec", "--ignore-user-config", "--ignore-rules", "--ephemeral", "--json", "--skip-git-repo-check", "--sandbox", "read-only", "-C", "<scratch>", "-"],
-      proposalSchemaVersion: 2, policyVersion: 2, baseline: BASELINE,
+      proposalSchemaVersion: 2, authorityContractVersion: 2, baseline: BASELINE,
       checks: { version, authentication, execHelp: { args: help.args, supportsJson: true, supportsSkipGitRepoCheck: true } },
     };
     await writeFile(artifactPath, `${JSON.stringify(record, null, 2)}\n`);
@@ -82,11 +81,11 @@ async function setup(t) {
   return { root, scratch, cliPath: cli.path, preflight, source: path.join(scratch, "data", "items.json"), markPassed: () => { passed = true; } };
 }
 
-test("real Codex CLI success publishes and commits a validated v2 proposal", { timeout: BASELINE.scriptMs }, async (t) => {
+test("real Codex CLI success publishes and commits a validated v3 proposal", { timeout: BASELINE.scriptMs }, async (t) => {
   const env = await setup(t); const runId = crypto.randomUUID(); const beforeText = await readFile(env.source, "utf8"); const before = digest(beforeText);
-  const identity = await canonicalFileIdentity(env.scratch, "data/items.json"); const canonicalFileKey = identity.canonicalFileKey; const policy = await loadEntryActionPolicy(path.join(fixture, "entry-action-policy.json")); const profile = await loadAutomationProfile(env.scratch); const snapshot = createAuthoritySnapshot({ policy, profile, actionId: "fixture-rename", file: "data/items.json", collection: "$", row: JSON.parse(beforeText)[0] }); const authorityDigest = snapshot.authorityDigest;
+  const identity = await canonicalFileIdentity(env.scratch, "data/items.json"); const canonicalFileKey = identity.canonicalFileKey; const profile = await loadAutomationProfile(env.scratch); const snapshot = createAuthoritySnapshot({ profile, actionId: "fixture-rename", file: "data/items.json", collection: "$", row: JSON.parse(beforeText)[0] }); const ruleDigest = snapshot.ruleDigest;
   const baseDocumentEtag = `"${digest(beforeText)}"`;
-  const prompt = (await readFile(path.join(fixture, "success.prompt.md"), "utf8")).replace("{{RUN_ID}}", runId).replace("{{CANONICAL_FILE_KEY}}", canonicalFileKey).replace("{{AUTHORITY_DIGEST}}", authorityDigest).replace("{{BASE_DOCUMENT_ETAG}}", JSON.stringify(baseDocumentEtag)).replace("{{AUTOMATION_PROFILE_ETAG}}", JSON.stringify(snapshot.automationProfileEtag));
+  const prompt = (await readFile(path.join(fixture, "success.prompt.md"), "utf8")).replace("{{RUN_ID}}", runId).replace("{{CANONICAL_FILE_KEY}}", canonicalFileKey).replace("{{RULE_DIGEST}}", ruleDigest).replace("{{BASE_DOCUMENT_ETAG}}", JSON.stringify(baseDocumentEtag));
   const promptPath = path.join(env.root, "success.md"); await writeFile(promptPath, prompt);
   const output = path.join(env.root, "events.jsonl");
   const replyPath = path.join(env.root, "reply.json");
@@ -125,7 +124,6 @@ test("real Codex CLI success publishes and commits a validated v2 proposal", { t
     proposal,
     lease,
     authoritySnapshot: snapshot,
-    policy,
     profile,
     documentText: beforeText,
     probeLease: (value) => allocator.probe(value),

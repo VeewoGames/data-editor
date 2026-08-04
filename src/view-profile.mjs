@@ -12,10 +12,7 @@ const allowedAppearanceBaseFontSizes = new Set([14, 14.5, 15, 16]);
 
 export async function listViewProfiles(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
-  const names = new Set([
-    ...await listProfileNamesInDir(profileDir(context)),
-    ...await listProfileNamesInDir(legacyProfileDir(context)),
-  ]);
+  const names = new Set(await listProfileNamesInDir(profileDir(context)));
   return [...names].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
 }
 
@@ -28,7 +25,7 @@ export async function loadViewProfile(projectContextOrRoot, name) {
     const parsed = JSON.parse(await readFile(target, "utf8"));
     return normalizeViewProfile(parsed);
   } catch (error) {
-    if (error?.code === "ENOENT") return loadLegacyViewProfile(context, profileName);
+    if (error?.code === "ENOENT") return emptyViewProfile();
     throw error;
   }
 }
@@ -252,17 +249,6 @@ async function listProfileNamesInDir(targetDir) {
   }
 }
 
-async function loadLegacyViewProfile(context, profileName) {
-  const target = path.join(legacyProfileDir(context), `${profileName}.json`);
-  try {
-    const parsed = JSON.parse(await readFile(target, "utf8"));
-    return normalizeViewProfile(parsed);
-  } catch (error) {
-    if (error?.code === "ENOENT") return emptyViewProfile();
-    throw error;
-  }
-}
-
 function serializeViewProfile(profile) {
   const normalized = normalizeViewProfile(profile);
   return {
@@ -285,8 +271,4 @@ function serializeViewProfile(profile) {
 
 function profileDir(context) {
   return path.resolve(context.userViewProfilesDir);
-}
-
-function legacyProfileDir(context) {
-  return resolveInsideRoot(context.projectRoot, context.legacyViewProfilesDir);
 }

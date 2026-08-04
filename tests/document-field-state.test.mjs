@@ -7,11 +7,11 @@ import {
   shouldOpenDetailDocumentPanel,
 } from "../src/model/document-field-state.mjs";
 
-test("buildSelectedDocumentFields resolves configured document fields from the current row primary key", () => {
+test("buildSelectedDocumentFields resolves each configured field from its own row value", () => {
   const result = buildSelectedDocumentFields({
     sourcePath: "data/skills.json",
     collectionPath: "$",
-    row: { skill_id: "skill_fireball", name: "Fireball" },
+    row: { skill_id: "skill_fireball", name: "Fireball", doc_id: "skill_fireball", extra_doc: "skill_frostbolt" },
     primaryKeyField: "skill_id",
     displayTypes: {
       skill_id: "Text",
@@ -30,12 +30,18 @@ test("buildSelectedDocumentFields resolves configured document fields from the c
         relativePath: "skill_fireball.md",
         title: "Fireball Guide",
       },
+      skill_frostbolt: {
+        status: "resolved",
+        id: "skill_frostbolt",
+        relativePath: "skill_frostbolt.md",
+        title: "Frostbolt Guide",
+      },
     },
   });
 
   assert.deepEqual(result.map((entry) => ({ fieldName: entry.fieldName, documentId: entry.documentId, label: entry.label })), [
     { fieldName: "doc_id", documentId: "skill_fireball", label: "Fireball Guide" },
-    { fieldName: "extra_doc", documentId: "skill_fireball", label: "Fireball Guide" },
+    { fieldName: "extra_doc", documentId: "skill_frostbolt", label: "Frostbolt Guide" },
   ]);
 });
 

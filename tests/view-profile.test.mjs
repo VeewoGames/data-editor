@@ -281,7 +281,7 @@ test("normalizeProfileName rejects unsupported characters", () => {
 test("loadViewProfile de-duplicates repeated order fields", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
   try {
-    const profileDir = path.join(root, "tools", "data-editor", "view-configs");
+    const profileDir = path.join(root, ".data-editor", "view-configs");
     await mkdir(profileDir, { recursive: true });
     await writeFile(path.join(profileDir, "lans.json"), JSON.stringify({
       sidebarWidth: null,
@@ -435,13 +435,13 @@ test("loadViewProfile migrates legacy collections into the last active view layo
   }
 });
 
-test("listViewProfiles includes legacy profile names", async () => {
+test("listViewProfiles ignores removed legacy profile locations", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
   try {
     const legacyProfileDir = path.join(root, "tools", "data-editor", "view-configs");
     await mkdir(legacyProfileDir, { recursive: true });
     await writeFile(path.join(legacyProfileDir, "legacy.json"), "{}");
-    assert.deepEqual(await listViewProfiles(root), ["legacy"]);
+    assert.deepEqual(await listViewProfiles(root), []);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

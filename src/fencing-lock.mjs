@@ -41,6 +41,9 @@ export function createFencingAllocator({ stateRoot, now = () => new Date().toISO
 
   return Object.freeze({
     allocate: (input) => allocate(root, input, { now, randomUUID }),
+    reservePromotion: (input) => reservePromotion(root, input, { now, randomUUID }),
+    activatePromotion: (lease) => activatePromotion(root, lease),
+    cancelPromotion: (lease) => cancelPromotion(root, lease),
     probe: (input) => probe(root, input),
     heartbeat: (lease) => heartbeat(root, lease, { now }),
     markEvidencePending: (lease) => markEvidencePending(root, lease, { now }),
@@ -115,6 +118,38 @@ async function allocate(root, input, deps) {
       throw unavailable("ENTRY_ACTION_FENCING_UNAVAILABLE", "Cannot release allocator lock; future allocation is fail-closed.", error);
     });
   }
+}
+
+async function reservePromotion(root, input, deps) {
+  const lease = await allocate(root, input, deps);
+  const layout = layoutFor(root, lease.canonicalFileKey);
+  try {
+    await mkdir(layout.promotionDirectory, { recursive: true });
+    await exclusiveCreateLock(promotionPendingPath(layout, lease.ownerToken), json({
+      protocolVersion: VERSION, canonicalFileKey: lease.canonicalFileKey, ownerToken: lease.ownerToken,
+      ownerHash: lease.ownerHash, phase: "promotion_pending", recordedAt: deps.now(),
+    }));
+  } catch (error) { throw unavailable("ENTRY_ACTION_PROMOTION_FENCING_UNAVAILABLE", "Cannot persist promotion-pending fencing evidence.", error); }
+  return lease;
+}
+
+async function activatePromotion(root, lease) {
+  const owner = validateLease(lease);
+  const current = await probe(root, owner);
+  assertCurrentOwner(current, owner);
+  if (current.phase !== "promotion_pending") throw unavailable("ENTRY_ACTION_PROMOTION_FENCING_INVALID", "Only a promotion-pending lease can start an Entry Action.");
+  await rm(promotionPendingPath(layoutFor(root, owner.canonicalFileKey), owner.ownerToken), { force: false });
+  return owner;
+}
+
+async function cancelPromotion(root, lease) {
+  const owner = validateLease(lease);
+  const current = await probe(root, owner);
+  assertCurrentOwner(current, owner);
+  if (current.phase !== "promotion_pending") throw unavailable("ENTRY_ACTION_PROMOTION_FENCING_INVALID", "Only a promotion-pending lease can be cancelled.");
+  const layout = layoutFor(root, owner.canonicalFileKey);
+  await rmdir(layout.admissionDirectory);
+  return { cancelled: true, fencingToken: owner.fencingToken };
 }
 
 async function probe(root, input) {
@@ -243,6 +278,11 @@ async function publishAnchors(layout, anchor) {
 
 async function readPhase(layout, owner) {
   try {
+    const pending = await readStrict(promotionPendingPath(layout, owner.ownerToken), validatePromotionPending);
+    if (pending.canonicalFileKey !== owner.canonicalFileKey || pending.ownerHash !== owner.ownerHash) throw integrity("Promotion pending evidence does not belong to the admission owner.");
+    return "promotion_pending";
+  } catch (error) { if (error?.code !== "ENOENT") throw error; }
+  try {
     const owned = await readStrict(ownedEvidencePath(layout, owner.ownerToken), validateOwnedEvidence);
     if (owned.canonicalFileKey !== owner.canonicalFileKey || owned.ownerHash !== owner.ownerHash || owned.jobInstanceId !== owner.jobInstanceId) throw integrity("Owned evidence does not belong to the admission owner.");
     return "evidence_persisted";
@@ -259,7 +299,7 @@ async function readPhase(layout, owner) {
   }
 }
 
-function layoutFor(root, key) { const keyRoot = path.join(root, key); return { keyRoot, recordsDirectory: path.join(keyRoot, "records"), ownersDirectory: path.join(keyRoot, "owners"), evidenceDirectory: path.join(keyRoot, "evidence"), ownedEvidenceDirectory: path.join(keyRoot, "owned-evidence"), heartbeatDirectory: path.join(keyRoot, "heartbeats"), quarantineDirectory: path.join(keyRoot, "quarantine"), allocatorLock: path.join(keyRoot, "allocator.lock"), tailAnchor: path.join(keyRoot, "tail-anchor.json"), head: path.join(keyRoot, "head.json"), admissionHead: path.join(keyRoot, "admission-head.json"), admissionDirectory: path.join(keyRoot, "admission.lock") }; }
+function layoutFor(root, key) { const keyRoot = path.join(root, key); return { keyRoot, recordsDirectory: path.join(keyRoot, "records"), ownersDirectory: path.join(keyRoot, "owners"), evidenceDirectory: path.join(keyRoot, "evidence"), promotionDirectory: path.join(keyRoot, "promotion-pending"), ownedEvidenceDirectory: path.join(keyRoot, "owned-evidence"), heartbeatDirectory: path.join(keyRoot, "heartbeats"), quarantineDirectory: path.join(keyRoot, "quarantine"), allocatorLock: path.join(keyRoot, "allocator.lock"), tailAnchor: path.join(keyRoot, "tail-anchor.json"), head: path.join(keyRoot, "head.json"), admissionHead: path.join(keyRoot, "admission-head.json"), admissionDirectory: path.join(keyRoot, "admission.lock") }; }
 export function fencingLayoutForRecovery(stateRoot, canonicalFileKey) { return layoutFor(requireAbsolutePath(stateRoot, "stateRoot"), validateKey(canonicalFileKey)); }
 export async function readCurrentFencingAdmission(stateRoot, canonicalFileKey, { requireAdmissionDirectory = true } = {}) {
   const layout = fencingLayoutForRecovery(stateRoot, canonicalFileKey);
@@ -291,6 +331,7 @@ export async function readFencingOwnedEvidence(stateRoot, lease) {
 function recordPath(layout, token) { return path.join(layout.recordsDirectory, `${token}.json`); }
 function ownerPath(layout, ownerToken) { return path.join(layout.ownersDirectory, `${ownerToken}.json`); }
 function evidencePath(layout, ownerToken) { return path.join(layout.evidenceDirectory, `${ownerToken}.json`); }
+function promotionPendingPath(layout, ownerToken) { return path.join(layout.promotionDirectory, `${ownerToken}.json`); }
 function ownedEvidencePath(layout, ownerToken) { return path.join(layout.ownedEvidenceDirectory, `${ownerToken}.json`); }
 function json(value) { return `${JSON.stringify(value, null, 2)}\n`; }
 function hash(value) { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
@@ -320,6 +361,7 @@ function validateAnchor(value) { assertExact(value, ["protocolVersion", "canonic
 function validateHead(value) { assertExact(value, ["protocolVersion", "canonicalFileKey", "fencingToken", "recordHash", "tailAnchorHash"]); if (value.protocolVersion !== VERSION || !KEY_RE.test(value.canonicalFileKey) || !Number.isSafeInteger(value.fencingToken) || value.fencingToken < 1 || !isHash(value.recordHash) || !isHash(value.tailAnchorHash)) throw integrity("Head schema is invalid."); }
 function validateOwner(value) { assertExact(value, ["protocolVersion", "canonicalFileKey", "runId", "ownerToken", "fencingToken", "jobInstanceId", "phase", "createdAt", "ownerHash"]); if (value.protocolVersion !== VERSION || !KEY_RE.test(value.canonicalFileKey) || !isUuid(value.ownerToken) || !Number.isSafeInteger(value.fencingToken) || value.fencingToken < 1 || !isUuid(value.jobInstanceId) || value.phase !== "launching" || !isHash(value.ownerHash)) throw integrity("Owner schema is invalid."); const { ownerHash, ...withoutHash } = value; if (hash(withoutHash) !== ownerHash) throw integrity("Owner hash is invalid."); }
 function validateEvidence(value) { assertExact(value, ["protocolVersion", "canonicalFileKey", "ownerToken", "ownerHash", "phase", "recordedAt"]); if (value.protocolVersion !== VERSION || !KEY_RE.test(value.canonicalFileKey) || !isUuid(value.ownerToken) || !isHash(value.ownerHash) || value.phase !== "evidence_pending") throw integrity("Evidence schema is invalid."); }
+function validatePromotionPending(value) { assertExact(value, ["protocolVersion", "canonicalFileKey", "ownerToken", "ownerHash", "phase", "recordedAt"]); if (value.protocolVersion !== VERSION || !KEY_RE.test(value.canonicalFileKey) || !isUuid(value.ownerToken) || !isHash(value.ownerHash) || value.phase !== "promotion_pending") throw integrity("Promotion evidence schema is invalid."); }
 function validateOwnedEvidence(value) { assertExact(value, ["protocolVersion", "canonicalFileKey", "ownerToken", "ownerHash", "jobInstanceId", "phase", "helper", "child", "recordedAt"]); if (value.protocolVersion !== VERSION || !KEY_RE.test(value.canonicalFileKey) || !isUuid(value.ownerToken) || !isHash(value.ownerHash) || !isUuid(value.jobInstanceId) || value.phase !== "evidence_persisted") throw integrity("Owned evidence schema is invalid."); validateProcessEvidence(value.helper, "helper"); validateProcessEvidence(value.child, "child"); }
 function validateAdmissionHead(value) { assertExact(value, ["protocolVersion", "canonicalFileKey", "ownerToken", "ownerHash"]); if (value.protocolVersion !== VERSION || !KEY_RE.test(value.canonicalFileKey) || !isUuid(value.ownerToken) || !isHash(value.ownerHash)) throw integrity("Admission head schema is invalid."); }
 function validateSupervisorEvidence(value, jobInstanceId) { assertExact(value, ["jobInstanceId", "helper", "child"]); if (value.jobInstanceId !== jobInstanceId || !isUuid(value.jobInstanceId)) throw unavailable("ENTRY_ACTION_OWNED_EVIDENCE_INVALID", "Supervisor evidence jobInstanceId does not match this lease."); validateProcessEvidence(value.helper, "helper"); validateProcessEvidence(value.child, "child"); return value; }

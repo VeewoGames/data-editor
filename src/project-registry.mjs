@@ -4,7 +4,7 @@ import path from "node:path";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { atomicWrite } from "./atomic-file.mjs";
 
-const registryVersion = 1;
+export const registryVersion = 2;
 const validIdPattern = /^[a-z0-9_-]+$/;
 
 export function dataEditorHome(env = process.env) {
@@ -28,6 +28,7 @@ export function runtimeHome(options = {}) {
 export async function loadProjectRegistry(options = {}) {
   try {
     const parsed = JSON.parse(stripBom(await readFile(projectRegistryPath(options), "utf8")));
+    if (parsed?.version !== registryVersion) throw registryMigrationRequired(parsed?.version);
     return normalizeProjectRegistry(parsed);
   } catch (error) {
     if (error?.code === "ENOENT") return emptyProjectRegistry();
@@ -59,7 +60,6 @@ export async function addOrActivateProject(input, options = {}) {
     id: input.id ?? defaultProjectId(root, registry.projects),
     name: input.name ?? (path.basename(root) || "Project"),
     root,
-    adapter: input.adapter ?? input.adapterId ?? "nocturnel",
     dataSources: input.dataSources ?? [{
       id: "data",
       label: "Data",
@@ -83,6 +83,7 @@ export function emptyProjectRegistry() {
 
 export function normalizeProjectRegistry(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return emptyProjectRegistry();
+  if (value.version != null && value.version !== registryVersion) throw registryMigrationRequired(value.version);
   const projects = Array.isArray(value.projects)
     ? value.projects.map(normalizeProjectDefinition).filter((project) => !isFilesystemRoot(project.root))
     : [];
@@ -100,17 +101,33 @@ export function normalizeProjectRegistry(value) {
 }
 
 function normalizeProjectDefinition(value) {
+  assertKnownProjectFields(value);
   const root = path.resolve(String(value?.root ?? process.cwd()));
   return {
     id: String(value?.id ?? "").trim(),
     name: String(value?.name ?? value?.id ?? path.basename(root) ?? "Project").trim(),
     root,
-    adapter: String(value?.adapter ?? value?.adapterId ?? "nocturnel").trim() || "nocturnel",
     dataSources: normalizeDataSources(value?.dataSources),
     filePolicy: {
       includeExtensions: normalizeIncludeExtensions(value?.filePolicy?.includeExtensions),
     },
   };
+}
+
+export function migrateProjectRegistryV1(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== 1) throw registryMigrationRequired(value?.version);
+  return normalizeProjectRegistry({
+    version: registryVersion,
+    activeProjectId: value.activeProjectId,
+    projects: Array.isArray(value.projects) ? value.projects.map(({ adapter, adapterId, entryActions, ...project }) => project) : [],
+  });
+}
+
+function assertKnownProjectFields(value) {
+  const allowed = new Set(["id", "name", "root", "dataSources", "filePolicy"]);
+  for (const key of Object.keys(value ?? {})) {
+    if (!allowed.has(key)) throw new Error(`Unknown project registry field: ${key}`);
+  }
 }
 
 async function assertProjectRootDirectory(root) {
@@ -215,4 +232,8 @@ function isFilesystemRoot(value) {
 
 function stripBom(text) {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+function registryMigrationRequired(version) {
+  return Object.assign(new Error(`Project registry version ${version ?? "missing"} requires migration: npm run registry:migrate:v2 -- --registry-home <path>`), { code: "PROJECT_REGISTRY_MIGRATION_REQUIRED" });
 }

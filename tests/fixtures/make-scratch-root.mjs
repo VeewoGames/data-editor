@@ -4,19 +4,20 @@ import { fileURLToPath } from "node:url";
 
 const fixtureDir = path.dirname(fileURLToPath(import.meta.url));
 const toolRoot = path.resolve(fixtureDir, "../..");
-const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(toolRoot, "..", "Nocturnel"));
+const fixtureProjectRoot = path.resolve(process.env.DATA_EDITOR_FIXTURE_PROJECT_ROOT ?? path.join(fixtureDir, "projects", "e2e-schema-project"));
+const contractFixtureRoot = path.join(fixtureDir, "projects", "contract-project");
 const scratchRoot = path.join(toolRoot, "tests", ".scratch");
 const scratchData = path.join(scratchRoot, "data");
 const scratchContentData = path.join(scratchData, "content");
 const scratchContractData = path.join(scratchData, "contracts");
-const scratchToolConfigDir = path.join(scratchRoot, "tools", "data-editor");
+const scratchProjectConfigDir = path.join(scratchRoot, ".data-editor");
 
 await rm(scratchRoot, { recursive: true, force: true });
 await mkdir(scratchData, { recursive: true });
 await mkdir(scratchContentData, { recursive: true });
 await mkdir(scratchContractData, { recursive: true });
-await mkdir(scratchToolConfigDir, { recursive: true });
-await writeFile(path.join(scratchToolConfigDir, "view-config.json"), JSON.stringify({ fields: {} }, null, 2));
+await mkdir(scratchProjectConfigDir, { recursive: true });
+await writeFile(path.join(scratchProjectConfigDir, "view-config.json"), JSON.stringify({ fields: {} }, null, 2));
 
 const contentFileNames = ["runes.json", "skills.json", "enemies.json", "traits.json", "affixes.json", "status_effects.json", "classes.json"];
 for (const fileName of contentFileNames) {
@@ -25,8 +26,8 @@ for (const fileName of contentFileNames) {
   await cp(sourcePath, path.join(scratchContentData, fileName));
 }
 await cp(path.join(fixtureProjectRoot, "data", "rules", "keywords.json"), path.join(scratchData, "keywords.json"));
-await cp(path.join(fixtureProjectRoot, "data", "contracts", "skill_nodes.json"), path.join(scratchContractData, "skill_nodes.json"));
-await cp(path.join(fixtureProjectRoot, "data", "contracts", "skill_nodes.schema.json"), path.join(scratchContractData, "skill_nodes.schema.json"));
+await cp(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.json"), path.join(scratchContractData, "skill_nodes.json"));
+await cp(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.schema.json"), path.join(scratchContractData, "skill_nodes.schema.json"));
 
 const affixesMechanicFixture = JSON.stringify([
   {

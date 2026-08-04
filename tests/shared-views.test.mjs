@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   emptySharedViewsConfig,
   loadSharedViews,
@@ -365,8 +366,11 @@ test("saveSharedViews and loadSharedViews preserve generated core-solid icons", 
   }
 });
 
-test("Nocturnel trait tradeoff group keeps tag OR semantics and adds tradeoff filter to every tab", async () => {
-  const configPath = "C:/Code/Nocturnel/.data-editor/shared-views.json";
+test("trait tradeoff group fixture keeps tag OR semantics and adds tradeoff filter to every tab", async () => {
+  const configPath = fileURLToPath(new URL(
+    "./fixtures/projects/shared-views-project/.data-editor/shared-views.json",
+    import.meta.url,
+  ));
   const config = normalizeSharedViewsConfig(JSON.parse(await readFile(configPath, "utf8")));
   const tradeoffGroup = config.collections["data/traits.json:traits"]?.items?.find((item) => item.kind === "group" && item.name === "代价");
 

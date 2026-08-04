@@ -11,6 +11,18 @@ export function emptyAutomationProfile() {
   return { rules: [], etag: null };
 }
 
+export function ruleAuthorityDigest(rule) {
+  if (!rule || typeof rule !== "object" || Array.isArray(rule)) throw new Error("Entry action authority rule is invalid");
+  const value = {
+    id: rule.id,
+    enabled: rule.enabled,
+    targets: rule.targets,
+    payload: rule.payload,
+    ...(rule.runtime ? { runtime: rule.runtime } : {}),
+  };
+  return crypto.createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
+}
+
 export async function loadAutomationProfile(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
   try {
@@ -120,7 +132,7 @@ function normalizeTargetPairs(value, ruleId) {
     result.push({
       file: normalizeRequiredString(item.file, `Entry action rule "${ruleId}" target.file`),
       collection: normalizeRequiredString(item.collection, `Entry action rule "${ruleId}" target.collection`),
-      ...normalizeTextArtifactId(item.textArtifactId, ruleId),
+      ...normalizeTextArtifact(item.textArtifact, ruleId),
     });
   }
   return dedupeTargetPairs(result, ruleId);
@@ -141,9 +153,18 @@ function dedupeTargetPairs(value, ruleId) {
   return result;
 }
 
-function normalizeTextArtifactId(value, ruleId) {
-  if (value == null || value === "") return {};
-  return { textArtifactId: normalizeRequiredString(value, `Entry action rule "${ruleId}" target.textArtifactId`) };
+function normalizeTextArtifact(value, ruleId) {
+  if (value == null) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Entry action rule "${ruleId}" target.textArtifact must be an object`);
+  const keys = Object.keys(value).sort();
+  const required = ["allowCreate", "allowUpdate", "maxBytes", "pathTemplate", "sourceField"];
+  if (keys.length !== required.length || required.some((key) => !Object.hasOwn(value, key))) throw new Error(`Entry action rule "${ruleId}" target.textArtifact fields are invalid`);
+  const pathTemplate = normalizeRequiredString(value.pathTemplate, `Entry action rule "${ruleId}" target.textArtifact.pathTemplate`);
+  if (pathTemplate.includes("\\") || path.posix.isAbsolute(pathTemplate) || path.posix.normalize(pathTemplate) !== pathTemplate || !pathTemplate.endsWith(".md") || (pathTemplate.match(/\{value\}/g) ?? []).length !== 1) throw new Error(`Entry action rule "${ruleId}" target.textArtifact.pathTemplate is invalid`);
+  const sourceField = normalizeRequiredString(value.sourceField, `Entry action rule "${ruleId}" target.textArtifact.sourceField`);
+  const maxBytes = normalizeOptionalPositiveInteger(value.maxBytes, `Entry action rule "${ruleId}" target.textArtifact.maxBytes`);
+  if (maxBytes == null || typeof value.allowCreate !== "boolean" || typeof value.allowUpdate !== "boolean") throw new Error(`Entry action rule "${ruleId}" target.textArtifact permissions are invalid`);
+  return { textArtifact: { pathTemplate, sourceField, allowCreate: value.allowCreate, allowUpdate: value.allowUpdate, maxBytes } };
 }
 
 function normalizePayload(value, ruleId) {
@@ -236,6 +257,7 @@ function profilePath(context) {
   return path.resolve(context.automationProfilePath);
 }
 function profileEtag(text) { return `"${crypto.createHash("sha256").update(text, "utf8").digest("hex")}"`; }
+function canonicalJson(value) { if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`; if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`; return JSON.stringify(value); }
 async function withProfileSaveLock(key, task) {
   const previous = profileSaveLocks.get(key) ?? Promise.resolve();
   let release;

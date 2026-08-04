@@ -26,17 +26,22 @@ import { loadAutomationBindings, saveAutomationBindings } from "./src/automation
 import { loadAutomationSkillCatalog } from "./src/automation-skill-catalog.mjs";
 import { resolveCodexBindingStatus } from "./src/codex-runtime.mjs";
 import { loadAutomationProfile, saveAutomationProfile } from "./src/automation-profile.mjs";
-import { listDataFiles, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
+import { listDataFiles, normalizeDataFileVirtualPath, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
 import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
+import { createProjectCapabilityRegistry, findCapabilityBinding } from "./src/project-capability-registry.mjs";
+import { loadDocumentContract, DocumentContractError } from "./src/document-contract-service.mjs";
 import { createConnectionShutdown } from "./src/server-shutdown.mjs";
 import { createJobSupervisor } from "./src/job-supervisor.mjs";
 import { createDocumentCommitCoordinator } from "./src/document-commit-coordinator.mjs";
 import { createEntryActionRunRoute } from "./src/entry-action-route.mjs";
+import { promoteEmbeddedIdentity, recoverPendingEmbeddedIdentityPromotions } from "./src/durable-identity-coordinator.mjs";
+import { createPendingEntryActionStore } from "./src/pending-entry-action.mjs";
+import { createFencingAllocator } from "./src/fencing-lock.mjs";
 import { createCommitJournal } from "./src/commit-journal.mjs";
 import { executeJournaledDocumentCommit } from "./src/document-commit-executor.mjs";
 import { classifyCommitJournalRecovery } from "./src/commit-journal-recovery.mjs";
@@ -59,10 +64,12 @@ const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileUR
 const execFileAsync = promisify(execFile);
 let shuttingDown = false;
 let initialProjectPromise = null;
+const recoveredIdentityPromotionProjects = new Set();
 const entryActionStateMigrationByProjectRoot = new Map();
 const connectionShutdown = createConnectionShutdown();
 const jobSupervisor = createJobSupervisor({ toolRoot });
 const documentCommitCoordinator = createDocumentCommitCoordinator();
+const projectCapabilityRegistry = createProjectCapabilityRegistry(registryOptions);
 const activeEntryActionCompletions = new Map();
 const runEntryAction = createEntryActionRunRoute({
   loadRegistry: async () => {
@@ -72,6 +79,26 @@ const runEntryAction = createEntryActionRunRoute({
   toolRoot,
   jobSupervisor,
   documentCommitCoordinator,
+  promoteIdentity: (input) => promoteEmbeddedIdentity({
+    ...input,
+    validateCandidate: async ({ sourcePath, root, format, capabilityState }) => {
+      const contracts = await resolveApplicableDocumentContracts(input.projectContext, sourcePath, root, format);
+      if (contracts.error) throw contracts.error;
+      if (contracts.state.status !== "active"
+        || contracts.state.generation !== capabilityState.generation
+        || contracts.state.manifestDigest !== capabilityState.manifestDigest) {
+        throw new DocumentSaveError("IDENTITY_PROMOTION_CAPABILITY_STALE", "身份升级期间 capability 或文档合同发生变化。", "documentContracts", { status: 409 });
+      }
+      // Promotion is a server-owned writer, but it is deliberately held to the
+      // same exact binding/token shape as an ordinary document save.
+      validateDocumentContractSave({ documentContracts: contracts.contracts.map(({ binding, loaded }) => ({
+        contractId: binding.id, manifestDigest: contracts.state.manifestDigest,
+        contractDigest: loaded.contractDigest, version: loaded.version,
+      })) }, contracts);
+      await assertDocumentContractsUnchanged(input.projectContext, sourcePath, root, format, contracts);
+    },
+  }),
+  resolveCapabilityState: (project) => projectCapabilityRegistry.resolve(project),
   onCompletion(started) {
     activeEntryActionCompletions.set(started.runId, started.completion);
     void started.completion.finally(() => activeEntryActionCompletions.delete(started.runId));
@@ -84,8 +111,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/entry-actions/run" && req.method === "POST") {
       return await handleRunEntryAction(req, res);
     }
+    if (url.pathname === "/api/entry-actions/ack-start" && req.method === "POST") {
+      return await handleAckStartEntryAction(req, res);
+    }
     await ensureInitialProject();
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
+    if (url.pathname === "/api/project-capabilities" && req.method === "GET") return await handleProjectCapabilities(url, res);
     if (url.pathname === "/api/projects" && req.method === "POST") return await handleCreateProject(req, res);
     if (url.pathname === "/api/project-update" && req.method === "POST") return await handleUpdateProject(req, res);
     if (url.pathname === "/api/project-delete" && req.method === "POST") return await handleDeleteProject(req, res);
@@ -94,6 +125,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/document") return await handleDocument(url, res);
     if (url.pathname === "/api/document-index") return await handleDocumentIndex(url, res);
     if (url.pathname === "/api/document-content") return await handleDocumentContent(url, res);
+    if (url.pathname === "/api/document-contracts" && req.method === "GET") return await handleDocumentContracts(url, res);
     if (url.pathname === "/api/skill-node-contract" && req.method === "GET") return await handleSkillNodeContract(req, url, res);
     if (url.pathname === "/api/save" && req.method === "POST") return await handleSave(req, res);
     if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(await projectContextForUrl(url)));
@@ -138,9 +170,24 @@ if (isMainModule) {
   });
 }
 
-function ensureInitialProject() {
-  initialProjectPromise ??= addOrActivateProject({ root: projectRoot, adapter: args.adapter ?? "nocturnel" }, registryOptions);
-  return initialProjectPromise;
+async function ensureInitialProject() {
+  initialProjectPromise ??= addOrActivateProject({ root: projectRoot }, registryOptions);
+  await initialProjectPromise;
+  const registry = await loadProjectRegistry(registryOptions);
+  const project = registry.projects.find((candidate) => candidate.id === registry.activeProjectId);
+  if (project && !recoveredIdentityPromotionProjects.has(project.id)) {
+    const context = createProjectContext({ projectRoot: project.root, projectId: project.id, dataSources: project.dataSources, filePolicy: project.filePolicy });
+    const capabilityState = await projectCapabilityRegistry.resolve(project);
+    await recoverPendingEmbeddedIdentityPromotions({ projectContext: context, capabilityState });
+    const pendingStore = createPendingEntryActionStore({ projectContext: context });
+    const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(context.projectRoot, path.join(context.runtimeDir, "entry-action-fencing")) });
+    for (const pending of await pendingStore.list()) {
+      if (pending?.state !== "pending" || !pendingStore.isExpired(pending)) continue;
+      await allocator.cancelPromotion(pending.lease).then(() => pendingStore.write({ ...pending, state: "expired", expiredAt: new Date().toISOString() })).catch(() => {});
+    }
+    recoveredIdentityPromotionProjects.add(project.id);
+  }
+  return registry;
 }
 
 async function handleDocument(url, res) {
@@ -154,6 +201,57 @@ async function handleDocument(url, res) {
     ...buildDocumentModel(parsed.data, parsed.format, relativePath),
     documentEtag: documentEtag(text),
   });
+}
+
+async function handleProjectCapabilities(url, res) {
+  const registry = await loadProjectRegistry(registryOptions);
+  const requestedProjectId = typeof url.searchParams.get("projectId") === "string" ? url.searchParams.get("projectId").trim() : "";
+  const projectId = requestedProjectId || registry.activeProjectId;
+  const project = registry.projects.find((candidate) => candidate.id === projectId);
+  if (!project) throw new Error(projectId ? `Unknown project: ${projectId}` : "No active project is configured.");
+  sendJson(res, await projectCapabilityRegistry.resolve(project), 200, { "cache-control": "no-cache" });
+}
+
+async function resolveApplicableDocumentContracts(projectContext, documentPath, root, format) {
+  const registry = await loadProjectRegistry(registryOptions);
+  const project = registry.projects.find((candidate) => candidate.id === projectContext.projectId);
+  if (!project) throw new Error(`Unknown project: ${projectContext.projectId}`);
+  const capabilityState = await projectCapabilityRegistry.resolve(project);
+  if (capabilityState.status === "generic_absent") return { state: capabilityState, contracts: [] };
+  if (capabilityState.status !== "active") {
+    return { state: capabilityState, contracts: [], error: new DocumentSaveError("DOCUMENT_CONTRACT_CAPABILITY_UNAVAILABLE", "项目 capability 状态不可用于安全保存。", "path", { status: 409, details: capabilityState.error ?? null }) };
+  }
+  const virtualPath = normalizeDataFileVirtualPath(projectContext, documentPath);
+  const separator = virtualPath.indexOf("/");
+  const dataSourceId = virtualPath.slice(0, separator);
+  const innerPath = virtualPath.slice(separator + 1);
+  const model = buildDocumentModel(root, format, documentPath);
+  const contracts = [];
+  for (const collection of model.collections) {
+    const binding = findCapabilityBinding(capabilityState, { engine: "document-contract-v1", dataSourceId, path: innerPath, collection: collection.path });
+    if (binding) contracts.push({ binding, loaded: await loadDocumentContract(projectContext.projectRoot, binding) });
+  }
+  return { state: capabilityState, contracts };
+}
+
+async function handleDocumentContracts(url, res) {
+  const documentPath = url.searchParams.get("path");
+  if (!documentPath) throw new Error("Missing document contract path");
+  const projectContext = await projectContextForUrl(url);
+  const ext = path.extname(documentPath).toLowerCase();
+  const text = await readTextFile(projectContext, documentPath);
+  const root = ext === ".csv" ? parseCsv(text) : parseJson(text).data;
+  const resolution = await resolveApplicableDocumentContracts(projectContext, documentPath, root, ext.slice(1));
+  if (resolution.error) throw resolution.error;
+  sendJson(res, {
+    projectId: projectContext.projectId,
+    documentContracts: resolution.contracts.map(({ binding, loaded }) => ({
+      contractId: binding.id,
+      manifestDigest: resolution.state.manifestDigest,
+      contractDigest: loaded.contractDigest,
+      version: loaded.version,
+    })),
+  }, 200, { "cache-control": "no-cache" });
 }
 
 async function handleSave(req, res) {
@@ -196,10 +294,10 @@ async function handleSave(req, res) {
       const entry = existing ?? createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest });
       if (existing) await resumeDocumentSaveJournal({ journal, entry, currentText });
       else assertDocumentEtagUnchanged(body.documentEtag, currentText);
-      const validatedContract = isSkillDocumentPath(body.path)
-        ? await validateSkillDocumentSave(body, projectContext)
-        : null;
-      if (validatedContract) await assertSkillNodeContractUnchanged(projectContext, validatedContract.etag);
+      const documentContracts = await resolveApplicableDocumentContracts(projectContext, body.path, body.root, ext.slice(1));
+      if (documentContracts.error) throw documentContracts.error;
+      validateDocumentContractSave(body, documentContracts);
+      await assertDocumentContractsUnchanged(projectContext, body.path, body.root, ext.slice(1), documentContracts);
       await executeJournaledDocumentCommit({
         journal,
         entry,
@@ -214,7 +312,7 @@ async function handleSave(req, res) {
       sendJson(res, { ok: true, documentEtag: documentEtag(text) });
     });
   } catch (error) {
-    if (!(error instanceof SkillNodeContractError) && !(error instanceof SkillDocumentSaveError) && !(error instanceof DocumentSaveError)) throw error;
+    if (!(error instanceof SkillNodeContractError) && !(error instanceof SkillDocumentSaveError) && !(error instanceof DocumentSaveError) && !(error instanceof DocumentContractError)) throw error;
     sendJson(res, {
       error: error.message,
       code: error.code,
@@ -386,7 +484,7 @@ async function projectContextForSkillNodeContract(projectId) {
   }
   return createProjectContext({
     projectRoot: project.root,
-    adapterId: project.adapter,
+    projectId: project.id,
     dataSources: project.dataSources,
     filePolicy: project.filePolicy,
   });
@@ -456,6 +554,27 @@ async function handleSaveAutomationProfile(req, res) {
   } catch (error) {
     if (error?.code === "AUTOMATION_PROFILE_ETAG_STALE") return sendJson(res, { error: error.message, code: error.code, field: "etag" }, 409);
     throw error;
+  }
+}
+
+function validateDocumentContractSave(body, resolution) {
+  if (!resolution.contracts.length) return;
+  const tokens = body.documentContracts;
+  if (!Array.isArray(tokens)) throw new DocumentSaveError("DOCUMENT_CONTRACT_TOKEN_MISSING", "命中文档合同的保存请求必须携带 documentContracts token。", "documentContracts", { status: 400 });
+  const expected = resolution.contracts.map(({ binding, loaded }) => ({ contractId: binding.id, manifestDigest: resolution.state.manifestDigest, contractDigest: loaded.contractDigest, version: loaded.version }));
+  const actual = tokens.map((token) => ({ contractId: token?.contractId, manifestDigest: token?.manifestDigest, contractDigest: token?.contractDigest, version: token?.version }));
+  if (JSON.stringify(actual.sort((a, b) => String(a.contractId).localeCompare(String(b.contractId)))) !== JSON.stringify(expected.sort((a, b) => a.contractId.localeCompare(b.contractId)))) {
+    throw new DocumentSaveError("DOCUMENT_CONTRACT_TOKEN_STALE", "documentContracts token 与当前 capability 或合同不一致。", "documentContracts", { status: 409, details: { expected } });
+  }
+}
+
+async function assertDocumentContractsUnchanged(projectContext, documentPath, root, format, previous) {
+  const current = await resolveApplicableDocumentContracts(projectContext, documentPath, root, format);
+  if (current.error) throw current.error;
+  const before = previous.contracts.map(({ binding, loaded }) => `${binding.id}:${loaded.contractDigest}`).sort();
+  const after = current.contracts.map(({ binding, loaded }) => `${binding.id}:${loaded.contractDigest}`).sort();
+  if (JSON.stringify(before) !== JSON.stringify(after) || current.state.manifestDigest !== previous.state.manifestDigest) {
+    throw new DocumentSaveError("DOCUMENT_CONTRACT_CHANGED_DURING_SAVE", "保存期间 capability 或文档合同发生变化。", "documentContracts", { status: 409 });
   }
 }
 
@@ -572,7 +691,12 @@ async function handleActivateProject(req, res) {
 
 async function handleRunEntryAction(req, res) {
   const body = await readJsonBody(req);
-  sendJson(res, await runEntryAction(body));
+  sendJson(res, await runEntryAction.run(body));
+}
+
+async function handleAckStartEntryAction(req, res) {
+  const body = await readJsonBody(req);
+  sendJson(res, await runEntryAction.ackStart(body));
 }
 
 async function handleLoadEntryActionResult(url, res) {
@@ -845,7 +969,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--root") result.root = argv[++i];
     else if (argv[i] === "--project") result.project = argv[++i];
-    else if (argv[i] === "--adapter") result.adapter = argv[++i];
+    else if (argv[i] === "--adapter") throw new Error("--adapter is no longer supported. Project capabilities are declared in .data-editor/project.json.");
     else if (argv[i] === "--port") result.port = argv[++i];
     else if (argv[i] === "--static") result.static = argv[++i];
     else if (argv[i] === "--tool-root") result.toolRoot = argv[++i];
@@ -895,7 +1019,7 @@ async function projectContextForId(projectId) {
   if (!project) throw new Error(resolvedProjectId ? `Unknown project: ${resolvedProjectId}` : "No active project is configured.");
   const projectContext = createProjectContext({
     projectRoot: project.root,
-    adapterId: project.adapter,
+    projectId: project.id,
     dataSources: project.dataSources,
     filePolicy: project.filePolicy,
   });
@@ -919,7 +1043,6 @@ async function ensureEntryActionStateMigration(projectContext) {
 function runtimeTargetFromArgs() {
   return args.registryHome ? { projectRoot: path.resolve(args.registryHome), runtimeDir: "runtime", logsDir: "logs" } : createProjectContext({
     projectRoot,
-    adapterId: args.adapter,
     runtimeDir: args.runtimeDir,
     logsDir: args.logsDir,
   });

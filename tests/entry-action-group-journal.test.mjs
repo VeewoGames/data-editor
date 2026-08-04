@@ -16,8 +16,7 @@ const entry = {
   idempotencyKey: `group_${digest(runId)}`,
   runId,
   proposalDigest,
-  authorityDigest: "4".repeat(64),
-  automationProfileEtag: '"profile"',
+  ruleDigest: "4".repeat(64),
   ownership: {
     canonicalFileKey: "c".repeat(64),
     ownerToken: "20000000-0000-4000-8000-000000000002",

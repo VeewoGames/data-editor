@@ -57,7 +57,7 @@ test("App wires shared view filter bar draft changes through active view drafts"
   assert.match(filterBarSource, /view: CollectionView \| null;/);
   assert.match(filterBarSource, /relationFilterOptions\?: Record<string, MultiSelectOptionView\[\]>;/);
   assert.match(filterBarSource, /if \(!view\) return null;/);
-  assert.match(filterBarSource, /<Popover\.Root open=\{addFilterOpen\}/);
+  assert.match(filterBarSource, /<Popover\.Root\s+open=\{addFilterOpen\}/);
   assert.match(filterBarSource, /add-filter-field-option/);
   assert.match(filterBarSource, /onChangeFilters: \(filters: FilterGroup\) => void;/);
   assert.match(filterBarSource, /createDefaultFilterRule/);
@@ -66,7 +66,7 @@ test("App wires shared view filter bar draft changes through active view drafts"
   assert.match(filterBarSource, /optionsForField\(rule\.field, fieldType, fieldViewConfigs, relationFilterOptions\)/);
   assert.match(appSource, /viewConfig\.relations\[buildRelationKey\(\{ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: \[field\] \}\)\]/);
   assert.match(appSource, /relationOptions\[relationKey\] \?\? \[\]/);
-  assert.match(appSource, /buildValueFilterOptions\(field, rows, fieldViewConfigs\[field\], fieldType\)/);
+  assert.match(appSource, /buildValueFilterOptions\(field, projectedRows, fieldViewConfigs\[field\], fieldType\)/);
   assert.match(sortPopoverSource, /onChangeSorts\(nextSorts\)/);
   assert.match(sortPopoverSource, /sorts\.map/);
   assert.match(booleanFilterSource, /onClick=\{deleteRule\}/);
@@ -977,7 +977,8 @@ test("stable text editing structure is wired", async () => {
   assert.match(detailPanelSource, /StableTextarea/);
   assert.match(detailPanelSource, /commandSaving: boolean/);
 
-  assert.doesNotMatch(appSource, /const \[saving, setSaving\] = useState\(false\)/);
+  const editorAppSource = appSource.slice(0, appSource.indexOf("function AutomationSettingsDialog"));
+  assert.doesNotMatch(editorAppSource, /const \[saving, setSaving\] = useState\(false\)/);
   assert.match(appSource, /const \[commandSaving, setCommandSaving\] = useState\(false\)/);
   assert.match(appSource, /activeTextEditorRef/);
   assert.match(appSource, /tableTextEditMode/);
@@ -1112,7 +1113,7 @@ test("duplicating a shared view group clones the merged snapshot, drafts, and la
 });
 
 test("ViewTabs and ViewFilterBar expose shared view controls in the expected rows", async () => {
-  const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+  const viewTabsSource = `${await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8")}\n${await readFile(new URL("../src/components/SharedViewIconPicker.tsx", import.meta.url), "utf8")}`;
   const toolbarSource = await readFile(new URL("../src/components/Toolbar.tsx", import.meta.url), "utf8");
   const filterBarSource = await readFile(new URL("../src/components/ViewFilterBar.tsx", import.meta.url), "utf8");
   const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
@@ -1312,6 +1313,7 @@ test("personal mode reset clears pending direct-save retry state instead of leav
 test("shared view icon metadata exposes pack groups, base pack, and picker storage constants", async () => {
   const iconsSource = await readFile(new URL("../src/components/icons.ts", import.meta.url), "utf8");
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+  const iconPickerSource = await readFile(new URL("../src/components/SharedViewIconPicker.tsx", import.meta.url), "utf8");
   const clientSource = await readFile(new URL("../src/api/client.ts", import.meta.url), "utf8");
 
   assert.match(iconsSource, /sharedViewIconRegistry/);
@@ -1354,13 +1356,14 @@ test("shared view icon metadata exposes pack groups, base pack, and picker stora
   assert.match(iconsSource, /tabler l/);
   assert.match(iconsSource, /core-solid/);
   assert.match(iconsSource, /core s/);
-  assert.match(viewTabsSource, /resolveManagedPackSummary/);
-  assert.match(viewTabsSource, /当前共享视图正在使用，暂不可卸载/);
-  assert.match(viewTabsSource, /未加载，加载后才会浏览和搜索该图标包/);
-  assert.match(viewTabsSource, /activePackLabel\} 未加载/);
-  assert.match(viewTabsSource, /加载 \{activePackLabel\}/);
-  assert.doesNotMatch(viewTabsSource, /兼容池已加载，可继续浏览旧图标/);
-  assert.match(viewTabsSource, /view-tab-icon-pack-detail/);
+  assert.match(viewTabsSource, /<SharedViewIconPicker/);
+  assert.match(iconPickerSource, /resolveManagedPackSummary/);
+  assert.match(iconPickerSource, /当前配置正在使用，暂不可卸载/);
+  assert.match(iconPickerSource, /未加载，加载后才会浏览和搜索该图标包/);
+  assert.match(iconPickerSource, /activePackLabel\} 未加载/);
+  assert.match(iconPickerSource, /加载 \{activePackLabel\}/);
+  assert.doesNotMatch(iconPickerSource, /兼容池已加载，可继续浏览旧图标/);
+  assert.match(iconPickerSource, /view-tab-icon-pack-detail/);
 
   assert.match(clientSource, /export type SharedViewIconId =/);
   assert.match(clientSource, /favoriteSharedViewIconIds\?: SharedViewIconId\[\];/);
@@ -1368,7 +1371,7 @@ test("shared view icon metadata exposes pack groups, base pack, and picker stora
   assert.match(clientSource, /TextEncoder/);
   assert.match(clientSource, /byteLength <= 60_000/);
   assert.match(clientSource, /export async function saveSharedViews[\s\S]*keepalive/);
-  assert.match(clientSource, /export async function saveViewProfile[\s\S]*keepalive/);
+  assert.doesNotMatch(clientSource, /export async function saveViewProfile[\s\S]*keepalive/);
   assert.match(clientSource, /"borderAll"/);
   assert.match(clientSource, /"home"/);
   assert.match(clientSource, /"gamepad"/);
@@ -1432,6 +1435,7 @@ test("DataTable no longer renders the bottom New row button", async () => {
 test("App routes resolved shared view structure into ViewTabs snapshot and page context grouping", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   const viewTabsSource = await readFile(new URL("../src/components/ViewTabs.tsx", import.meta.url), "utf8");
+  const iconPickerSource = await readFile(new URL("../src/components/SharedViewIconPicker.tsx", import.meta.url), "utf8");
 
   assert.match(appSource, /resolveSharedViewStructure/);
   assert.match(appSource, /const resolvedCollectionViews = useMemo/);
@@ -1456,9 +1460,10 @@ test("App routes resolved shared view structure into ViewTabs snapshot and page 
   assert.match(viewTabsSource, /topLevelItems:/);
   assert.match(viewTabsSource, /expandedGroupId:/);
   assert.match(viewTabsSource, /activeGroupId:/);
-  assert.match(viewTabsSource, /missingProtectedPackIds/);
-  assert.match(viewTabsSource, /loadSharedViewIconPack\(packId as keyof typeof sharedViewIconPackLabels\)/);
-  assert.match(viewTabsSource, /await hydratePersistedSharedViewIconPacks\(\)/);
+  assert.match(viewTabsSource, /<SharedViewIconPicker/);
+  assert.match(iconPickerSource, /missingProtectedPackIds/);
+  assert.match(iconPickerSource, /loadSharedViewIconPack\(packId as SharedViewIconPackId\)/);
+  assert.match(iconPickerSource, /await hydratePersistedSharedViewIconPacks\(\)/);
 });
 
 test("relation lookup effect re-runs when table revision changes", async () => {

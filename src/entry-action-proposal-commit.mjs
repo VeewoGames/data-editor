@@ -12,7 +12,6 @@ export async function prepareEntryActionProposalCommit({
   proposal,
   lease,
   authoritySnapshot,
-  policy,
   profile,
   documentText,
   textArtifactCurrentText = undefined,
@@ -25,7 +24,7 @@ export async function prepareEntryActionProposalCommit({
   const current = typeof probeLease === "function" ? await probeLease(lease) : null;
   if (!current || current.status !== "owned" || current.lease?.ownerToken !== lease.ownerToken || current.lease?.ownerHash !== lease.ownerHash || current.lease?.fencingToken !== lease.fencingToken) fail("ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE");
   if (etag(documentText) !== value.baseDocumentEtag) fail("ENTRY_ACTION_PROPOSAL_DOCUMENT_STALE");
-  if (authoritySnapshot.authorityDigest !== value.authorityDigest || authoritySnapshot.automationProfileEtag !== value.automationProfileEtag) fail("ENTRY_ACTION_AUTHORITY_STALE");
+  if (authoritySnapshot.ruleDigest !== value.ruleDigest) fail("ENTRY_ACTION_AUTHORITY_STALE");
   const source = format === "csv" ? parseCsv(documentText) : JSON.parse(documentText);
   const model = buildDocumentModel(source, format, value.sourcePath);
   const store = buildDocumentStore({ documentId, model });
@@ -34,7 +33,6 @@ export async function prepareEntryActionProposalCommit({
   if (!row) fail("ENTRY_ACTION_PROPOSAL_BEFORE_MISMATCH");
   const authority = assertAuthorityCurrent({
     snapshot: authoritySnapshot,
-    policy,
     profile,
     changes: value.changes,
     textArtifact: value.textArtifact,
@@ -49,9 +47,6 @@ export async function prepareEntryActionProposalCommit({
     setAuthorizedCellValueByRowId({
       model,
       store,
-      policy,
-      actionId: value.actionId,
-      file: value.sourcePath,
       collectionPath: value.collectionPath,
       rowId: value.rowId,
       fieldName: change.field,

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   clearSkillNodeContractCache,
   loadAutomationSkillCatalog,
+  loadProjectCapabilities,
   runEntryAction,
   saveAutomationBindings,
   saveAutomationProfile,
@@ -10,6 +11,25 @@ import {
   saveViewProfile,
   validateAutomationBindings,
 } from "../src/api/client.ts";
+
+test("loadProjectCapabilities scopes the capability status request to the selected project", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return new Response(JSON.stringify({ status: "generic_absent", projectId: "project-a", generation: 0, manifestDigest: null, bindings: { nestedSchemas: [], documentContracts: [], identityPolicies: [] } }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+  try {
+    const result = await loadProjectCapabilities("project-a");
+    assert.equal(calls[0], "/api/project-capabilities?projectId=project-a");
+    assert.equal(result.status, "generic_absent");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("entry action client preserves structured protocol-disabled errors", async () => {
   const originalFetch = globalThis.fetch;
@@ -47,16 +67,15 @@ test("entry action client preserves structured protocol-disabled errors", async 
   }
 });
 
-test("skill document saves carry contract version, ETag, and a project-scoped token", async () => {
+test("document saves obtain server-matched document-contract tokens", async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
-  clearSkillNodeContractCache();
   globalThis.fetch = async (url, options) => {
     calls.push({ url, options });
-    if (String(url).startsWith("/api/skill-node-contract")) {
-      return new Response(JSON.stringify({ contract_version: 1 }), {
+    if (String(url).startsWith("/api/document-contracts")) {
+      return new Response(JSON.stringify({ projectId: "project-a", documentContracts: [{ contractId: "skills", manifestDigest: "manifest", contractDigest: "contract", version: 1 }] }), {
         status: 200,
-        headers: { "content-type": "application/json", etag: '"contract-a"' },
+        headers: { "content-type": "application/json" },
       });
     }
     return new Response(JSON.stringify({ ok: true }), {
@@ -74,29 +93,22 @@ test("skill document saves carry contract version, ETag, and a project-scoped to
     );
   } finally {
     globalThis.fetch = originalFetch;
-    clearSkillNodeContractCache();
   }
 
   assert.equal(calls.length, 2);
-  assert.equal(calls[0].url, "/api/skill-node-contract?projectId=project-a");
+  assert.equal(calls[0].url, "/api/document-contracts?projectId=project-a&path=data%2Fcontent%2Fskills.json");
   assert.equal(calls[1].url, "/api/save");
   const body = JSON.parse(calls[1].options.body);
-  assert.equal(body.contractVersion, 1);
-  assert.equal(body.contractEtag, '"contract-a"');
   assert.equal(body.documentEtag, '"document-a"');
-  assert.deepEqual(body.saveToken, {
-    projectId: "project-a",
-    contractVersion: 1,
-    etag: '"contract-a"',
-  });
+  assert.deepEqual(body.documentContracts, [{ contractId: "skills", manifestDigest: "manifest", contractDigest: "contract", version: 1 }]);
 });
 
-test("non-skill document saves do not load or carry the skill contract gate", async () => {
+test("unprotected document saves carry the empty server-matched contract set", async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
-  clearSkillNodeContractCache();
   globalThis.fetch = async (url, options) => {
     calls.push({ url, options });
+    if (String(url).startsWith("/api/document-contracts")) return new Response(JSON.stringify({ projectId: "project-a", documentContracts: [] }), { status: 200, headers: { "content-type": "application/json" } });
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { "content-type": "application/json" },
@@ -107,14 +119,11 @@ test("non-skill document saves do not load or carry the skill contract gate", as
     await saveDocument("data/content/traits.json", { traits: [] }, "project-a");
   } finally {
     globalThis.fetch = originalFetch;
-    clearSkillNodeContractCache();
   }
 
-  assert.equal(calls.length, 1);
-  const body = JSON.parse(calls[0].options.body);
-  assert.equal("contractVersion" in body, false);
-  assert.equal("contractEtag" in body, false);
-  assert.equal("saveToken" in body, false);
+  assert.equal(calls.length, 2);
+  const body = JSON.parse(calls[1].options.body);
+  assert.deepEqual(body.documentContracts, []);
 });
 
 test("saveViewProfile does not use keepalive for profile autosave requests", async () => {

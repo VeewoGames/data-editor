@@ -1,0 +1,1205 @@
+{
+  "contract_version": 1,
+  "help": {
+    "nodes": {
+      "ap_cost": "定义技能行动点消耗。",
+      "cooldown": "定义技能使用后的冷却。",
+      "mana_cost": "定义技能法力消耗。",
+      "targeting": "定义选取、覆盖格和影响实体。",
+      "damage": "对兼容实体造成伤害。",
+      "heal": "对兼容实体恢复生命。",
+      "status_effect": "向兼容实体施加状态。",
+      "movement": "按模式执行主动或强制位移。",
+      "summon": "在目标格创建召唤物。",
+      "trap": "在目标格放置陷阱。",
+      "dispel": "移除目标实体状态。",
+      "condition": "按条件选择子节点分支。",
+      "sequence": "按顺序执行子节点。",
+      "delayed_cast": "在指定时机重放子效果。",
+      "charge": "定义蓄力施放规则。",
+      "avatar_transform": "临时切换角色形态。",
+      "terrain_creation": "在目标格创建地形。",
+      "stat_modifier": "以正式 StatDefinition 的数值结构和 ADD 规则修改目标属性。",
+      "armor_gain": "向目标的护甲资源层加入临时护甲；它不是 Stat Modifier。"
+    },
+    "fields": {
+      "ap_cost.cost": "技能消耗的行动点。",
+      "cooldown.turns": "使用后等待的回合数。",
+      "mana_cost.cost": "技能消耗的法力值。",
+      "targeting.selection": "玩家或AI必须提供的选择输入。",
+      "targeting.area": "从锚点展开的覆盖格规则。",
+      "targeting.affects": "覆盖格中的实体过滤规则。",
+      "damage.base_damage": "不含倍率的基础伤害。",
+      "damage.damage_type": "决定伤害结算类型。",
+      "damage.element": "决定元素关联。",
+      "damage.ad_ratio": "攻击力缩放比例。",
+      "damage.sp_ratio": "法术强度缩放比例。",
+      "damage.scaling_type": "编辑器展示的缩放家族。",
+      "damage.multi_hit_count": "每个目标的命中次数。",
+      "damage.multi_hit_decay": "额外命中的递减比例。",
+      "damage.target_relations": "只影响技能级关系集合中的指定关系。",
+      "heal.base_heal": "不含修正的基础治疗量。",
+      "heal.target": "治疗目标语义。",
+      "heal.target_relations": "只影响技能级关系集合中的指定关系。",
+      "status_effect.status": "要施加的状态标识。",
+      "status_effect.duration": "状态持续回合。",
+      "status_effect.chance": "状态成功概率。",
+      "status_effect.stacks": "初次施加层数。",
+      "status_effect.target_relations": "只影响技能级关系集合中的指定关系。",
+      "movement.mode": "决定选择消费和路径规则。",
+      "movement.targets": "推拉使用直接或范围影响目标。",
+      "movement.distance": "方向冲刺或强制位移距离。",
+      "movement.target_relations": "只移动技能级关系集合中的指定关系。",
+      "summon.summon_id": "对应召唤物定义ID。",
+      "summon.summon_count": "本次创建数量。",
+      "summon.summon_range": "召唤位置范围。",
+      "summon.max_count": "同时存在数量上限。",
+      "summon.agent_type": "运行时代理类型。",
+      "summon.agent_rank": "代理治理等级。",
+      "summon.persistence_mode": "设计层存续模式。",
+      "summon.persistence": "运行时存续枚举。",
+      "summon.duration": "临时召唤持续时间。",
+      "summon.display_name": "召唤物显示名。",
+      "summon.source_skill_id": "记录来源技能。",
+      "summon.damage_element": "召唤物伤害元素。",
+      "summon.inheritance_profile": "属性继承方案。",
+      "summon.base_stats": "召唤物基础属性。",
+      "summon.behaviors": "召唤物行为配置。",
+      "summon.damage_modifier": "伤害倍率修正。",
+      "summon.death_penalty": "死亡后的惩罚规则。",
+      "summon.respawn_cooldown": "重生等待回合。",
+      "summon.source_tag": "来源分类标签。",
+      "summon.tags": "召唤物标签集合。",
+      "trap.trap_damage": "触发时基础伤害。",
+      "trap.trigger_effects": "陷阱实际触发后对触发目标执行的嵌套效果。",
+      "trap.trap_trigger": "决定单位踩中时触发，或在回合开始检查区域。",
+      "trap.trap_trigger_range": "区域检查触发方式使用的格子半径。",
+      "trap.trap_duration": "陷阱保留在战场上的回合数。",
+      "dispel.dispel_type": "决定移除增益或减益。",
+      "dispel.target_relations": "只影响技能级关系集合中的指定关系。",
+      "condition.condition_type": "决定条件判断方式。",
+      "condition.threshold": "条件比较阈值。",
+      "condition.status_check": "需要检查的状态ID。",
+      "condition.then_nodes": "条件成立时执行。",
+      "condition.else_nodes": "条件不成立时执行。",
+      "sequence.children": "依次执行的子节点。",
+      "delayed_cast.timing": "延后效果触发时机。",
+      "delayed_cast.anchor_source": "延后效果定位来源。",
+      "delayed_cast.trigger_once": "是否仅触发一次。",
+      "delayed_cast.inherit_snapshot": "是否继承首段数值快照。",
+      "delayed_cast.allow_empty_fire": "锚点无目标时是否执行。",
+      "delayed_cast.children": "延后执行的效果节点。",
+      "charge.charge_turns": "完成蓄力所需回合。",
+      "charge.charge_ap_per_turn": "每回合蓄力消耗。",
+      "charge.interruptible": "蓄力是否可被打断。",
+      "charge.interrupt_preserve": "打断后保留进度比例。",
+      "avatar_transform.form_duration": "形态维持回合。",
+      "avatar_transform.replaced_skills": "形态期间替换的技能。",
+      "avatar_transform.stat_bonuses": "形态提供的属性修正。",
+      "avatar_transform.on_expire_effect": "形态结束时执行的效果。",
+      "avatar_transform.target_relations": "只影响技能级关系集合中的指定关系。",
+      "terrain_creation.field_spec_id": "对应正式 FieldSpec；地形与区域必须由同一创建请求绑定。",
+      "terrain_creation.terrain_type": "要创建的地形ID。",
+      "terrain_creation.duration": "地形持续回合。",
+      "terrain_creation.position": "使用命中格或自身格。",
+      "stat_modifier.stat_id": "必须是已注册的 canonical Stat ID。",
+      "stat_modifier.operation": "当前只允许 ADD。",
+      "stat_modifier.typed_value": "按 value_schema_ref 表示的实际数值；百分比使用 percentage points。",
+      "stat_modifier.value_schema_ref": "必须等于目标 StatDefinition 的 value_schema_ref。",
+      "stat_modifier.duration": "-1 表示该来源未设到期；正数按回合到期撤销。",
+      "stat_modifier.target_relations": "只影响技能级关系集合中的指定关系。",
+      "armor_gain.amount": "加入护甲资源层的点数。",
+      "armor_gain.target_relations": "只影响技能级关系集合中的指定关系。"
+    }
+  },
+  "labels": {
+    "nodes": {
+      "ap_cost": "AP消耗",
+      "cooldown": "冷却回合",
+      "mana_cost": "法力消耗",
+      "targeting": "目标选择",
+      "damage": "造成伤害",
+      "movement": "位移效果",
+      "terrain_creation": "创造地形",
+      "condition": "条件分支",
+      "sequence": "顺序执行",
+      "delayed_cast": "延后施放",
+      "summon": "召唤物"
+    },
+    "fields": {}
+  },
+  "ui_presentation": {
+    "section_order": [
+      "selection",
+      "area",
+      "affects",
+      "movement"
+    ],
+    "advanced_fields": [],
+    "readonly_derived": [
+      "area.anchor"
+    ],
+    "block_when_contract_unavailable": true
+  },
+  "runtime_rules": {
+    "targeting": {
+      "root_fields": [
+        "selection",
+        "area",
+        "affects"
+      ],
+      "selection": {
+        "discriminator": "type",
+        "types": [
+          "self",
+          "entity",
+          "cell",
+          "direction"
+        ],
+        "patterns": [
+          "diamond",
+          "cardinal"
+        ],
+        "visibility": [
+          "ignore",
+          "line_of_sight"
+        ],
+        "occupancy": [
+          "empty",
+          "occupied",
+          "any"
+        ],
+        "relations": [
+          "self",
+          "ally",
+          "enemy",
+          "neutral"
+        ],
+        "entity_types": [
+          "character",
+          "minion",
+          "deployable",
+          "implement",
+          "destructible"
+        ],
+        "directions": [
+          "up",
+          "right",
+          "down",
+          "left"
+        ],
+        "defaults": {
+          "pattern": "diamond",
+          "visibility": "ignore",
+          "min_targets": 1,
+          "max_targets": 1,
+          "directions": [
+            "up",
+            "right",
+            "down",
+            "left"
+          ]
+        },
+        "fields_by_type": {
+          "self": [
+            "type"
+          ],
+          "entity": [
+            "type",
+            "distance",
+            "pattern",
+            "visibility",
+            "relations",
+            "entity_types",
+            "min_targets",
+            "max_targets",
+            "directions"
+          ],
+          "cell": [
+            "type",
+            "distance",
+            "pattern",
+            "visibility",
+            "occupancy",
+            "directions"
+          ],
+          "direction": [
+            "type",
+            "directions"
+          ]
+        },
+        "consumer_by_type": {
+          "self": "entities",
+          "entity": "entities",
+          "entity_result": "entities",
+          "cell": "cells",
+          "direction": "direction"
+        },
+        "required_by_type": {
+          "self": [
+            "type"
+          ],
+          "entity": [
+            "type",
+            "distance",
+            "relations"
+          ],
+          "cell": [
+            "type",
+            "distance",
+            "occupancy"
+          ],
+          "direction": [
+            "type",
+            "directions"
+          ]
+        },
+        "non_empty_array_fields": [
+          "relations",
+          "entity_types",
+          "directions"
+        ]
+      },
+      "area": {
+        "anchors": [
+          "self",
+          "selected",
+          "each_selected"
+        ],
+        "shapes": [
+          "circle",
+          "diamond",
+          "cross",
+          "x_shape",
+          "star",
+          "square",
+          "ring",
+          "line",
+          "cone",
+          "arc",
+          "rectangle",
+          "path",
+          "global",
+          "custom"
+        ],
+        "defaults": {
+          "include_anchor": true
+        },
+        "size_shapes": [
+          "circle",
+          "diamond",
+          "cross",
+          "x_shape",
+          "star",
+          "square",
+          "ring",
+          "line",
+          "cone",
+          "arc"
+        ],
+        "include_anchor_shapes": [
+          "circle",
+          "diamond",
+          "cross",
+          "x_shape",
+          "star",
+          "square",
+          "arc",
+          "rectangle",
+          "custom"
+        ],
+        "params_by_shape": {
+          "rectangle": [
+            "width",
+            "height"
+          ],
+          "path": [
+            "width"
+          ],
+          "custom": [
+            "offsets"
+          ]
+        },
+        "required_fields_by_shape": {
+          "circle": [
+            "size"
+          ],
+          "diamond": [
+            "size"
+          ],
+          "cross": [
+            "size"
+          ],
+          "x_shape": [
+            "size"
+          ],
+          "star": [
+            "size"
+          ],
+          "square": [
+            "size"
+          ],
+          "ring": [
+            "size"
+          ],
+          "line": [
+            "size"
+          ],
+          "cone": [
+            "size"
+          ],
+          "arc": [
+            "size"
+          ],
+          "rectangle": [
+            "params"
+          ],
+          "path": [
+            "params"
+          ],
+          "global": [],
+          "custom": [
+            "params"
+          ]
+        },
+        "forbidden_fields_by_shape": {
+          "rectangle": [
+            "size"
+          ],
+          "path": [
+            "size",
+            "include_anchor"
+          ],
+          "global": [
+            "anchor",
+            "size",
+            "include_anchor",
+            "params"
+          ],
+          "custom": [
+            "size"
+          ]
+        },
+        "param_constraints": {
+          "rectangle": {
+            "required": [
+              "width",
+              "height"
+            ],
+            "integer_min": {
+              "width": 1,
+              "height": 1
+            },
+            "odd": [
+              "width"
+            ]
+          },
+          "path": {
+            "required": [
+              "width"
+            ],
+            "integer_min": {
+              "width": 1
+            },
+            "odd": [
+              "width"
+            ]
+          },
+          "custom": {
+            "required": [
+              "offsets"
+            ],
+            "non_empty_arrays": [
+              "offsets"
+            ],
+            "offset_pair_integers": true
+          }
+        },
+        "allowed_selection_types_by_shape": {
+          "line": [
+            "direction",
+            "entity",
+            "cell"
+          ],
+          "cone": [
+            "direction",
+            "entity",
+            "cell"
+          ],
+          "arc": [
+            "entity",
+            "cell"
+          ],
+          "rectangle": [
+            "direction",
+            "entity",
+            "cell"
+          ],
+          "path": [
+            "entity",
+            "cell"
+          ]
+        },
+        "anchor_derivation": [
+          "explicit",
+          "directional_self",
+          "path_selected",
+          "selection_default"
+        ]
+      },
+      "affects": {
+        "fields": [
+          "relations",
+          "entity_types"
+        ],
+        "required": [
+          "relations"
+        ],
+        "non_empty_array_fields": [
+          "relations",
+          "entity_types"
+        ],
+        "entity_selection_default": "inherit_selection",
+        "constraints": [
+          {
+            "operator": "affects_required_for_entity_consumer",
+            "code_key": "definition_affects_required"
+          },
+          {
+            "operator": "affects_forbidden_for_cells_only_consumer",
+            "code_key": "definition_affects_forbidden"
+          },
+          {
+            "operator": "direction_affects_requires_area",
+            "code_key": "direction_affects_requires_area"
+          }
+        ]
+      }
+    },
+    "movement": {
+      "modes": [
+        "move",
+        "dash",
+        "leap",
+        "teleport",
+        "charge",
+        "push",
+        "pull"
+      ],
+      "selection_defining": [
+        "move",
+        "dash",
+        "leap",
+        "teleport",
+        "charge"
+      ],
+      "effect_followup": [
+        "push",
+        "pull"
+      ],
+      "allowed_atomic_combinations": [
+        [
+          "charge",
+          "push"
+        ]
+      ],
+      "targets": [
+        "selected",
+        "affected"
+      ],
+      "defaults": {
+        "targets": "selected"
+      },
+      "required_fields": {
+        "move": [
+          "mode"
+        ],
+        "dash_cell": [
+          "mode"
+        ],
+        "dash_direction": [
+          "mode",
+          "distance"
+        ],
+        "leap": [
+          "mode"
+        ],
+        "teleport": [
+          "mode"
+        ],
+        "charge": [
+          "mode"
+        ],
+        "push": [
+          "mode",
+          "distance"
+        ],
+        "pull": [
+          "mode",
+          "distance"
+        ]
+      },
+      "valid_fields": {
+        "move": [
+          "mode"
+        ],
+        "dash_cell": [
+          "mode"
+        ],
+        "dash_direction": [
+          "mode",
+          "distance"
+        ],
+        "leap": [
+          "mode"
+        ],
+        "teleport": [
+          "mode"
+        ],
+        "charge": [
+          "mode"
+        ],
+        "push": [
+          "mode",
+          "targets",
+          "distance"
+        ],
+        "pull": [
+          "mode",
+          "targets",
+          "distance"
+        ]
+      },
+      "derived_rules": {
+        "move": {
+          "selection_type": "cell",
+          "distance_source": "selection",
+          "path": "reachable",
+          "occupancy": "empty",
+          "forbid": [
+            "pattern",
+            "directions",
+            "occupancy"
+          ]
+        },
+        "dash_cell": {
+          "selection_type": "cell",
+          "distance_source": "selection",
+          "pattern": "cardinal",
+          "path": "straight_passable",
+          "occupancy": "empty",
+          "forbid": [
+            "pattern",
+            "directions",
+            "occupancy"
+          ]
+        },
+        "dash_direction": {
+          "selection_type": "direction",
+          "distance_source": "movement"
+        },
+        "leap": {
+          "selection_type": "cell",
+          "distance_source": "selection",
+          "path": "ignore_intermediate",
+          "occupancy": "empty",
+          "forbid": [
+            "occupancy"
+          ]
+        },
+        "teleport": {
+          "selection_type": "cell",
+          "distance_source": "selection",
+          "path": "ignore",
+          "occupancy": "empty",
+          "forbid": [
+            "occupancy"
+          ]
+        },
+        "charge": {
+          "selection_type": "entity",
+          "distance_source": "selection",
+          "pattern": "cardinal",
+          "directions": [
+            "up",
+            "right",
+            "down",
+            "left"
+          ],
+          "path": "straight_passable",
+          "target": "primary",
+          "requires_active_movement": true,
+          "min_targets": 1,
+          "max_targets": 1,
+          "min_distance": 1,
+          "forbidden_relations": [
+            "self"
+          ],
+          "forbid": [
+            "visibility",
+            "pattern",
+            "directions",
+            "min_targets",
+            "max_targets"
+          ]
+        },
+        "push": {
+          "selection_type": "entity_result",
+          "distance_source": "movement"
+        },
+        "pull": {
+          "selection_type": "entity_result",
+          "distance_source": "movement"
+        }
+      }
+    },
+    "normalization": {
+      "targeting_order": [
+        "selection",
+        "area",
+        "affects"
+      ],
+      "selection_order": [
+        "type",
+        "distance",
+        "pattern",
+        "visibility",
+        "occupancy",
+        "relations",
+        "entity_types",
+        "min_targets",
+        "max_targets",
+        "directions"
+      ],
+      "area_order": [
+        "anchor",
+        "shape",
+        "size",
+        "include_anchor",
+        "params"
+      ],
+      "affects_order": [
+        "relations",
+        "entity_types"
+      ],
+      "movement_order": [
+        "mode",
+        "targets",
+        "distance"
+      ],
+      "omit_explicit_defaults": true,
+      "omit_empty_containers": true
+    },
+    "validation": {
+      "field_constraints": {
+        "selection.distance": {
+          "type": "integer",
+          "min": 0,
+          "code": "INVALID_FIELD_COMBINATION"
+        },
+        "selection.min_targets": {
+          "type": "integer",
+          "min": 1,
+          "code": "INVALID_FIELD_COMBINATION"
+        },
+        "selection.max_targets": {
+          "type": "integer",
+          "min": 1,
+          "code": "INVALID_FIELD_COMBINATION"
+        },
+        "area.size": {
+          "type": "integer",
+          "min": 1,
+          "code": "INVALID_FIELD_COMBINATION"
+        },
+        "movement.distance": {
+          "type": "integer",
+          "min": 1,
+          "code": "INVALID_FIELD_COMBINATION"
+        }
+      },
+      "blocking_codes": {
+        "selection_target_count_order": "SELECTION_TARGET_COUNT_ORDER",
+        "selection_non_empty_array": "SELECTION_NON_EMPTY_ARRAY",
+        "area_param_odd": "AREA_PARAM_ODD",
+        "area_param_integer_min": "AREA_PARAM_INTEGER_MIN",
+        "area_param_non_empty_array": "AREA_PARAM_NON_EMPTY_ARRAY",
+        "area_param_offset_pair_integers": "AREA_PARAM_OFFSET_PAIR_INTEGERS",
+        "affects_non_empty_array": "AFFECTS_NON_EMPTY_ARRAY",
+        "definition_affects_required": "DEFINITION_AFFECTS_REQUIRED",
+        "definition_affects_forbidden": "DEFINITION_AFFECTS_FORBIDDEN",
+        "direction_affects_requires_area": "INVALID_FIELD_COMBINATION",
+        "targeting_selection_area_compatibility": "TARGETING_SELECTION_AREA_COMPATIBILITY",
+        "movement_required_field": "MOVEMENT_REQUIRED_FIELD"
+      }
+    },
+    "validation_codes": [
+      "CONTRACT_UNAVAILABLE",
+      "CONTRACT_VERSION_MISMATCH",
+      "UNKNOWN_FIELD",
+      "UNKNOWN_ENUM",
+      "MISSING_REQUIRED_FIELD",
+      "EMPTY_RELATIONS",
+      "INVALID_FIELD_COMBINATION",
+      "INVALID_MOVEMENT_COMBINATION",
+      "NO_ENTITY_CONSUMER",
+      "NODE_TARGET_RELATIONS_EMPTY",
+      "NODE_TARGET_RELATIONS_OUTSIDE_AFFECTS"
+    ]
+  },
+  "nodes": {
+    "ap_cost": {
+      "fields": [
+        {
+          "name": "cost",
+          "type": "float",
+          "default": 1,
+          "min": 0,
+          "max": 10
+        }
+      ],
+      "consumes": [
+        "none"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false
+    },
+    "cooldown": {
+      "fields": [
+        {
+          "name": "turns",
+          "type": "int",
+          "default": 1,
+          "min": 0,
+          "max": 20
+        }
+      ],
+      "consumes": [
+        "none"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false
+    },
+    "mana_cost": {
+      "fields": [
+        {
+          "name": "cost",
+          "type": "int",
+          "default": 0,
+          "min": 0,
+          "max": 100
+        }
+      ],
+      "consumes": [
+        "none"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false
+    },
+    "targeting": {
+      "fields": [
+        {
+          "name": "selection",
+          "type": "dict",
+          "required": true,
+          "fields": []
+        },
+        {
+          "name": "area",
+          "type": "dict",
+          "fields": []
+        },
+        {
+          "name": "affects",
+          "type": "dict",
+          "fields": []
+        }
+      ],
+      "consumes": [
+        "none"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false
+    },
+    "damage": {
+      "fields": [
+        {
+          "name": "base_damage",
+          "type": "float",
+          "default": 0,
+          "min": 0
+        },
+        {
+          "name": "damage_type",
+          "type": "string",
+          "default": "physical",
+          "options": [
+            "physical",
+            "fire",
+            "cold",
+            "lightning",
+            "poison",
+            "light",
+            "shadow",
+            "true"
+          ]
+        },
+        {
+          "name": "element",
+          "type": "string",
+          "default": "physical",
+          "options": [
+            "physical",
+            "fire",
+            "cold",
+            "lightning",
+            "poison",
+            "light",
+            "shadow",
+            "true",
+            "earth"
+          ]
+        },
+        {
+          "name": "ad_ratio",
+          "type": "float",
+          "default": 0,
+          "min": 0,
+          "max": 5
+        },
+        {
+          "name": "sp_ratio",
+          "type": "float",
+          "default": 0,
+          "min": 0,
+          "max": 5
+        },
+        {
+          "name": "scaling_type",
+          "type": "string",
+          "default": "ad",
+          "options": [
+            "ad",
+            "sp",
+            "hybrid"
+          ]
+        },
+        {
+          "name": "multi_hit_count",
+          "type": "int",
+          "default": 1,
+          "min": 1,
+          "max": 10
+        },
+        {
+          "name": "multi_hit_decay",
+          "type": "float",
+          "default": 0,
+          "min": 0,
+          "max": 0.5
+        },
+        {
+          "name": "target_relations",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "options": [
+              "self",
+              "ally",
+              "enemy",
+              "neutral"
+            ]
+          }
+        }
+      ],
+      "consumes": [
+        "entities"
+      ],
+      "accepted_capabilities": [
+        "damageable"
+      ],
+      "candidate_gate": true
+    },
+    "movement": {
+      "fields": [
+        {
+          "name": "mode",
+          "type": "string",
+          "required": true,
+          "options": [
+            "move",
+            "dash",
+            "leap",
+            "teleport",
+            "charge",
+            "push",
+            "pull"
+          ]
+        },
+        {
+          "name": "targets",
+          "type": "string",
+          "default": "selected",
+          "options": [
+            "selected",
+            "affected"
+          ]
+        },
+        {
+          "name": "distance",
+          "type": "int"
+        },
+        {
+          "name": "target_relations",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "options": [
+              "self",
+              "ally",
+              "enemy",
+              "neutral"
+            ]
+          }
+        }
+      ],
+      "consumes": [
+        "cells",
+        "entities",
+        "direction"
+      ],
+      "accepted_capabilities": [
+        "movable"
+      ],
+      "candidate_gate": {
+        "when": {
+          "mode": [
+            "push",
+            "pull"
+          ],
+          "targets": "selected"
+        }
+      }
+    },
+    "terrain_creation": {
+      "fields": [
+        {
+          "name": "field_spec_id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "terrain_type",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 2
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "default": "hit_positions",
+          "options": [
+            "hit_positions",
+            "self"
+          ]
+        }
+      ],
+      "consumes": [
+        "cells"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false,
+      "roles": [
+        "deploy"
+      ]
+    },
+    "condition": {
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "threshold",
+          "type": "float",
+          "default": 0.3
+        },
+        {
+          "name": "status_check",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "then_nodes",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "node"
+          }
+        },
+        {
+          "name": "else_nodes",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "node"
+          }
+        }
+      ],
+      "consumes": [
+        "none"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false
+    },
+    "sequence": {
+      "fields": [
+        {
+          "name": "children",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "node"
+          }
+        }
+      ],
+      "consumes": [
+        "none"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false
+    },
+    "delayed_cast": {
+      "fields": [
+        {
+          "name": "timing",
+          "type": "string",
+          "required": true,
+          "options": [
+            "enemy_turn_start",
+            "enemy_turn_end",
+            "player_turn_start",
+            "player_turn_end"
+          ]
+        },
+        {
+          "name": "anchor_source",
+          "type": "string",
+          "required": true,
+          "options": [
+            "original_target_anchor",
+            "caster_origin_anchor",
+            "original_primary_target_unit_anchor"
+          ]
+        },
+        {
+          "name": "trigger_once",
+          "type": "bool",
+          "default": true
+        },
+        {
+          "name": "inherit_snapshot",
+          "type": "bool",
+          "default": true
+        },
+        {
+          "name": "allow_empty_fire",
+          "type": "bool",
+          "default": false
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "node"
+          }
+        }
+      ],
+      "consumes": [
+        "none"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false
+    },
+    "summon": {
+      "fields": [
+        {
+          "name": "base_stats",
+          "type": "dict",
+          "default": {},
+          "fields": []
+        },
+        {
+          "name": "behaviors",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "dict",
+            "fields": [
+              {
+                "name": "behavior_type",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "priority",
+                "type": "int",
+                "required": true
+              },
+              {
+                "name": "deployable_subtype",
+                "type": "string"
+              },
+              {
+                "name": "trigger_events",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "action_type",
+                "type": "string"
+              },
+              {
+                "name": "action_range",
+                "type": "int",
+                "min": 0
+              },
+              {
+                "name": "target_filter",
+                "type": "string"
+              },
+              {
+                "name": "skill_id",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "consumes": [
+        "cells"
+      ],
+      "accepted_capabilities": [],
+      "candidate_gate": false,
+      "roles": [
+        "deploy"
+      ]
+    }
+  }
+}

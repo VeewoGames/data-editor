@@ -92,8 +92,6 @@ export async function ensureRecoveryBridgeRunning(requested, deps = {}) {
       String(requested.port),
       "--service-mode",
       requested.mode,
-      "--adapter",
-      requested.adapterId,
       "--registry-home",
       requested.registryHome,
       "--runtime-dir",
@@ -115,7 +113,6 @@ export function hasSameRecoveryBridgeConfig(state, requested) {
   return Number(state.port) === requested.bridgePort &&
     Number(state.servicePort) === requested.port &&
     String(state.serviceMode ?? "static") === requested.mode &&
-    String(state.adapterId ?? "nocturnel") === requested.adapterId &&
     path.resolve(String(state.registryHome ?? "")) === requested.registryHome &&
     path.resolve(String(state.projectRoot ?? "")) === requested.projectRoot;
 }
@@ -195,7 +192,6 @@ function normalizeOptions(options) {
     logsDir: options.logsDir ?? ".data-editor/logs",
     registryHome: registryHome ?? runtimeHome().projectRoot,
     runtimeTarget: options.runtimeTarget ?? runtimeHome({ home: registryHome }),
-    adapterId: options.adapterId ?? "nocturnel",
     port: Number(options.port ?? 8787),
     mode: options.mode === "dev" ? "dev" : "static",
     bridgePort: Number(options.bridgePort ?? 8791),
@@ -203,6 +199,7 @@ function normalizeOptions(options) {
 }
 
 function parseArgs(argv) {
+  if (argv.includes("--adapter")) throw new Error("--adapter is no longer supported. Project capabilities are declared in .data-editor/project.json.");
   const explicitMode = readOption(argv, "--mode");
   const toolRoot = readOption(argv, "--tool-root") ?? scriptRoot;
   const registryHome = readOption(argv, "--registry-home") ?? undefined;
@@ -215,7 +212,6 @@ function parseArgs(argv) {
   return {
     toolRoot,
     projectRoot,
-    adapterId: readOption(argv, "--adapter") ?? "nocturnel",
     port,
     bridgePort: Number(readOption(argv, "--bridge-port") ?? 8791),
     mode: selectedMode,

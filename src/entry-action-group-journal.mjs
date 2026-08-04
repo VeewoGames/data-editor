@@ -63,7 +63,7 @@ function normalize(value, expectedStage = null) {
   if (!value || typeof value !== "object" || Array.isArray(value)
     || !ENTRY_ACTION_GROUP_STAGES.includes(value.stage) || (expectedStage && value.stage !== expectedStage)
     || !validId(value.idempotencyKey) || !validId(value.runId) || !digest(value.proposalDigest)
-    || !digest(value.authorityDigest) || typeof value.automationProfileEtag !== "string"
+    || !digest(value.ruleDigest)
     || !validOwnership(value.ownership)
     || !validTarget(value.source, false) || !validTarget(value.artifact, true)
     || value.idempotencyKey !== `group_${digestText(value.runId)}`

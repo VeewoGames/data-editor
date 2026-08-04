@@ -9,14 +9,10 @@ import { fileURLToPath } from "node:url";
 import { addOrActivateProject } from "../src/project-registry.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nocturnelRoot = process.env.NOCTURNEL_ROOT
-  ? path.resolve(process.env.NOCTURNEL_ROOT)
-  : path.basename(path.dirname(repoRoot)) === "tools"
-    ? path.resolve(repoRoot, "..", "..")
-    : path.resolve(repoRoot, "..", "Nocturnel");
+const contractFixtureRoot = path.join(repoRoot, "tests", "fixtures", "projects", "contract-project");
 const serverScriptPath = path.join(repoRoot, "server.mjs");
-const canonicalContract = JSON.parse(await readFile(path.join(nocturnelRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
-const canonicalSchemaText = await readFile(path.join(nocturnelRoot, "data", "contracts", "skill_nodes.schema.json"), "utf8");
+const canonicalContract = JSON.parse(await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
+const canonicalSchemaText = await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.schema.json"), "utf8");
 
 test("skill node contract API isolates projects and enforces ETag and schema errors", async (t) => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "data-editor-contract-api-"));
@@ -48,6 +44,11 @@ test("skill node contract API isolates projects and enforces ETag and schema err
     } catch {}
   });
   await waitForHealth(port);
+
+  const genericCapabilities = await requestCapabilities(port, "project-a");
+  assert.equal(genericCapabilities.status, 200);
+  assert.equal(genericCapabilities.body.status, "generic_absent");
+  assert.equal(genericCapabilities.headers.get("cache-control"), "no-cache");
 
   assertContractError(await requestContract(port, null), 400, "SKILL_NODE_CONTRACT_PROJECT_REQUIRED");
   assertContractError(await requestContract(port, "missing-project"), 404, "SKILL_NODE_CONTRACT_PROJECT_UNKNOWN");
@@ -172,6 +173,11 @@ function assertContractError(response, status, code) {
   assert.equal(response.status, status);
   assert.equal(response.body.code, code);
   assert.equal(response.headers.get("cache-control"), "no-cache");
+}
+
+async function requestCapabilities(port, projectId) {
+  const response = await fetch(`http://127.0.0.1:${port}/api/project-capabilities?projectId=${encodeURIComponent(projectId)}`);
+  return { status: response.status, headers: response.headers, body: JSON.parse(await response.text()) };
 }
 
 async function waitForHealth(port) {

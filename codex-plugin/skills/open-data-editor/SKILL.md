@@ -30,7 +30,7 @@ Make the local editor available without the user needing to remember the URL or 
    - Otherwise, ask the user for the Data Editor root instead of guessing.
 3. Check whether `http://127.0.0.1:8787/api/health` is already responding.
 4. If the editor is not responding, start the local app from `<editorRoot>`:
-   - command: `npm run open -- --project <projectRoot> --adapter nocturnel`
+   - command: `npm run open -- --project <projectRoot>`
    - this command should prefer the built static app for fast startup and only fall back to `npm run dev` when `dist/` is missing
 5. Re-check `http://127.0.0.1:8787/api/health` until the service is ready or a clear startup error is found.
 6. Open `http://127.0.0.1:8787/` in the Codex in-app browser only after the service is ready.
@@ -52,12 +52,12 @@ When Browser is available, the open step should be executed through the Codex in
 - If the user asks to debug editor behavior after opening it, continue working against the same local URL.
 - Favor stable service readiness over perceived latency: verify first, open second.
 - If Browser control is unavailable in the current session, explicitly say that and fall back to a plain text URL or manual open instruction.
-- If the user explicitly wants the latest unbuilt editor frontend while developing `data-editor`, use `npm run dev -- --project <projectRoot> --adapter nocturnel` instead of the fast open path.
+- If the user explicitly wants the latest unbuilt editor frontend while developing `data-editor`, use `npm run dev -- --project <projectRoot>` instead of the fast open path.
 - The optional config file format is:
 
 ```json
 {
   "editorRoot": "C:\\Code\\data-editor",
-  "projectRoot": "C:\\Code\\Nocturnel"
+  "projectRoot": "C:\\Code\\MyProject"
 }
 ```

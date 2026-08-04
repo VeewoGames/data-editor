@@ -7,12 +7,8 @@ import { createSkillNodeContractEditorState } from "../src/detail/skill-node-con
 import { createSkillNodeContractFormModel } from "../src/detail/skill-node-contract-form-model.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const root = process.env.NOCTURNEL_ROOT
-  ? path.resolve(process.env.NOCTURNEL_ROOT)
-  : path.basename(path.dirname(repoRoot)) === "tools"
-    ? path.resolve(repoRoot, "..", "..")
-    : path.resolve(repoRoot, "..", "Nocturnel");
-const contract = JSON.parse(await readFile(path.join(root, "data", "contracts", "skill_nodes.json"), "utf8"));
+const contractFixtureRoot = path.join(repoRoot, "tests", "fixtures", "projects", "contract-project");
+const contract = JSON.parse(await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
 
 test("contract form model preserves loading and version mismatch blocking", () => {
   for (const state of [

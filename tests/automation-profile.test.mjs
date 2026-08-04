@@ -58,7 +58,7 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
   }
 });
 
-test("automation profile preserves an optional text artifact policy reference", () => {
+test("automation profile preserves an optional text artifact declaration", () => {
   const profile = validateAutomationProfile({
     rules: [{
       id: "design",
@@ -67,12 +67,12 @@ test("automation profile preserves an optional text artifact policy reference", 
       targets: [{
         file: "data/skills.json",
         collection: "skills",
-        textArtifactId: "skill-doc",
+        textArtifact: { pathTemplate: "docs/skills/{value}.md", sourceField: "skill_id", allowCreate: true, allowUpdate: true, maxBytes: 4096 },
       }],
       payload: { includeRow: true, includeNeighbors: false },
     }],
   });
-  assert.equal(profile.rules[0].targets[0].textArtifactId, "skill-doc");
+  assert.equal(profile.rules[0].targets[0].textArtifact.pathTemplate, "docs/skills/{value}.md");
 });
 
 test("normalizeAutomationProfile rejects duplicate rule ids", () => {

@@ -2196,6 +2196,18 @@ select {
   width: 100%;
 }
 
+.automation-target-artifact {
+  display: grid;
+  gap: 10px;
+  grid-column: 1 / -1;
+}
+
+.automation-target-artifact__fields {
+  display: grid;
+  gap: 10px 12px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(120px, 0.5fr) auto auto;
+}
+
 .automation-target-actions {
   align-items: center;
   display: flex;

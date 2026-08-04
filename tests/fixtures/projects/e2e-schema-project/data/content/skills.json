@@ -1,0 +1,99 @@
+{
+  "skill_node_contract_version": 1,
+  "skills": [
+    {
+      "id": 1,
+      "skill_id": "skill_heavy_slash",
+      "skill_name": "Heavy Slash",
+      "description": "A synthetic melee skill.",
+      "description_zh": "合成重斩技能。",
+      "dev_status": "test",
+      "ap_cost": 2,
+      "class_pool": [],
+      "complexity": "simple",
+      "cooldown": 0,
+      "mana_cost": 0,
+      "owner": "player",
+      "range_type_show": "melee",
+      "range_value_show": 1,
+      "skill_category": "weapon_bound",
+      "skill_type": "attack",
+      "tags": ["attack"],
+      "spell_subtype": "",
+      "minion_subtype": "",
+      "form_duration": 0,
+      "enemy_behavior_actions": [],
+      "enemy_intent_type": "",
+      "enemy_ai_tags": [],
+      "enemy_interaction_windows": [],
+      "enemy_bonus_answer_tags": [],
+      "enemy_skill_role": "",
+      "control_protection_tags": [],
+      "nodes": [
+        {
+          "type": "targeting",
+          "selection": {
+            "type": "entity",
+            "distance": 1,
+            "pattern": "single",
+            "visibility": "line_of_sight",
+            "relations": ["enemy"]
+          },
+          "area": {
+            "anchor": "selection",
+            "shape": "single",
+            "include_anchor": true
+          },
+          "affects": {
+            "relations": ["enemy"],
+            "entity_types": ["character"]
+          }
+        }
+      ],
+      "icon_path": "",
+      "equipment_requirement": [],
+      "on_expire_effect": null,
+      "replaced_skills": [],
+      "enemy_budget_score": 0,
+      "back_skills": [],
+      "back_phase_skills": []
+    },
+    {
+      "id": 2,
+      "skill_id": "skill_weapon_sword_slash",
+      "skill_name": "Sword Slash",
+      "description": "A second synthetic skill for relation and filter coverage.",
+      "description_zh": "第二个合成技能。",
+      "dev_status": "test",
+      "ap_cost": 1,
+      "class_pool": [],
+      "complexity": "simple",
+      "cooldown": 0,
+      "mana_cost": 0,
+      "owner": "player",
+      "range_type_show": "melee",
+      "range_value_show": 1,
+      "skill_category": "weapon_bound",
+      "skill_type": "attack",
+      "tags": ["attack"],
+      "spell_subtype": "",
+      "minion_subtype": "",
+      "form_duration": 0,
+      "enemy_behavior_actions": [],
+      "enemy_intent_type": "",
+      "enemy_ai_tags": [],
+      "enemy_interaction_windows": [],
+      "enemy_bonus_answer_tags": [],
+      "enemy_skill_role": "",
+      "control_protection_tags": [],
+      "nodes": [],
+      "icon_path": "",
+      "equipment_requirement": [],
+      "on_expire_effect": null,
+      "replaced_skills": [],
+      "enemy_budget_score": 0,
+      "back_skills": [],
+      "back_phase_skills": []
+    }
+  ]
+}

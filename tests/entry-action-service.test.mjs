@@ -10,6 +10,7 @@ import {
   readEntryActionResult,
 } from "../src/entry-actions.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
+import { rowDigest } from "../src/row-digest.mjs";
 
 test("proposal-only service commits an authorized row patch and publishes terminal state", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-service-"));
@@ -22,7 +23,7 @@ test("proposal-only service commits an authorized row patch and publishes termin
       const handoff = JSON.parse(await readFile(entryActionHandoffPath(context, spec.id), "utf8"));
       const args = parseArgs(spec.args.slice(1));
       const proposal = {
-        version: 2,
+        version: 3,
         runId: spec.id,
         actionId: handoff.action.id,
         sourcePath: handoff.entry.sourcePath,
@@ -32,8 +33,7 @@ test("proposal-only service commits an authorized row patch and publishes termin
         // The service must bind the proposal back to the server-created handoff.
         rowId: `${handoff.entry.rowId.slice(0, -1)}X`,
         baseDocumentEtag: handoff.proposalContract.baseDocumentEtag,
-        automationProfileEtag: handoff.proposalContract.automationProfileEtag,
-        authorityDigest: handoff.proposalContract.authorityDigest,
+        ruleDigest: handoff.proposalContract.ruleDigest,
         fencingToken: handoff.proposalContract.fencingToken,
         changes: [{
           field: "name",
@@ -68,6 +68,7 @@ test("proposal-only service commits an authorized row patch and publishes termin
       collectionPath: "items",
       rowId: "01JTESTENTRY00000000000001",
       sourceRowIndex: 0,
+      expectedRowDigest: fixtureRowDigest(),
     },
     toolRoot: path.resolve("."),
     jobSupervisor,
@@ -129,6 +130,7 @@ test("proposal-only service publishes timed_out without changing the source docu
       collectionPath: "items",
       rowId: "01JTESTENTRY00000000000001",
       sourceRowIndex: 0,
+      expectedRowDigest: fixtureRowDigest(),
     },
     toolRoot: path.resolve("."),
     jobSupervisor,
@@ -191,4 +193,8 @@ function parseArgs(argv) {
     result[String(argv[index]).replace(/^--/, "")] = argv[index + 1];
   }
   return result;
+}
+
+function fixtureRowDigest() {
+  return rowDigest({ __entry_id: "01JTESTENTRY00000000000001", name: "Old" });
 }

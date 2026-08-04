@@ -1,0 +1,5 @@
+[
+  { "id": 1, "keyword_id": "immobilised", "name": "Immobilised", "description": "Synthetic keyword." },
+  { "id": 2, "keyword_id": "focus", "name": "Focus", "description": "Synthetic keyword." },
+  { "id": 3, "keyword_id": "buildup", "name": "Buildup", "description": "Synthetic keyword." }
+]

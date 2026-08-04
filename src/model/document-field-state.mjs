@@ -21,14 +21,6 @@ export function buildSelectedDocumentFields({
   documentIndexEntries,
 }) {
   if (!sourcePath || !row) return [];
-  const primaryKeyValue = primaryKeyField ? row[primaryKeyField] : null;
-  const documentId = primaryKeyValue == null ? "" : String(primaryKeyValue).trim();
-  const sharedIndexEntry = documentId ? documentIndexEntries[documentId] ?? null : null;
-  const sharedLabel = documentId
-    ? sharedIndexEntry?.status === "resolved"
-      ? (sharedIndexEntry.title ?? documentId)
-      : documentId
-    : "未关联文档";
   return Object.entries(displayTypes)
     .filter(([, displayType]) => displayType === "Document")
     .map(([fieldName]) => {
@@ -38,12 +30,20 @@ export function buildSelectedDocumentFields({
         fieldPath: [fieldName],
       });
       if (documentFieldConfigs[key]?.enabled !== true) return null;
+      const rawDocumentId = row[fieldName];
+      const documentId = rawDocumentId == null ? "" : String(rawDocumentId).trim();
+      const indexEntry = documentId ? documentIndexEntries[documentId] ?? null : null;
+      const label = documentId
+        ? indexEntry?.status === "resolved"
+          ? (indexEntry.title ?? documentId)
+          : documentId
+        : "未关联文档";
       return {
         fieldName,
         key,
         documentId,
-        label: sharedLabel,
-        indexEntry: sharedIndexEntry,
+        label,
+        indexEntry,
       };
     })
     .filter(Boolean);

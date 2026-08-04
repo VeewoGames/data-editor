@@ -7,6 +7,7 @@ import { buildDevChildSpawnOptions, isBackgroundDevProcess } from "./src/dev-spa
 import { createProjectContext } from "./src/project-context.mjs";
 
 const toolRoot = path.dirname(fileURLToPath(import.meta.url));
+if (process.argv.includes("--adapter")) throw new Error("--adapter is no longer supported. Project capabilities are declared in .data-editor/project.json.");
 const rootArgIndex = process.argv.indexOf("--root");
 const projectArgIndex = process.argv.indexOf("--project");
 const registryHomeArgIndex = process.argv.indexOf("--registry-home");
@@ -21,8 +22,6 @@ const vitePort = portArgIndex >= 0 ? Number(process.argv[portArgIndex + 1]) : 87
 const apiPort = vitePort + 1;
 const bridgePortArgIndex = process.argv.indexOf("--bridge-port");
 const bridgePort = bridgePortArgIndex >= 0 ? Number(process.argv[bridgePortArgIndex + 1]) : 8791;
-const adapterArgIndex = process.argv.indexOf("--adapter");
-const adapterId = adapterArgIndex >= 0 ? process.argv[adapterArgIndex + 1] : "nocturnel";
 const runtimeDirArgIndex = process.argv.indexOf("--runtime-dir");
 const runtimeDir = runtimeDirArgIndex >= 0 ? process.argv[runtimeDirArgIndex + 1] : ".data-editor/runtime";
 const logsDirArgIndex = process.argv.indexOf("--logs-dir");
@@ -44,8 +43,6 @@ const api = spawn(
     runtimeToolRoot,
     "--bridge-port",
     String(bridgePort),
-    "--adapter",
-    adapterId,
     ...(registryHome ? ["--registry-home", registryHome] : []),
     "--runtime-dir",
     runtimeDir,
@@ -127,7 +124,6 @@ async function finalizeAndExit(code) {
   clearShutdownTimer();
   await clearServiceStateIfOwned(createProjectContext({
     projectRoot,
-    adapterId,
     runtimeDir,
     logsDir,
   }), process.pid).catch(() => {});

@@ -1,5 +1,3 @@
-export const skillDocumentPath = "data/content/skills.json";
-
 export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
   const savedPaths = [];
   /** @type {Record<string, string>} */
@@ -34,66 +32,15 @@ export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
   };
 }
 
-export function isSkillDocumentPath(documentPath) {
-  if (typeof documentPath !== "string") return false;
-  return documentPath.replaceAll("\\", "/").replace(/^\.\//, "") === skillDocumentPath;
-}
-
-async function buildContractSaveGate(documentPath, { projectId, loadSkillNodeContract } = {}) {
-  if (!isSkillDocumentPath(documentPath)) return null;
+async function buildContractSaveGate(documentPath, { projectId, loadDocumentContracts } = {}) {
   const normalizedProjectId = typeof projectId === "string" ? projectId.trim() : "";
-  if (!normalizedProjectId) {
-    throw saveGateError(
-      "SKILL_NODE_CONTRACT_SAVE_PROJECT_REQUIRED",
-      "projectId is required to save the skill document.",
-      "projectId",
-    );
+  if (!normalizedProjectId || typeof loadDocumentContracts !== "function") return { documentContracts: [] };
+  const loaded = await loadDocumentContracts(normalizedProjectId, documentPath);
+  if (loaded?.projectId !== normalizedProjectId || !Array.isArray(loaded?.documentContracts)) {
+    const error = new Error("Document contract save gate response is invalid.");
+    error.code = "DOCUMENT_CONTRACT_GATE_INVALID";
+    error.field = "documentContracts";
+    throw error;
   }
-  if (typeof loadSkillNodeContract !== "function") {
-    throw saveGateError(
-      "SKILL_NODE_CONTRACT_SAVE_GATE_UNAVAILABLE",
-      "The skill node contract save gate is unavailable.",
-      "saveToken",
-    );
-  }
-
-  const loaded = await loadSkillNodeContract(normalizedProjectId);
-  if (loaded?.projectId !== normalizedProjectId) {
-    throw saveGateError(
-      "SKILL_NODE_CONTRACT_SAVE_TOKEN_PROJECT_MISMATCH",
-      "The loaded contract belongs to a different project.",
-      "saveToken.projectId",
-    );
-  }
-  if (!Number.isInteger(loaded?.version)) {
-    throw saveGateError(
-      "SKILL_NODE_CONTRACT_SAVE_VERSION_MISSING",
-      "The loaded contract is missing its version.",
-      "contractVersion",
-    );
-  }
-  if (typeof loaded?.etag !== "string" || !loaded.etag) {
-    throw saveGateError(
-      "SKILL_NODE_CONTRACT_SAVE_ETAG_MISSING",
-      "The loaded contract is missing its ETag.",
-      "contractEtag",
-    );
-  }
-
-  return {
-    contractVersion: loaded.version,
-    contractEtag: loaded.etag,
-    saveToken: {
-      projectId: normalizedProjectId,
-      contractVersion: loaded.version,
-      etag: loaded.etag,
-    },
-  };
-}
-
-function saveGateError(code, message, field) {
-  const error = new Error(message);
-  error.code = code;
-  error.field = field;
-  return error;
+  return { documentContracts: loaded.documentContracts };
 }

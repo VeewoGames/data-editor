@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "requires": { "capabilityApi": 1 },
+  "capabilities": {
+    "nestedSchemas": [],
+    "documentContracts": [
+      {
+        "id": "contract-project-skills",
+        "engine": "document-contract-v1",
+        "match": { "dataSourceId": "data", "path": "content/skills.json", "collection": "skills" },
+        "contract": "data/contracts/skill_nodes.json",
+        "contractSchema": "data/contracts/skill_nodes.schema.json"
+      }
+    ],
+    "identityPolicies": []
+  }
+}

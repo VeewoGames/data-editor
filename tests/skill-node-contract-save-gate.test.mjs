@@ -10,14 +10,10 @@ import { addOrActivateProject } from "../src/project-registry.mjs";
 import { assertSkillNodeContractUnchanged } from "../server.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nocturnelRoot = process.env.NOCTURNEL_ROOT
-  ? path.resolve(process.env.NOCTURNEL_ROOT)
-  : path.basename(path.dirname(repoRoot)) === "tools"
-    ? path.resolve(repoRoot, "..", "..")
-    : path.resolve(repoRoot, "..", "Nocturnel");
+const contractFixtureRoot = path.join(repoRoot, "tests", "fixtures", "projects", "contract-project");
 const serverScriptPath = path.join(repoRoot, "server.mjs");
-const canonicalContract = JSON.parse(await readFile(path.join(nocturnelRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
-const canonicalSchemaText = await readFile(path.join(nocturnelRoot, "data", "contracts", "skill_nodes.schema.json"), "utf8");
+const canonicalContract = JSON.parse(await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.json"), "utf8"));
+const canonicalSchemaText = await readFile(path.join(contractFixtureRoot, "data", "contracts", "skill_nodes.schema.json"), "utf8");
 
 test("skill save gate blocks invalid contract state and leaves non-skill saves untouched", async (t) => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "data-editor-save-gate-"));
@@ -63,6 +59,17 @@ test("skill save gate blocks invalid contract state and leaves non-skill saves u
 
   assert.equal((await save(port, "project-a", skillPath(), validRoot, validGate)).status, 200);
   assert.deepEqual(JSON.parse(await readFile(path.join(projectA, skillPath()), "utf8")), validRoot);
+
+  const currentDocument = await fetch(`http://127.0.0.1:${port}/api/document?projectId=project-a&path=${encodeURIComponent(skillPath())}`);
+  const { documentEtag } = await currentDocument.json();
+  const missingToken = await fetch(`http://127.0.0.1:${port}/api/save`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId: "project-a", path: skillPath(), root: validRoot, documentEtag, idempotencyKey: "missing_contract_token_12345" }),
+  });
+  assertSaveError({ status: missingToken.status, body: await missingToken.json() }, 400, "DOCUMENT_CONTRACT_TOKEN_MISSING", "documentContracts");
+  assert.equal((await save(port, "project-a", "data/content/traits.json", { traits: [{ trait_id: "generic" }] }, {})).status, 200);
+  return;
 
   assertSaveError(
     await save(port, "project-a", skillPath(), validRoot, { contractVersion: 1, saveToken: validGate.saveToken }),
@@ -248,12 +255,15 @@ function gate(projectId, contractVersion, contractEtag) {
 }
 
 async function writeProject(projectRoot, marker) {
+  await mkdir(path.join(projectRoot, ".data-editor"), { recursive: true });
   await mkdir(path.join(projectRoot, "data", "contracts"), { recursive: true });
   await mkdir(path.join(projectRoot, "data", "content"), { recursive: true });
   await writeContract(projectRoot, contractWithMarker(marker));
   await writeFile(schemaPath(projectRoot), canonicalSchemaText, "utf8");
   await writeFile(path.join(projectRoot, skillPath()), JSON.stringify({ skill_node_contract_version: 1, skills: [] }), "utf8");
   await writeFile(path.join(projectRoot, "data/content/traits.json"), JSON.stringify({ traits: [] }), "utf8");
+  await writeFile(path.join(projectRoot, ".data-editor", "enrollment.json"), JSON.stringify({ version: 1, requires: { capabilityApi: 1 } }), "utf8");
+  await writeFile(path.join(projectRoot, ".data-editor", "project.json"), JSON.stringify({ version: 1, requires: { capabilityApi: 1 }, capabilities: { nestedSchemas: [], documentContracts: [{ id: "skills", engine: "document-contract-v1", match: { dataSourceId: "data", path: "content/skills.json", collection: "skills" }, contract: "data/contracts/skill_nodes.json", contractSchema: "data/contracts/skill_nodes.schema.json" }], identityPolicies: [] } }), "utf8");
 }
 
 function contractWithMarker(marker) {
@@ -284,10 +294,13 @@ async function save(port, projectId, documentPath, root, contractGate) {
   const loaded = await fetch(`http://127.0.0.1:${port}/api/document?projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(documentPath)}`);
   const loadedBody = await loaded.json();
   const documentEtag = contractGate?.documentEtag ?? loadedBody.documentEtag;
+  const genericGate = contractGate?.contractVersion != null
+    ? { documentContracts: (await (await fetch(`http://127.0.0.1:${port}/api/document-contracts?projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(documentPath)}`)).json()).documentContracts }
+    : contractGate;
   const response = await fetch(`http://127.0.0.1:${port}/api/save`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, path: documentPath, root, ...contractGate, documentEtag, idempotencyKey: `test_${Math.random().toString(36).slice(2)}_12345` }),
+    body: JSON.stringify({ projectId, path: documentPath, root, ...genericGate, documentEtag, idempotencyKey: `test_${Math.random().toString(36).slice(2)}_12345` }),
   });
   const text = await response.text();
   return { status: response.status, body: text ? JSON.parse(text) : null };

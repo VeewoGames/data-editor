@@ -15,23 +15,6 @@ import { createCommitJournal } from "../src/commit-journal.mjs";
 const text = '[{"__entry_id":"row-1","item_id":"item_alpha","name":"Alpha","notes":""}]';
 const etag = (value) => `"${crypto.createHash("sha256").update(value, "utf8").digest("hex")}"`;
 const digest = (value) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
-const policy = {
-  version: 4,
-  targets: [{
-    actionId: "rename",
-    file: "data/items.json",
-    collection: "$",
-  }],
-  textArtifacts: [{
-    actionId: "rename",
-    id: "item-doc",
-    pathTemplate: "docs/items/{value}.md",
-    sourceField: "item_id",
-    allowCreate: true,
-    allowUpdate: true,
-    maxBytes: 4096,
-  }],
-};
 const profile = {
   etag: '"profile"',
   rules: [{
@@ -44,15 +27,15 @@ const profile = {
   }],
 };
 const row = { __entry_id: "row-1", item_id: "item_alpha", name: "Alpha", notes: "" };
-const snapshot = createAuthoritySnapshot({ policy, profile, actionId: "rename", file: "data/items.json", collection: "$", row });
+const snapshot = createAuthoritySnapshot({ profile, actionId: "rename", file: "data/items.json", collection: "$", row });
 const artifactProfile = {
   ...profile,
   rules: [{
     ...profile.rules[0],
-    targets: [{ ...profile.rules[0].targets[0], textArtifactId: "item-doc" }],
+    targets: [{ ...profile.rules[0].targets[0], textArtifact: { pathTemplate: "docs/items/{value}.md", sourceField: "item_id", allowCreate: true, allowUpdate: true, maxBytes: 4096 } }],
   }],
 };
-const artifactSnapshot = createAuthoritySnapshot({ policy, profile: artifactProfile, actionId: "rename", file: "data/items.json", collection: "$", row });
+const artifactSnapshot = createAuthoritySnapshot({ profile: artifactProfile, actionId: "rename", file: "data/items.json", collection: "$", row });
 const lease = {
   canonicalFileKey: "a".repeat(64),
   runId: "10000000-0000-4000-8000-000000000001",
@@ -65,7 +48,7 @@ const changes = [
   { field: "notes", beforeExists: true, before: "", afterExists: true, after: "Reviewed" },
 ];
 const proposal = {
-  version: 2,
+  version: 3,
   runId: lease.runId,
   actionId: "rename",
   sourcePath: "data/items.json",
@@ -73,8 +56,7 @@ const proposal = {
   collectionPath: "$",
   rowId: "row-1",
   baseDocumentEtag: etag(text),
-  automationProfileEtag: profile.etag,
-  authorityDigest: snapshot.authorityDigest,
+  ruleDigest: snapshot.ruleDigest,
   fencingToken: 1,
   changes,
   textArtifact: null,
@@ -83,7 +65,7 @@ const proposal = {
 const probeLease = () => ({ status: "owned", lease });
 
 test("proposal preparation applies multiple authorized fields to a clone", async () => {
-  const result = await prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot: snapshot, policy, profile, documentText: text, probeLease });
+  const result = await prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease });
   assert.equal(result.root[0].name, "Beta");
   assert.equal(result.root[0].notes, "Reviewed");
   assert.equal(JSON.parse(text)[0].name, "Alpha");
@@ -102,6 +84,7 @@ test("proposal preparation binds one authorized Markdown create or update", asyn
   const afterContent = "# Alpha\n";
   const withArtifact = {
     ...proposal,
+    ruleDigest: artifactSnapshot.ruleDigest,
     textArtifact: {
       id: "item-doc",
       path: "docs/items/item_alpha.md",
@@ -115,7 +98,6 @@ test("proposal preparation binds one authorized Markdown create or update", asyn
     proposal: withArtifact,
     lease,
     authoritySnapshot: artifactSnapshot,
-    policy,
     profile: artifactProfile,
     documentText: text,
     textArtifactCurrentText: null,
@@ -134,13 +116,14 @@ test("proposal preparation binds one authorized Markdown create or update", asyn
 });
 
 test("proposal preparation fails closed on stale ownership, document, row or artifact", async () => {
-  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot: snapshot, policy, profile, documentText: text, probeLease: () => ({ status: "absent" }) }), { code: "ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE" });
-  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...proposal, baseDocumentEtag: '"old"' }, lease, authoritySnapshot: snapshot, policy, profile, documentText: text, probeLease }), { code: "ENTRY_ACTION_PROPOSAL_DOCUMENT_STALE" });
-  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...proposal, changes: [{ ...changes[0], before: "Other" }] }, lease, authoritySnapshot: snapshot, policy, profile, documentText: text, probeLease }), { code: "ENTRY_ACTION_PROPOSAL_BEFORE_MISMATCH" });
+  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease: () => ({ status: "absent" }) }), { code: "ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE" });
+  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...proposal, baseDocumentEtag: '"old"' }, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease }), { code: "ENTRY_ACTION_PROPOSAL_DOCUMENT_STALE" });
+  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...proposal, changes: [{ ...changes[0], before: "Other" }] }, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease }), { code: "ENTRY_ACTION_PROPOSAL_BEFORE_MISMATCH" });
   const beforeContent = "# Before\n";
   const afterContent = "# After\n";
   const artifactProposal = {
     ...proposal,
+    ruleDigest: artifactSnapshot.ruleDigest,
     textArtifact: {
       id: "item-doc",
       path: "docs/items/item_alpha.md",
@@ -154,7 +137,6 @@ test("proposal preparation fails closed on stale ownership, document, row or art
     proposal: artifactProposal,
     lease,
     authoritySnapshot: artifactSnapshot,
-    policy,
     profile: artifactProfile,
     documentText: text,
     textArtifactCurrentText: "# External\n",
@@ -173,7 +155,6 @@ test("proposal preparation allows a skill to choose any existing row field", asy
     proposal: duplicateProposal,
     lease,
     authoritySnapshot: snapshot,
-    policy,
     profile,
     documentText: duplicateText,
     probeLease,
@@ -184,7 +165,7 @@ test("proposal preparation allows a skill to choose any existing row field", asy
 test("proposal commit writes the compound row through the existing child journal", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "proposal-journal-"));
   try {
-    const prepared = await prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot: snapshot, policy, profile, documentText: text, probeLease });
+    const prepared = await prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease });
     let source = text;
     let published = 0;
     const result = await commitEntryActionProposal({
