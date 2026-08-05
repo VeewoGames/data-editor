@@ -14,6 +14,7 @@
 - [DataTable 矩形选区对离散选项触发区的豁免边界](./data-table-rect-selection-option-trigger-exemption.md)
 - [DataTable 文本/数字单元格切换时的 blur 绕过与 draft 丢失](./data-table-text-cell-blur-bypass-draft-loss.md)
 - [表格 nested 单元格直达右侧 DetailPanel 嵌套编辑](./table-nested-detail-panel-nested-editing.md)
+- [表头显示原始字段名开关：列模型状态贯通与签名重建规则](./table-header-field-name-display-toggle.md)
 - [nested 节点完整编辑第一阶段执行边界与 resolver key 约束：含 Nocturnel `data/content` 路径迁移、六类 registry entry 正式切换、真实路径 fixture/Playwright 验证面、正式 UI 恢复与 fallback 排查规则](./nested-detail-panel-first-phase-boundary-and-resolver-key.md)
 - [nested node editing 第一阶段架构边界：schema 真值、`data/content` 路径身份、resolver key、`NodeEditorHost` 宿主与 `nestedStack` 导航合同](./adr/nested-node-editing-first-phase-architecture-boundary.md)
 - [nested 编辑界面的信息架构收口与实施顺序](./adr/nested-detail-panel-information-architecture-and-rollout-order.md)
