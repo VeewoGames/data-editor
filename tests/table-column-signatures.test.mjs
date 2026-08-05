@@ -124,3 +124,28 @@ test("buildTableColumnModelsSignature changes when table text editing changes te
 
   assert.notEqual(editable, readonly);
 });
+
+test("buildTableColumnModelsSignature changes when showFieldNames toggles header rendering", () => {
+  const base = {
+    visibleFields: ["title", "description"],
+    rows: [{ title: "Fireball", description: "Burns" }],
+    nestedFieldSet: new Set(),
+    displayTypes: { title: "Text", description: "Text" },
+    wrappedFields: new Set(),
+    detectedTitleField: "title",
+    primaryKeyField: null,
+    backlinkColumns: [],
+    relationOptionsByField: {},
+    relationConfigByField: {},
+    fieldOptions: {},
+    selectOptions: {},
+    widths: { title: 240, description: 260 },
+    textEditable: false,
+    showFieldNames: false,
+  };
+
+  const hidden = buildTableColumnModelsSignature(base);
+  const shown = buildTableColumnModelsSignature({ ...base, showFieldNames: true });
+
+  assert.notEqual(shown, hidden);
+});

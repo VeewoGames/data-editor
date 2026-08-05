@@ -86,7 +86,9 @@ export function normalizeViewConfig(value) {
           };
         }
       }
+      const displayLabel = typeof fieldConfig.label === "string" && fieldConfig.label.trim() ? fieldConfig.label.trim() : undefined;
       normalizedFields[fieldKey] = {
+        ...(displayLabel ? { label: displayLabel } : {}),
         type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
         selectOptions: normalizedSelectOptions,
         multiSelectOptions: normalizedOptions,
@@ -246,3 +248,5 @@ function parseRelationKey(relationKey) {
 function normalizeNonEmptyString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
+
+

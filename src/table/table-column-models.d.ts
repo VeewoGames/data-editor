@@ -12,6 +12,8 @@ type OptionConfig = {
 
 export type TableColumnModel = {
   fieldName: string;
+  fieldLabel?: string;
+  showFieldNames: boolean;
   baseDisplayType: FieldDisplayType;
   effectiveDisplayType: FieldDisplayType;
   roleKind: "normal" | "relation" | "backlink";
@@ -47,6 +49,8 @@ export function buildTableColumnModels(input: {
   relationConfigByField: Record<string, RelationConfig | null>;
   fieldOptions: Record<string, OptionConfig>;
   selectOptions: Record<string, OptionConfig>;
+  fieldLabelsByField?: Record<string, string>;
+  showFieldNames?: boolean;
   documentLabelsByField?: Record<string, Record<string, string>>;
   documentConfiguredFields?: Set<string>;
   getColumnWidth: (fieldName: string) => number;
@@ -54,3 +58,4 @@ export function buildTableColumnModels(input: {
 }): TableColumnModel[];
 
 export function getColumnModelDisplayType(fieldName: string, columnModels: TableColumnModel[]): FieldDisplayType | null;
+

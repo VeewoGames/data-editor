@@ -150,6 +150,31 @@ test("buildTableColumnModels ignores incompatible persisted Text override for bo
   assert.equal(models[0]?.effectiveDisplayType, "Checkbox");
 });
 
+test("buildTableColumnModels carries showFieldNames into column models", () => {
+  const base = {
+    visibleFields: ["title"],
+    rows: [{ title: "Alpha" }],
+    nestedFieldSet: new Set(),
+    displayTypes: { title: "Text" },
+    wrappedFields: new Set(),
+    detectedTitleField: "title",
+    primaryKeyField: null,
+    backlinkColumns: [],
+    relationOptionsByField: {},
+    relationConfigByField: {},
+    fieldOptions: {},
+    selectOptions: {},
+    getColumnWidth: () => 180,
+  };
+
+  const hidden = buildTableColumnModels(base)[0];
+  assert.equal(hidden.showFieldNames, false);
+
+  const shown = buildTableColumnModels({ ...base, showFieldNames: true })[0];
+  assert.equal(shown.showFieldNames, true);
+  assert.notEqual(shown, hidden);
+});
+
 test("buildTableColumnModels marks derived projection columns readonly", () => {
   const [model] = buildTableColumnModels({
     visibleFields: ["@selection_type"],

@@ -2,6 +2,32 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import normalizeFetchedViewConfig from "../src/view-config-client.mjs";
 
+test("normalizeFetchedViewConfig preserves field display labels", () => {
+  const normalized = normalizeFetchedViewConfig({
+    fields: {
+      "data/weapons.json:$:magazine_size": {
+        type: "Select",
+        label: "弹夹容量",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+      "data/weapons.json:$:reload_time_s": {
+        type: "Text",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+    },
+    titleFields: {},
+    primaryKeys: {},
+    backlinks: {},
+    relations: {},
+    relationsVersion: 3,
+  });
+
+  assert.equal(normalized.fields["data/weapons.json:$:magazine_size"].label, "弹夹容量");
+  assert.equal(normalized.fields["data/weapons.json:$:reload_time_s"].label, undefined);
+});
+
 test("normalizeFetchedViewConfig fills document config buckets for legacy server payloads", () => {
   const normalized = normalizeFetchedViewConfig({
     fields: {

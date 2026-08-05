@@ -8,6 +8,8 @@ import { shouldStartColumnDrag } from "./column-dnd.mjs";
 
 type ColumnHeaderProps = {
   fieldName: string;
+  fieldLabel?: string;
+  showFieldNames?: boolean;
   baseDisplayType: FieldDisplayType;
   effectiveDisplayType: FieldDisplayType;
   roleKind?: "normal" | "relation" | "backlink";
@@ -331,7 +333,12 @@ export function ColumnHeader(props: ColumnHeaderProps) {
         ref={triggerRef}
         type="button"
       >
-        <span ref={titleRef}>{props.fieldName}</span>
+        <span ref={titleRef}>
+          {props.fieldLabel || props.fieldName}
+          {props.showFieldNames && props.fieldLabel ? (
+            <span className="column-header-field-name">（{props.fieldName}）</span>
+          ) : null}
+        </span>
         <small>{displayTypeLabels[props.effectiveDisplayType]}</small>
       </button>
       {menuOpen ? (
@@ -520,3 +527,4 @@ function updateTableWidth(table: HTMLTableElement) {
   table.style.width = next;
   table.style.minWidth = next;
 }
+

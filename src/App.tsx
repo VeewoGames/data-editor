@@ -704,6 +704,7 @@ export function App() {
   const [pendingNestedOpen, setPendingNestedOpen] = useState<PendingNestedOpenTarget | null>(null);
   const [filterBarVisible, setFilterBarVisible] = useState(true);
   const [tableTextEditMode, setTableTextEditMode] = useState(false);
+  const [showTableFieldNames, setShowTableFieldNames] = useState(false);
   const enableTableTextEditMode = useCallback(() => {
     setTableTextEditMode((current) => current ? current : true);
   }, []);
@@ -2636,6 +2637,7 @@ export function App() {
     scrollRestoreKey,
     initialScrollPosition,
     textEditable: tableTextEditMode,
+    showFieldNames: showTableFieldNames,
     canReorderRows,
     onEnableTextEditMode: enableTableTextEditMode,
     onRegisterActiveTextEditor: registerActiveTextEditor,
@@ -2661,6 +2663,7 @@ export function App() {
     scrollRestoreKey,
     initialScrollPosition,
     tableTextEditMode,
+    showTableFieldNames,
     canReorderRows,
     enableTableTextEditMode,
     registerActiveTextEditor,
@@ -2893,6 +2896,7 @@ export function App() {
     filterBarVisible,
     hasActiveFilters: activeViewHasFilters,
     tableTextEditMode,
+    showFieldNames: showTableFieldNames,
     viewOrderDirty,
     selectedFilePath: selectedPath,
     documentRoot: selectedPath ? (viewConfig.documentFiles[selectedPath]?.docRoot ?? "") : "",
@@ -2910,6 +2914,7 @@ export function App() {
     filterBarVisible,
     activeViewHasFilters,
     tableTextEditMode,
+    showTableFieldNames,
     viewOrderDirty,
     selectedPath,
     viewConfig.documentFiles,
@@ -5755,6 +5760,7 @@ export function App() {
                   onReorderViews={handleReorderSharedViews}
                   onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
                   onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
+                  onToggleShowFieldNames={() => setShowTableFieldNames((value) => !value)}
                   onSetDocumentFieldEnabled={setDocumentFieldEnabled}
                   onSaveDocumentRoot={handleSaveDocumentRoot}
                   onRefreshDocumentIndex={handleRefreshDocumentIndex}
@@ -5875,6 +5881,7 @@ export function App() {
               onReorderViews={handleReorderSharedViews}
               onToggleFilterBar={() => setFilterBarVisible((value) => !value)}
               onToggleTableTextEditMode={() => setTableTextEditMode((value) => !value)}
+              onToggleShowFieldNames={() => setShowTableFieldNames((value) => !value)}
               onSetDocumentFieldEnabled={setDocumentFieldEnabled}
               onSaveDocumentRoot={handleSaveDocumentRoot}
               onRefreshDocumentIndex={handleRefreshDocumentIndex}

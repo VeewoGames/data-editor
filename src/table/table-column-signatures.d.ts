@@ -22,7 +22,10 @@ export function buildTableColumnModelsSignature(input: {
   relationConfigByField: Record<string, RelationConfig | null>;
   fieldOptions: Record<string, OptionConfig>;
   selectOptions: Record<string, OptionConfig>;
+  fieldLabelsByField?: Record<string, string>;
+  showFieldNames?: boolean;
   documentConfiguredFields?: Set<string>;
   widths: Record<string, number>;
   textEditable: boolean;
 }): string;
+

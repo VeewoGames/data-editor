@@ -64,6 +64,7 @@ export type BacklinkDisplayMode = "list";
 
 export type FieldViewConfig = {
   type?: RealFieldType;
+  label?: string;
   selectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null }>;
   multiSelectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null }>;
 };
@@ -100,3 +101,4 @@ export type ViewConfig = {
   relations: Record<string, RelationConfig>;
   relationsVersion: number;
 };
+

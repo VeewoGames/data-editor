@@ -7,6 +7,8 @@ const emptyRelationOptions = [];
 /**
  * @typedef {{
  *   fieldName: string;
+ *   fieldLabel: string | undefined;
+ *   showFieldNames: boolean;
  *   baseDisplayType: import("../model/fieldTypes").FieldDisplayType;
  *   effectiveDisplayType: import("../model/fieldTypes").FieldDisplayType;
  *   roleKind: "normal" | "relation" | "backlink";
@@ -44,6 +46,8 @@ const emptyRelationOptions = [];
  *   relationConfigByField: Record<string, import("../model/viewConfig").RelationConfig | null>;
  *   fieldOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   selectOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
+ *   fieldLabelsByField: Record<string, string>;
+ *   showFieldNames?: boolean;
  *   documentLabelsByField: Record<string, Record<string, string>>;
  *   documentConfiguredFields?: Set<string>;
  *   getColumnWidth: (fieldName: string) => number;
@@ -64,6 +68,8 @@ export function buildTableColumnModels({
   relationConfigByField,
   fieldOptions,
   selectOptions,
+  fieldLabelsByField = {},
+  showFieldNames = false,
   documentLabelsByField = {},
   documentConfiguredFields = new Set(),
   getColumnWidth,
@@ -100,6 +106,8 @@ export function buildTableColumnModels({
     });
     const nextModel = {
       fieldName,
+      fieldLabel: fieldLabelsByField[fieldName],
+      showFieldNames,
       baseDisplayType,
       effectiveDisplayType,
       roleKind,
@@ -145,6 +153,8 @@ function inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes) {
 function sameColumnModel(previous, next) {
   return Boolean(previous) &&
     previous.fieldName === next.fieldName &&
+    previous.fieldLabel === next.fieldLabel &&
+    previous.showFieldNames === next.showFieldNames &&
     previous.baseDisplayType === next.baseDisplayType &&
     previous.effectiveDisplayType === next.effectiveDisplayType &&
     previous.roleKind === next.roleKind &&
@@ -176,3 +186,4 @@ function sameCapabilities(previous, next) {
     previous.allowedTypeTargets.length === next.allowedTypeTargets.length &&
     previous.allowedTypeTargets.every((value, index) => next.allowedTypeTargets[index] === value);
 }
+
