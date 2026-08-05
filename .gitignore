@@ -2,6 +2,7 @@ node_modules/
 dist/
 test-results/
 playwright-report/
+.playwright-cli/
 
 .data-editor/backups/
 .data-editor/runtime/
