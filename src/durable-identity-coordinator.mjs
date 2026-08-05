@@ -23,7 +23,8 @@ export async function promoteEmbeddedIdentity({
   expectedRowDigest,
   idempotencyKey,
   documentCommitCoordinator,
-  validateCandidate = async () => {},
+  validateCandidate,
+  verifyPostReplaceCandidate,
   dependencies = {},
 }) {
   const readText = dependencies.readText ?? readTextFile;
@@ -32,6 +33,9 @@ export async function promoteEmbeddedIdentity({
   const journal = dependencies.journal ?? createIdentityPromotionJournal({ directory: journalDirectory(projectContext) });
   const state = assertCapabilityState(capabilityState);
   const target = resolveIdentityPolicy(projectContext, state, sourcePath, collectionPath);
+  const requiresContractAdmission = hasDocumentContractAdmission(projectContext, state, sourcePath);
+  if (requiresContractAdmission && typeof validateCandidate !== "function") fail("DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING", "Identity promotion requires a document contract admission validator.", 503);
+  if (requiresContractAdmission && typeof verifyPostReplaceCandidate !== "function") fail("DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING", "Identity promotion requires a post-replace document contract verifier.", 503);
   const index = assertSourceRowIndex(sourceRowIndex);
   const requestedDigest = assertExpectedRowDigest(expectedRowDigest);
   const key = assertIdempotencyKey(idempotencyKey);
@@ -63,6 +67,12 @@ export async function promoteEmbeddedIdentity({
           manifestDigest: existing.manifestDigest, documentEtag: etag(currentText), canonicalRowDigest: rowDigest(recovered[0]),
           receiptDigest: digest(JSON.stringify({ idempotencyKey: key, durableId: existing.durableId, row: recovered[0] })),
         };
+        await verifyAdmissionSnapshot({
+          required: requiresContractAdmission,
+          snapshot: existing.contractAdmission,
+          verify: verifyPostReplaceCandidate,
+          sourcePath, collectionPath, root: parsed.data, format: parsed.format, capabilityState: state,
+        });
         await journal.write(completeIdentityPromotion(existing, receipt));
         return { replayed: true, receipt, root: parsed.data, format: parsed.format, documentEtag: etag(currentText) };
       }
@@ -79,7 +89,7 @@ export async function promoteEmbeddedIdentity({
     assertUniqueEmbeddedIdentity(candidateRows, target.policy.provider.field, promotion.durableId);
     rows[index] = promotion.row;
     const candidateText = serializeDocument(parsed.format, model.root);
-    await validateCandidate({
+    const contractAdmission = existing?.contractAdmission ?? (typeof validateCandidate === "function" ? await validateCandidate({
       sourcePath,
       collectionPath,
       root: model.root,
@@ -88,6 +98,14 @@ export async function promoteEmbeddedIdentity({
       policy: target.policy,
       beforeText: currentText,
       candidateText,
+    }) : null);
+    // Retried intents must use their original admission, never silently replace it
+    // with a fresh snapshot before the durable-id writer runs.
+    await verifyAdmissionSnapshot({
+      required: requiresContractAdmission,
+      snapshot: contractAdmission,
+      verify: verifyPostReplaceCandidate,
+      sourcePath, collectionPath, root: model.root, format: parsed.format, capabilityState: state,
     });
     const intent = existing ?? createIdentityPromotionIntent({
       idempotencyKey: key,
@@ -103,6 +121,7 @@ export async function promoteEmbeddedIdentity({
       canonicalFileKey: fileIdentity.canonicalFileKey,
       beforeDigest: digest(currentText),
       afterDigest: digest(candidateText),
+      contractAdmission: contractAdmission ?? null,
     });
     if (!existing) await journal.write(intent);
     await writeText(projectContext, sourcePath, candidateText);
@@ -114,6 +133,12 @@ export async function promoteEmbeddedIdentity({
     if (matches.length !== 1 || digest(persistedText) !== digest(candidateText)) {
       fail("IDENTITY_PROMOTION_VERIFY_FAILED", "The durable identity promotion could not be verified after writing.", 503);
     }
+    await verifyAdmissionSnapshot({
+      required: requiresContractAdmission,
+      snapshot: intent.contractAdmission,
+      verify: verifyPostReplaceCandidate,
+      sourcePath, collectionPath, root: persisted.data, format: persisted.format, capabilityState: state,
+    });
     const receipt = {
       ...promotion.receipt,
       sourcePath,
@@ -131,7 +156,7 @@ export async function promoteEmbeddedIdentity({
 }
 
 /** Reconciles only replaced-but-unreceipted promotions. It never creates or removes identity. */
-export async function recoverPendingEmbeddedIdentityPromotions({ projectContext, capabilityState, dependencies = {} }) {
+export async function recoverPendingEmbeddedIdentityPromotions({ projectContext, capabilityState, verifyPostReplaceCandidate, dependencies = {} }) {
   const readText = dependencies.readText ?? readTextFile;
   const journal = dependencies.journal ?? createIdentityPromotionJournal({ directory: journalDirectory(projectContext) });
   const entries = await journal.list();
@@ -141,11 +166,19 @@ export async function recoverPendingEmbeddedIdentityPromotions({ projectContext,
     if (entry?.kind !== "identity_promotion" || entry.stage !== "intent" || entry.projectId !== projectContext.projectId) continue;
     try {
       const target = resolveIdentityPolicy(projectContext, assertCapabilityState(capabilityState), entry.sourcePath, entry.collectionPath);
+      const requiresContractAdmission = hasDocumentContractAdmission(projectContext, capabilityState, entry.sourcePath);
+      if (requiresContractAdmission && typeof verifyPostReplaceCandidate !== "function") throw Object.assign(new Error("DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING"), { code: "DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING" });
       const text = await readText(projectContext, entry.sourcePath);
       const parsed = parseDocument(entry.sourcePath, text);
       const rows = getRows(buildDocumentModel(parsed.data, parsed.format, entry.sourcePath), entry.collectionPath);
       const matches = rows.filter((row) => row?.[target.policy.provider.field] === entry.durableId);
       if (matches.length !== 1) { pending.push(entry.idempotencyKey); continue; }
+      await verifyAdmissionSnapshot({
+        required: requiresContractAdmission,
+        snapshot: entry.contractAdmission,
+        verify: verifyPostReplaceCandidate,
+        sourcePath: entry.sourcePath, collectionPath: entry.collectionPath, root: parsed.data, format: parsed.format, capabilityState,
+      });
       const receipt = {
         version: 1, idempotencyKey: entry.idempotencyKey, policyId: target.policy.id, durableId: entry.durableId, row: structuredClone(matches[0]),
         sourcePath: entry.sourcePath, collectionPath: entry.collectionPath, canonicalFileKey: entry.canonicalFileKey,
@@ -173,6 +206,25 @@ function resolveIdentityPolicy(projectContext, state, sourcePath, collectionPath
   if (!policy) fail("IDENTITY_PROMOTION_POLICY_UNAVAILABLE", "This Entry Action target has no active durable identity policy.", 409);
   if (policy.provider?.kind !== "embedded-v1") fail("IDENTITY_PROMOTION_PROVIDER_UNSUPPORTED", "Only embedded-v1 identity promotion is available.", 409);
   return { policy };
+}
+
+function hasDocumentContractAdmission(projectContext, state, sourcePath) {
+  const virtualPath = normalizeDataFileVirtualPath(projectContext, sourcePath);
+  const separator = virtualPath.indexOf("/");
+  return (state.bindings?.documentContracts ?? []).some((binding) => binding.match?.dataSourceId === virtualPath.slice(0, separator)
+    && binding.match?.path === virtualPath.slice(separator + 1));
+}
+
+function assertDocumentContractAdmission(snapshot) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot) || !Array.isArray(snapshot.contracts) || snapshot.contracts.length === 0) {
+    fail("DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING", "Identity promotion is missing its document contract admission snapshot.", 503);
+  }
+}
+
+async function verifyAdmissionSnapshot({ required, snapshot, verify, sourcePath, collectionPath, root, format, capabilityState }) {
+  if (!required) return;
+  assertDocumentContractAdmission(snapshot);
+  await verify({ sourcePath, collectionPath, root, format, capabilityState, admissionSnapshot: snapshot });
 }
 
 function assertCapabilityState(state) {

@@ -67,3 +67,79 @@ test("startup recovery scans durable journals without creating identities for un
   assert.deepEqual(result, { recovered: [], pending: ["promotion_901"] });
   assert.equal(JSON.parse(await readFile(path.join(data, "items.json"), "utf8")).items[0].__entry_id, undefined);
 });
+
+test("promotion journals the admission snapshot and keeps recovery evidence when post-replace verification drifts", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-promotion-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const data = path.join(root, "data"); await mkdir(data);
+  await writeFile(path.join(data, "items.json"), JSON.stringify({ items: [{ item_id: "potion" }] }, null, 2));
+  const context = { projectRoot: root, projectId: "fixture", runtimeDir: ".data-editor/runtime", dataSources: [{ id: "data", kind: "project", path: "data" }], filePolicy: { includeExtensions: [".json"] } };
+  const state = { status: "active", generation: 3, manifestDigest: "manifest", bindings: {
+    identityPolicies: [{ id: "items", match: { dataSourceId: "data", path: "items.json", collection: "items" }, provider: { kind: "embedded-v1", field: "__entry_id" } }],
+    documentContracts: [{ id: "items-shape", match: { dataSourceId: "data", path: "items.json", collection: "items" } }],
+  } };
+  const journal = createIdentityPromotionJournal({ directory: path.join(root, ".journal") });
+  const snapshot = { generation: 3, manifestDigest: "manifest", contracts: [{ contractId: "items-shape", compiledContractDigest: "a".repeat(64) }] };
+  let verifierCalls = 0;
+  await assert.rejects(() => promoteEmbeddedIdentity({
+    projectContext: context, capabilityState: state, sourcePath: "data/items.json", collectionPath: "items", sourceRowIndex: 0,
+    expectedRowDigest: rowDigest({ item_id: "potion" }), idempotencyKey: "promotion_999", documentCommitCoordinator: createDocumentCommitCoordinator(),
+    validateCandidate: async () => snapshot,
+    verifyPostReplaceCandidate: async ({ admissionSnapshot }) => { assert.deepEqual(admissionSnapshot, snapshot); verifierCalls += 1; if (verifierCalls > 1) throw Object.assign(new Error("drift"), { code: "DOCUMENT_CONTRACT_CHANGED_DURING_SAVE" }); },
+    dependencies: { journal },
+  }), { code: "DOCUMENT_CONTRACT_CHANGED_DURING_SAVE" });
+  const pending = await journal.read("promotion_999");
+  assert.equal(pending.stage, "intent");
+  assert.equal(pending.recovery_pending, true);
+  assert.deepEqual(pending.contractAdmission, snapshot);
+});
+
+test("contract-bound intent retry verifies its persisted snapshot before the durable-id writer", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-promotion-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const data = path.join(root, "data"); await mkdir(data);
+  const file = path.join(data, "items.json"); const before = JSON.stringify({ items: [{ item_id: "potion" }] }, null, 2); await writeFile(file, before);
+  const context = { projectRoot: root, projectId: "fixture", runtimeDir: ".data-editor/runtime", dataSources: [{ id: "data", kind: "project", path: "data" }], filePolicy: { includeExtensions: [".json"] } };
+  const state = { status: "active", generation: 3, manifestDigest: "manifest", bindings: {
+    identityPolicies: [{ id: "items", match: { dataSourceId: "data", path: "items.json", collection: "items" }, provider: { kind: "embedded-v1", field: "__entry_id" } }],
+    documentContracts: [{ id: "items-shape", match: { dataSourceId: "data", path: "items.json", collection: "items" } }],
+  } };
+  const journal = createIdentityPromotionJournal({ directory: path.join(root, ".journal") });
+  await journal.write(createIdentityPromotionIntent({ idempotencyKey: "promotion_654", projectId: "fixture", sourcePath: "data/items.json", collectionPath: "items", sourceRowIndex: 0, expectedRowDigest: rowDigest({ item_id: "potion" }), durableId: "DURABLE-RETRY", capabilityGeneration: 3, manifestDigest: "manifest", contractAdmission: { generation: 3, manifestDigest: "manifest", contracts: [{ contractId: "items-shape" }] } }));
+  let writes = 0;
+  await assert.rejects(() => promoteEmbeddedIdentity({
+    projectContext: context, capabilityState: state, sourcePath: "data/items.json", collectionPath: "items", sourceRowIndex: 0,
+    expectedRowDigest: rowDigest({ item_id: "potion" }), idempotencyKey: "promotion_654", documentCommitCoordinator: createDocumentCommitCoordinator(),
+    validateCandidate: async () => { throw new Error("retry must preserve persisted admission"); },
+    verifyPostReplaceCandidate: async () => { throw Object.assign(new Error("drift"), { code: "DOCUMENT_CONTRACT_CHANGED_DURING_SAVE" }); },
+    dependencies: { journal, writeText: async () => { writes += 1; } },
+  }), { code: "DOCUMENT_CONTRACT_CHANGED_DURING_SAVE" });
+  assert.equal(writes, 0);
+  assert.equal(await readFile(file, "utf8"), before);
+  assert.equal((await journal.read("promotion_654")).stage, "intent");
+});
+
+test("contract-bound promotion refuses a recovered intent without an admission snapshot or receipt", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-promotion-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const data = path.join(root, "data"); await mkdir(data);
+  await writeFile(path.join(data, "items.json"), JSON.stringify({ items: [{ item_id: "potion", __entry_id: "DURABLE-PENDING" }] }, null, 2));
+  const context = { projectRoot: root, projectId: "fixture", runtimeDir: ".data-editor/runtime", dataSources: [{ id: "data", kind: "project", path: "data" }], filePolicy: { includeExtensions: [".json"] } };
+  const state = { status: "active", generation: 3, manifestDigest: "manifest", bindings: {
+    identityPolicies: [{ id: "items", match: { dataSourceId: "data", path: "items.json", collection: "items" }, provider: { kind: "embedded-v1", field: "__entry_id" } }],
+    documentContracts: [{ id: "items-shape", match: { dataSourceId: "data", path: "items.json", collection: "items" } }],
+  } };
+  const journal = createIdentityPromotionJournal({ directory: path.join(root, ".journal") });
+  await journal.write(createIdentityPromotionIntent({ idempotencyKey: "promotion_987", projectId: "fixture", sourcePath: "data/items.json", collectionPath: "items", durableId: "DURABLE-PENDING", capabilityGeneration: 3, manifestDigest: "manifest" }));
+  await assert.rejects(() => promoteEmbeddedIdentity({
+    projectContext: context, capabilityState: state, sourcePath: "data/items.json", collectionPath: "items", sourceRowIndex: 0,
+    expectedRowDigest: rowDigest({ item_id: "potion", __entry_id: "DURABLE-PENDING" }), idempotencyKey: "promotion_987", documentCommitCoordinator: createDocumentCommitCoordinator(),
+    validateCandidate: async () => ({ generation: 3, manifestDigest: "manifest", contracts: [{ contractId: "items-shape" }] }),
+    verifyPostReplaceCandidate: async () => { throw new Error("must not verify missing admission"); },
+    dependencies: { journal },
+  }), { code: "DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING" });
+  const pending = await journal.read("promotion_987");
+  assert.equal(pending.stage, "intent");
+  assert.equal(pending.recovery_pending, true);
+  assert.equal(pending.receipt, undefined);
+});

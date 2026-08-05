@@ -1,0 +1,33 @@
+{
+  "recordVersion": 1,
+  "workPackage": "阶段2：核心 grammar/compiler 与 path-driven admission",
+  "recordedAt": "2026-08-05",
+  "reason": "阶段0全 tracked diff hash 因 host-managed .claw/project.json 版本/配置更新发生漂移；该路径不属于阶段2允许修改集，不能阻断干净的核心代码范围。原阶段0冻结回执保持不改。",
+  "head": "c047a43957791174479907b1025d2c2572946f40",
+  "excludedExistingChanges": [
+    ".claw/project.json",
+    "docs/plans/2026-08-05-Data Editor通用文档合同通道迁移方案.md",
+    "docs/records/2026-08-05-Data Editor通用文档合同通道阶段0冻结回执.json",
+    "docs/records/2026-08-05-Data Editor通用文档合同通道阶段1非技能fixture规格.json"
+  ],
+  "coreScope": [
+    "server.mjs",
+    "src/document-contract-service.mjs",
+    "src/project-capability-manifest.mjs",
+    "src/project-capability-registry.mjs",
+    "src/api/client.ts",
+    "src/api/save-documents.mjs",
+    "src/document-contract-compiler.mjs",
+    "src/document-contract-grammar.mjs",
+    "tests/document-contract-service.test.mjs",
+    "tests/document-contract-save-gate.test.mjs"
+  ],
+  "coreScopeTrackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "admission": "approved_for_stage2_core_owner_only",
+  "stopConditions": [
+    "any coreScope path becomes dirty before the core owner first writes",
+    "HEAD changes",
+    "a new non-host owner claims any coreScope path",
+    "the task needs App.tsx, src/detail/**, tests/fixtures/** or Nocturnel changes before stage2 review"
+  ]
+}

@@ -58,7 +58,14 @@ export function createProjectCapabilityRegistry(options = {}) {
 }
 
 export function findCapabilityBinding(state, { engine, dataSourceId, path: innerPath, collection, rootField = null, nestedPath = null }) {
-  if (!state || state.status !== "active") return null;
+  const matches = findCapabilityBindings(state, { engine, dataSourceId, path: innerPath, collection, rootField, nestedPath });
+  if (matches.length > 1) throw new Error(`Ambiguous ${engine} capability binding for ${dataSourceId}/${innerPath}.`);
+  return matches[0] ?? null;
+}
+
+/** Returns every binding for a virtual document identity. Document-contract-v1 may intentionally have multiple collection contracts. */
+export function findCapabilityBindings(state, { engine, dataSourceId, path: innerPath, collection = null, rootField = null, nestedPath = null }) {
+  if (!state || state.status !== "active") return [];
   const bindings = engine === "nested-schema-v1"
     ? state.bindings.nestedSchemas
     : engine === "document-contract-v1"
@@ -66,13 +73,11 @@ export function findCapabilityBinding(state, { engine, dataSourceId, path: inner
       : engine === "identity-policy-v1"
         ? state.bindings.identityPolicies
         : [];
-  const matches = bindings.filter((binding) => binding.match.dataSourceId === dataSourceId
+  return bindings.filter((binding) => binding.match.dataSourceId === dataSourceId
     && binding.match.path === innerPath
-    && binding.match.collection === collection
+    && (collection == null || binding.match.collection === collection)
     && (binding.match.rootField ?? null) === rootField
     && sameNestedPath(binding.match.nestedPath ?? null, nestedPath));
-  if (matches.length > 1) throw new Error(`Ambiguous ${engine} capability binding for ${dataSourceId}/${innerPath}.`);
-  return matches[0] ?? null;
 }
 
 async function compileCapabilityState(loaded, project, lkg, options) {

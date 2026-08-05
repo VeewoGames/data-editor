@@ -16,6 +16,7 @@ test("entry-action route starts only for the active project and exposes the hand
     toolRoot: path.resolve("."),
     jobSupervisor: {},
     documentCommitCoordinator: {},
+    resolveExecution: async () => ({ kind: "proposal" }),
     startEntryAction: async (input) => {
       assert.equal(input.project.id, "project-a");
       assert.equal(input.request.actionId, "fixture-action");
@@ -43,6 +44,7 @@ test("entry-action route rejects a non-active project before orchestration", asy
     startEntryAction: async () => {
       started = true;
     },
+    resolveExecution: async () => ({ kind: "proposal" }),
   });
 
   await assert.rejects(
@@ -61,6 +63,7 @@ test("identity promotion returns a durable-only pending token and starts only af
   const route = createEntryActionRunRoute({
     loadRegistry: async () => ({ activeProjectId: "project-a", projects: [{ id: "project-a", root, dataSources: [{ id: "data", kind: "relative", path: "data" }] }] }),
     toolRoot: path.resolve("."), jobSupervisor: {}, documentCommitCoordinator: {},
+    resolveExecution: async () => ({ kind: "proposal" }),
     resolveCapabilityState: async () => ({ status: "active", generation: 4, manifestDigest: "manifest" }),
     preflightEntryAction: async () => {},
     promoteIdentity: async () => ({ receipt: { durableId: "DURABLE-1", canonicalRowDigest: "digest", documentEtag: "\"etag\"" }, root: { items: [{ __entry_id: "DURABLE-1" }] }, format: "json", documentEtag: "\"etag\"" }),
@@ -75,4 +78,19 @@ test("identity promotion returns a durable-only pending token and starts only af
   const replay = await route.ackStart({ projectId: "project-a", pendingActionToken: pending.pendingActionToken });
   assert.equal(replay.replayed, true);
   assert.equal(starts, 1);
+});
+
+test("project-skill routes before identity promotion and returns result-only", async () => {
+  let promoted = false;
+  let started = false;
+  const route = createEntryActionRunRoute({
+    loadRegistry: async () => ({ activeProjectId: "project-a", projects: [{ id: "project-a", root: path.resolve("fixture-a") }] }),
+    resolveExecution: async () => ({ kind: "project-skill" }),
+    promoteIdentity: async () => { promoted = true; },
+    startProjectSkill: async () => { started = true; return { runId: "00000000-0000-4000-8000-000000000003", completion: Promise.resolve() }; },
+  });
+  const result = await route.run({ projectId: "project-a", actionId: "fixture-action" });
+  assert.equal(result.resultOnly, true);
+  assert.equal(started, true);
+  assert.equal(promoted, false);
 });

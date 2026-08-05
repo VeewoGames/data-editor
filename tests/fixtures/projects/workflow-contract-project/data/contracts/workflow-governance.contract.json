@@ -1,0 +1,11 @@
+{
+  "contract_version": 1,
+  "grammar_version": 1,
+  "collections": [{ "path": "workflows", "entryKind": "array", "allowMissing": false }],
+  "invariants": [
+    { "id": "branch-match", "scope": "entry", "eachPath": "steps", "when": { "op": "equals", "path": "type", "value": "branch" }, "assert": { "op": "required", "path": "on_match" }, "issue": { "code": "BRANCH_MATCH_REQUIRED", "message": "Branch on_match is required.", "path": "on_match" } },
+    { "id": "branch-fallback", "scope": "entry", "eachPath": "steps", "when": { "op": "equals", "path": "type", "value": "branch" }, "assert": { "op": "required", "path": "on_no_match" }, "issue": { "code": "BRANCH_FALLBACK_REQUIRED", "message": "Branch on_no_match is required.", "path": "on_no_match" } }
+  ],
+  "derivedOutputs": [],
+  "savePolicy": { "requireExactTokenSet": true, "validateCandidate": true, "blockingIssues": true }
+}

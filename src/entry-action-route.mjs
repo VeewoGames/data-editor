@@ -8,6 +8,7 @@ import { entryActionHandoffPath } from "./entry-actions.mjs";
 import { startProposalOnlyEntryAction } from "./entry-action-service.mjs";
 import { preflightEntryActionAdmission } from "./entry-action-admission.mjs";
 import { createPendingEntryActionStore } from "./pending-entry-action.mjs";
+import { resolveEntryActionExecution } from "./entry-action-execution.mjs";
 
 export function createEntryActionRunRoute({
   loadRegistry,
@@ -18,6 +19,8 @@ export function createEntryActionRunRoute({
   resolveCapabilityState = null,
   preflightEntryAction = preflightEntryActionAdmission,
   startEntryAction = startProposalOnlyEntryAction,
+  startProjectSkill = null,
+  resolveExecution = resolveEntryActionExecution,
   onCompletion = () => {},
 }) {
   if (typeof loadRegistry !== "function") throw new TypeError("loadRegistry is required.");
@@ -70,6 +73,13 @@ export function createEntryActionRunRoute({
   return {
     async run(body) {
       const { project, projectContext } = await resolveProject(body);
+      const execution = await resolveExecution(projectContext, body.actionId);
+      if (execution.kind === "project-skill") {
+        if (typeof startProjectSkill !== "function") routeError("PROJECT_SKILL_HOST_UNAVAILABLE", "Project-skill execution host is unavailable.", 503);
+        const started = await startProjectSkill({ projectContext, project, request: body, toolRoot, jobSupervisor, documentCommitCoordinator, dependencies: {} });
+        onCompletion(started);
+        return { ok: true, status: "started", runId: started.runId, handoffPath: entryActionHandoffPath(projectContext, started.runId), resultOnly: true };
+      }
       if (typeof promoteIdentity !== "function" || typeof resolveCapabilityState !== "function") return start(body);
       const capabilityState = await resolveCapabilityState(project);
       // Capability admission is checked before action authority; candidate contract

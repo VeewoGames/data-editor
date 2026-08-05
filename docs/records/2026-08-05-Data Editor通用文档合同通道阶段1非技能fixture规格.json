@@ -1,0 +1,273 @@
+{
+  "recordVersion": 1,
+  "workPackage": "阶段1：冻结非技能 fixture 规格与验收矩阵",
+  "status": "completed_specification_only",
+  "recordedAt": "2026-08-05",
+  "implementationBoundary": {
+    "thisStage": [
+      "冻结 fixture 数据形状",
+      "冻结 document-contract-v1 最小 grammar",
+      "冻结验收矩阵"
+    ],
+    "notThisStage": [
+      "创建 fixture 文件",
+      "实现 compiler 或 validator",
+      "修改 runtime 或 tests",
+      "修改 Nocturnel"
+    ]
+  },
+  "fixture": {
+    "targetRoot": "tests/fixtures/projects/contract-project",
+    "disposition": "replace_current_skill_fixture_in_stage2",
+    "dataSourceId": "data",
+    "documentPath": "data/workflows.json",
+    "innerPath": "workflows.json",
+    "collection": "workflows",
+    "files": [
+      ".data-editor/enrollment.json",
+      ".data-editor/project.json",
+      ".data-editor/contracts/workflow-steps.nested-schema.json",
+      ".data-editor/contracts/document-contract-v1.schema.json",
+      "data/workflows.json",
+      "data/contracts/workflow-shape.contract.json",
+      "data/contracts/workflow-governance.contract.json"
+    ],
+    "sampleDocument": {
+      "workflows": [
+        {
+          "workflow_id": "account-onboarding",
+          "title": "Account onboarding",
+          "enabled": true,
+          "steps": [
+            {
+              "type": "message",
+              "format": "plain",
+              "text": "Create your account profile."
+            },
+            {
+              "type": "delay",
+              "seconds": 300,
+              "retry_policy": "none"
+            },
+            {
+              "type": "branch",
+              "field": "profile_complete",
+              "equals": true,
+              "on_match": "continue",
+              "on_no_match": "remind"
+            }
+          ]
+        }
+      ]
+    },
+    "prohibitedDomainTerms": [
+      "skill",
+      "targeting",
+      "damage",
+      "movement",
+      "charge",
+      "selection",
+      "area",
+      "affects",
+      "Nocturnel"
+    ]
+  },
+  "manifest": {
+    "nestedSchemas": [
+      {
+        "id": "workflow-steps",
+        "engine": "nested-schema-v1",
+        "match": {
+          "dataSourceId": "data",
+          "path": "workflows.json",
+          "collection": "workflows",
+          "rootField": "steps",
+          "nestedPath": []
+        },
+        "manifest": ".data-editor/contracts/workflow-steps.nested-schema.json"
+      }
+    ],
+    "documentContracts": [
+      {
+        "id": "workflow-shape",
+        "engine": "document-contract-v1",
+        "match": {
+          "dataSourceId": "data",
+          "path": "workflows.json",
+          "collection": "workflows"
+        },
+        "contract": "data/contracts/workflow-shape.contract.json",
+        "contractSchema": ".data-editor/contracts/document-contract-v1.schema.json"
+      },
+      {
+        "id": "workflow-governance",
+        "engine": "document-contract-v1",
+        "match": {
+          "dataSourceId": "data",
+          "path": "workflows.json",
+          "collection": "workflows"
+        },
+        "contract": "data/contracts/workflow-governance.contract.json",
+        "contractSchema": ".data-editor/contracts/document-contract-v1.schema.json"
+      }
+    ],
+    "identityPolicies": []
+  },
+  "nestedSchemaRequirements": {
+    "discriminator": "steps[].type",
+    "variants": ["message", "delay", "branch"],
+    "defaultVariant": "message",
+    "uiConditions": [
+      {
+        "field": "template",
+        "rule": "visibleWhen format equals template"
+      },
+      {
+        "field": "retry_after_seconds",
+        "rule": "disabledWhen retry_policy equals none"
+      }
+    ],
+    "authority": "nested-schema-v1 is the sole UI projection source"
+  },
+  "documentContractGrammar": {
+    "grammarVersion": 1,
+    "requiredTopLevelFields": [
+      "contract_version",
+      "collections",
+      "invariants",
+      "derivedOutputs",
+      "savePolicy"
+    ],
+    "collections": {
+      "required": true,
+      "bindingCollectionMustMatch": true,
+      "fields": ["path", "entryKind", "allowMissing"]
+    },
+    "invariants": {
+      "fields": ["id", "scope", "when", "assert", "issue"],
+      "allowedConditionOps": ["exists", "equals", "in", "all", "any", "not"],
+      "allowedAssertOps": ["required", "integerRange", "numberRange", "oneOf", "nonEmptyArray", "compare_lte"],
+      "selectorLimits": [
+        "only current candidate document, target collection, entry and parent context",
+        "static field paths only",
+        "JSON literal operands only",
+        "bounded depth and array cardinality"
+      ]
+    },
+    "derivedOutputs": {
+      "allowedKinds": ["textTemplate", "count"],
+      "persistence": "never written back to candidate document"
+    },
+    "savePolicy": {
+      "requireExactTokenSet": true,
+      "validateCandidate": true,
+      "blockingIssues": true
+    },
+    "forbidden": [
+      "regular expressions",
+      "arbitrary JavaScript",
+      "dynamic paths",
+      "recursive traversal",
+      "cross-collection aggregation",
+      "external I/O",
+      "commands",
+      "network",
+      "project callbacks"
+    ]
+  },
+  "workflowRules": {
+    "shape": [
+      "workflows exists and is a non-empty array",
+      "workflow_id is non-empty and unique in workflows",
+      "every workflow has a non-empty steps array",
+      "branch has both on_match and on_no_match"
+    ],
+    "derived": [
+      "step_count equals count(steps) and is displayed as a non-persistent summary"
+    ],
+    "multipleContracts": {
+      "purpose": "prove exact token admission for two path-and-collection matched contracts",
+      "workflow-shape": "structural blocking invariants",
+      "workflow-governance": "derived summary and governance invariant"
+    }
+  },
+  "serverAdmissionRequirements": [
+    "enumerate every active document-contract-v1 binding by projectId plus dataSourceId plus normalized path before reading candidate collections",
+    "treat binding.match.collection as validator target, not an optional candidate-discovered gate",
+    "run allowMissing/type rules for absent or reshaped target collections",
+    "require request documentContracts token set to equal server-enumerated binding set exactly",
+    "run candidate validation and generation/manifest/compiled-contract/ETag rechecks inside commit mutex before replace",
+    "on post-replace drift write recovery_pending and do not publish success or perform speculative rollback",
+    "use the same admission/compiler/recovery path for ordinary save, batch save, primary-key sync and identity promotion"
+  ],
+  "acceptanceMatrix": [
+    {
+      "layer": "API",
+      "case": "workflow path request",
+      "expected": "two stable ordered documentContracts tokens"
+    },
+    {
+      "layer": "API",
+      "case": "missing, partial, extra or stale token set",
+      "expected": "missing returns DOCUMENT_CONTRACT_TOKEN_MISSING; non-exact set returns DOCUMENT_CONTRACT_TOKEN_STALE"
+    },
+    {
+      "layer": "admission",
+      "case": "candidate deletes workflows, changes it to object, or empties it",
+      "expected": "path-matched contracts remain active and contract blocks invalid candidate"
+    },
+    {
+      "layer": "validator",
+      "case": "duplicate workflow_id, empty steps, missing branch outcome",
+      "expected": "stable issue code and path; save blocked"
+    },
+    {
+      "layer": "UI",
+      "case": "switch message, delay and branch variants",
+      "expected": "nested-schema-v1 defaults and field conditions apply without domain path checks"
+    },
+    {
+      "layer": "derived",
+      "case": "step_count summary",
+      "expected": "summary renders but source JSON is unchanged"
+    },
+    {
+      "layer": "save and journal",
+      "case": "valid candidate",
+      "expected": "journaled save updates fixture copy and document ETag"
+    },
+    {
+      "layer": "recovery",
+      "case": "manifest or contract changes before/after replace",
+      "expected": "pre-replace rejects; post-replace enters recovery_pending with no success publication"
+    },
+    {
+      "layer": "E2E",
+      "case": "edit scratch workflow fixture",
+      "expected": "only scratch fixture changes; no Nocturnel or formal data is touched"
+    }
+  ],
+  "reusableTests": [
+    "tests/project-capability-manifest.test.mjs",
+    "tests/project-capability-registry.test.mjs",
+    "tests/document-contract-service.test.mjs",
+    "tests/api-client.test.mjs",
+    "tests/nested-schema-capability.test.mjs",
+    "tests/document-commit-executor.test.mjs",
+    "tests/skill-node-contract-save-gate.test.mjs test harness only",
+    "tests/data-editor.spec.ts scratch infrastructure"
+  ],
+  "replacementOrDeletionCandidates": [
+    "tests/fixtures/projects/contract-project current skill resources",
+    "tests/skill-node-contract-*.test.mjs",
+    "tests/skill-node-charge-derived-rules.test.mjs",
+    "tests/derived-field-projection.test.mjs",
+    "tests/targeting-view-field-migration.test.mjs"
+  ],
+  "knownCoverageDefect": {
+    "path": "tests/skill-node-contract-save-gate.test.mjs",
+    "finding": "an early return leaves legacy gate, stale and recovery assertions unreachable",
+    "requiredAction": "do not treat those assertions as coverage; replace with reachable generic workflow tests in stage2"
+  },
+  "nextRecommendedTask": "阶段2：实现通用 grammar/compiler 与 path-driven admission"
+}

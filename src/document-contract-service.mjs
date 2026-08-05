@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
+import { compileDocumentContract } from "./document-contract-compiler.mjs";
+import { DocumentContractGrammarError } from "./document-contract-grammar.mjs";
 
 export class DocumentContractError extends Error {
   constructor(code, message, { status = 422, details = null } = {}) {
@@ -31,7 +33,15 @@ export async function loadDocumentContract(projectRoot, binding) {
     throw new DocumentContractError("DOCUMENT_CONTRACT_SCHEMA_COMPILE_INVALID", "Document contract schema is not a valid JSON Schema.", { details: error instanceof Error ? error.message : String(error) });
   }
   if (!Number.isInteger(contract.contract_version)) throw new DocumentContractError("DOCUMENT_CONTRACT_VERSION_MISSING", "Document contract is missing contract_version.");
-  return { contract, version: contract.contract_version, contractDigest: createHash("sha256").update(contractBytes).digest("hex"), etag: `"${createHash("sha256").update(contractBytes).digest("hex")}"` };
+  let compiled;
+  try {
+    compiled = compileDocumentContract(contract, binding);
+  } catch (error) {
+    if (!(error instanceof DocumentContractGrammarError)) throw error;
+    throw new DocumentContractError(error.code, error.message, { details: error.details });
+  }
+  const contractDigest = createHash("sha256").update(contractBytes).digest("hex");
+  return { contract, compiled, version: contract.contract_version, contractDigest, etag: `"${contractDigest}"` };
 }
 
 async function required(filePath, code, message) {

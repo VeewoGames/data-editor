@@ -33,12 +33,20 @@ import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
-import { createProjectCapabilityRegistry, findCapabilityBinding } from "./src/project-capability-registry.mjs";
+import { createProjectCapabilityRegistry, findCapabilityBindings } from "./src/project-capability-registry.mjs";
 import { loadDocumentContract, DocumentContractError } from "./src/document-contract-service.mjs";
+import {
+  documentContractAdmissionSnapshot,
+  documentContractTokens,
+  validateDocumentContractCandidate,
+  validateDocumentContractTokenSet,
+  verifyDocumentContractPostReplace,
+} from "./src/document-contract-compiler.mjs";
 import { createConnectionShutdown } from "./src/server-shutdown.mjs";
 import { createJobSupervisor } from "./src/job-supervisor.mjs";
 import { createDocumentCommitCoordinator } from "./src/document-commit-coordinator.mjs";
 import { createEntryActionRunRoute } from "./src/entry-action-route.mjs";
+import { startProjectSkillEntryAction } from "./src/project-skill-action-service.mjs";
 import { promoteEmbeddedIdentity, recoverPendingEmbeddedIdentityPromotions } from "./src/durable-identity-coordinator.mjs";
 import { createPendingEntryActionStore } from "./src/pending-entry-action.mjs";
 import { createFencingAllocator } from "./src/fencing-lock.mjs";
@@ -79,6 +87,7 @@ const runEntryAction = createEntryActionRunRoute({
   toolRoot,
   jobSupervisor,
   documentCommitCoordinator,
+  startProjectSkill: startProjectSkillEntryAction,
   promoteIdentity: (input) => promoteEmbeddedIdentity({
     ...input,
     validateCandidate: async ({ sourcePath, root, format, capabilityState }) => {
@@ -91,11 +100,15 @@ const runEntryAction = createEntryActionRunRoute({
       }
       // Promotion is a server-owned writer, but it is deliberately held to the
       // same exact binding/token shape as an ordinary document save.
-      validateDocumentContractSave({ documentContracts: contracts.contracts.map(({ binding, loaded }) => ({
-        contractId: binding.id, manifestDigest: contracts.state.manifestDigest,
-        contractDigest: loaded.contractDigest, version: loaded.version,
-      })) }, contracts);
+      validateDocumentContractSave({ documentContracts: documentContractTokens(contracts) }, contracts);
+      validateDocumentContractCandidateSave(contracts, root);
       await assertDocumentContractsUnchanged(input.projectContext, sourcePath, root, format, contracts);
+      return documentContractAdmissionSnapshot(contracts);
+    },
+    verifyPostReplaceCandidate: async ({ sourcePath, root, format, admissionSnapshot }) => {
+      const contracts = await resolveApplicableDocumentContracts(input.projectContext, sourcePath, root, format);
+      if (contracts.error) throw contracts.error;
+      assertDocumentContractPostReplace(admissionSnapshot, contracts, root);
     },
   }),
   resolveCapabilityState: (project) => projectCapabilityRegistry.resolve(project),
@@ -179,7 +192,15 @@ async function ensureInitialProject() {
   if (project && !recoveredIdentityPromotionProjects.has(project.id)) {
     const context = createProjectContext({ projectRoot: project.root, projectId: project.id, dataSources: project.dataSources, filePolicy: project.filePolicy });
     const capabilityState = await projectCapabilityRegistry.resolve(project);
-    await recoverPendingEmbeddedIdentityPromotions({ projectContext: context, capabilityState });
+    await recoverPendingEmbeddedIdentityPromotions({
+      projectContext: context,
+      capabilityState,
+      verifyPostReplaceCandidate: async ({ sourcePath, root, format, admissionSnapshot }) => {
+        const contracts = await resolveApplicableDocumentContracts(context, sourcePath, root, format);
+        if (contracts.error) throw contracts.error;
+        assertDocumentContractPostReplace(admissionSnapshot, contracts, root);
+      },
+    });
     const pendingStore = createPendingEntryActionStore({ projectContext: context });
     const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(context.projectRoot, path.join(context.runtimeDir, "entry-action-fencing")) });
     for (const pending of await pendingStore.list()) {
@@ -246,12 +267,9 @@ async function resolveApplicableDocumentContracts(projectContext, documentPath, 
   const separator = virtualPath.indexOf("/");
   const dataSourceId = virtualPath.slice(0, separator);
   const innerPath = virtualPath.slice(separator + 1);
-  const model = buildDocumentModel(root, format, documentPath);
-  const contracts = [];
-  for (const collection of model.collections) {
-    const binding = findCapabilityBinding(capabilityState, { engine: "document-contract-v1", dataSourceId, path: innerPath, collection: collection.path });
-    if (binding) contracts.push({ binding, loaded: await loadDocumentContract(projectContext.projectRoot, binding) });
-  }
+  const bindings = findCapabilityBindings(capabilityState, { engine: "document-contract-v1", dataSourceId, path: innerPath })
+    .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+  const contracts = await Promise.all(bindings.map(async (binding) => ({ binding, loaded: await loadDocumentContract(projectContext.projectRoot, binding) })));
   return { state: capabilityState, contracts };
 }
 
@@ -266,12 +284,7 @@ async function handleDocumentContracts(url, res) {
   if (resolution.error) throw resolution.error;
   sendJson(res, {
     projectId: projectContext.projectId,
-    documentContracts: resolution.contracts.map(({ binding, loaded }) => ({
-      contractId: binding.id,
-      manifestDigest: resolution.state.manifestDigest,
-      contractDigest: loaded.contractDigest,
-      version: loaded.version,
-    })),
+    documentContracts: documentContractTokens(resolution),
   }, 200, { "cache-control": "no-cache" });
 }
 
@@ -312,22 +325,33 @@ async function handleSave(req, res) {
         }
       }
       const currentText = await readTextFile(projectContext, body.path);
-      const entry = existing ?? createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest });
-      if (existing) await resumeDocumentSaveJournal({ journal, entry, currentText });
-      else assertDocumentEtagUnchanged(body.documentEtag, currentText);
       const documentContracts = await resolveApplicableDocumentContracts(projectContext, body.path, body.root, ext.slice(1));
       if (documentContracts.error) throw documentContracts.error;
       validateDocumentContractSave(body, documentContracts);
+      validateDocumentContractCandidateSave(documentContracts, body.root);
       await assertDocumentContractsUnchanged(projectContext, body.path, body.root, ext.slice(1), documentContracts);
+      // An existing intent owns the snapshot captured by its original request.
+      // Verify it before recovery-stage inference or any replacement attempt.
+      if (existing?.stage === "commit_intent") {
+        assertDocumentContractPostReplace(existing.contractAdmission, documentContracts, body.root);
+      }
+      if (existing) await resumeDocumentSaveJournal({ journal, entry: existing, currentText });
+      else assertDocumentEtagUnchanged(body.documentEtag, currentText);
+      const entry = existing ?? createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest, documentContracts });
       await executeJournaledDocumentCommit({
         journal,
         entry,
+        admit: () => assertDocumentContractPostReplace(entry.contractAdmission, documentContracts, body.root),
         replace: () => writeTextFile(projectContext, body.path, text),
         verify: async () => {
           const persisted = await readTextFile(projectContext, body.path);
           if (documentEtag(persisted) !== entry.newEtag || sha256(persisted) !== entry.afterDigest) {
             throw new DocumentSaveError("DOCUMENT_SAVE_VERIFY_FAILED", "保存后的文件未通过完整性校验。", "path", { status: 503 });
           }
+          const canonicalRoot = ext === ".csv" ? parseCsv(persisted) : parseJson(persisted).data;
+          const currentContracts = await resolveApplicableDocumentContracts(projectContext, body.path, canonicalRoot, ext.slice(1));
+          if (currentContracts.error) throw currentContracts.error;
+          assertDocumentContractPostReplace(entry.contractAdmission, currentContracts, canonicalRoot);
         },
       });
       sendJson(res, { ok: true, documentEtag: documentEtag(text) });
@@ -621,24 +645,42 @@ function matchesIfNoneMatch(ifNoneMatch, etag) {
 }
 
 function validateDocumentContractSave(body, resolution) {
-  if (!resolution.contracts.length) return;
   const tokens = body.documentContracts;
-  if (!Array.isArray(tokens)) throw new DocumentSaveError("DOCUMENT_CONTRACT_TOKEN_MISSING", "命中文档合同的保存请求必须携带 documentContracts token。", "documentContracts", { status: 400 });
-  const expected = resolution.contracts.map(({ binding, loaded }) => ({ contractId: binding.id, manifestDigest: resolution.state.manifestDigest, contractDigest: loaded.contractDigest, version: loaded.version }));
-  const actual = tokens.map((token) => ({ contractId: token?.contractId, manifestDigest: token?.manifestDigest, contractDigest: token?.contractDigest, version: token?.version }));
-  if (JSON.stringify(actual.sort((a, b) => String(a.contractId).localeCompare(String(b.contractId)))) !== JSON.stringify(expected.sort((a, b) => a.contractId.localeCompare(b.contractId)))) {
-    throw new DocumentSaveError("DOCUMENT_CONTRACT_TOKEN_STALE", "documentContracts token 与当前 capability 或合同不一致。", "documentContracts", { status: 409, details: { expected } });
-  }
+  const check = validateDocumentContractTokenSet(tokens, resolution);
+  if (check.ok) return;
+  const status = check.code === "DOCUMENT_CONTRACT_TOKEN_STALE" ? 409 : 400;
+  const message = check.code === "DOCUMENT_CONTRACT_TOKEN_UNEXPECTED"
+    ? "未命中文档合同的保存请求不得携带 documentContracts token。"
+    : check.code === "DOCUMENT_CONTRACT_TOKEN_MISSING"
+      ? "命中文档合同的保存请求必须携带 documentContracts token。"
+      : "documentContracts token 与当前 capability 或合同不一致。";
+  throw new DocumentSaveError(check.code, message, "documentContracts", { status, ...(check.expected ? { details: { expected: check.expected } } : {}) });
+}
+
+function validateDocumentContractCandidateSave(resolution, root) {
+  const candidate = validateDocumentContractCandidate(resolution, root);
+  if (candidate.ok) return;
+  throw new DocumentSaveError(
+    "DOCUMENT_CONTRACT_CANDIDATE_INVALID",
+    "文档候选内容不满足已声明的 document contract。",
+    "documentContracts",
+    { status: 422, details: { issues: candidate.issues } },
+  );
 }
 
 async function assertDocumentContractsUnchanged(projectContext, documentPath, root, format, previous) {
   const current = await resolveApplicableDocumentContracts(projectContext, documentPath, root, format);
   if (current.error) throw current.error;
-  const before = previous.contracts.map(({ binding, loaded }) => `${binding.id}:${loaded.contractDigest}`).sort();
-  const after = current.contracts.map(({ binding, loaded }) => `${binding.id}:${loaded.contractDigest}`).sort();
-  if (JSON.stringify(before) !== JSON.stringify(after) || current.state.manifestDigest !== previous.state.manifestDigest) {
-    throw new DocumentSaveError("DOCUMENT_CONTRACT_CHANGED_DURING_SAVE", "保存期间 capability 或文档合同发生变化。", "documentContracts", { status: 409 });
+  assertDocumentContractPostReplace(documentContractAdmissionSnapshot(previous), current, root);
+}
+
+function assertDocumentContractPostReplace(admissionSnapshot, resolution, root) {
+  const check = verifyDocumentContractPostReplace({ admissionSnapshot, resolution, root });
+  if (check.ok) return;
+  if (check.code === "DOCUMENT_CONTRACT_CANDIDATE_INVALID") {
+    throw new DocumentSaveError(check.code, "文档候选内容不满足已声明的 document contract。", "documentContracts", { status: 422, details: { issues: check.issues } });
   }
+  throw new DocumentSaveError(check.code, "保存期间 capability 或文档合同发生变化。", "documentContracts", { status: 409, details: { expected: check.expected, actual: check.actual } });
 }
 
 function commitJournalDirectory(projectContext) {
@@ -650,13 +692,16 @@ async function readJournalIfPresent(journal, idempotencyKey) {
   catch (error) { if (error?.code === "COMMIT_JOURNAL_MISSING") return null; throw error; }
 }
 
-function createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest }) {
+function createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest, documentContracts }) {
   return {
     idempotencyKey: body.idempotencyKey,
     saveType: "document_save",
     canonicalFileKey: identity.canonicalFileKey,
     baseEtag: documentEtag(currentText), newEtag: documentEtag(text),
     beforeDigest: sha256(currentText), afterDigest: sha256(text), requestDigest,
+    // Before result publication, this flag means post-replace recovery must revalidate the canonical candidate and current contracts.
+    recovery_pending: true,
+    contractAdmission: documentContractAdmissionSnapshot(documentContracts),
   };
 }
 

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "requires": { "capabilityApi": 1 },
+  "capabilities": {
+    "nestedSchemas": [],
+    "documentContracts": [
+      {
+        "id": "workflow-shape",
+        "engine": "document-contract-v1",
+        "match": { "dataSourceId": "data", "path": "workflows.json", "collection": "workflows" },
+        "contract": "data/contracts/workflow-shape.contract.json",
+        "contractSchema": ".data-editor/contracts/document-contract-v1.schema.json"
+      },
+      {
+        "id": "workflow-governance",
+        "engine": "document-contract-v1",
+        "match": { "dataSourceId": "data", "path": "workflows.json", "collection": "workflows" },
+        "contract": "data/contracts/workflow-governance.contract.json",
+        "contractSchema": ".data-editor/contracts/document-contract-v1.schema.json"
+      }
+    ],
+    "identityPolicies": []
+  }
+}

@@ -27,7 +27,14 @@ export function createCommitJournal({ directory }) {
       if (COMMIT_JOURNAL_STAGES.indexOf(stage) !== COMMIT_JOURNAL_STAGES.indexOf(current.stage) + 1) {
         throw journalError("COMMIT_JOURNAL_STAGE_INVALID");
       }
-      return writeStage(directory, { ...current, stage, updatedAt: new Date().toISOString() });
+      return writeStage(directory, {
+        ...current,
+        stage,
+        // A normal commit becomes terminal only after publication. Any earlier
+        // stage, including a failed post-replace verifier, remains recoverable.
+        ...(Object.hasOwn(current, "recovery_pending") ? { recovery_pending: stage !== "result_published" } : {}),
+        updatedAt: new Date().toISOString(),
+      });
     },
     read: (idempotencyKey) => readStage(directory, idempotencyKey),
   };
@@ -54,7 +61,8 @@ function normalize(value, expectedStage = null) {
     || !COMMIT_JOURNAL_STAGES.includes(value.stage) || (expectedStage && value.stage !== expectedStage)
     || !validId(value.idempotencyKey) || !["document_save", "proposal_commit", "text_artifact_commit"].includes(value.saveType)
     || !digest(value.canonicalFileKey) || typeof value.baseEtag !== "string" || typeof value.newEtag !== "string"
-    || !digest(value.beforeDigest) || !digest(value.afterDigest) || !digest(value.requestDigest)) {
+    || !digest(value.beforeDigest) || !digest(value.afterDigest) || !digest(value.requestDigest)
+    || (Object.hasOwn(value, "recovery_pending") && typeof value.recovery_pending !== "boolean")) {
     throw journalError("COMMIT_JOURNAL_INVALID");
   }
   if (value.saveType === "proposal_commit" && (!validId(value.runId) || !validId(value.ownerToken)

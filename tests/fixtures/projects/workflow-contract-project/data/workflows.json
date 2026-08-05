@@ -1,0 +1,14 @@
+{
+  "workflows": [
+    {
+      "workflow_id": "account-onboarding",
+      "title": "Account onboarding",
+      "enabled": true,
+      "steps": [
+        { "type": "message", "format": "plain", "text": "Create your account profile." },
+        { "type": "delay", "seconds": 300, "retry_policy": "none" },
+        { "type": "branch", "field": "profile_complete", "equals": true, "on_match": "continue", "on_no_match": "remind" }
+      ]
+    }
+  ]
+}

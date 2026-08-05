@@ -1,5 +1,10 @@
 # Data Editor 通用化与夜曲解耦方案
 
+> **已被取代（2026-08-05）**：本文件仅保留为通用化历史设计与阶段 0 identity disposition 的证据来源，
+> 不再是当前实施真值，也不得继续驱动阶段 1～8。后续唯一跨仓执行计划为
+> `docs/plans/2026-08-05-Data Editor夜曲解耦后续执行方案.md`；其中 Data Editor 不承接 Nocturnel 技能节点规则，
+> Godot 承接、Data Editor 预备能力、G4 验收、专属通道退场和 Nocturnel gitlink/声明切换由同一个当前任务串行执行。
+
 ## 概述
 
 ### 1. 总体目标和范围
@@ -19,7 +24,7 @@
 回退和零残留审计。方案本身不授权修改 runtime、tests、Nocturnel、submodule 指针、用户 registry，
 也不授权 commit 或 push。
 
-本文件是“Data Editor 通用化与夜曲解耦”的**单一技术实施方案真值**。`Data Editor 按需长期条目身份`
+本段为历史口径，不再有效。本文件曾是“Data Editor 通用化与夜曲解耦”的单一技术实施方案真值。`Data Editor 按需长期条目身份`
 作为本文件阶段 3 的独立工作包维护；同名独立文档仅保留为历史设计依据，不能脱离本文件的依赖、owner handoff
 和授权边界单独实施。该单一真值只负责防止技术方案与阶段顺序分叉，不承担跨任务总控或实施授权职责。
 

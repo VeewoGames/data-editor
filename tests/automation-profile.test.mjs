@@ -31,6 +31,7 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
             includeRow: false,
             includeNeighbors: true,
           },
+          execution: { kind: "proposal" },
         },
       ],
     });
@@ -50,6 +51,7 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
             includeRow: false,
             includeNeighbors: true,
           },
+          execution: { kind: "proposal" },
         },
       ],
     });
@@ -70,6 +72,7 @@ test("automation profile preserves an optional text artifact declaration", () =>
         textArtifact: { pathTemplate: "docs/skills/{value}.md", sourceField: "skill_id", allowCreate: true, allowUpdate: true, maxBytes: 4096 },
       }],
       payload: { includeRow: true, includeNeighbors: false },
+      execution: { kind: "proposal" },
     }],
   });
   assert.equal(profile.rules[0].targets[0].textArtifact.pathTemplate, "docs/skills/{value}.md");
@@ -84,6 +87,7 @@ test("normalizeAutomationProfile rejects duplicate rule ids", () => {
         icon: "refresh",
         targets: [{ file: "data/skills.json", collection: "skills" }],
         payload: { includeRow: true, includeNeighbors: true },
+        execution: { kind: "proposal" },
       },
       {
         id: "recheck",
@@ -91,6 +95,7 @@ test("normalizeAutomationProfile rejects duplicate rule ids", () => {
         icon: "sparkles",
         targets: [{ file: "data/skills.json", collection: "skills" }],
         payload: { includeRow: true, includeNeighbors: true },
+        execution: { kind: "proposal" },
       },
     ],
   }), /Duplicate entry action rule id/i);
@@ -113,6 +118,7 @@ test("saveAutomationProfile rejects invalid rule ids", async () => {
           enabled: true,
           targets: [{ file: "data/skills.json", collection: "skills" }],
           payload: { includeRow: true, includeNeighbors: true },
+          execution: { kind: "proposal" },
         },
       ],
     }), /Entry action rule id must use lowercase letters, numbers, "_" or "-"/i);
@@ -137,6 +143,7 @@ test("saveAutomationProfile uses profile home when configured", async () => {
           enabled: true,
           targets: [{ file: "data/skills.json", collection: "skills" }],
           payload: { includeRow: true, includeNeighbors: true },
+          execution: { kind: "proposal" },
         },
       ],
     });
@@ -152,7 +159,7 @@ test("saveAutomationProfile uses profile home when configured", async () => {
 test("saveAutomationProfile rejects a stale ETag", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
   try {
-    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true } }] };
+    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true }, execution: { kind: "proposal" } }] };
     const first = await saveAutomationProfile(root, profile);
     await saveAutomationProfile(root, { ...profile, rules: [{ ...profile.rules[0], label: "Changed" }] }, first.etag);
     await assert.rejects(() => saveAutomationProfile(root, profile, first.etag), (error) => error?.code === "AUTOMATION_PROFILE_ETAG_STALE");
@@ -162,7 +169,7 @@ test("saveAutomationProfile rejects a stale ETag", async () => {
 test("concurrent saves with one ETag admit only one writer", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
   try {
-    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true } }] };
+    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true }, execution: { kind: "proposal" } }] };
     const initial = await saveAutomationProfile(root, profile);
     const results = await Promise.allSettled([
       saveAutomationProfile(root, { ...profile, rules: [{ ...profile.rules[0], label: "First" }] }, initial.etag),
@@ -185,6 +192,7 @@ test("normalizeAutomationProfile migrates legacy file and collection arrays into
           collections: ["skills", "$"],
         },
         payload: { includeRow: true, includeNeighbors: true },
+        execution: { kind: "proposal" },
       },
     ],
   });
@@ -195,4 +203,11 @@ test("normalizeAutomationProfile migrates legacy file and collection arrays into
     { file: "data/traits.json", collection: "skills" },
     { file: "data/traits.json", collection: "$" },
   ]);
+});
+
+test("execution.kind is explicit and closed", () => {
+  const base = { id: "check", label: "Check", icon: "refresh", targets: [{ file: "data/a.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false } };
+  assert.throws(() => validateAutomationProfile({ rules: [base] }), /execution is required/i);
+  assert.throws(() => validateAutomationProfile({ rules: [{ ...base, execution: { kind: "unknown" } }] }), /execution.kind/i);
+  assert.equal(validateAutomationProfile({ rules: [{ ...base, execution: { kind: "project-skill" } }] }).rules[0].execution.kind, "project-skill");
 });

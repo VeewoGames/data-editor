@@ -84,8 +84,17 @@ function normalizeRule(value, seenIds) {
   const enabled = normalizeBoolean(value.enabled, true);
   const targets = normalizeTargets(value.targets, id);
   const payload = normalizePayload(value.payload, id);
+  const execution = normalizeExecution(value.execution, id);
   const runtime = normalizeRuntime(value.runtime, id);
-  return { id, label, icon, enabled, targets, payload, ...(runtime ? { runtime } : {}) };
+  return { id, label, icon, enabled, targets, payload, execution, ...(runtime ? { runtime } : {}) };
+}
+
+function normalizeExecution(value, ruleId) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Entry action rule "${ruleId}" execution is required`);
+  const keys = Object.keys(value).sort();
+  if (keys.length !== 1 || keys[0] !== "kind") throw new Error(`Entry action rule "${ruleId}" execution fields are invalid`);
+  const kind = normalizeRequiredEnum(value.kind, ["proposal", "project-skill"], `Entry action rule "${ruleId}" execution.kind`);
+  return { kind };
 }
 
 function normalizeRuntime(value, ruleId) {

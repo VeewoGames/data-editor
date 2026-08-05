@@ -1,0 +1,196 @@
+{
+  "recordVersion": 1,
+  "workPackage": "阶段0：冻结基线、领域 disposition 与 owner map",
+  "status": "completed_readonly",
+  "recordedAt": "2026-08-05",
+  "scope": {
+    "allowed": [
+      "只读取证",
+      "冻结回执与 owner map 文档"
+    ],
+    "forbidden": [
+      "runtime 修改",
+      "tests 修改",
+      "Nocturnel 数据或配置修改",
+      "gitlink/submodule 修改",
+      "提交或推送"
+    ]
+  },
+  "baselines": {
+    "dataEditor": {
+      "root": "C:\\Code\\data-editor",
+      "head": "c047a43957791174479907b1025d2c2572946f40",
+      "branch": "master",
+      "trackedDiffSha256": "f514ac03ad3fb430c5263e2f0feff32573bff0a36549d02fc1f1ccf7f39d4e73",
+      "dirtyPaths": [
+        ".claw/project.json",
+        "docs/plans/2026-08-05-Data Editor通用文档合同通道迁移方案.md"
+      ],
+      "gitlinks": []
+    },
+    "nocturnel": {
+      "root": "C:\\Code\\Nocturnel",
+      "head": "9168e4436728874889a60aa73e44d452fb7af0a8",
+      "branch": "master",
+      "trackedDiffSha256": "525ae133da0351d97a4a046552076cac61bf42a0c63cfe7e506550d34b4f55ce",
+      "dirtyPaths": [
+        ".claw/project.json",
+        "data/content/skills.json",
+        "docs/plans/2026-08-01-FieldSpec内容权威迁移方案.md",
+        "docs/records/2026-08-01-FieldSpec内容权威迁移需求确认记录.md",
+        "docs/specs/2026-08-01-FieldSpec内容权威迁移执行计划.md",
+        ".data-editor/entry-action-policy-migration-backups/"
+      ],
+      "dataEditorGitlink": "c047a43957791174479907b1025d2c2572946f40"
+    }
+  },
+  "nocturnelResourceHashes": {
+    ".data-editor/project.json": "a490d63f8c9ad3a930c9e67dfa26c6b023a858100eeb61272fde3dea5eca39bc",
+    ".data-editor/contracts/nested-schemas.json": "718d3fa0f0c503315981547888b4f61d6676c12412388fc343ac53452647007a",
+    "data/contracts/skill_nodes.json": "c96f3e34ea1b1a19c6bfc4b4b5d6d07d1a4281a14a25b8f43aec1e4d67c1408a",
+    "data/contracts/skill_nodes.schema.json": "ebb346d34d5e4237b399dd717a158b07a5e609e936d83821cb30969a3f1a3d9c",
+    "data/content/skills.json": "eebd925585b8517d44a9010dadd7593490fb8fa940bf7114f62b8823f80f0fbe"
+  },
+  "domainDisposition": [
+    {
+      "id": "legacy-skill-contract-api-save-gate",
+      "evidence": ["server.mjs:49-53", "server.mjs:130", "server.mjs:359-612"],
+      "currentRole": "专属 API、固定 binding、错误码和保存 token",
+      "action": "generalize_then_delete",
+      "target": "通用 document-contract-v1 API、path-driven admission 和 documentContracts[]"
+    },
+    {
+      "id": "legacy-skill-contract-client-state",
+      "evidence": ["src/api/client.ts", "src/api/skill-node-contract-client.mjs", "src/detail/skill-node-contract-state.mjs"],
+      "currentRole": "技能专属客户端、缓存与 editor state",
+      "action": "generalize_then_delete",
+      "target": "按 projectId、bindingId、generation 和 contract digest 隔离的通用 client/state"
+    },
+    {
+      "id": "skills-nodes-ui-bypass",
+      "evidence": ["src/detail/node-schema-registry.mjs:30-81", "src/detail/DetailPanel.tsx", "src/detail/NodeEditorHost.tsx"],
+      "currentRole": "固定 skills.nodes 命中并绕过 nested schema resolver",
+      "action": "delete_after_cutover",
+      "target": "nested-schema-v1 唯一 resolver"
+    },
+    {
+      "id": "nocturnel-node-semantics",
+      "evidence": ["src/detail/node-schema-registry.mjs:187-498", "src/detail/skill-node-contract-form-model.mjs"],
+      "currentRole": "targeting、selection、area、affects、movement 等技能节点解释",
+      "action": "move_to_nocturnel",
+      "target": "Nocturnel nested schema、document contract 与 meta-schema"
+    },
+    {
+      "id": "charge-derived-rules-and-messages",
+      "evidence": ["src/detail/skill-node-derived-rules.mjs", "src/App.tsx", "src/detail/NodeEditorHost.tsx"],
+      "currentRole": "charge 派生规则和中文业务提示",
+      "action": "move_to_nocturnel",
+      "target": "Nocturnel project-owned contract issue/derived output"
+    },
+    {
+      "id": "skill-view-projection-and-targeting-migration",
+      "evidence": ["src/view/derived-field-projection.mjs", "src/view/targeting-view-field-migration.mjs"],
+      "currentRole": "固定 skills.json、targeting/movement 和派生列迁移",
+      "action": "prove_generalize_or_move_to_nocturnel",
+      "target": "仅保留经非技能 fixture 证明的声明式投影引擎；其余迁出或删除"
+    }
+  ],
+  "sharedPathOwnerMap": [
+    {
+      "paths": [".claw/project.json"],
+      "owner": "现有 claw/workflow owner",
+      "state": "owned_by_other",
+      "allowedModificationSet": [],
+      "baseline": "Data Editor trackedDiffSha256",
+      "serialHandoff": "本工作包不得修改或纳入提交"
+    },
+    {
+      "paths": ["server.mjs", "src/api/client.ts", "src/api/save-documents.mjs"],
+      "owner": "Data Editor document-contract core",
+      "state": "owned_by_this_plan_after_stage0",
+      "allowedModificationSet": ["阶段2通用 grammar/admission", "阶段3原子 cutover"],
+      "baseline": "Data Editor trackedDiffSha256",
+      "serialHandoff": "与 App/UI 旧入口删除同一原子 cutover；不得分批发布"
+    },
+    {
+      "paths": ["src/App.tsx", "src/detail/DetailPanel.tsx", "src/detail/NodeEditorHost.tsx", "src/detail/node-schema-registry.mjs"],
+      "owner": "Data Editor UI core",
+      "state": "owned_by_this_plan_after_stage0",
+      "allowedModificationSet": ["阶段3 binding 驱动 UI/resolver"],
+      "baseline": "Data Editor trackedDiffSha256",
+      "serialHandoff": "等待阶段2 fixture/grammar 通过，再与服务端串行合入"
+    },
+    {
+      "paths": ["src/project-capability-*.mjs", "src/document-contract-service.mjs", "src/detail/nested-schema-capability.mjs"],
+      "owner": "Data Editor capability core",
+      "state": "owned_by_this_plan_after_stage0",
+      "allowedModificationSet": ["阶段2唯一 grammar/compiler/admission 扩展"],
+      "baseline": "Data Editor trackedDiffSha256",
+      "serialHandoff": "不得新增第二套 registry、mutex 或 journal"
+    },
+    {
+      "paths": ["tests/fixtures/projects/contract-project/**", "tests/skill-node-*", "tests/derived-field-projection.test.mjs", "tests/targeting-view-field-migration.test.mjs"],
+      "owner": "Data Editor test owner",
+      "state": "owned_by_this_plan_after_stage0",
+      "allowedModificationSet": ["阶段1 fixture specification", "阶段2 non-skill fixture and tests", "阶段5旧测试清理"],
+      "baseline": "Data Editor trackedDiffSha256",
+      "serialHandoff": "测试改名/删除随原子 cutover 串行进行"
+    },
+    {
+      "paths": [".data-editor/project.json", ".data-editor/contracts/nested-schemas.json", "data/contracts/skill_nodes.json", "data/contracts/skill_nodes.schema.json"],
+      "owner": "Nocturnel capability and skill-contract owner",
+      "state": "serial_handoff_required",
+      "allowedModificationSet": ["阶段3项目声明和业务合同迁移"],
+      "baseline": "nocturnelResourceHashes",
+      "serialHandoff": "首次写入前重取 Nocturnel diff/hash，并取得 owner handoff"
+    },
+    {
+      "paths": ["data/content/skills.json"],
+      "owner": "现有内容/FieldSpec owner",
+      "state": "dirty_owned_by_other",
+      "allowedModificationSet": [],
+      "baseline": "eebd925585b8517d44a9010dadd7593490fb8fa940bf7114f62b8823f80f0fbe",
+      "serialHandoff": "本任务禁止直接写入；阶段4仅在隔离 scratch copy 验证，正式文件保持零写入"
+    },
+    {
+      "paths": ["tools/data-editor"],
+      "owner": "Nocturnel release owner",
+      "state": "serial_handoff_required",
+      "allowedModificationSet": ["阶段6在 Data Editor 提交、跨仓验证后更新 gitlink"],
+      "baseline": "c047a43957791174479907b1025d2c2572946f40",
+      "serialHandoff": "只允许 Nocturnel release owner 更新；不与 manifest 未验证改动混合"
+    }
+  ],
+  "oldBehaviorMatrix": {
+    "legacyContractApi": ["GET /api/skill-node-contract", "ETag/304", "固定 binding id", "专属错误协议"],
+    "legacyUi": ["skills.nodes 专属 resolver", "节点表单", "charge derived rule", "中文提示"],
+    "legacySave": ["contractVersion", "contractEtag", "saveToken", "documentContracts[]"],
+    "requiredReplacementEvidence": ["非技能 fixture", "path-driven admission", "candidate validator", "journal/recovery", "scratch Nocturnel verification"]
+  },
+  "unapprovedPhysicalDeletion": [
+    "所有 src/skill-node-contract-* 文件",
+    "所有 src/detail/skill-node-* 文件",
+    "skills 专属视图投影与 targeting 迁移模块",
+    "旧 /api/skill-node-contract 路由",
+    "旧技能测试和 fixture 文件",
+    "Nocturnel 任何合同、manifest、skills.json 数据或备份目录"
+  ],
+  "verification": {
+    "commands": [
+      "git rev-parse HEAD",
+      "git status --short",
+      "git diff --binary HEAD --no-ext-diff with SHA-256",
+      "git ls-tree HEAD tools/data-editor",
+      "Get-FileHash -Algorithm SHA256 for Nocturnel manifest/contract/schema/data",
+      "rg production domain anchor scan"
+    ],
+    "testsRun": [],
+    "servicesStarted": false
+  },
+  "blockers": [
+    "data/content/skills.json is dirty and owned by another work package; no direct write without serial handoff",
+    "Nocturnel capability/contract paths require owner handoff and baseline recheck before stage3",
+    "FieldSpec remains blocked until this plan completes and upstream independently rechecks the handoff"
+  ],
+  "nextRecommendedTask": "阶段1：冻结非技能 fixture 规格与验收矩阵"
+}

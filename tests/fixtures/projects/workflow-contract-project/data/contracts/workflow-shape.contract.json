@@ -1,0 +1,12 @@
+{
+  "contract_version": 1,
+  "grammar_version": 1,
+  "collections": [{ "path": "workflows", "entryKind": "array", "allowMissing": false, "uniqueBy": "workflow_id", "uniqueIssue": { "code": "WORKFLOW_ID_DUPLICATE", "message": "Workflow ids must be unique.", "path": "workflow_id" } }],
+  "invariants": [
+    { "id": "workflows-not-empty", "scope": "document", "assert": { "op": "nonEmptyArray", "path": "workflows" }, "issue": { "code": "WORKFLOWS_REQUIRED", "message": "Workflows are required.", "path": "workflows" } },
+    { "id": "workflow-id", "scope": "entry", "assert": { "op": "required", "path": "workflow_id" }, "issue": { "code": "WORKFLOW_ID_REQUIRED", "message": "Workflow id is required.", "path": "workflow_id" } },
+    { "id": "steps-not-empty", "scope": "entry", "assert": { "op": "nonEmptyArray", "path": "steps" }, "issue": { "code": "WORKFLOW_STEPS_REQUIRED", "message": "Workflow steps are required.", "path": "steps" } }
+  ],
+  "derivedOutputs": [{ "id": "step_count", "scope": "entry", "kind": "count", "path": "steps" }],
+  "savePolicy": { "requireExactTokenSet": true, "validateCandidate": true, "blockingIssues": true }
+}
