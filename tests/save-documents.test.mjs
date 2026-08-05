@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { saveDocumentsWith } from "../src/api/save-documents.mjs";
+import { createSaveIdempotencyKey } from "../src/api/save-idempotency-key.mjs";
+
+test("save idempotency key falls back to a server-valid stable token", () => {
+  const key = createSaveIdempotencyKey({ now: () => 1234, random: () => 0.5, cryptoApi: null });
+  assert.match(key, /^[A-Za-z0-9_-]{8,128}$/);
+  assert.equal(key, createSaveIdempotencyKey({ now: () => 1234, random: () => 0.5, cryptoApi: null }));
+});
 
 test("saveDocumentsWith saves all documents in order", async () => {
   const calls = [];

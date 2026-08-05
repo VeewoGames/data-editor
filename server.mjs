@@ -292,12 +292,12 @@ async function handleSave(req, res) {
   try {
     const body = await readJsonBody(req);
     if (!body.path) throw new Error("Missing save path");
-    assertDocumentSaveIdempotencyKey(body.idempotencyKey);
     const projectContext = await projectContextForId(body.projectId);
     const ext = path.extname(body.path).toLowerCase();
     if (![".json", ".csv"].includes(ext)) throw new Error(`Unsupported save extension: ${ext}`);
     const text = ext === ".csv" ? serializeCsv(body.root) : serializeJson(body.root);
     const requestDigest = sha256(JSON.stringify({ path: body.path, documentEtag: body.documentEtag, text }));
+    const idempotencyKey = resolveDocumentSaveIdempotencyKey(body.idempotencyKey, requestDigest);
     await documentCommitCoordinator.withCommit({ projectContext, sourcePath: body.path }, async (identity) => {
       const active = await findActiveEntryActionRuns(projectContext, body.path);
       if (active.runs.length > 0) {
@@ -309,7 +309,7 @@ async function handleSave(req, res) {
         );
       }
       const journal = createCommitJournal({ directory: commitJournalDirectory(projectContext) });
-      const existing = await readJournalIfPresent(journal, body.idempotencyKey);
+      const existing = await readJournalIfPresent(journal, idempotencyKey);
       if (existing) {
         if (existing.saveType !== "document_save" || existing.requestDigest !== requestDigest) {
           throw new DocumentSaveError("DOCUMENT_SAVE_IDEMPOTENCY_CONFLICT", "idempotencyKey 已用于不同的保存请求。", "idempotencyKey");
@@ -337,7 +337,7 @@ async function handleSave(req, res) {
       }
       if (existing) await resumeDocumentSaveJournal({ journal, entry: existing, currentText });
       else assertDocumentEtagUnchanged(body.documentEtag, currentText);
-      const entry = existing ?? createDocumentSaveJournalEntry({ body, identity, currentText, text, requestDigest, documentContracts });
+      const entry = existing ?? createDocumentSaveJournalEntry({ body: { ...body, idempotencyKey }, identity, currentText, text, requestDigest, documentContracts });
       await executeJournaledDocumentCommit({
         journal,
         entry,
@@ -722,6 +722,12 @@ function assertDocumentSaveIdempotencyKey(value) {
   if (typeof value !== "string" || !/^[A-Za-z0-9_-]{8,128}$/.test(value)) {
     throw new DocumentSaveError("DOCUMENT_SAVE_IDEMPOTENCY_KEY_REQUIRED", "idempotencyKey must be a stable UUID-like token for one logical save.", "idempotencyKey", { status: 400 });
   }
+}
+
+function resolveDocumentSaveIdempotencyKey(value, requestDigest) {
+  if (value == null || value === "") return `legacy_${requestDigest}`;
+  assertDocumentSaveIdempotencyKey(value);
+  return value;
 }
 
 async function handleLoadAutomationSkillCatalog(url, res) {

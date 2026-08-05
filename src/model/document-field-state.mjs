@@ -8,6 +8,7 @@ import { buildDocumentFieldKey } from "./document-config.mjs";
  *   primaryKeyField: string | null;
  *   displayTypes: Record<string, import("./fieldTypes").FieldDisplayType>;
  *   documentFieldConfigs: Record<string, { enabled: true }>;
+ *   documentRoot?: string | null;
  *   documentIndexEntries: Record<string, import("../api/client").DocumentIndexEntry>;
  * }} input
  */
@@ -18,6 +19,7 @@ export function buildSelectedDocumentFields({
   primaryKeyField,
   displayTypes,
   documentFieldConfigs,
+  documentRoot = null,
   documentIndexEntries,
 }) {
   if (!sourcePath || !row) return [];
@@ -31,7 +33,11 @@ export function buildSelectedDocumentFields({
       });
       if (documentFieldConfigs[key]?.enabled !== true) return null;
       const rawDocumentId = row[fieldName];
-      const documentId = rawDocumentId == null ? "" : String(rawDocumentId).trim();
+      const documentId = resolveDocumentId({
+        value: rawDocumentId,
+        documentRoot,
+        documentIndexEntries,
+      });
       const indexEntry = documentId ? documentIndexEntries[documentId] ?? null : null;
       const label = documentId
         ? indexEntry?.status === "resolved"
@@ -47,6 +53,36 @@ export function buildSelectedDocumentFields({
       };
     })
     .filter(Boolean);
+}
+
+/**
+ * Resolves a Document field without imposing a project-specific storage shape.
+ * A project may store the document index id, a Markdown filename, or a
+ * project-relative path under its configured document root.
+ */
+export function resolveDocumentId({ value, documentRoot = null, documentIndexEntries = {} }) {
+  const raw = value == null ? "" : String(value).trim();
+  if (!raw || documentIndexEntries[raw]) return raw;
+
+  const normalized = normalizeDocumentPath(raw);
+  if (!normalized) return raw;
+  const root = normalizeDocumentPath(documentRoot ?? "");
+  const relative = root && normalized.startsWith(`${root}/`)
+    ? normalized.slice(root.length + 1)
+    : normalized;
+  const withoutExtension = relative.replace(/\.md$/i, "");
+  if (documentIndexEntries[withoutExtension]) return withoutExtension;
+
+  const matchingEntry = Object.values(documentIndexEntries).find((entry) =>
+    normalizeDocumentPath(entry?.relativePath ?? "").replace(/\.md$/i, "") === withoutExtension,
+  );
+  return matchingEntry?.id ?? raw;
+}
+
+function normalizeDocumentPath(value) {
+  const normalized = String(value ?? "").trim().replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/{2,}/g, "/").replace(/\/$/, "");
+  if (!normalized || normalized.startsWith("/") || /^[a-z]:\//i.test(normalized) || normalized.split("/").includes("..")) return "";
+  return normalized;
 }
 
 export function findPreferredActiveDocumentField({

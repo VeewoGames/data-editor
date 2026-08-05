@@ -1,3 +1,5 @@
+import { createSaveIdempotencyKey } from "./save-idempotency-key.mjs";
+
 export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
   const savedPaths = [];
   /** @type {Record<string, string>} */
@@ -5,7 +7,7 @@ export async function saveDocumentsWith(items, saveDocumentFn, options = {}) {
   for (const item of items ?? []) {
     try {
       const contractGate = await buildContractSaveGate(item.path, options);
-      const idempotencyKey = item.idempotencyKey ?? crypto.randomUUID();
+      const idempotencyKey = item.idempotencyKey ?? createSaveIdempotencyKey();
       const saved = await saveDocumentFn(item.path, item.root, contractGate, item.documentEtag, idempotencyKey);
       savedPaths.push(item.path);
       if (typeof saved?.documentEtag === "string" && saved.documentEtag) documentEtags[item.path] = saved.documentEtag;

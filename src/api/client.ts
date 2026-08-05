@@ -1,4 +1,5 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
+import { createSaveIdempotencyKey } from "./save-idempotency-key.mjs";
 import type { DocumentModel } from "../model/documentModel";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
 import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
@@ -602,7 +603,7 @@ export async function loadDocumentContracts(projectId: string, path: string) {
   return fetchJson(`/api/document-contracts?projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(path)}`);
 }
 
-export async function saveDocument(path: string, root: unknown, projectId?: string | null, documentEtag?: string, idempotencyKey = crypto.randomUUID()): Promise<SaveDocumentResult> {
+export async function saveDocument(path: string, root: unknown, projectId?: string | null, documentEtag?: string, idempotencyKey = createSaveIdempotencyKey()): Promise<SaveDocumentResult> {
   const result = await saveDocumentsWith(
     [{ path, root }],
     (savePath: string, saveRoot: unknown, contractGate: SkillNodeContractSaveGate | null) => (

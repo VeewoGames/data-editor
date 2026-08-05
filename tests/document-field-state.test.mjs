@@ -45,6 +45,25 @@ test("buildSelectedDocumentFields resolves each configured field from its own ro
   ]);
 });
 
+test("buildSelectedDocumentFields resolves a project-relative Markdown path through the configured document root", () => {
+  const result = buildSelectedDocumentFields({
+    sourcePath: "data/skills.json",
+    collectionPath: "skills",
+    row: { dev_doc: "项目文档/开发/技能/skill_fireball.md" },
+    primaryKeyField: "skill_id",
+    displayTypes: { dev_doc: "Document" },
+    documentFieldConfigs: { "data/skills.json:skills:dev_doc": { enabled: true } },
+    documentRoot: "项目文档/开发/技能",
+    documentIndexEntries: {
+      skill_fireball: { status: "resolved", id: "skill_fireball", relativePath: "skill_fireball.md", title: "Fireball Guide" },
+    },
+  });
+
+  assert.deepEqual(result.map((entry) => ({ documentId: entry.documentId, label: entry.label })), [
+    { documentId: "skill_fireball", label: "Fireball Guide" },
+  ]);
+});
+
 test("mergeDetailFieldOrder appends sparse document fields after row keys", () => {
   const result = mergeDetailFieldOrder(
     { id: "skill_fireball", name: "Fireball" },

@@ -2371,6 +2371,7 @@ export function App() {
       primaryKeyField: activeValidationPrimaryKeyField,
       displayTypes: fieldConfig.displayTypes,
       documentFieldConfigs: viewConfig.documentFields,
+      documentRoot: selectedPath ? viewConfig.documentFiles[selectedPath]?.docRoot ?? null : null,
       documentIndexEntries: documentIndex.entries,
     }) as Array<{
       fieldName: string;
@@ -2379,7 +2380,7 @@ export function App() {
       label: string;
       indexEntry: DocumentIndexResponse["entries"][string] | null;
     }>;
-  }, [selectedPath, selectedRow, activeValidationPrimaryKeyField, fieldConfig.displayTypes, collectionPath, viewConfig.documentFields, documentIndex.entries]);
+  }, [selectedPath, selectedRow, activeValidationPrimaryKeyField, fieldConfig.displayTypes, collectionPath, viewConfig.documentFields, viewConfig.documentFiles, documentIndex.entries]);
   const activeDocumentField = useMemo(
     () => findPreferredActiveDocumentField({
       selectedDocumentFields,
