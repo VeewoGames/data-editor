@@ -12,8 +12,6 @@ import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
 import { forwardOptionFieldSurfaceClick } from "../table/OptionFieldEditor";
 import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
-import { matchesContractSkillSource } from "./node-schema-registry.mjs";
-import type { SkillNodeContractFormModel } from "./skill-node-contract-form-model";
 import type { NestedSchemaCapabilityResolver } from "./nested-schema-capability";
 import type { NodeFieldSchema, ObjectNodeSchema } from "./node-schema";
 
@@ -31,9 +29,7 @@ type NodeEditorHostProps = {
   dataSourcePath?: string | null;
   collectionPath?: string;
   schemaContextValue?: Record<string, unknown> | null;
-  contractFormModel?: SkillNodeContractFormModel | null;
   nestedSchemaResolver?: NestedSchemaCapabilityResolver | null;
-  rootValue?: Record<string, unknown>;
   embedded?: boolean;
   onBack: () => void;
   onCloseAll: () => void;
@@ -42,10 +38,6 @@ type NodeEditorHostProps = {
 };
 
 export function NodeEditorHost(props: NodeEditorHostProps) {
-  const contractScope = matchesContractSkillSource({
-    collectionPath: props.collectionPath,
-    rootField: props.rootField,
-  });
   const resolved = useMemo(() => {
     const context = {
       sourcePath: props.sourcePath,
@@ -55,21 +47,14 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
       value: props.value,
       contextValue: props.schemaContextValue ?? null,
     };
-    if (!contractScope) {
-      const resolvedCapability = props.nestedSchemaResolver?.resolve({
-        dataSourceId: props.dataSourceId ?? "",
-        path: props.dataSourcePath ?? "",
-        ...context,
-      });
-      return resolvedCapability ?? { kind: "unsupported" as const, lookupKey: "nested-schema-capability:missing", reason: "No nested schema capability is available for this value." };
-    }
-    return props.contractFormModel?.resolveNestedNodeSchema(context) ?? {
-      kind: "unsupported" as const,
-      lookupKey: "skill-node-contract:missing-form-model",
-      reason: "技能节点合同表单未加载，当前节点只读且禁止保存。",
-    };
-  }, [contractScope, props.basePath, props.collectionPath, props.contractFormModel, props.dataSourceId, props.dataSourcePath, props.rootField, props.schemaContextValue, props.sourcePath, props.value]);
-  const canEdit = !contractScope || props.contractFormModel?.canEdit === true;
+    const resolvedCapability = props.nestedSchemaResolver?.resolve({
+      dataSourceId: props.dataSourceId ?? "",
+      path: props.dataSourcePath ?? "",
+      ...context,
+    });
+    return resolvedCapability ?? { kind: "unsupported" as const, lookupKey: "nested-schema-capability:missing", reason: "No nested schema capability is available for this value." };
+  }, [props.basePath, props.collectionPath, props.dataSourceId, props.dataSourcePath, props.rootField, props.schemaContextValue, props.sourcePath, props.value]);
+  const canEdit = true;
 
   const resetDefaultValue = resolved.kind === "supported"
     ? ensureDiscriminatorValue(
@@ -133,8 +118,6 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
           currentDiscriminator={resolved.currentDiscriminator ?? null}
           canSwitchDiscriminator={Boolean(resolved.canSwitchDiscriminator && resolved.discriminatorField && resolved.discriminatorOptions?.length)}
           canEdit={canEdit}
-          contractFormModel={contractScope ? props.contractFormModel : null}
-          rootValue={props.rootValue}
           onSwitchDiscriminator={handleSwitchDiscriminator}
           onEditValue={props.onEditValue}
           onOpenNested={props.onOpenNested}
@@ -164,8 +147,6 @@ function ObjectNodeEditor(props: {
   currentDiscriminator: string | null;
   canSwitchDiscriminator: boolean;
   canEdit: boolean;
-  contractFormModel?: SkillNodeContractFormModel | null;
-  rootValue?: Record<string, unknown>;
   onSwitchDiscriminator: (nextDiscriminator: string) => void;
   onEditValue: (path: NodePathSegment[], nextValue: unknown) => void;
   onOpenNested: (pathSuffix: NodePathSegment[], nestedValue: unknown, schemaContextValue?: Record<string, unknown> | null) => void;
@@ -174,16 +155,12 @@ function ObjectNodeEditor(props: {
   const [discriminatorPickerOpen, setDiscriminatorPickerOpen] = useState(false);
   const [discriminatorQuery, setDiscriminatorQuery] = useState("");
   const visibleDiscriminatorOptions = props.discriminatorOptions.filter((option) => option.toLowerCase().includes(discriminatorQuery.trim().toLowerCase()));
-  const fieldStates = props.contractFormModel
-    ? props.contractFormModel.projectFieldStates(props.schema, props.value, { rootValue: props.rootValue })
-    : props.schema.fields.map((field) => ({ field, visible: true, disabled: false, readonly: false }));
+  const fieldStates = props.schema.fields.map((field) => ({ field, visible: true, disabled: false, readonly: false }));
   const visibleFields = fieldStates.filter((state) => state.visible).map((state) => ({
     ...state.field,
     disabled: !props.canEdit || state.disabled,
   }));
-  const canSwitchDiscriminator = props.canSwitchDiscriminator
-    && (props.contractFormModel?.canSwitchDiscriminator(props.schema, { rootValue: props.rootValue }) ?? true);
-  const derivedRuleSummary = props.contractFormModel?.getDerivedRuleSummary(props.schema, { rootValue: props.rootValue }) ?? [];
+  const canSwitchDiscriminator = props.canSwitchDiscriminator;
   const sections = buildNodeSections(visibleFields, props.schema.presentation?.sections ?? []);
   const showUnknownAdvanced = !props.schema.allowUnknownFields && unknownFieldNames.length > 0;
   const unknownAdvancedLabel = `Unknown fields (${unknownFieldNames.length})`;
@@ -240,22 +217,6 @@ function ObjectNodeEditor(props: {
               </button>
             ))}
           </SearchablePicker>
-        </section>
-      ) : null}
-      {derivedRuleSummary.length ? (
-        <section className="node-section" data-node-section="derived-rule-summary">
-          <div className="node-section-header">
-            <strong>合同派生规则</strong>
-            <small>只读，不写回技能 JSON</small>
-          </div>
-          <div className="node-section-fields">
-            {derivedRuleSummary.map((row) => (
-              <section className="property-block" key={row.label}>
-                <PropertyHeading fieldName={row.label} fieldType="Text" />
-                <input className="detail-input detail-input--readonly" readOnly value={row.value} />
-              </section>
-            ))}
-          </div>
         </section>
       ) : null}
       {sections.map((section) => {

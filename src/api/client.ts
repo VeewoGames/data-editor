@@ -3,11 +3,9 @@ import { createSaveIdempotencyKey } from "./save-idempotency-key.mjs";
 import type { DocumentModel } from "../model/documentModel";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
 import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
-import { createSkillNodeContractClient } from "./skill-node-contract-client.mjs";
 
 export const recoverableRequestEventName = "data-editor:recoverable-request";
 const defaultRecoveryBridgePort = 8791;
-let skillNodeContractClient: ReturnType<typeof createSkillNodeContractClient> | null = null;
 
 export type RecoverableRequestEventDetail = {
   url: string;
@@ -131,30 +129,6 @@ export type LoadedNestedSchemaCapabilities = {
   projectId: string;
   generation: number;
   bindings: Array<{ id: string; match: Record<string, unknown>; definition: unknown }>;
-};
-export type SkillNodeContractSaveGate = {
-  contractVersion: number;
-  contractEtag: string;
-  saveToken: {
-    projectId: string;
-    contractVersion: number;
-    etag: string;
-  };
-};
-export type SkillNodeContract = {
-  contract_version: number;
-  runtime_rules: Record<string, unknown>;
-  nodes: Record<string, unknown>;
-  labels: Record<string, unknown>;
-  help: Record<string, unknown>;
-  ui_presentation: Record<string, unknown>;
-};
-export type LoadedSkillNodeContract = {
-  projectId: string;
-  contract: SkillNodeContract;
-  version: number;
-  etag: string;
-  fromCache: boolean;
 };
 export type RunEntryActionRequest = {
   projectId: string;
@@ -577,16 +551,6 @@ export async function listFiles(projectId?: string | null): Promise<DataFile[]> 
   return fetchJson(withProjectId("/api/files", projectId));
 }
 
-export async function loadSkillNodeContract(projectId: string): Promise<LoadedSkillNodeContract> {
-  skillNodeContractClient ??= createSkillNodeContractClient();
-  return skillNodeContractClient.load(projectId);
-}
-
-export function clearSkillNodeContractCache(projectId?: string | null) {
-  skillNodeContractClient?.clear(projectId);
-  if (projectId == null) skillNodeContractClient = null;
-}
-
 export async function loadDocument(path: string, projectId?: string | null): Promise<DocumentModel> {
   return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
 }
@@ -606,7 +570,7 @@ export async function loadDocumentContracts(projectId: string, path: string) {
 export async function saveDocument(path: string, root: unknown, projectId?: string | null, documentEtag?: string, idempotencyKey = createSaveIdempotencyKey()): Promise<SaveDocumentResult> {
   const result = await saveDocumentsWith(
     [{ path, root }],
-    (savePath: string, saveRoot: unknown, contractGate: SkillNodeContractSaveGate | null) => (
+    (savePath: string, saveRoot: unknown, contractGate: Record<string, unknown>) => (
       postDocumentSave(savePath, saveRoot, projectId, contractGate, documentEtag, idempotencyKey)
     ),
     { projectId, loadDocumentContracts },
@@ -619,7 +583,7 @@ function postDocumentSave(
   path: string,
   root: unknown,
   projectId?: string | null,
-  contractGate: SkillNodeContractSaveGate | null = null,
+  contractGate: Record<string, unknown> = {},
   documentEtag?: string,
   idempotencyKey?: string,
 ): Promise<SaveDocumentResult> {
@@ -633,7 +597,7 @@ function postDocumentSave(
 export async function saveDocuments(items: PendingDocumentSave[], projectId?: string | null): Promise<SaveDocumentsResult> {
   return saveDocumentsWith(
     items,
-    (path: string, root: unknown, contractGate: SkillNodeContractSaveGate | null, documentEtag: string, idempotencyKey: string) => (
+    (path: string, root: unknown, contractGate: Record<string, unknown>, documentEtag: string, idempotencyKey: string) => (
       postDocumentSave(path, root, projectId, contractGate, documentEtag, idempotencyKey)
     ),
     { projectId, loadDocumentContracts },

@@ -13,13 +13,11 @@ import {
   emptySharedViewsConfig,
   normalizeSharedViewsConfig,
 } from "./view/shared-view-normalize.mjs";
-import { migrateTargetingViewStorage } from "./view/targeting-view-file-migration.mjs";
 
 const sharedViewsConfigPath = ".data-editor/shared-views.json";
 
 export async function loadSharedViews(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
-  await migrateTargetingViewStorage(context, { apply: true });
   const target = resolveInsideRoot(context.projectRoot, sharedViewsConfigPath);
   try {
     const parsed = JSON.parse(await readFile(target, "utf8"));

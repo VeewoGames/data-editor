@@ -13,9 +13,7 @@ import {
   loadAutomationBindings,
   loadAutomationProfile,
   loadAutomationSkillCatalog,
-  loadProjectCapabilities,
   loadNestedSchemaCapabilities,
-  loadSkillNodeContract,
   listViewProfiles,
   loadDocument,
   loadDocumentContent,
@@ -83,11 +81,7 @@ import { collectProtectedIconPackIdsFromIcons, icons, isSharedViewIconPackLoaded
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
 import { DataTable, type FieldConfig, type TableFieldConfig, type TableSnapshot } from "./table/DataTable";
 import { DetailPanel, type DetailEntryActionStatus, type DetailSnapshot } from "./detail/DetailPanel";
-import { createSkillNodeContractEditorState, validateSkillNodeContractSaveToken } from "./detail/skill-node-contract-state";
-import type { SkillNodeContractEditorState } from "./detail/skill-node-contract-state";
-import { createSkillNodeContractFormModel } from "./detail/skill-node-contract-form-model";
 import { createNestedSchemaCapabilityResolver } from "./detail/nested-schema-capability.mjs";
-import { validateSkillNodeDerivedRuleConflicts } from "./detail/skill-node-derived-rules.mjs";
 import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
 import { defaultAutomationRuntime } from "./automation-runtime.mjs";
@@ -646,12 +640,6 @@ type PendingNestedOpenTarget = {
   requestKey: number;
 };
 
-type SkillNodeContractMatch = {
-  dataSourceId: string;
-  path: string;
-  collection: string;
-};
-
 export function App() {
   const [files, setFiles] = useState<DataFile[]>([]);
   const [projects, setProjects] = useState<ProjectDefinition[]>([]);
@@ -661,10 +649,6 @@ export function App() {
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [model, setModel] = useState<DocumentModel | null>(null);
-  const [skillNodeContractEditorState, setSkillNodeContractEditorState] = useState<SkillNodeContractEditorState>(() => (
-    createSkillNodeContractEditorState({ status: "loading" })
-  ));
-  const [skillNodeContractMatch, setSkillNodeContractMatch] = useState<SkillNodeContractMatch | null>(null);
   const [nestedSchemaResolver, setNestedSchemaResolver] = useState(() => createNestedSchemaCapabilityResolver());
   const [collectionPath, setCollectionPath] = useState("$");
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
@@ -747,8 +731,6 @@ export function App() {
   const filesRef = useRef<DataFile[]>([]);
   const activeProjectIdRef = useRef<string | null>(null);
   const modelRef = useRef<DocumentModel | null>(null);
-  const skillNodeContractEditorStateRef = useRef<SkillNodeContractEditorState>(skillNodeContractEditorState);
-  const skillNodeContractMatchRef = useRef<SkillNodeContractMatch | null>(skillNodeContractMatch);
   const savedDocumentRootRef = useRef<unknown | null>(null);
   const selectedPathRef = useRef<string | null>(null);
   const pendingSharedViewUrlLocationRef = useRef<SharedViewUrlLocationState | null>(
@@ -822,31 +804,6 @@ export function App() {
     () => files.find((file) => file.path === selectedPath) ?? null,
     [files, selectedPath],
   );
-  const selectedHasSkillNodeContract = Boolean(
-    selectedDataFile
-    && skillNodeContractMatch
-    && selectedDataFile.dataSourceId === skillNodeContractMatch.dataSourceId
-    && selectedDataFile.displayPath === skillNodeContractMatch.path
-    && collectionPath === skillNodeContractMatch.collection,
-  );
-  const activeSkillNodeContractEditorState = useMemo(() => {
-    if (!selectedHasSkillNodeContract || !model || !skillNodeContractEditorState.canEdit) {
-      return skillNodeContractEditorState;
-    }
-    const rootVersion = readSkillNodeContractVersion(model.root);
-    if (rootVersion === skillNodeContractEditorState.version) return skillNodeContractEditorState;
-    return createSkillNodeContractEditorState({
-      status: "version_mismatch",
-      error: {
-        code: "SKILL_NODE_CONTRACT_DOCUMENT_VERSION_MISMATCH",
-        message: `技能文档合同版本 ${String(rootVersion ?? "缺失")} 与项目合同版本 ${String(skillNodeContractEditorState.version)} 不一致，节点只读且禁止保存。`,
-      },
-    });
-  }, [model, selectedHasSkillNodeContract, skillNodeContractEditorState]);
-  const skillNodeContractFormModel = useMemo(
-    () => createSkillNodeContractFormModel(activeSkillNodeContractEditorState),
-    [activeSkillNodeContractEditorState],
-  );
   const detailReorderPerfRef = useRef({
     active: false,
     awaitingRows: false,
@@ -917,12 +874,6 @@ export function App() {
   }, [activeSidebarPreferences.sidebarTree, files]);
 
   useEffect(() => { modelRef.current = model; }, [model]);
-  useEffect(() => {
-    skillNodeContractEditorStateRef.current = skillNodeContractEditorState;
-  }, [skillNodeContractEditorState]);
-  useEffect(() => {
-    skillNodeContractMatchRef.current = skillNodeContractMatch;
-  }, [skillNodeContractMatch]);
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => {
     setValidationIssueOverrides({});
@@ -1020,48 +971,19 @@ export function App() {
 
   useEffect(() => {
     if (!activeProjectId) {
-      setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status: "loading" }));
-      setSkillNodeContractMatch(null);
       setNestedSchemaResolver(createNestedSchemaCapabilityResolver());
       return;
     }
     let cancelled = false;
-    setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status: "loading" }));
-    Promise.all([loadProjectCapabilities(activeProjectId), loadNestedSchemaCapabilities(activeProjectId)])
-      .then(([capabilities, nestedSchemas]) => {
-        setNestedSchemaResolver(createNestedSchemaCapabilityResolver(nestedSchemas.bindings));
-        const binding = capabilities.status === "active"
-          ? capabilities.bindings.documentContracts.find((candidate) => candidate.id === "skill-node-contract")
-          : null;
-        setSkillNodeContractMatch(binding ? {
-          dataSourceId: String(binding.match.dataSourceId),
-          path: String(binding.match.path),
-          collection: String(binding.match.collection),
-        } : null);
-        if (!binding) return null;
-        return loadSkillNodeContract(activeProjectId);
-      })
-      .then((loaded) => {
+    loadNestedSchemaCapabilities(activeProjectId)
+      .then((nestedSchemas) => {
         if (cancelled) return;
-        if (!loaded) {
-          setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status: "error" }));
-          return;
-        }
-        setSkillNodeContractEditorState(createSkillNodeContractEditorState({
-          status: "ready",
-          contract: loaded.contract,
-          version: loaded.version,
-          etag: loaded.etag,
-        }));
+        setNestedSchemaResolver(createNestedSchemaCapabilityResolver(nestedSchemas.bindings));
       })
       .catch((error) => {
         if (cancelled) return;
         setNestedSchemaResolver(createNestedSchemaCapabilityResolver());
-        const status: SkillNodeContractEditorState["status"] = error && typeof error === "object"
-          && "code" in error && error.code === "SKILL_NODE_CONTRACT_VERSION_UNSUPPORTED"
-          ? "version_mismatch"
-          : "error";
-        setSkillNodeContractEditorState(createSkillNodeContractEditorState({ status, error }));
+        setStatus(readErrorMessage(error) ?? "无法加载嵌套 schema capability。");
       });
     return () => {
       cancelled = true;
@@ -5347,48 +5269,6 @@ export function App() {
     let currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
     if (!dirtyDomains.length) return { outcome: "idle" } as const;
     if (commandSavingRef.current || closingRef.current || rebuildingRef.current || restartingRef.current) return { outcome: "deferred" } as const;
-    if (dirtyDomains.includes("document") && currentDataDirty && currentModel && matchesSkillNodeContractDocument({
-      path: currentSelectedPath,
-      collectionPath: collectionPathRef.current,
-      files: filesRef.current,
-      binding: skillNodeContractMatchRef.current,
-    }) && skillNodeContractEditorStateRef.current.contract) {
-      const contractState = skillNodeContractEditorStateRef.current;
-      const derivedRuleCheck = contractState.contract
-        ? validateSkillNodeDerivedRuleConflicts(contractState.contract, currentModel.root)
-        : { ok: true, issues: [] };
-      if (!derivedRuleCheck.ok) {
-        const firstIssue = derivedRuleCheck.issues[0];
-        const remaining = derivedRuleCheck.issues.length - 1;
-        const blockingMessage = `技能节点合同阻断保存：${firstIssue.skillId} 的 ${firstIssue.fieldPath}：${firstIssue.message}${remaining > 0 ? `（另有 ${remaining} 项冲突）` : ""}`;
-        setStatus(blockingMessage);
-        return {
-          outcome: "blocked-confirmation",
-          message: blockingMessage,
-        } as const;
-      }
-      const saveCheck = contractState.canEdit && contractState.version != null && contractState.etag
-        ? validateSkillNodeContractSaveToken({
-          token: { version: contractState.version, etag: contractState.etag },
-          documentRoot: currentModel.root,
-          expectedVersion: contractState.version,
-          expectedEtag: contractState.etag,
-        })
-        : {
-          ok: false as const,
-          code: "SKILL_NODE_CONTRACT_SAVE_BLOCKED",
-          message: readErrorMessage(contractState.error) ?? `技能节点合同状态为 ${contractState.status}，禁止保存技能文档。`,
-        };
-      if (!saveCheck.ok) {
-        const message = "message" in saveCheck ? String(saveCheck.message) : "技能节点合同校验失败。";
-        const blockingMessage = `技能节点合同阻断保存：${message}`;
-        setStatus(blockingMessage);
-        return {
-          outcome: "blocked-confirmation",
-          message: blockingMessage,
-        } as const;
-      }
-    }
     if (currentDataDirty && currentModel && currentSelectedPath && !currentPrimaryKeySyncPlan) {
       currentPrimaryKeySyncPlan = await resolvePrimaryKeySyncPlanForFlush(currentModel, currentSelectedPath, currentViewConfig);
     }
@@ -5886,7 +5766,6 @@ export function App() {
               <Profiler id="detail-panel" onRender={handleDetailReorderProfilerRender}>
                 <DetailPanel
                   snapshot={detailSnapshot}
-                  contractFormModel={selectedHasSkillNodeContract ? skillNodeContractFormModel : null}
                   nestedSchemaResolver={nestedSchemaResolver}
                   initialNestedTarget={initialNestedTarget}
                   onConsumeInitialNestedTarget={(requestKey) => {
@@ -5999,7 +5878,6 @@ export function App() {
             />
             <DetailPanel
               snapshot={detailSnapshot}
-              contractFormModel={selectedHasSkillNodeContract ? skillNodeContractFormModel : null}
               nestedSchemaResolver={nestedSchemaResolver}
               initialNestedTarget={initialNestedTarget}
               onConsumeInitialNestedTarget={(requestKey) => {
@@ -8888,28 +8766,6 @@ function collectSingleSelectValues(rows: DataRecord[], fieldName: string) {
     values.push(value);
   }
   return values;
-}
-
-function matchesSkillNodeContractDocument({
-  path,
-  collectionPath,
-  files,
-  binding,
-}: {
-  path: string | null | undefined;
-  collectionPath: string | null | undefined;
-  files: DataFile[];
-  binding: SkillNodeContractMatch | null;
-}) {
-  if (!binding || !path || String(collectionPath ?? "") !== binding.collection) return false;
-  const file = files.find((candidate) => candidate.path === path);
-  return file?.dataSourceId === binding.dataSourceId && file.displayPath === binding.path;
-}
-
-function readSkillNodeContractVersion(root: unknown) {
-  if (!root || typeof root !== "object" || Array.isArray(root)) return null;
-  const version = (root as Record<string, unknown>).skill_node_contract_version;
-  return Number.isInteger(version) ? version as number : null;
 }
 
 function readErrorMessage(error: unknown) {

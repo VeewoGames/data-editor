@@ -54,11 +54,6 @@ import { createCommitJournal } from "./src/commit-journal.mjs";
 import { executeJournaledDocumentCommit } from "./src/document-commit-executor.mjs";
 import { classifyCommitJournalRecovery } from "./src/commit-journal-recovery.mjs";
 import { listSharedViewIconManifestEntries } from "./src/shared-view-icon-manifest.mjs";
-import { assertSkillNodeContractSemantics } from "./src/skill-node-contract-semantics.mjs";
-import { SUPPORTED_CONTRACT_VERSION } from "./src/skill-node-contract-version.mjs";
-import {
-  SkillNodeContractError,
-} from "./src/skill-node-contract-service.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const projectRoot = path.resolve(args.project ?? args.root ?? process.cwd());
@@ -140,7 +135,6 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/document-index") return await handleDocumentIndex(url, res);
     if (url.pathname === "/api/document-content") return await handleDocumentContent(url, res);
     if (url.pathname === "/api/document-contracts" && req.method === "GET") return await handleDocumentContracts(url, res);
-    if (url.pathname === "/api/skill-node-contract" && req.method === "GET") return await handleSkillNodeContract(req, url, res);
     if (url.pathname === "/api/save" && req.method === "POST") return await handleSave(req, res);
     if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-config" && req.method === "POST") return await handleSaveViewConfig(req, res);
@@ -357,7 +351,7 @@ async function handleSave(req, res) {
       sendJson(res, { ok: true, documentEtag: documentEtag(text) });
     });
   } catch (error) {
-    if (!(error instanceof SkillNodeContractError) && !(error instanceof SkillDocumentSaveError) && !(error instanceof DocumentSaveError) && !(error instanceof DocumentContractError)) throw error;
+    if (!(error instanceof DocumentSaveError) && !(error instanceof DocumentContractError)) throw error;
     sendJson(res, {
       error: error.message,
       code: error.code,
@@ -365,169 +359,6 @@ async function handleSave(req, res) {
       ...(error.details == null ? {} : { details: error.details }),
     }, error.status, { "cache-control": "no-cache" });
   }
-}
-
-class SkillDocumentSaveError extends Error {
-  constructor(code, message, field, { status = 409, details = null } = {}) {
-    super(message);
-    this.name = "SkillDocumentSaveError";
-    this.code = code;
-    this.field = field;
-    this.status = status;
-    this.details = details;
-  }
-}
-
-async function validateSkillDocumentSave(body, projectContext) {
-  const requestProjectId = typeof body.projectId === "string" ? body.projectId.trim() : "";
-  if (!requestProjectId) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_PROJECT_REQUIRED",
-      "projectId is required to save the skill document.",
-      "projectId",
-      { status: 400 },
-    );
-  }
-  if (!Number.isInteger(body.contractVersion)) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_VERSION_MISSING",
-      "contractVersion is required to save the skill document.",
-      "contractVersion",
-      { status: 400 },
-    );
-  }
-  if (typeof body.contractEtag !== "string" || !body.contractEtag) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_ETAG_MISSING",
-      "contractEtag is required to save the skill document.",
-      "contractEtag",
-      { status: 400 },
-    );
-  }
-  const token = body.saveToken;
-  if (!token || typeof token !== "object" || Array.isArray(token)) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_TOKEN_MISSING",
-      "A project-scoped skill node contract save token is required.",
-      "saveToken",
-      { status: 400 },
-    );
-  }
-  if (token.projectId !== requestProjectId) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_TOKEN_PROJECT_MISMATCH",
-      "The save token belongs to a different project.",
-      "saveToken.projectId",
-      { details: { requestProjectId, tokenProjectId: token.projectId ?? null } },
-    );
-  }
-  if (token.contractVersion !== body.contractVersion) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_TOKEN_VERSION_MISMATCH",
-      "The save token version does not match contractVersion.",
-      "saveToken.contractVersion",
-    );
-  }
-  if (token.etag !== body.contractEtag) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_TOKEN_ETAG_MISMATCH",
-      "The save token ETag does not match contractEtag.",
-      "saveToken.etag",
-    );
-  }
-  if (!body.root || typeof body.root !== "object" || Array.isArray(body.root)
-    || !Number.isInteger(body.root.skill_node_contract_version)) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_ROOT_VERSION_MISSING",
-      "The skill document root is missing skill_node_contract_version.",
-      "root.skill_node_contract_version",
-    );
-  }
-  if (body.root.skill_node_contract_version !== body.contractVersion) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_ROOT_VERSION_MISMATCH",
-      "The skill document contract version does not match contractVersion.",
-      "root.skill_node_contract_version",
-    );
-  }
-
-  const current = await loadDeclaredSkillNodeContract(projectContext);
-  if (current.contract.contract_version !== body.contractVersion) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_VERSION_MISMATCH",
-      "contractVersion does not match the current skill node contract.",
-      "contractVersion",
-      { details: { expected: current.contract.contract_version, actual: body.contractVersion } },
-    );
-  }
-  if (current.etag !== body.contractEtag) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_SAVE_ETAG_STALE",
-      "contractEtag does not match the current skill node contract.",
-      "contractEtag",
-      { details: { expected: current.etag, actual: body.contractEtag } },
-    );
-  }
-  return current;
-}
-
-export async function assertSkillNodeContractUnchanged(projectContext, validatedEtag) {
-  const current = await loadDeclaredSkillNodeContract(projectContext);
-  if (current.etag !== validatedEtag) {
-    throw new SkillDocumentSaveError(
-      "SKILL_NODE_CONTRACT_CHANGED_DURING_SAVE",
-      "The skill node contract changed after the save gate was validated.",
-      "contractEtag",
-      { details: { expected: validatedEtag, actual: current.etag } },
-    );
-  }
-}
-
-async function handleSkillNodeContract(req, url, res) {
-  try {
-    const projectContext = await projectContextForSkillNodeContract(url.searchParams.get("projectId"));
-    const { contract, etag } = await loadDeclaredSkillNodeContract(projectContext);
-    const headers = { etag, "cache-control": "no-cache" };
-    if (matchesIfNoneMatch(req.headers["if-none-match"], etag)) {
-      res.writeHead(304, headers);
-      res.end();
-      return;
-    }
-    sendJson(res, contract, 200, headers);
-  } catch (error) {
-    if (!(error instanceof SkillNodeContractError)) throw error;
-    sendJson(res, {
-      error: error.message,
-      code: error.code,
-      ...(error.details == null ? {} : { details: error.details }),
-    }, error.status, { "cache-control": "no-cache" });
-  }
-}
-
-async function projectContextForSkillNodeContract(projectId) {
-  const resolvedProjectId = typeof projectId === "string" ? projectId.trim() : "";
-  if (!resolvedProjectId) {
-    throw new SkillNodeContractError(
-      "SKILL_NODE_CONTRACT_PROJECT_REQUIRED",
-      "projectId is required for the skill node contract endpoint.",
-      { status: 400 },
-    );
-  }
-  const registry = await loadProjectRegistry(registryOptions);
-  const project = registry.projects.find((candidate) => candidate.id === resolvedProjectId);
-  if (!project) {
-    throw new SkillNodeContractError(
-      "SKILL_NODE_CONTRACT_PROJECT_UNKNOWN",
-      `Unknown project: ${resolvedProjectId}`,
-      { status: 404, details: { projectId: resolvedProjectId } },
-    );
-  }
-  return createProjectContext({
-    projectRoot: project.root,
-    projectId: project.id,
-    dataSources: project.dataSources,
-    filePolicy: project.filePolicy,
-  });
 }
 
 async function handleDocumentIndex(url, res) {
@@ -595,53 +426,6 @@ async function handleSaveAutomationProfile(req, res) {
     if (error?.code === "AUTOMATION_PROFILE_ETAG_STALE") return sendJson(res, { error: error.message, code: error.code, field: "etag" }, 409);
     throw error;
   }
-}
-
-async function loadDeclaredSkillNodeContract(projectContext) {
-  const registry = await loadProjectRegistry(registryOptions);
-  const project = registry.projects.find((candidate) => candidate.id === projectContext.projectId);
-  if (!project) throw new SkillNodeContractError("SKILL_NODE_CONTRACT_PROJECT_UNKNOWN", `Unknown project: ${projectContext.projectId}.`, { status: 404 });
-  const state = await projectCapabilityRegistry.resolve(project);
-  if (state.status !== "active") {
-    throw new SkillNodeContractError("SKILL_NODE_CONTRACT_CAPABILITY_UNAVAILABLE", "The project has no active capability manifest for its skill node contract.", { status: 409, details: state.error ?? null });
-  }
-  const bindings = state.bindings.documentContracts.filter((binding) => binding.id === "skill-node-contract");
-  if (bindings.length !== 1) {
-    throw new SkillNodeContractError("SKILL_NODE_CONTRACT_BINDING_REQUIRED", "The project must declare exactly one skill-node-contract binding.", { status: 409, details: { count: bindings.length } });
-  }
-  let loaded;
-  try {
-    loaded = await loadDocumentContract(projectContext.projectRoot, bindings[0]);
-  } catch (error) {
-    if (!(error instanceof DocumentContractError)) throw error;
-    const legacy = {
-      DOCUMENT_CONTRACT_MISSING: ["SKILL_NODE_CONTRACT_MISSING", "Skill node contract is missing.", 404],
-      DOCUMENT_CONTRACT_SCHEMA_MISSING: ["SKILL_NODE_CONTRACT_META_SCHEMA_MISSING", "Skill node contract meta-schema is missing.", 404],
-      DOCUMENT_CONTRACT_INVALID_JSON: ["SKILL_NODE_CONTRACT_INVALID_JSON", "Skill node contract contains invalid JSON.", 422],
-      DOCUMENT_CONTRACT_SCHEMA_INVALID_JSON: ["SKILL_NODE_CONTRACT_META_SCHEMA_INVALID_JSON", "Skill node contract meta-schema contains invalid JSON.", 422],
-      DOCUMENT_CONTRACT_SCHEMA_COMPILE_INVALID: ["SKILL_NODE_CONTRACT_META_SCHEMA_INVALID", "Skill node contract meta-schema is not a valid JSON Schema.", 422],
-      DOCUMENT_CONTRACT_SCHEMA_INVALID: ["SKILL_NODE_CONTRACT_SCHEMA_INVALID", "Skill node contract does not satisfy its meta-schema.", 422],
-    }[error.code];
-    if (!legacy) throw error;
-    throw new SkillNodeContractError(legacy[0], legacy[1], { status: legacy[2], details: error.details });
-  }
-  if (loaded.version !== SUPPORTED_CONTRACT_VERSION) {
-    throw new SkillNodeContractError("SKILL_NODE_CONTRACT_VERSION_UNSUPPORTED", `Unsupported skill node contract version: ${String(loaded.version)}.`, { status: 409, details: { actual: loaded.version, supported: SUPPORTED_CONTRACT_VERSION } });
-  }
-  try {
-    assertSkillNodeContractSemantics(loaded.contract);
-  } catch (error) {
-    throw new SkillNodeContractError("SKILL_NODE_CONTRACT_SEMANTICS_INVALID", "Skill node contract contains incomplete or ambiguous runtime semantics.", { details: error instanceof Error ? error.message : String(error) });
-  }
-  return { contract: loaded.contract, etag: loaded.etag };
-}
-
-function matchesIfNoneMatch(ifNoneMatch, etag) {
-  if (typeof ifNoneMatch !== "string" || !ifNoneMatch.trim()) return false;
-  return ifNoneMatch.split(",").some((candidate) => {
-    const normalized = candidate.trim().replace(/^W\//, "");
-    return normalized === "*" || normalized === etag;
-  });
 }
 
 function validateDocumentContractSave(body, resolution) {

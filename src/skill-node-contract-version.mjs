@@ -1,1 +1,0 @@
-export const SUPPORTED_CONTRACT_VERSION = 1;

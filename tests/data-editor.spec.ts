@@ -5321,7 +5321,7 @@ test("unsupported nested items fall back to read-only JSON while scratch data ke
 
   await page.evaluate(() => localStorage.setItem(
     "data-editor:data/skills.json:skills:all:__order",
-    "dev_status,skill_name,ap_cost,description,class_pool,complexity,cooldown,description_zh,id,mana_cost,owner,range_type_show,range_value_show,skill_category,skill_id,skill_type,tags,spell_subtype,minion_subtype,form_duration,enemy_behavior_actions,enemy_intent_type,enemy_ai_tags,enemy_interaction_windows,enemy_bonus_answer_tags,enemy_skill_role,control_protection_tags,nodes,icon_path,equipment_requirement,on_expire_effect,replaced_skills,enemy_budget_score,back_skills,back_phase_skills",
+    "dev_status,skill_name,ap_cost,description,class_pool,complexity,cooldown,description_zh,id,mana_cost,owner,skill_category,skill_id,skill_type,tags,spell_subtype,minion_subtype,form_duration,enemy_behavior_actions,enemy_intent_type,enemy_ai_tags,enemy_interaction_windows,enemy_bonus_answer_tags,enemy_skill_role,control_protection_tags,nodes,icon_path,equipment_requirement,on_expire_effect,replaced_skills,enemy_budget_score,back_skills,back_phase_skills",
   ));
   await page.reload();
   await page.locator('.sidebar-item[title="data/skills.json"]').click();
