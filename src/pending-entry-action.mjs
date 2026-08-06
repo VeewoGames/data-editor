@@ -7,6 +7,8 @@ import { resolveInsideRoot } from "./project-context.mjs";
 export function createPendingEntryActionStore({ projectContext, now = () => Date.now() }) {
   const directory = resolveInsideRoot(projectContext.projectRoot, path.join(projectContext.runtimeDir, "pending-entry-actions"));
   return {
+    projectRoot: projectContext.projectRoot,
+    runtimeDir: projectContext.runtimeDir,
     async create(entry) {
       const token = crypto.randomUUID();
       const value = { version: 1, state: "pending", createdAt: new Date(now()).toISOString(), expiresAt: new Date(now() + 10 * 60 * 1000).toISOString(), token, ...entry };

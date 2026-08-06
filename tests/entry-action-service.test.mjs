@@ -168,6 +168,7 @@ async function writeFixture(context) {
       icon: "edit",
       targets: [{ file: "data/items.json", collection: "items" }],
       payload: { includeRow: true, includeNeighbors: false },
+      execution: { kind: "project-skill" },
     }],
   }, null, 2)}\n`);
   await writeFile(context.localAutomationBindingsPath, `${JSON.stringify({

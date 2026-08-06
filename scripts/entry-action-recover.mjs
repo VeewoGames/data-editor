@@ -2,14 +2,15 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { claimFencingAdmission, classifyRecoveryCommand, finalizeClaimedRecovery, inspectFencingRecovery, recoverClaim, releaseClaimedAdmission, writeCompletedRecoveryRecord } from "../src/entry-action-recovery.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
-import { publishEntryActionResultIdempotently, readEntryActionStarted } from "../src/entry-actions.mjs";
+import { publishEntryActionResultIdempotently, readEntryActionResult, readEntryActionStarted } from "../src/entry-actions.mjs";
 import { recoverProposalOnlyEntryActionGroup } from "../src/entry-action-service.mjs";
 const args = process.argv.slice(2); const [command] = args;
 const value = (name) => { const i=args.indexOf(name); return i < 0 ? null : args[i+1] ?? null; };
 const project = value("--project"), runId = value("--run-id");
 if (!project || !runId || !["inspect", "recover"].includes(command)) fail(2, "RECOVERY_ARGUMENT_INVALID");
 const projectContext = createProjectContext(path.resolve(project));
-const stateRoot = path.join(projectContext.projectRoot, ".data-editor", "runtime", "entry-actions", "fencing");
+// Keep recovery on the same durable fencing root used by the HTTP route.
+const stateRoot = path.join(projectContext.projectRoot, projectContext.runtimeDir, "entry-action-fencing");
 const inspection = await inspectFencingRecovery({ stateRoot, runId, processIdentity }).catch(() => ({ decision: "error", reasonCode: "RECOVERY_STATE_UNREADABLE", released: false }));
 let result;
 if (command === "inspect") result = inspectResult(inspection);
@@ -51,14 +52,19 @@ function inspectResult(value) {
 async function finishClaimedRecovery({ claim, inspection, claimedInspection }) {
   if (claimedInspection.decision !== "releasable") return classifyRecoveryCommand({ inspection: claimedInspection });
   let groupRecovery;
-  try {
-    groupRecovery = await recoverProposalOnlyEntryActionGroup({
-      projectContext,
-      runId,
-      recoveryLease: inspection.lease,
-    });
-  } catch (error) {
-    return { exitCode: 2, decision: "error", reasonCode: error?.code ?? "RECOVERY_GROUP_COMMIT_FAILED", released: false };
+  const terminalResult = await readEntryActionResult(projectContext, runId).catch(() => null);
+  if (terminalResult?.phase === "terminal") {
+    groupRecovery = { recovered: false, skipped: "terminal_result_exists" };
+  } else {
+    try {
+      groupRecovery = await recoverProposalOnlyEntryActionGroup({
+        projectContext,
+        runId,
+        recoveryLease: inspection.lease,
+      });
+    } catch (error) {
+      return { exitCode: 2, decision: "error", reasonCode: error?.code ?? "RECOVERY_GROUP_COMMIT_FAILED", released: false };
+    }
   }
   const recovered = await recoverClaim({
     inspection: claimedInspection,

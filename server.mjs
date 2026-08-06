@@ -538,7 +538,7 @@ async function handleSaveAutomationBindings(req, res) {
     sendJson(res, { ok: true, validated: true });
     return;
   }
-  const result = await saveAutomationBindings(projectContext, bindings, { validateRuntime: true });
+  const result = await saveAutomationBindings(projectContext, bindings);
   sendJson(res, { ok: true, ...result });
 }
 

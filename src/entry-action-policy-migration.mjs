@@ -19,6 +19,14 @@ export async function migrateLegacyEntryActionPolicy(projectContextOrRoot) {
   }
   const profileRaw = parse(profileText, "automation profile");
   const policy = validateEntryActionPolicy(parse(policyText, "entry action policy"));
+  // A prior migration may have persisted the modern profile before removing the
+  // legacy policy. Finish that cleanup instead of re-validating it as legacy.
+  try {
+    validateAutomationProfile(profileRaw);
+    return retireLegacyPolicy({ context, policyText, profileText, markerPath, policy });
+  } catch {
+    // Continue with the strict legacy conversion path below.
+  }
   assertLegacyProfileShape(profileRaw);
   const converted = convertProfile(profileRaw, policy);
   const nextProfileText = `${JSON.stringify(validateAutomationProfile(converted.profile), null, 2)}\n`;
@@ -48,10 +56,34 @@ export async function migrateLegacyEntryActionPolicy(projectContextOrRoot) {
     : { status: "migrated" };
 }
 
+async function retireLegacyPolicy({ context, policyText, profileText, markerPath, policy }) {
+  const migrationId = crypto.randomUUID();
+  const backupDirectory = path.join(context.projectRoot, ".data-editor", "entry-action-policy-migration-backups", migrationId);
+  const marker = {
+    version: 1, migrationId, stage: "profile_already_migrated",
+    policyPath: context.entryActionPolicyPath, profilePath: context.automationProfilePath,
+    policyDigest: digest(policyText), profileBeforeDigest: digest(profileText), profileAfterDigest: digest(profileText),
+    rowMatchActions: policy.targets.filter((target) => Object.keys(target.rowMatch).length).map((target) => target.actionId),
+    backupDirectory,
+  };
+  await mkdir(path.dirname(markerPath), { recursive: true });
+  await mkdir(backupDirectory, { recursive: true });
+  await writeFile(path.join(backupDirectory, "automation-profile.before.json"), profileText, "utf8");
+  await copyFile(context.entryActionPolicyPath, path.join(backupDirectory, "entry-action-policy.before.json"));
+  await writeFile(markerPath, `${JSON.stringify(marker, null, 2)}\n`, "utf8");
+  const currentPolicy = await readFile(context.entryActionPolicyPath, "utf8");
+  if (digest(currentPolicy) !== marker.policyDigest) fail("ENTRY_ACTION_POLICY_MIGRATION_POLICY_CHANGED");
+  await rm(context.entryActionPolicyPath);
+  await rm(markerPath, { force: true });
+  return marker.rowMatchActions.length
+    ? { status: "already_migrated", droppedRowMatchActions: [...new Set(marker.rowMatchActions)] }
+    : { status: "already_migrated" };
+}
+
 function convertProfile(profile, policy) {
   if (!profile || typeof profile !== "object" || Array.isArray(profile) || !Array.isArray(profile.rules)) fail("ENTRY_ACTION_POLICY_MIGRATION_PROFILE_INVALID");
   const artifactKeys = new Set(); const rowMatchActions = [];
-  const rules = profile.rules.map((rule) => ({ ...rule, targets: (rule.targets ?? []).map((target) => {
+  const rules = profile.rules.map((rule) => ({ ...rule, execution: rule.execution ?? { kind: "proposal" }, targets: (rule.targets ?? []).map((target) => {
     if (!target || typeof target !== "object" || Array.isArray(target)) fail("ENTRY_ACTION_POLICY_MIGRATION_TARGET_INVALID");
     const legacyId = target.textArtifactId;
     const next = { ...target }; delete next.textArtifactId;

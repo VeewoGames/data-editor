@@ -44,6 +44,7 @@ export function createFencingAllocator({ stateRoot, now = () => new Date().toISO
     reservePromotion: (input) => reservePromotion(root, input, { now, randomUUID }),
     activatePromotion: (lease) => activatePromotion(root, lease),
     cancelPromotion: (lease) => cancelPromotion(root, lease),
+    abortLaunching: (lease) => abortLaunching(root, lease),
     probe: (input) => probe(root, input),
     heartbeat: (lease) => heartbeat(root, lease, { now }),
     markEvidencePending: (lease) => markEvidencePending(root, lease, { now }),
@@ -150,6 +151,17 @@ async function cancelPromotion(root, lease) {
   const layout = layoutFor(root, owner.canonicalFileKey);
   await rmdir(layout.admissionDirectory);
   return { cancelled: true, fencingToken: owner.fencingToken };
+}
+
+// Callers may use this only after proving that no host was ever started.
+async function abortLaunching(root, lease) {
+  const owner = validateLease(lease);
+  const current = await probe(root, owner);
+  assertCurrentOwner(current, owner);
+  if (current.phase !== "launching") throw unavailable("ENTRY_ACTION_EVIDENCE_PHASE_INVALID", "Only an unstarted launching lease can be aborted.");
+  const layout = layoutFor(root, owner.canonicalFileKey);
+  await rmdir(layout.admissionDirectory);
+  return { aborted: true, fencingToken: owner.fencingToken };
 }
 
 async function probe(root, input) {

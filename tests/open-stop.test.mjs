@@ -1579,6 +1579,9 @@ test("server saves and loads automation profile and machine-local bindings", asy
             includeRow: true,
             includeNeighbors: true,
           },
+          execution: {
+            kind: "project-skill",
+          },
         },
       ],
     },

@@ -18,6 +18,25 @@ test("authority snapshot derives scope entirely from the profile rule", () => {
   assert.doesNotThrow(() => assertAuthorityCurrent({ snapshot, profile, changes, textArtifact, row }));
 });
 
+test("authority snapshot accepts a safe integer artifact source field", () => {
+  const numericProfile = {
+    ...profile,
+    rules: [{
+      ...profile.rules[0],
+      targets: [{
+        ...profile.rules[0].targets[0],
+        textArtifact: {
+          ...profile.rules[0].targets[0].textArtifact,
+          sourceField: "id",
+          pathTemplate: "docs/{value}.md",
+        },
+      }],
+    }],
+  };
+  const snapshot = createAuthoritySnapshot({ profile: numericProfile, actionId: "recheck", file: "fixtures/items.json", collection: "items", row: { ...row, id: 1026 } });
+  assert.equal(snapshot.textArtifact.path, "docs/1026.md");
+});
+
 test("authority rejects changed target, rule authority, row identity and artifact path", () => {
   const snapshot = createAuthoritySnapshot({ profile, actionId: "recheck", file: "fixtures/items.json", collection: "items", row });
   const stale = (error) => error?.code === "ENTRY_ACTION_PROFILE_STALE";

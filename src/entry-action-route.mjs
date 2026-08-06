@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { canonicalFileIdentity } from "./canonical-file-identity.mjs";
 import { createFencingAllocator } from "./fencing-lock.mjs";
-import { entryActionHandoffPath } from "./entry-actions.mjs";
+import { entryActionHandoffPath, readEntryActionStarted } from "./entry-actions.mjs";
 import { startProposalOnlyEntryAction } from "./entry-action-service.mjs";
 import { preflightEntryActionAdmission } from "./entry-action-admission.mjs";
 import { createPendingEntryActionStore } from "./pending-entry-action.mjs";
@@ -90,6 +90,13 @@ export function createEntryActionRunRoute({
       const runId = crypto.randomUUID();
       const jobInstanceId = crypto.randomUUID();
       const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(projectContext.projectRoot, path.join(projectContext.runtimeDir, "entry-action-fencing")) });
+      const store = createPendingEntryActionStore({ projectContext });
+      await expirePendingPromotionsForSource({
+        store,
+        allocator,
+        projectId: project.id,
+        canonicalFileKey: sourceIdentity.canonicalFileKey,
+      });
       const lease = await allocator.reservePromotion({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
       const idempotencyKey = String(body?.idempotencyKey ?? "").trim();
       let promotion;
@@ -103,11 +110,15 @@ export function createEntryActionRunRoute({
         await allocator.cancelPromotion(lease).catch(() => {});
         throw error;
       }
-      const store = createPendingEntryActionStore({ projectContext });
+      const promotedCapabilityState = await resolveCapabilityState(project);
+      if (promotedCapabilityState?.status !== "active") {
+        await allocator.cancelPromotion(lease).catch(() => {});
+        routeError("IDENTITY_PROMOTION_CAPABILITY_UNAVAILABLE", "Capability state is not active after durable identity promotion.", 409);
+      }
       const pending = await store.create({
         projectId: project.id, actionId: body.actionId, sourcePath: body.sourcePath, collectionPath: body.collectionPath,
         rowId: promotion.receipt.durableId, expectedRowDigest: promotion.receipt.canonicalRowDigest,
-        capabilityGeneration: capabilityState.generation, manifestDigest: capabilityState.manifestDigest,
+        capabilityGeneration: promotedCapabilityState.generation, manifestDigest: promotedCapabilityState.manifestDigest,
         idempotencyKey, receipt: promotion.receipt, runId, jobInstanceId, lease,
       });
       return { ok: true, status: "promotion_pending", pendingActionToken: pending.token, receipt: promotion.receipt, root: promotion.root, format: promotion.format, documentEtag: promotion.documentEtag };
@@ -126,13 +137,48 @@ export function createEntryActionRunRoute({
         routeError("ENTRY_ACTION_PENDING_TOKEN_EXPIRED", "Pending action token has expired.", 409);
       }
       const state = await resolveCapabilityState(project);
-      if (state.status !== "active" || state.generation !== pending.capabilityGeneration || state.manifestDigest !== pending.manifestDigest) routeError("ENTRY_ACTION_PENDING_AUTHORITY_STALE", "Capability authority changed before action start.", 409);
+      if (state.status !== "active" || state.generation !== pending.capabilityGeneration || state.manifestDigest !== pending.manifestDigest) {
+        await allocator.cancelPromotion(pending.lease).then(() => store.write({ ...pending, state: "invalidated", invalidatedAt: new Date().toISOString() })).catch(() => {});
+        routeError("ENTRY_ACTION_PENDING_AUTHORITY_STALE", "Capability authority changed before action start.", 409);
+      }
       await allocator.activatePromotion(pending.lease);
-      const started = await start({ ...pending, projectId: project.id, sourceRowIndex: null }, { lease: pending.lease, runId: pending.runId, jobInstanceId: pending.jobInstanceId });
+      let started;
+      try {
+        started = await start({ ...pending, projectId: project.id, sourceRowIndex: null }, { lease: pending.lease, runId: pending.runId, jobInstanceId: pending.jobInstanceId });
+      } catch (error) {
+        const persistedStart = await readEntryActionStarted(projectContext, pending.runId).then(() => true).catch(() => false);
+        if (!persistedStart) {
+          await allocator.abortLaunching(pending.lease).then(() => store.write({ ...pending, state: "failed", failedAt: new Date().toISOString() })).catch(() => {});
+        }
+        throw error;
+      }
       await store.write({ ...pending, state: "started", startedAt: new Date().toISOString(), runId: started.runId, handoffPath: started.handoffPath });
       return started;
     },
   };
+}
+
+/** Expired pending tokens never started a host, so their promotion lease is safe to cancel. */
+export async function expirePendingPromotionsForSource({ store, allocator, projectId, canonicalFileKey, now = () => new Date().toISOString() }) {
+  const entries = await store.list();
+  const expired = [];
+  for (const entry of entries) {
+    if (entry?.projectId !== projectId || entry?.state !== "pending" || entry?.lease?.canonicalFileKey !== canonicalFileKey || !store.isExpired(entry)) continue;
+    const current = await allocator.probe(entry.lease);
+    if (current.status !== "owned") continue;
+    if (current.phase === "promotion_pending") {
+      await allocator.cancelPromotion(entry.lease);
+    } else if (current.phase === "launching") {
+      const started = await readEntryActionStarted({ projectRoot: store.projectRoot, runtimeDir: store.runtimeDir }, entry.runId).then(() => true).catch(() => false);
+      if (started) continue;
+      await allocator.abortLaunching(entry.lease);
+    } else {
+      continue;
+    }
+    await store.write({ ...entry, state: "expired", expiredAt: now() });
+    expired.push(entry.token);
+  }
+  return expired;
 }
 
 function routeError(code, message, status) {

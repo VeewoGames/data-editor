@@ -199,6 +199,14 @@ export async function startProposalOnlyEntryAction({
     return { runId, completion };
   } catch (error) {
     await handle?.terminate("startup_failed").catch(() => {});
+    if (!handle) {
+      await allocator.abortLaunching(lease).catch(() => {});
+      await rm(scratch, { recursive: true, force: true }).catch(() => {});
+      if (startedStateWritten) {
+        await publishTerminal(projectContext, runId, actionId, "failed", "Entry-action host did not start.").catch(() => {});
+      }
+      throw error;
+    }
     if (evidencePersisted) {
       await allocator.release(lease).catch(() => {});
       await rm(scratch, { recursive: true, force: true }).catch(() => {});

@@ -26,8 +26,11 @@ export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifac
 }
 
 function createTextArtifact(rule, row, actionId, file, collection) {
-  const sourceValue = row?.[rule.sourceField];
-  if (typeof sourceValue !== "string" || !/^[a-zA-Z0-9_-]+$/.test(sourceValue)) authorityStale();
+  const rawSourceValue = row?.[rule.sourceField];
+  const sourceValue = typeof rawSourceValue === "string"
+    ? rawSourceValue
+    : Number.isSafeInteger(rawSourceValue) ? String(rawSourceValue) : null;
+  if (!sourceValue || !/^[a-zA-Z0-9_-]+$/.test(sourceValue)) authorityStale();
   // Journal IDs must be portable filename-safe values, not user-facing paths.
   const id = `artifact_${crypto.createHash("sha256").update(`${actionId}\u0000${file}\u0000${collection}`, "utf8").digest("hex")}`;
   return Object.freeze({ id, path: rule.pathTemplate.replace("{value}", sourceValue), sourceField: rule.sourceField, sourceValue, ...rule });

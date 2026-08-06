@@ -35,5 +35,9 @@ test("production recovery resumes a group journal before releasing fencing owner
   assert.ok(resumeIndex >= 0);
   assert.ok(releaseIndex > resumeIndex);
   assert.match(recovery, /publishEntryActionResultIdempotently/);
+  assert.match(recovery, /readEntryActionResult/);
+  assert.match(recovery, /terminalResult\?\.phase === "terminal"/);
   assert.match(recovery, /outcome: "failed"/);
+  assert.match(recovery, /projectContext\.runtimeDir, "entry-action-fencing"/);
+  assert.doesNotMatch(recovery, /"runtime", "entry-actions", "fencing"/);
 });

@@ -40,6 +40,14 @@ test("promotion reservation fences the file until explicit activation or cancell
   assert.equal((await fixture.allocator.probe({ canonicalFileKey: KEY_A })).phase, "launching");
 });
 
+test("an unstarted launching lease can be explicitly aborted", async (t) => {
+  const fixture = await makeFixture(t);
+  const lease = await fixture.allocator.reservePromotion(request(KEY_A, "unstarted"));
+  await fixture.allocator.activatePromotion(lease);
+  assert.equal((await fixture.allocator.abortLaunching(lease)).aborted, true);
+  assert.equal((await fixture.allocator.probe({ canonicalFileKey: KEY_A })).status, "absent");
+});
+
 test("the fixed claimable admission directory is empty and owned by its durable head", async (t) => {
   const fixture = await makeFixture(t);
   const lease = await fixture.allocator.allocate(request(KEY_A, "empty-lock"));

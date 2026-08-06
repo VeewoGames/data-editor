@@ -37,6 +37,9 @@ export type EntryActionRule = {
     includeRow: boolean;
     includeNeighbors: boolean;
   };
+  execution: {
+    kind: "proposal" | "project-skill";
+  };
   runtime?: {
     model?: string;
     reasoning?: "none" | "low" | "medium" | "high" | "xhigh";
@@ -835,6 +838,9 @@ function normalizeFetchedEntryActionRule(value: unknown): EntryActionRule | null
       includeNeighbors: typeof (rule.payload as { includeNeighbors?: unknown } | null)?.includeNeighbors === "boolean"
         ? Boolean((rule.payload as { includeNeighbors?: boolean }).includeNeighbors)
         : true,
+    },
+    execution: {
+      kind: (rule.execution as { kind?: unknown } | null)?.kind === "proposal" ? "proposal" : "project-skill",
     },
     runtime: normalizeFetchedEntryActionRuntime(rule.runtime),
   };

@@ -33,7 +33,6 @@ import {
   saveDocuments,
   saveAutomationBindings,
   saveAutomationProfile,
-  validateAutomationBindings,
   saveSharedViews,
   shutdownServer,
   saveViewConfig,
@@ -84,6 +83,7 @@ import { DetailPanel, type DetailEntryActionStatus, type DetailSnapshot } from "
 import { createNestedSchemaCapabilityResolver } from "./detail/nested-schema-capability.mjs";
 import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
+import { rowDigestBrowser } from "./row-digest-browser.mjs";
 import { defaultAutomationRuntime } from "./automation-runtime.mjs";
 import {
   automationRuleSelectionAfterRemoval,
@@ -118,7 +118,6 @@ import { parseRelationKey, type PrimaryKeyImpact, type PrimaryKeySyncPlan, type 
 import { deriveBacklinkConfigs, syncBacklinksWithRelations } from "./model/fieldRole";
 import { resolveAutoSuffixedPrimaryKeyValue } from "./model/primary-key-auto-suffix.mjs";
 import { duplicateRowByRowId, reorderRowsByRowId } from "./model/writeback-adapter";
-import { rowDigest } from "./row-digest.mjs";
 import { resolveCanReorderRows } from "./table/row-reorder-policy.mjs";
 import { analyzePrimaryKeyCandidates, buildCollectionKey, type FilteredPrimaryKeyCandidate, type PrimaryKeyCandidate, type PrimaryKeyCandidateAnalysis } from "./model/primaryKeyCandidate";
 import { findTitleField, getRecordTitle } from "./model/titleField";
@@ -4102,7 +4101,8 @@ export function App() {
   async function handleRunDetailEntryAction(actionId: string) {
     if (entryActionRunningId) return;
     if (!activeProjectId || !selectedPath || selectedSourceRowIndex == null) return;
-    const actionLabel = visibleEntryActions.find((action) => action.id === actionId)?.label ?? actionId;
+    const action = visibleEntryActions.find((candidate) => candidate.id === actionId);
+    const actionLabel = action?.label ?? actionId;
     setEntryActionErrorMessage(null);
     setEntryActionStatus({
       actionId,
@@ -4138,8 +4138,9 @@ export function App() {
         });
         return;
       }
-      const sourceRow = getRows(model, collectionPath)[selectedSourceRowIndex];
-      if (!sourceRow || typeof sourceRow !== "object") throw new Error("当前条目已变化，无法建立安全的自动化目标。");
+      const expectedRowDigest = action?.execution.kind === "proposal" && selectedRow
+        ? await rowDigestBrowser(selectedRow)
+        : undefined;
       const result = await runEntryAction({
         projectId: activeProjectId,
         actionId,
@@ -4147,7 +4148,7 @@ export function App() {
         collectionPath,
         rowId: selectedRowId,
         sourceRowIndex: selectedSourceRowIndex,
-        expectedRowDigest: rowDigest(sourceRow),
+        expectedRowDigest,
         idempotencyKey: crypto.randomUUID(),
       });
       const started = result.status === "promotion_pending"
@@ -6657,6 +6658,9 @@ function AutomationSettingsDialog(props: {
             includeRow: true,
             includeNeighbors: false,
           },
+          execution: {
+            kind: "project-skill",
+          },
         },
       ],
     }));
@@ -6692,7 +6696,6 @@ function AutomationSettingsDialog(props: {
     setError(null);
     setSaveMessage(null);
     try {
-      await validateAutomationBindings(latestBindings, props.project.id);
       try {
         await saveAutomationProfile(latestProfile, props.project.id);
       } catch (profileSaveError) {
@@ -7507,6 +7510,10 @@ function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile,
     } else {
       ruleIssues.push("缺少本机绑定。");
     }
+    const bindingStatus = bindings.bindingStatuses?.[rule.id];
+    if (bindingStatus?.status === "invalid" && bindingStatus.message) {
+      ruleIssues.push(bindingStatus.message);
+    }
     issuesByRuleId[rule.id] = ruleIssues;
     if (!rule.id.trim()) issuesByRuleId[`__index_${index}`] = ruleIssues;
   }
@@ -7561,7 +7568,6 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
     }
 
     const binding = bindings.bindings[ruleId];
-    const bindingStatus = bindings.bindingStatuses?.[ruleId];
     if (!rule.enabled) continue;
     if (!binding) {
       issues.push(`${prefix}: 当前设备缺少 binding。`);
@@ -7569,9 +7575,6 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
     }
     if (binding.provider !== "codex") issues.push(`${prefix}: Provider 目前只支持 codex。`);
     if (!binding.skill.trim()) issues.push(`${prefix}: Skill 不能为空。`);
-    if (bindingStatus?.status === "invalid" && bindingStatus.message) {
-      issues.push(`${prefix}: ${bindingStatus.message}`);
-    }
   }
   for (const ruleId of Object.keys(bindings.bindings)) {
     if (!seenRuleIds.has(ruleId)) {
@@ -7622,6 +7625,7 @@ function resolveVisibleEntryActions(input: {
         includeRow: rule.payload.includeRow,
         includeNeighbors: rule.payload.includeNeighbors,
       },
+      execution: rule.execution,
     }));
 }
 

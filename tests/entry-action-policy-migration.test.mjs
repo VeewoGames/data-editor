@@ -39,3 +39,23 @@ test("migration removes legacy rowMatch because row predicates belong to the sel
     await assert.rejects(() => readFile(path.join(root, ".data-editor", "entry-action-policy.json"), "utf8"), { code: "ENOENT" });
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test("migration retires a leftover legacy policy when the profile is already modern", async () => {
+  const root = await project({ rowMatch: true });
+  try {
+    const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+    const profile = JSON.parse(await readFile(profilePath, "utf8"));
+    for (const rule of profile.rules) {
+      rule.execution = { kind: "proposal" };
+      for (const target of rule.targets) delete target.textArtifactId;
+    }
+    await writeFile(profilePath, JSON.stringify(profile, null, 2));
+
+    assert.deepEqual(await migrateLegacyEntryActionPolicy(root), {
+      status: "already_migrated",
+      droppedRowMatchActions: ["design"],
+    });
+    assert.deepEqual(JSON.parse(await readFile(profilePath, "utf8")), profile);
+    await assert.rejects(() => readFile(path.join(root, ".data-editor", "entry-action-policy.json"), "utf8"), { code: "ENOENT" });
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
