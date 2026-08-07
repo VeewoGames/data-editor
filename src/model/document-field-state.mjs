@@ -32,9 +32,17 @@ export function buildSelectedDocumentFields({
         fieldPath: [fieldName],
       });
       if (documentFieldConfigs[key]?.enabled !== true) return null;
+      // A configured document field may carry an explicit document reference.
+      // When it is blank, use the record primary key so a collection can link
+      // one Markdown file per record without duplicating that ID into every row.
       const rawDocumentId = row[fieldName];
+      const documentReference = hasDocumentReference(rawDocumentId)
+        ? rawDocumentId
+        : primaryKeyField
+          ? row[primaryKeyField]
+          : rawDocumentId;
       const documentId = resolveDocumentId({
-        value: rawDocumentId,
+        value: documentReference,
         documentRoot,
         documentIndexEntries,
       });
@@ -53,6 +61,10 @@ export function buildSelectedDocumentFields({
       };
     })
     .filter(Boolean);
+}
+
+function hasDocumentReference(value) {
+  return value != null && String(value).trim() !== "";
 }
 
 /**

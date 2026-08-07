@@ -64,6 +64,30 @@ test("buildSelectedDocumentFields resolves a project-relative Markdown path thro
   ]);
 });
 
+test("buildSelectedDocumentFields falls back to the primary key when a document field is blank", () => {
+  const result = buildSelectedDocumentFields({
+    sourcePath: "data/governance/glossary.json",
+    collectionPath: "terms",
+    row: { term_id: "actiondefinition", dev_doc: "" },
+    primaryKeyField: "term_id",
+    displayTypes: { term_id: "Text", dev_doc: "Document" },
+    documentFieldConfigs: { "data/governance/glossary.json:terms:dev_doc": { enabled: true } },
+    documentRoot: "docs/glossary",
+    documentIndexEntries: {
+      actiondefinition: {
+        status: "resolved",
+        id: "actiondefinition",
+        relativePath: "actiondefinition.md",
+        title: "ActionDefinition（行动定义）",
+      },
+    },
+  });
+
+  assert.deepEqual(result.map((entry) => ({ documentId: entry.documentId, label: entry.label })), [
+    { documentId: "actiondefinition", label: "ActionDefinition（行动定义）" },
+  ]);
+});
+
 test("mergeDetailFieldOrder appends sparse document fields after row keys", () => {
   const result = mergeDetailFieldOrder(
     { id: "skill_fireball", name: "Fireball" },
