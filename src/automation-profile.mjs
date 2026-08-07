@@ -6,6 +6,11 @@ import { normalizeSharedViewIcon } from "./view/shared-view-normalize.mjs";
 
 const validRuleIdPattern = /^[a-z0-9_-]+$/;
 const profileSaveLocks = new Map();
+export const defaultTextArtifactPolicy = Object.freeze({
+  allowCreate: true,
+  allowUpdate: true,
+  maxBytes: 262144,
+});
 
 export function emptyAutomationProfile() {
   return { rules: [], etag: null };
@@ -165,15 +170,8 @@ function dedupeTargetPairs(value, ruleId) {
 function normalizeTextArtifact(value, ruleId) {
   if (value == null) return {};
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Entry action rule "${ruleId}" target.textArtifact must be an object`);
-  const keys = Object.keys(value).sort();
-  const required = ["allowCreate", "allowUpdate", "maxBytes", "pathTemplate", "sourceField"];
-  if (keys.length !== required.length || required.some((key) => !Object.hasOwn(value, key))) throw new Error(`Entry action rule "${ruleId}" target.textArtifact fields are invalid`);
-  const pathTemplate = normalizeRequiredString(value.pathTemplate, `Entry action rule "${ruleId}" target.textArtifact.pathTemplate`);
-  if (pathTemplate.includes("\\") || path.posix.isAbsolute(pathTemplate) || path.posix.normalize(pathTemplate) !== pathTemplate || !pathTemplate.endsWith(".md") || (pathTemplate.match(/\{value\}/g) ?? []).length !== 1) throw new Error(`Entry action rule "${ruleId}" target.textArtifact.pathTemplate is invalid`);
-  const sourceField = normalizeRequiredString(value.sourceField, `Entry action rule "${ruleId}" target.textArtifact.sourceField`);
-  const maxBytes = normalizeOptionalPositiveInteger(value.maxBytes, `Entry action rule "${ruleId}" target.textArtifact.maxBytes`);
-  if (maxBytes == null || typeof value.allowCreate !== "boolean" || typeof value.allowUpdate !== "boolean") throw new Error(`Entry action rule "${ruleId}" target.textArtifact permissions are invalid`);
-  return { textArtifact: { pathTemplate, sourceField, allowCreate: value.allowCreate, allowUpdate: value.allowUpdate, maxBytes } };
+  if (Object.keys(value).length !== 0) throw new Error(`Entry action rule "${ruleId}" target.textArtifact fields are invalid`);
+  return { textArtifact: {} };
 }
 
 function normalizePayload(value, ruleId) {

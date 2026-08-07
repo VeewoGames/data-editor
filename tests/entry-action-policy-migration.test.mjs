@@ -24,7 +24,7 @@ test("migration keeps profile-only targets and deletes the legacy policy after e
     assert.deepEqual(await migrateLegacyEntryActionPolicy(root), { status: "migrated" });
     const profile = JSON.parse(await readFile(path.join(root, ".data-editor", "automation-profile.json"), "utf8"));
     assert.equal(profile.rules[0].targets[0].file, "data/traits.json");
-    assert.equal(profile.rules[1].targets[0].textArtifact.pathTemplate, "docs/skills/{value}.md");
+    assert.deepEqual(profile.rules[1].targets[0].textArtifact, {});
     await assert.rejects(() => readFile(path.join(root, ".data-editor", "entry-action-policy.json"), "utf8"), { code: "ENOENT" });
   } finally { await rm(root, { recursive: true, force: true }); }
 });
@@ -35,7 +35,7 @@ test("migration removes legacy rowMatch because row predicates belong to the sel
     const result = await migrateLegacyEntryActionPolicy(root);
     assert.deepEqual(result, { status: "migrated", droppedRowMatchActions: ["design"] });
     const profile = JSON.parse(await readFile(path.join(root, ".data-editor", "automation-profile.json",), "utf8"));
-    assert.equal(profile.rules[1].targets[0].textArtifact.sourceField, "skill_id");
+    assert.deepEqual(profile.rules[1].targets[0].textArtifact, {});
     await assert.rejects(() => readFile(path.join(root, ".data-editor", "entry-action-policy.json"), "utf8"), { code: "ENOENT" });
   } finally { await rm(root, { recursive: true, force: true }); }
 });

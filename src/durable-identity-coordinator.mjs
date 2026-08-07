@@ -74,7 +74,7 @@ export async function promoteEmbeddedIdentity({
           sourcePath, collectionPath, root: parsed.data, format: parsed.format, capabilityState: state,
         });
         await journal.write(completeIdentityPromotion(existing, receipt));
-        return { replayed: true, receipt, root: parsed.data, format: parsed.format, documentEtag: etag(currentText) };
+        return { replayed: true, identityCreated: false, receipt, root: parsed.data, format: parsed.format, documentEtag: etag(currentText) };
       }
     }
     if (rowDigest(currentRow) !== requestedDigest) fail("IDENTITY_PROMOTION_TARGET_STALE", "The canonical target row no longer matches the requested digest.", 409);
@@ -151,7 +151,7 @@ export async function promoteEmbeddedIdentity({
       receiptDigest: digest(JSON.stringify(promotion.receipt)),
     };
     await journal.write(completeIdentityPromotion(intent, receipt));
-    return { replayed: false, receipt, root: persisted.data, format: persisted.format, documentEtag: etag(persistedText) };
+    return { replayed: false, identityCreated: promotion.identityCreated, receipt, root: persisted.data, format: persisted.format, documentEtag: etag(persistedText) };
   });
 }
 
@@ -196,7 +196,7 @@ function replayReceipt({ existing, rows, policy, sourcePath, collectionPath, ind
   const receipt = existing.receipt;
   const matches = rows.filter((row) => row?.[policy.provider.field] === receipt?.durableId);
   if (!receipt || matches.length !== 1) fail("IDENTITY_PROMOTION_NEEDS_RECOVERY", "The promotion receipt cannot be reconciled with the canonical document.", 503);
-  return { replayed: true, receipt, root: parsed.data, format: parsed.format, documentEtag: etag(currentText) };
+  return { replayed: true, identityCreated: false, receipt, root: parsed.data, format: parsed.format, documentEtag: etag(currentText) };
 }
 
 function resolveIdentityPolicy(projectContext, state, sourcePath, collectionPath) {

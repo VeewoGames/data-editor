@@ -4,13 +4,26 @@ import path from "node:path";
 import test from "node:test";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createDocumentCommitCoordinator } from "../src/document-commit-coordinator.mjs";
-import { startProposalOnlyEntryAction } from "../src/entry-action-service.mjs";
+import { bindProposalToHandoff, startProposalOnlyEntryAction } from "../src/entry-action-service.mjs";
 import {
   entryActionHandoffPath,
   readEntryActionResult,
 } from "../src/entry-actions.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
 import { rowDigest } from "../src/row-digest.mjs";
+
+test("service recalculates the model-supplied Markdown digest from its content", () => {
+  const handoff = {
+    runId: "10000000-0000-4000-8000-000000000001",
+    action: { id: "fixture-rename" },
+    entry: { sourcePath: "data/items.json", canonicalFileKey: "a".repeat(64), collectionPath: "items", rowId: "entry" },
+    proposalContract: { version: 3, baseDocumentEtag: "\"etag\"", ruleDigest: "b".repeat(64), fencingToken: 1 },
+  };
+  const proposal = bindProposalToHandoff({
+    textArtifact: { afterContent: "# Skill\n", afterDigest: "0".repeat(64) },
+  }, handoff);
+  assert.equal(proposal.textArtifact.afterDigest, "74daeff849609b74a42500aff45eb6229a086907ab1b2badae4c29ed4fc10e3c");
+});
 
 test("proposal-only service commits an authorized row patch and publishes terminal state", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-service-"));

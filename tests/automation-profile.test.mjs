@@ -69,13 +69,13 @@ test("automation profile preserves an optional text artifact declaration", () =>
       targets: [{
         file: "data/skills.json",
         collection: "skills",
-        textArtifact: { pathTemplate: "docs/skills/{value}.md", sourceField: "skill_id", allowCreate: true, allowUpdate: true, maxBytes: 4096 },
+        textArtifact: {},
       }],
       payload: { includeRow: true, includeNeighbors: false },
       execution: { kind: "proposal" },
     }],
   });
-  assert.equal(profile.rules[0].targets[0].textArtifact.pathTemplate, "docs/skills/{value}.md");
+  assert.deepEqual(profile.rules[0].targets[0].textArtifact, {});
 });
 
 test("normalizeAutomationProfile rejects duplicate rule ids", () => {

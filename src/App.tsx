@@ -4153,7 +4153,9 @@ export function App() {
       });
       const started = result.status === "promotion_pending"
         ? await (async () => {
-          await openDocumentAt(selectedPath, collectionPath, undefined, detailOpen, activeProjectId, result.receipt.durableId);
+          if (result.identityCreated) {
+            await openDocumentAt(selectedPath, collectionPath, undefined, detailOpen, activeProjectId, result.receipt.durableId);
+          }
           return ackStartEntryAction({ projectId: activeProjectId, pendingActionToken: result.pendingActionToken });
         })()
         : result;
@@ -6550,26 +6552,9 @@ function AutomationSettingsDialog(props: {
         }
         return {
           ...target,
-          textArtifact: target.textArtifact ?? {
-            pathTemplate: "docs/{value}.md",
-            sourceField: "id",
-            allowCreate: true,
-            allowUpdate: true,
-            maxBytes: 131072,
-          },
+          textArtifact: target.textArtifact ?? {},
         };
       }),
-    }));
-  }
-
-  function updateRuleTargetTextArtifactField(index: number, targetIndex: number, field: keyof NonNullable<EntryActionTarget["textArtifact"]>, value: string | boolean | number) {
-    updateRuleWith(index, (rule) => ({
-      ...rule,
-      targets: rule.targets.map((target, currentIndex) => (
-        currentIndex === targetIndex && target.textArtifact
-          ? { ...target, textArtifact: { ...target.textArtifact, [field]: value } }
-          : target
-      )),
     }));
   }
 
@@ -7196,20 +7181,7 @@ function AutomationSettingsDialog(props: {
                                         </label>
                                         {target.textArtifact ? (
                                           <div className="automation-target-artifact__fields">
-                                            <label className="dialog-field">
-                                              <span>文档路径模板</span>
-                                              <input disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "pathTemplate", event.target.value)} value={target.textArtifact.pathTemplate} />
-                                            </label>
-                                            <label className="dialog-field">
-                                              <span>条目标识字段</span>
-                                              <input disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "sourceField", event.target.value)} value={target.textArtifact.sourceField} />
-                                            </label>
-                                            <label className="dialog-field">
-                                              <span>最大字节数</span>
-                                              <input disabled={controlsDisabled} min={1} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "maxBytes", Number(event.target.value))} type="number" value={target.textArtifact.maxBytes} />
-                                            </label>
-                                            <label className="dialog-check"><input checked={target.textArtifact.allowCreate} disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "allowCreate", event.target.checked)} type="checkbox" /><span>允许新建</span></label>
-                                            <label className="dialog-check"><input checked={target.textArtifact.allowUpdate} disabled={controlsDisabled} onChange={(event) => updateRuleTargetTextArtifactField(selectedIndex, targetIndex, "allowUpdate", event.target.checked)} type="checkbox" /><span>允许更新</span></label>
+                                            <p className="automation-target-artifact__hint">文档固定使用当前集合的主键 ID 命名，并写入该文件已配置的关联文档根目录。系统默认允许新建和更新，单篇文档上限为 256 KB。</p>
                                           </div>
                                         ) : null}
                                       </div>
@@ -7487,12 +7459,6 @@ function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile,
     for (const target of rule.targets) {
       if (!target.file.trim()) ruleIssues.push("目标文件不能为空。");
       if (!target.collection.trim()) ruleIssues.push("目标集合不能为空。");
-      if (target.textArtifact) {
-        if (!target.textArtifact.pathTemplate.trim() || !target.textArtifact.pathTemplate.endsWith(".md") || (target.textArtifact.pathTemplate.match(/\{value\}/g) ?? []).length !== 1) ruleIssues.push("文档路径模板必须是含一个 `{value}` 的 Markdown 路径。");
-        if (!target.textArtifact.sourceField.trim()) ruleIssues.push("文档条目标识字段不能为空。");
-        if (!Number.isInteger(target.textArtifact.maxBytes) || target.textArtifact.maxBytes <= 0) ruleIssues.push("文档最大字节数必须为正整数。");
-        if (!target.textArtifact.allowCreate && !target.textArtifact.allowUpdate) ruleIssues.push("文档至少要允许新建或更新其中一种操作。");
-      }
     }
     if (rule.runtime?.reasoning != null && !["none", "low", "medium", "high", "xhigh"].includes(rule.runtime.reasoning)) {
       ruleIssues.push("规则推理强度必须为 none / low / medium / high / xhigh。");
@@ -7549,12 +7515,6 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
         const key = `${target.file}\u0000${target.collection}`;
         if (seenTargets.has(key)) issues.push(`${prefix}: 目标 "${target.file} / ${target.collection}" 重复。`);
         seenTargets.add(key);
-        if (target.textArtifact) {
-          if (!target.textArtifact.pathTemplate.trim() || !target.textArtifact.pathTemplate.endsWith(".md") || (target.textArtifact.pathTemplate.match(/\{value\}/g) ?? []).length !== 1) issues.push(`${prefix}: 文档路径模板必须是含一个 \`{value}\` 的 Markdown 路径。`);
-          if (!target.textArtifact.sourceField.trim()) issues.push(`${prefix}: 文档条目标识字段不能为空。`);
-          if (!Number.isInteger(target.textArtifact.maxBytes) || target.textArtifact.maxBytes <= 0) issues.push(`${prefix}: 文档最大字节数必须为正整数。`);
-          if (!target.textArtifact.allowCreate && !target.textArtifact.allowUpdate) issues.push(`${prefix}: 文档至少要允许新建或更新其中一种操作。`);
-        }
       }
     }
     if (rule.runtime?.reasoning != null && !["none", "low", "medium", "high", "xhigh"].includes(rule.runtime.reasoning)) {

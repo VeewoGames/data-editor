@@ -31,11 +31,12 @@ const profile = {
     targets: [{
       file: "data/items.json",
       collection: "$",
-      textArtifact: { pathTemplate: "docs/items/{value}.md", sourceField: "item_id", allowCreate: true, allowUpdate: true, maxBytes: 4096 },
+      textArtifact: {},
     }],
   }],
 };
-const snapshot = createAuthoritySnapshot({ profile, actionId: "rename", file: "data/items.json", collection: "$", row });
+const documentTarget = { primaryKeyField: "item_id", documentRoot: "docs/items", sourceValue: "item_alpha", path: "docs/items/item_alpha.md" };
+const snapshot = createAuthoritySnapshot({ profile, actionId: "rename", file: "data/items.json", collection: "$", row, documentTarget });
 const lease = {
   canonicalFileKey: "a".repeat(64),
   runId: "10000000-0000-4000-8000-000000000001",
@@ -82,6 +83,7 @@ async function makeFixture(t) {
     lease,
     authoritySnapshot: snapshot,
     profile,
+    documentTarget,
     documentText,
     textArtifactCurrentText: null,
     probeLease,

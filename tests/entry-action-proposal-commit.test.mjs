@@ -32,10 +32,11 @@ const artifactProfile = {
   ...profile,
   rules: [{
     ...profile.rules[0],
-    targets: [{ ...profile.rules[0].targets[0], textArtifact: { pathTemplate: "docs/items/{value}.md", sourceField: "item_id", allowCreate: true, allowUpdate: true, maxBytes: 4096 } }],
+    targets: [{ ...profile.rules[0].targets[0], textArtifact: {} }],
   }],
 };
-const artifactSnapshot = createAuthoritySnapshot({ profile: artifactProfile, actionId: "rename", file: "data/items.json", collection: "$", row });
+const artifactDocumentTarget = { primaryKeyField: "item_id", documentRoot: "docs/items", sourceValue: "item_alpha", path: "docs/items/item_alpha.md" };
+const artifactSnapshot = createAuthoritySnapshot({ profile: artifactProfile, actionId: "rename", file: "data/items.json", collection: "$", row, documentTarget: artifactDocumentTarget });
 const lease = {
   canonicalFileKey: "a".repeat(64),
   runId: "10000000-0000-4000-8000-000000000001",
@@ -99,6 +100,7 @@ test("proposal preparation binds one authorized Markdown create or update", asyn
     lease,
     authoritySnapshot: artifactSnapshot,
     profile: artifactProfile,
+    documentTarget: artifactDocumentTarget,
     documentText: text,
     textArtifactCurrentText: null,
     probeLease,
@@ -138,6 +140,7 @@ test("proposal preparation fails closed on stale ownership, document, row or art
     lease,
     authoritySnapshot: artifactSnapshot,
     profile: artifactProfile,
+    documentTarget: artifactDocumentTarget,
     documentText: text,
     textArtifactCurrentText: "# External\n",
     probeLease,

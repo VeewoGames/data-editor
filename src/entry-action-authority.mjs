@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
-import { ruleAuthorityDigest } from "./automation-profile.mjs";
+import { defaultTextArtifactPolicy, ruleAuthorityDigest } from "./automation-profile.mjs";
 
-export function createAuthoritySnapshot({ profile, actionId, file, collection, row = null }) {
+export function createAuthoritySnapshot({ profile, actionId, file, collection, row = null, documentTarget = null }) {
   const action = profile?.rules?.find((rule) => rule.id === actionId && rule.enabled === true);
   const target = action?.targets?.find((item) => item.file === file && item.collection === collection);
   if (!target || !row || typeof row !== "object" || Array.isArray(row)) targetNotConfigured();
-  const textArtifact = target.textArtifact ? createTextArtifact(target.textArtifact, row, actionId, file, collection) : null;
+  const textArtifact = target.textArtifact ? createTextArtifact(target.textArtifact, documentTarget, row, actionId, file, collection) : null;
   const ruleDigest = ruleAuthorityDigest(action);
   return Object.freeze({
     ruleDigest, actionId, file, collection,
@@ -13,7 +13,7 @@ export function createAuthoritySnapshot({ profile, actionId, file, collection, r
   });
 }
 
-export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifact, row }) {
+export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifact, row, documentTarget = null }) {
   const action = profile?.rules?.find((rule) => rule.id === snapshot?.actionId && rule.enabled === true);
   const target = action?.targets?.find((item) => item.file === snapshot?.file && item.collection === snapshot?.collection);
   if (!snapshot || !target || ruleAuthorityDigest(action) !== snapshot.ruleDigest) authorityStale();
@@ -21,27 +21,41 @@ export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifac
   for (const change of changes) {
     if (!snapshot.writableFields.includes(change.field) || !Object.hasOwn(row, change.field) || change.after === undefined) authorityStale();
   }
-  assertTextArtifact(snapshot.textArtifact, target.textArtifact ?? null, textArtifact, row);
+  assertTextArtifact(snapshot.textArtifact, target.textArtifact ?? null, textArtifact, row, documentTarget);
   return { fieldRules: changes.map(() => ({ uniqueScope: "none" })), textArtifactRule: null };
 }
 
-function createTextArtifact(rule, row, actionId, file, collection) {
-  const rawSourceValue = row?.[rule.sourceField];
-  const sourceValue = typeof rawSourceValue === "string"
-    ? rawSourceValue
-    : Number.isSafeInteger(rawSourceValue) ? String(rawSourceValue) : null;
-  if (!sourceValue || !/^[a-zA-Z0-9_-]+$/.test(sourceValue)) authorityStale();
+function createTextArtifact(rule, documentTarget, row, actionId, file, collection) {
+  if (!documentTarget || typeof documentTarget !== "object") authorityStale();
+  const sourceValue = normalizeArtifactSourceValue(row?.[documentTarget.primaryKeyField]);
+  if (!sourceValue || sourceValue !== documentTarget.sourceValue || !/^[a-zA-Z0-9_-]+$/.test(sourceValue)) authorityStale();
   // Journal IDs must be portable filename-safe values, not user-facing paths.
   const id = `artifact_${crypto.createHash("sha256").update(`${actionId}\u0000${file}\u0000${collection}`, "utf8").digest("hex")}`;
-  return Object.freeze({ id, path: rule.pathTemplate.replace("{value}", sourceValue), sourceField: rule.sourceField, sourceValue, ...rule });
+  return Object.freeze({
+    id,
+    path: documentTarget.path,
+    primaryKeyField: documentTarget.primaryKeyField,
+    documentRoot: documentTarget.documentRoot,
+    sourceValue,
+    ...defaultTextArtifactPolicy,
+  });
 }
-function assertTextArtifact(snapshot, rule, proposal, row) {
+function assertTextArtifact(snapshot, rule, proposal, row, documentTarget) {
   if (snapshot !== null && proposal === null) textArtifactRequired();
   if ((snapshot === null) !== (proposal === null) || (snapshot === null) !== (rule === null)) authorityStale();
   if (proposal === null) return;
-  if (proposal.path !== snapshot.path || row?.[snapshot.sourceField] !== snapshot.sourceValue) authorityStale();
+  if (!documentTarget
+    || documentTarget.primaryKeyField !== snapshot.primaryKeyField
+    || documentTarget.documentRoot !== snapshot.documentRoot
+    || documentTarget.path !== snapshot.path
+    || proposal.path !== snapshot.path
+    || normalizeArtifactSourceValue(row?.[snapshot.primaryKeyField]) !== snapshot.sourceValue) authorityStale();
   if (proposal.beforeExists ? !snapshot.allowUpdate : !snapshot.allowCreate) authorityStale();
   if (typeof proposal.afterContent !== "string" || Buffer.byteLength(proposal.afterContent, "utf8") > snapshot.maxBytes) authorityStale();
+}
+function normalizeArtifactSourceValue(value) {
+  if (typeof value === "string") return value;
+  return Number.isSafeInteger(value) ? String(value) : null;
 }
 function targetNotConfigured() { throw Object.assign(new Error("Entry action target is not configured."), { code: "ENTRY_ACTION_TARGET_NOT_CONFIGURED" }); }
 function authorityStale() { throw Object.assign(new Error("Entry action rule changed or entry is stale."), { code: "ENTRY_ACTION_PROFILE_STALE" }); }

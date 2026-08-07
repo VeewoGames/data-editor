@@ -121,7 +121,7 @@ export function createEntryActionRunRoute({
         capabilityGeneration: promotedCapabilityState.generation, manifestDigest: promotedCapabilityState.manifestDigest,
         idempotencyKey, receipt: promotion.receipt, runId, jobInstanceId, lease,
       });
-      return { ok: true, status: "promotion_pending", pendingActionToken: pending.token, receipt: promotion.receipt, root: promotion.root, format: promotion.format, documentEtag: promotion.documentEtag };
+      return { ok: true, status: "promotion_pending", pendingActionToken: pending.token, receipt: promotion.receipt, identityCreated: promotion.identityCreated === true, root: promotion.root, format: promotion.format, documentEtag: promotion.documentEtag };
     },
     async ackStart(body) {
       const token = String(body?.pendingActionToken ?? "").trim();

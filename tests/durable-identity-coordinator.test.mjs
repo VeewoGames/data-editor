@@ -20,10 +20,12 @@ test("embedded promotion writes one canonical durable id and replays the receipt
   const input = { projectContext: context, capabilityState: state, sourcePath: "data/items.json", collectionPath: "items", sourceRowIndex: 0, expectedRowDigest: rowDigest({ item_id: "potion" }), idempotencyKey: "promotion_123", documentCommitCoordinator: createDocumentCommitCoordinator(), dependencies: { journal } };
   const first = await promoteEmbeddedIdentity(input);
   assert.equal(first.replayed, false);
+  assert.equal(first.identityCreated, true);
   assert.ok(first.receipt.durableId);
   const afterFirst = await readFile(file, "utf8");
   const replay = await promoteEmbeddedIdentity(input);
   assert.equal(replay.replayed, true);
+  assert.equal(replay.identityCreated, false);
   assert.equal(replay.receipt.durableId, first.receipt.durableId);
   assert.equal(await readFile(file, "utf8"), afterFirst);
 });

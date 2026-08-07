@@ -16,6 +16,7 @@ import {
   assertAuthorityCurrent,
   createAuthoritySnapshot,
 } from "./entry-action-authority.mjs";
+import { resolveEntryActionDocumentTarget } from "./entry-action-document-target.mjs";
 import {
   commitEntryActionGroup,
   createEntryActionGroupJournalEntry,
@@ -51,6 +52,7 @@ import { parseCsv } from "./csv-codec.mjs";
 import { parseJson } from "./json-codec.mjs";
 import { resolveInsideRoot } from "./project-context.mjs";
 import { rowDigest } from "./row-digest.mjs";
+import { loadViewConfig } from "./view-config.mjs";
 
 export async function startProposalOnlyEntryAction({
   projectContext,
@@ -65,9 +67,10 @@ export async function startProposalOnlyEntryAction({
   const createAllocator = dependencies.createFencingAllocator ?? createFencingAllocator;
   const actionId = String(request.actionId ?? "").trim();
   await migrateLegacyEntryActionPolicy(projectContext);
-  const [profile, bindings] = await Promise.all([
+  const [profile, bindings, viewConfig] = await Promise.all([
     loadAutomationProfile(projectContext),
     loadAutomationBindings(projectContext),
+    loadViewConfig(projectContext),
   ]);
   const action = findAutomationEntryAction(profile, actionId);
   const binding = resolveAutomationEntryActionBinding(bindings, action.id);
@@ -95,6 +98,7 @@ export async function startProposalOnlyEntryAction({
     file: sourcePath,
     collection: collectionPath,
     row: rowContext.row,
+    documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig, sourcePath, collectionPath, row: rowContext.row }),
   });
   const handoffArtifactState = await readArtifactState(projectContext, authoritySnapshot.textArtifact);
   const runtime = resolveAutomationExecutionConfig({ rule: action, binding, defaults: bindings.defaults }).runtime;
@@ -275,8 +279,9 @@ export async function recoverProposalOnlyEntryActionGroup({
       }
     },
     verifyAuthority: async (expected) => {
-      const [profile, sourceText] = await Promise.all([
+      const [profile, viewConfig, sourceText] = await Promise.all([
         loadAutomationProfile(projectContext),
+        loadViewConfig(projectContext),
         readTextFile(projectContext, proposal.sourcePath),
       ]);
       const parsed = parseDocument(proposal.sourcePath, sourceText);
@@ -288,6 +293,13 @@ export async function recoverProposalOnlyEntryActionGroup({
         file: proposal.sourcePath,
         collection: proposal.collectionPath,
         row,
+        documentTarget: resolveAuthorityDocumentTarget({
+          action: findAutomationEntryAction(profile, proposal.actionId),
+          viewConfig,
+          sourcePath: proposal.sourcePath,
+          collectionPath: proposal.collectionPath,
+          row,
+        }),
       });
       assertAuthorityCurrent({
         snapshot: { ...snapshot, ...expected },
@@ -295,6 +307,13 @@ export async function recoverProposalOnlyEntryActionGroup({
         changes: proposal.changes,
         textArtifact: proposal.textArtifact,
         row,
+        documentTarget: resolveAuthorityDocumentTarget({
+          action: findAutomationEntryAction(profile, proposal.actionId),
+          viewConfig,
+          sourcePath: proposal.sourcePath,
+          collectionPath: proposal.collectionPath,
+          row,
+        }),
       });
     },
     refreshIdentities: async ({ sourcePath, artifactPath }) => ({
@@ -352,9 +371,13 @@ async function finishRun(context) {
 
 // Proposal identity belongs to the server-created run, not to the model response.
 // Models still supply only the requested changes and summary.
-function bindProposalToHandoff(proposal, handoff) {
+export function bindProposalToHandoff(proposal, handoff) {
+  const textArtifact = proposal?.textArtifact && typeof proposal.textArtifact.afterContent === "string"
+    ? { ...proposal.textArtifact, afterDigest: digest(proposal.textArtifact.afterContent) }
+    : proposal?.textArtifact;
   return {
     ...proposal,
+    textArtifact,
     version: handoff.proposalContract.version,
     runId: handoff.runId,
     actionId: handoff.action.id,
@@ -381,12 +404,16 @@ async function commitProposal(context, proposal) {
   await advanceEntryActionPhase(projectContext, proposal.runId, "committing");
   const currentDocumentText = await readTextFile(projectContext, proposal.sourcePath);
   const artifactState = await readArtifactState(projectContext, proposal.textArtifact);
-  const currentProfile = await loadAutomationProfile(projectContext);
+  const [currentProfile, currentViewConfig] = await Promise.all([
+    loadAutomationProfile(projectContext),
+    loadViewConfig(projectContext),
+  ]);
   const prepared = await prepareEntryActionProposalCommit({
     proposal,
     lease,
     authoritySnapshot,
     profile: currentProfile,
+    documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig: currentViewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row: resolveProposalRow(currentDocumentText, proposal) }),
     documentText: currentDocumentText,
     textArtifactCurrentText: artifactState.text,
     format: path.extname(proposal.sourcePath).toLowerCase() === ".csv" ? "csv" : "json",
@@ -404,12 +431,16 @@ async function commitProposal(context, proposal) {
   if (!prepared.textArtifact) {
     await documentCommitCoordinator.withCommit({ projectContext, sourcePath: proposal.sourcePath }, async () => {
       const latestText = await readTextFile(projectContext, proposal.sourcePath);
-      const latestProfile = await loadAutomationProfile(projectContext);
+      const [latestProfile, latestViewConfig] = await Promise.all([
+        loadAutomationProfile(projectContext),
+        loadViewConfig(projectContext),
+      ]);
       const latestPrepared = await prepareEntryActionProposalCommit({
         proposal,
         lease,
         authoritySnapshot,
         profile: latestProfile,
+        documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig: latestViewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row: resolveProposalRow(latestText, proposal) }),
         documentText: latestText,
         format: prepared.format,
         probeLease: (value) => allocator.probe(value),
@@ -457,19 +488,22 @@ async function commitProposal(context, proposal) {
       }
     },
     verifyAuthority: async (expected) => {
-      const [profile] = await Promise.all([
+      const [profile, viewConfig] = await Promise.all([
         loadAutomationProfile(projectContext),
+        loadViewConfig(projectContext),
       ]);
       const sourceText = await readTextFile(projectContext, proposal.sourcePath);
       const parsed = parseDocument(proposal.sourcePath, sourceText);
       const model = buildDocumentModel(parsed.data, parsed.format, proposal.sourcePath);
       const { row } = resolveEntryActionRow(model, proposal.collectionPath, null, proposal.rowId);
+      const currentAction = findAutomationEntryAction(profile, proposal.actionId);
       assertAuthorityCurrent({
         snapshot: { ...authoritySnapshot, ...expected },
         profile,
         changes: proposal.changes,
         textArtifact: proposal.textArtifact,
         row,
+        documentTarget: resolveAuthorityDocumentTarget({ action: currentAction, viewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row }),
       });
     },
     refreshIdentities: async ({ sourcePath, artifactPath }) => ({
@@ -478,6 +512,18 @@ async function commitProposal(context, proposal) {
     }),
     publishResultIdempotently: () => publishEntryActionResultIdempotently(projectContext, proposal.runId, terminal),
   });
+}
+
+function resolveAuthorityDocumentTarget({ action, viewConfig, sourcePath, collectionPath, row }) {
+  const target = action?.targets?.find((item) => item.file === sourcePath && item.collection === collectionPath);
+  if (!target?.textArtifact) return null;
+  return resolveEntryActionDocumentTarget({ viewConfig, file: sourcePath, collection: collectionPath, row });
+}
+
+function resolveProposalRow(documentText, proposal) {
+  const parsed = parseDocument(proposal.sourcePath, documentText);
+  const model = buildDocumentModel(parsed.data, parsed.format, proposal.sourcePath);
+  return resolveEntryActionRow(model, proposal.collectionPath, null, proposal.rowId).row;
 }
 
 function buildProposalHandoff({

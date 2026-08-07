@@ -50,13 +50,7 @@ export type EntryActionRule = {
 export type EntryActionTarget = {
   file: string;
   collection: string;
-  textArtifact?: {
-    pathTemplate: string;
-    sourceField: string;
-    allowCreate: boolean;
-    allowUpdate: boolean;
-    maxBytes: number;
-  };
+  textArtifact?: Record<string, never>;
 };
 export type UserAutomationProfile = {
   rules: EntryActionRule[];
@@ -156,6 +150,7 @@ export type PendingEntryActionPromotionResponse = {
   status: "promotion_pending";
   pendingActionToken: string;
   receipt: { durableId: string; documentEtag: string; canonicalRowDigest: string };
+  identityCreated: boolean;
   root: unknown;
   format: string;
   documentEtag: string;
@@ -883,17 +878,8 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
 
 function normalizeFetchedTextArtifact(value: unknown): Pick<EntryActionTarget, "textArtifact"> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const artifact = value as Partial<NonNullable<EntryActionTarget["textArtifact"]>>;
-  if (typeof artifact.pathTemplate !== "string" || typeof artifact.sourceField !== "string"
-    || typeof artifact.allowCreate !== "boolean" || typeof artifact.allowUpdate !== "boolean"
-    || !Number.isInteger(artifact.maxBytes) || Number(artifact.maxBytes) < 1) return {};
-  return { textArtifact: {
-    pathTemplate: artifact.pathTemplate,
-    sourceField: artifact.sourceField,
-    allowCreate: artifact.allowCreate,
-    allowUpdate: artifact.allowUpdate,
-    maxBytes: Number(artifact.maxBytes),
-  } };
+  if (Object.keys(value).length !== 0) return {};
+  return { textArtifact: {} };
 }
 
 function normalizeFetchedStringArray(value: unknown) {

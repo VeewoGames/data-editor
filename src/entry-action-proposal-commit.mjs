@@ -13,6 +13,7 @@ export async function prepareEntryActionProposalCommit({
   lease,
   authoritySnapshot,
   profile,
+  documentTarget = null,
   documentText,
   textArtifactCurrentText = undefined,
   format = "json",
@@ -37,6 +38,7 @@ export async function prepareEntryActionProposalCommit({
     changes: value.changes,
     textArtifact: value.textArtifact,
     row,
+    documentTarget,
   });
   for (const [index, change] of value.changes.entries()) {
     if (!Object.hasOwn(row, change.field) || !deepEqual(row[change.field], change.before)) fail("ENTRY_ACTION_PROPOSAL_BEFORE_MISMATCH");

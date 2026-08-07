@@ -73,11 +73,12 @@ test("identity promotion returns a durable-only pending token and starts only af
       manifestDigest: ++capabilityReads === 1 ? "before-promotion" : "after-promotion",
     }),
     preflightEntryAction: async () => {},
-    promoteIdentity: async () => ({ receipt: { durableId: "DURABLE-1", canonicalRowDigest: "digest", documentEtag: "\"etag\"" }, root: { items: [{ __entry_id: "DURABLE-1" }] }, format: "json", documentEtag: "\"etag\"" }),
+    promoteIdentity: async () => ({ receipt: { durableId: "DURABLE-1", canonicalRowDigest: "digest", documentEtag: "\"etag\"" }, identityCreated: false, root: { items: [{ __entry_id: "DURABLE-1" }] }, format: "json", documentEtag: "\"etag\"" }),
     startEntryAction: async ({ request }) => { starts += 1; assert.equal(request.rowId, "DURABLE-1"); assert.equal(request.sourceRowIndex, null); return { runId: "00000000-0000-4000-8000-000000000002", completion: Promise.resolve() }; },
   });
   const pending = await route.run({ projectId: "project-a", actionId: "fixture-action", sourcePath: "data/items.json", collectionPath: "items", sourceRowIndex: 0, expectedRowDigest: "digest", idempotencyKey: "promotion_123" });
   assert.equal(pending.status, "promotion_pending");
+  assert.equal(pending.identityCreated, false);
   assert.equal(starts, 0);
   const started = await route.ackStart({ projectId: "project-a", pendingActionToken: pending.pendingActionToken });
   assert.equal(started.runId, "00000000-0000-4000-8000-000000000002");

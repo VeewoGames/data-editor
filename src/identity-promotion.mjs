@@ -16,10 +16,12 @@ export function buildEmbeddedIdentityPromotion({ row, policy, idempotencyKey, re
   }
   if (!row || typeof row !== "object" || Array.isArray(row)) throw new IdentityPromotionError("IDENTITY_PROMOTION_ROW_INVALID", "Identity promotion requires an object row.");
   const field = policy.provider.field;
-  const durableId = typeof row[field] === "string" && row[field].trim() ? row[field].trim() : generateId();
+  const existingIdentity = typeof row[field] === "string" && row[field].trim() ? row[field].trim() : null;
+  const durableId = existingIdentity ?? generateId();
   const nextRow = { ...structuredClone(row), [field]: durableId };
   return {
     replayed: false,
+    identityCreated: existingIdentity === null,
     durableId,
     row: nextRow,
     receipt: { version: 1, idempotencyKey, policyId: policy.id, durableId, row: structuredClone(nextRow) },

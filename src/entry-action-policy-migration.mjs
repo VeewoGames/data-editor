@@ -91,7 +91,7 @@ function convertProfile(profile, policy) {
       const artifact = policy.textArtifacts.find((item) => item.actionId === rule.id && item.id === legacyId);
       if (!artifact) fail("ENTRY_ACTION_POLICY_MIGRATION_ARTIFACT_UNMAPPED");
       artifactKeys.add(`${artifact.actionId}\u0000${artifact.id}`);
-      next.textArtifact = { pathTemplate: artifact.pathTemplate, sourceField: artifact.sourceField, allowCreate: artifact.allowCreate, allowUpdate: artifact.allowUpdate, maxBytes: artifact.maxBytes };
+      next.textArtifact = {};
     }
     return next;
   }) }));
