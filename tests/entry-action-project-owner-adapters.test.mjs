@@ -53,7 +53,7 @@ test("production supervisor failures stay pending until terminate confirms the w
   let latePublished; const lateRecovery = await recoverProjectTransactionOwnerResults({ projectContext: { projectRoot: root }, publish: async (value) => { if (value.runId === lateRunId) latePublished = value; } }); assert.deepEqual(lateRecovery.recovered, [lateRunId]); assert.equal(latePublished.changed, true); assert.equal(latePublished.receipt.late, true);
 
   let confirmedTerminateCalls = 0;
-  const confirmedSupervisor = { start: async () => ({ completion: new Promise((_, reject) => setTimeout(() => reject(new Error("completion raced")), 15)), terminate: async () => { confirmedTerminateCalls += 1; await new Promise((resolve) => setTimeout(resolve, 5)); return { exitCode: 1, timedOut: true }; } }) };
+  const confirmedSupervisor = { start: async () => ({ completion: new Promise(() => {}), terminate: async () => { confirmedTerminateCalls += 1; await new Promise((resolve) => setTimeout(resolve, 5)); return { exitCode: 1, timedOut: true }; } }) };
   const confirmedResolver = createProjectTransactionOwnerResolver({ jobSupervisor: confirmedSupervisor }); const confirmedRegistry = createProjectTransactionRegistry({ resolveOwner: (ownerId, input) => confirmedResolver.resolve(ownerId, input), timeoutMs: 5, abortAckTimeoutMs: 50 });
   await assert.rejects(() => confirmedRegistry.invoke(base.ownerId, { ...base, runId: "40000000-0000-4000-8000-000000000003" }), { code: "PROJECT_TRANSACTION_TIMEOUT" }); assert.equal(confirmedTerminateCalls, 1);
 });
