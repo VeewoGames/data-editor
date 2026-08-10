@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { emptyAutomationProfile, loadAutomationProfile, normalizeAutomationProfile, saveAutomationProfile, validateAutomationProfile } from "../src/automation-profile.mjs";
@@ -9,6 +9,29 @@ test("loadAutomationProfile returns empty profile when file is missing", async (
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
   try {
     assert.deepEqual(await loadAutomationProfile(root), emptyAutomationProfile());
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadAutomationProfile rejects runtime timeout beyond the Node timer limit", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
+  try {
+    const directory = path.join(root, ".data-editor");
+    await mkdir(directory, { recursive: true });
+    await writeFile(path.join(directory, "automation-profile.json"), `${JSON.stringify({
+      rules: [{
+        id: "check",
+        label: "Check",
+        icon: "refresh",
+        targets: [{ file: "data/items.json", collection: "items" }],
+        payload: { includeRow: true, includeNeighbors: false },
+        execution: { kind: "project-skill", resultPolicy: "proposal" },
+        contractId: "fixture.check.v1",
+        runtime: { timeoutMs: 2_147_483_648 },
+      }],
+    }, null, 2)}\n`, "utf8");
+    await assert.rejects(() => loadAutomationProfile(root), /runtime\.timeoutMs must be at most 2147483647/i);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

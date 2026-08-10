@@ -5,6 +5,7 @@ import { createProjectContext, displayProjectPath } from "./project-context.mjs"
 import { normalizeSharedViewIcon } from "./view/shared-view-normalize.mjs";
 
 const validRuleIdPattern = /^[a-z0-9_-]+$/;
+const maxRuntimeTimeoutMs = 2_147_483_647;
 const profileSaveLocks = new Map();
 export const defaultTextArtifactPolicy = Object.freeze({
   allowCreate: true,
@@ -134,7 +135,7 @@ function normalizeRuntime(value, ruleId) {
   const model = normalizeOptionalString(value.model, `Entry action rule "${ruleId}" runtime.model`);
   const reasoning = normalizeOptionalReasoning(value.reasoning, `Entry action rule "${ruleId}" runtime.reasoning`);
   const verbosity = normalizeOptionalVerbosity(value.verbosity, `Entry action rule "${ruleId}" runtime.verbosity`);
-  const timeoutMs = normalizeOptionalPositiveInteger(value.timeoutMs, `Entry action rule "${ruleId}" runtime.timeoutMs`);
+  const timeoutMs = normalizeOptionalPositiveInteger(value.timeoutMs, `Entry action rule "${ruleId}" runtime.timeoutMs`, maxRuntimeTimeoutMs);
   if (model == null && reasoning == null && verbosity == null && timeoutMs == null) {
     return null;
   }
@@ -257,11 +258,14 @@ function normalizeBoolean(value, fallback) {
   return typeof value === "boolean" ? value : fallback;
 }
 
-function normalizeOptionalPositiveInteger(value, label) {
+function normalizeOptionalPositiveInteger(value, label, maximum = Number.MAX_SAFE_INTEGER) {
   if (value == null || value === "") return null;
   const normalized = Number(value);
   if (!Number.isInteger(normalized) || normalized <= 0) {
     throw new Error(`${label} must be a positive integer`);
+  }
+  if (normalized > maximum) {
+    throw new Error(`${label} must be at most ${maximum}`);
   }
   return normalized;
 }
