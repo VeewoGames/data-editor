@@ -29,7 +29,7 @@ export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifac
   if (contract) {
     if (contract.contractId !== snapshot.contractId || contract.digest !== snapshot.contractDigest || contract.resultPolicy !== action.execution?.resultPolicy) authorityStale();
     assertEntryActionPredicate(contract.predicate, row);
-    assertEntryActionChanges(contract, changes);
+    assertEntryActionChanges(contract, changes, row);
   }
   if (!Array.isArray(changes) || changes.length === 0) authorityStale();
   for (const change of changes) {

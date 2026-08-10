@@ -28,3 +28,24 @@ test("artifact and evidence policies are strict and block invalid content", () =
   const bad = { ...unsigned, textArtifactPolicy: { unexpected: true } }; bad.digest = crypto.createHash("sha256").update(canonical(bad), "utf8").digest("hex");
   assert.throws(() => validateEntryActionContracts({ version: 1, contracts: [bad] }), { code: "ENTRY_ACTION_CONTRACT_INVALID" });
 });
+
+test("paired legal transitions require both fields to change to the configured pair", () => {
+  const base = contract(); const { digest: _digest, ...unsigned } = base;
+  const paired = {
+    ...unsigned,
+    writableFields: ["rating", "status"],
+    legalTransitions: [
+      { field: "status", from: ["ready"], to: ["approved"], requires: [{ field: "rating", from: [null], to: ["pass"] }] },
+      { field: "rating", from: [null], to: ["pass"], requires: [{ field: "status", from: ["ready"], to: ["approved"] }] },
+    ],
+  };
+  const current = validateEntryActionContracts({ version: 1, contracts: [{ ...paired, digest: crypto.createHash("sha256").update(canonical(paired), "utf8").digest("hex") }] }).contracts[0];
+  const both = [
+    { field: "status", before: "ready", after: "approved" },
+    { field: "rating", before: null, after: "pass" },
+  ];
+  assert.doesNotThrow(() => assertEntryActionChanges(current, both, { status: "ready", rating: null }));
+  assert.throws(() => assertEntryActionChanges(current, [both[0]], { status: "ready", rating: null }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
+  assert.throws(() => assertEntryActionChanges(current, [both[1]], { status: "ready", rating: null }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
+  assert.throws(() => assertEntryActionChanges(current, [both[0], { ...both[1], after: "fail" }], { status: "ready", rating: null }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
+});

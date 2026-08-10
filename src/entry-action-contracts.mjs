@@ -47,16 +47,28 @@ export function assertEntryActionPredicate(predicate, row) {
   }
 }
 
-export function assertEntryActionChanges(contract, changes) {
+export function assertEntryActionChanges(contract, changes, currentRow = null) {
   const writable = new Set(contract.writableFields);
+  const byField = new Map((changes ?? []).map((change) => [change.field, change]));
+  const resultRow = currentRow && typeof currentRow === "object" && !Array.isArray(currentRow) ? structuredClone(currentRow) : {};
+  for (const change of changes ?? []) {
+    if (change.afterExists === false) delete resultRow[change.field];
+    else resultRow[change.field] = structuredClone(change.after);
+  }
   for (const change of changes ?? []) {
     if (!writable.has(change.field)) invalid(`entry action field is not writable: ${change.field}`, "ENTRY_ACTION_FIELD_FORBIDDEN");
-    for (const transition of contract.legalTransitions.filter((item) => item.field === change.field)) {
-      if (!transition.from.some((value) => stableJson(value) === stableJson(change.before))
-        || !transition.to.some((value) => stableJson(value) === stableJson(change.after))) {
-        invalid(`entry action transition is illegal: ${change.field}`, "ENTRY_ACTION_TRANSITION_ILLEGAL");
-      }
-    }
+    const transitions = contract.legalTransitions.filter((item) => item.field === change.field);
+    if (transitions.length === 0) continue;
+    const admitted = transitions.some((transition) => transition.from.some((value) => stableJson(value) === stableJson(change.before))
+      && transition.to.some((value) => stableJson(value) === stableJson(change.after))
+      && transition.requires.every((requirement) => {
+        const requiredChange = byField.get(requirement.field);
+        return requiredChange
+          && requirement.from.some((value) => stableJson(value) === stableJson(requiredChange.before))
+          && requirement.to.some((value) => stableJson(value) === stableJson(requiredChange.after))
+          && stableJson(resultRow[requirement.field]) === stableJson(requiredChange.after);
+      }));
+    if (!admitted) invalid(`entry action transition is illegal: ${change.field}`, "ENTRY_ACTION_TRANSITION_ILLEGAL");
   }
 }
 
@@ -189,10 +201,18 @@ function normalizePredicate(value) {
 function normalizeTransitions(value) {
   if (!Array.isArray(value)) invalid("legalTransitions is invalid");
   return value.map((item) => {
-    exact(item, ["field", "from", "to"], "legal transition");
+    const fields = Object.hasOwn(item ?? {}, "requires") ? ["field", "from", "requires", "to"] : ["field", "from", "to"];
+    exact(item, fields, "legal transition");
     requiredId(item.field, "transition field");
     if (!Array.isArray(item.from) || !item.from.length || !Array.isArray(item.to) || !item.to.length) invalid("legal transition values are invalid");
-    return structuredClone(item);
+    const requires = (item.requires ?? []).map((requirement) => {
+      exact(requirement, ["field", "from", "to"], "legal transition requirement");
+      requiredId(requirement.field, "transition requirement field");
+      if (!Array.isArray(requirement.from) || !requirement.from.length || !Array.isArray(requirement.to) || !requirement.to.length) invalid("legal transition requirement values are invalid");
+      if (requirement.field === item.field) invalid("legal transition may not require itself");
+      return structuredClone(requirement);
+    });
+    return structuredClone({ ...item, requires });
   });
 }
 

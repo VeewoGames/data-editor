@@ -93,6 +93,12 @@ test("HTTP exact-artifact admission creates a candidate through the sole group c
   const unknownProjectError = await unknownProjectResponse.json(); assert.equal(unknownProjectResponse.status, 404); assert.equal(unknownProjectError.code, "ENTRY_ACTION_PROJECT_UNKNOWN");
   const malformedRequest = await fetch(`http://127.0.0.1:${port}/api/entry-actions/submit-exact-artifact`, { method: "POST", headers: { "content-type": "application/json" }, body: "{" });
   const malformedRequestError = await malformedRequest.json(); assert.equal(malformedRequest.status, 400); assert.equal(malformedRequestError.code, "HTTP_REQUEST_JSON_INVALID");
+  const mismatchedContent = "# Design\nMismatched identity\n";
+  const mismatchedManifest = { ...manifest, candidateId: "manifest-id", row: { slug: "row-id", name: "Mismatched" }, textArtifact: { afterContent: mismatchedContent, afterDigest: hash(mismatchedContent) } };
+  const mismatchedEnvelope = `${JSON.stringify({ version: 1, target: { sourcePath: "data/items.json", collectionPath: "items" }, result: mismatchedManifest })}\n`;
+  await publishExactArtifact({ projectContext, artifactId: "candidate-id-mismatch", content: mismatchedEnvelope });
+  const mismatchedResponse = await fetch(`http://127.0.0.1:${port}/api/entry-actions/submit-exact-artifact`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ projectId: projects.activeProjectId, actionId: "create-item", artifactId: "candidate-id-mismatch", artifactDigest: hash(mismatchedEnvelope), target: { sourcePath: "data/items.json", collectionPath: "items" } }) });
+  const mismatchedError = await mismatchedResponse.json(); assert.equal(mismatchedResponse.status, 400); assert.equal(mismatchedError.code, "CANDIDATE_CREATE_CANDIDATE_ID_INVALID");
   const existingRow = { id: 1, slug: "existing", name: "Existing", dev_note: "", __entry_id: "01JEXISTING00000000000001" };
   const proposalEnvelope = `${JSON.stringify({ version: 1, target: { sourcePath: "data/items.json", collectionPath: "items", rowId: existingRow.__entry_id, expectedRowDigest: rowDigest(existingRow) }, result: { kind: "entry-action-proposal", proposal: { changes: [{ field: "name", beforeExists: true, before: "Existing", afterExists: true, after: "Renamed" }], textArtifact: null, summary: "Rename existing" }, evidence: [] } })}\n`;
   await publishExactArtifact({ projectContext, artifactId: "rename-existing", content: proposalEnvelope });
