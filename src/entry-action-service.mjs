@@ -17,6 +17,7 @@ import {
   createAuthoritySnapshot,
 } from "./entry-action-authority.mjs";
 import { resolveEntryActionDocumentTarget } from "./entry-action-document-target.mjs";
+import { assertEntryActionResultPolicies, loadEntryActionContracts, resolveEntryActionContract } from "./entry-action-contracts.mjs";
 import {
   commitEntryActionGroup,
   createEntryActionGroupJournalEntry,
@@ -67,12 +68,15 @@ export async function startProposalOnlyEntryAction({
   const createAllocator = dependencies.createFencingAllocator ?? createFencingAllocator;
   const actionId = String(request.actionId ?? "").trim();
   await migrateLegacyEntryActionPolicy(projectContext);
-  const [profile, bindings, viewConfig] = await Promise.all([
+  const [profile, bindings, viewConfig, contractRegistry] = await Promise.all([
     loadAutomationProfile(projectContext),
     loadAutomationBindings(projectContext),
     loadViewConfig(projectContext),
+    loadEntryActionContracts(projectContext),
   ]);
   const action = findAutomationEntryAction(profile, actionId);
+  const contract = resolveEntryActionContract(contractRegistry, action.contractId);
+  if (action.execution?.resultPolicy !== "proposal" || contract.resultPolicy !== "proposal") protocolError("ENTRY_ACTION_RESULT_POLICY_INVALID", "Proposal entry action requires proposal result policy.", 409);
   const binding = resolveAutomationEntryActionBinding(bindings, action.id);
   const bindingStatus = await resolveBindingStatus(binding, { projectRoot: projectContext.projectRoot });
   if (bindingStatus.status !== "ready") protocolError("ENTRY_ACTION_BINDING_INVALID", bindingStatus.message ?? "Automation binding is unavailable.", 400);
@@ -99,6 +103,7 @@ export async function startProposalOnlyEntryAction({
     collection: collectionPath,
     row: rowContext.row,
     documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig, sourcePath, collectionPath, row: rowContext.row }),
+    contract,
   });
   const handoffArtifactState = await readArtifactState(projectContext, authoritySnapshot.textArtifact);
   const runtime = resolveAutomationExecutionConfig({ rule: action, binding, defaults: bindings.defaults }).runtime;
@@ -187,6 +192,7 @@ export async function startProposalOnlyEntryAction({
       action,
       profile,
       authoritySnapshot,
+      contract,
       lease,
       allocator,
       handle,
@@ -231,6 +237,65 @@ export async function startProposalOnlyEntryAction({
       status: 503,
       runId,
     });
+  }
+}
+
+/** Fresh server-side admission for a proposal produced outside the proposal host. */
+export async function submitFreshEntryActionProposal({
+  projectContext,
+  project,
+  request,
+  result,
+  documentCommitCoordinator = createDocumentCommitCoordinator(),
+  dependencies = {},
+}) {
+  const actionId = String(request?.actionId ?? "").trim();
+  const sourcePath = normalizeEntryActionPath(request?.sourcePath, "sourcePath");
+  const collectionPath = normalizeEntryActionPath(request?.collectionPath, "collectionPath");
+  const rowId = normalizeEntryActionRowId(request?.rowId);
+  if (!rowId) protocolError("ENTRY_ACTION_TARGET_MISSING", "A persistent rowId is required.", 400);
+  const [profile, viewConfig, contractRegistry] = await Promise.all([
+    loadAutomationProfile(projectContext), loadViewConfig(projectContext), loadEntryActionContracts(projectContext),
+  ]);
+  const action = findAutomationEntryAction(profile, actionId);
+  validateEntryActionTarget(action, sourcePath, collectionPath);
+  const contract = resolveEntryActionContract(contractRegistry, action.contractId);
+  if (action.execution?.resultPolicy !== "proposal" || contract.resultPolicy !== "proposal") protocolError("ENTRY_ACTION_RESULT_POLICY_INVALID", "Fresh proposal admission requires proposal result policy.", 409);
+  const documentText = await readTextFile(projectContext, sourcePath);
+  const sourceIdentity = await canonicalFileIdentity(projectContext, sourcePath);
+  const parsed = parseDocument(sourcePath, documentText);
+  const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
+  const rowContext = resolveEntryActionRow(model, collectionPath, null, rowId);
+  if (typeof request?.expectedRowDigest !== "string" || rowDigest(rowContext.row) !== request.expectedRowDigest) protocolError("ENTRY_ACTION_TARGET_STALE", "The canonical target row no longer matches the requested digest.", 409);
+  const authoritySnapshot = createAuthoritySnapshot({
+    profile, actionId, file: sourcePath, collection: collectionPath, row: rowContext.row,
+    documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig, sourcePath, collectionPath, row: rowContext.row }), contract,
+  });
+  const runId = dependencies.runId ?? createEntryActionRunId();
+  const jobInstanceId = dependencies.jobInstanceId ?? crypto.randomUUID();
+  const allocator = (dependencies.createFencingAllocator ?? createFencingAllocator)({ stateRoot: fencingRoot(projectContext) });
+  const lease = await allocator.allocate({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
+  const evidence = Array.isArray(result?.evidence) ? structuredClone(result.evidence) : [];
+  const rawProposal = result?.proposal ?? result;
+  const handoff = {
+    runId,
+    action: { id: action.id },
+    entry: { sourcePath, canonicalFileKey: sourceIdentity.canonicalFileKey, collectionPath, rowId },
+    proposalContract: { version: 3, baseDocumentEtag: etag(documentText), ruleDigest: authoritySnapshot.ruleDigest, fencingToken: lease.fencingToken },
+  };
+  const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary }, handoff);
+  await writeEntryActionHandoff(projectContext, runId, { ...handoff, authority: authoritySnapshot });
+  await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
+  let keepLease = false;
+  try {
+    assertEntryActionResultPolicies(contract, { textArtifact: proposal.textArtifact, evidence });
+    await commitProposal({ projectContext, action, authoritySnapshot, contract, evidence, lease, allocator, documentCommitCoordinator, sourceIdentity }, proposal);
+    return { kind: "entry-action-proposal", runId, outcome: "completed_with_writeback" };
+  } catch (error) {
+    keepLease = recoveryError(error);
+    throw error;
+  } finally {
+    if (!keepLease) await allocator.abortLaunching(lease).catch(() => {});
   }
 }
 
@@ -279,11 +344,14 @@ export async function recoverProposalOnlyEntryActionGroup({
       }
     },
     verifyAuthority: async (expected) => {
-      const [profile, viewConfig, sourceText] = await Promise.all([
+      const [profile, viewConfig, contractRegistry, sourceText] = await Promise.all([
         loadAutomationProfile(projectContext),
         loadViewConfig(projectContext),
+        loadEntryActionContracts(projectContext),
         readTextFile(projectContext, proposal.sourcePath),
       ]);
+      const currentAction = findAutomationEntryAction(profile, proposal.actionId);
+      const contract = resolveEntryActionContract(contractRegistry, currentAction.contractId);
       const parsed = parseDocument(proposal.sourcePath, sourceText);
       const model = buildDocumentModel(parsed.data, parsed.format, proposal.sourcePath);
       const { row } = resolveEntryActionRow(model, proposal.collectionPath, null, proposal.rowId);
@@ -294,12 +362,13 @@ export async function recoverProposalOnlyEntryActionGroup({
         collection: proposal.collectionPath,
         row,
         documentTarget: resolveAuthorityDocumentTarget({
-          action: findAutomationEntryAction(profile, proposal.actionId),
+          action: currentAction,
           viewConfig,
           sourcePath: proposal.sourcePath,
           collectionPath: proposal.collectionPath,
           row,
         }),
+        contract,
       });
       assertAuthorityCurrent({
         snapshot: { ...snapshot, ...expected },
@@ -308,13 +377,15 @@ export async function recoverProposalOnlyEntryActionGroup({
         textArtifact: proposal.textArtifact,
         row,
         documentTarget: resolveAuthorityDocumentTarget({
-          action: findAutomationEntryAction(profile, proposal.actionId),
+          action: currentAction,
           viewConfig,
           sourcePath: proposal.sourcePath,
           collectionPath: proposal.collectionPath,
           row,
         }),
+        contract,
       });
+      assertEntryActionResultPolicies(contract, { textArtifact: { ...proposal.textArtifact, ...expected.textArtifact }, evidence: expected.evidence });
     },
     refreshIdentities: async ({ sourcePath, artifactPath }) => ({
       source: await canonicalFileIdentity(projectContext, sourcePath),
@@ -396,28 +467,35 @@ async function commitProposal(context, proposal) {
     projectContext,
     action,
     authoritySnapshot,
+    contract,
     lease,
     allocator,
     documentCommitCoordinator,
     sourceIdentity,
+    evidence = [],
   } = context;
   await advanceEntryActionPhase(projectContext, proposal.runId, "committing");
   const currentDocumentText = await readTextFile(projectContext, proposal.sourcePath);
   const artifactState = await readArtifactState(projectContext, proposal.textArtifact);
-  const [currentProfile, currentViewConfig] = await Promise.all([
+  const [currentProfile, currentViewConfig, currentContractRegistry] = await Promise.all([
     loadAutomationProfile(projectContext),
     loadViewConfig(projectContext),
+    loadEntryActionContracts(projectContext),
   ]);
+  const currentAction = findAutomationEntryAction(currentProfile, proposal.actionId);
+  const currentContract = resolveEntryActionContract(currentContractRegistry, currentAction.contractId);
   const prepared = await prepareEntryActionProposalCommit({
     proposal,
     lease,
     authoritySnapshot,
+    contract: currentContract,
     profile: currentProfile,
-    documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig: currentViewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row: resolveProposalRow(currentDocumentText, proposal) }),
+    documentTarget: resolveAuthorityDocumentTarget({ action: currentAction, viewConfig: currentViewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row: resolveProposalRow(currentDocumentText, proposal) }),
     documentText: currentDocumentText,
     textArtifactCurrentText: artifactState.text,
     format: path.extname(proposal.sourcePath).toLowerCase() === ".csv" ? "csv" : "json",
     probeLease: (value) => allocator.probe(value),
+    evidence,
   });
   const terminal = {
     version: 2,
@@ -431,19 +509,24 @@ async function commitProposal(context, proposal) {
   if (!prepared.textArtifact) {
     await documentCommitCoordinator.withCommit({ projectContext, sourcePath: proposal.sourcePath }, async () => {
       const latestText = await readTextFile(projectContext, proposal.sourcePath);
-      const [latestProfile, latestViewConfig] = await Promise.all([
+      const [latestProfile, latestViewConfig, latestContractRegistry] = await Promise.all([
         loadAutomationProfile(projectContext),
         loadViewConfig(projectContext),
+        loadEntryActionContracts(projectContext),
       ]);
+      const latestAction = findAutomationEntryAction(latestProfile, proposal.actionId);
+      const latestContract = resolveEntryActionContract(latestContractRegistry, latestAction.contractId);
       const latestPrepared = await prepareEntryActionProposalCommit({
         proposal,
         lease,
         authoritySnapshot,
+        contract: latestContract,
         profile: latestProfile,
-        documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig: latestViewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row: resolveProposalRow(latestText, proposal) }),
+        documentTarget: resolveAuthorityDocumentTarget({ action: latestAction, viewConfig: latestViewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row: resolveProposalRow(latestText, proposal) }),
         documentText: latestText,
         format: prepared.format,
         probeLease: (value) => allocator.probe(value),
+        evidence,
       });
       await commitEntryActionProposal({
         journal: childJournal,
@@ -461,7 +544,7 @@ async function commitProposal(context, proposal) {
   const artifactIdentity = artifactState.identity
     ?? await canonicalProjectArtifactIdentity(projectContext, prepared.textArtifact.path);
   const groupEntry = createEntryActionGroupJournalEntry({
-    prepared,
+    prepared: { ...prepared, evidence: structuredClone(evidence) },
     lease,
     documentText: currentDocumentText,
     sourceIdentity,
@@ -488,15 +571,17 @@ async function commitProposal(context, proposal) {
       }
     },
     verifyAuthority: async (expected) => {
-      const [profile, viewConfig] = await Promise.all([
+      const [profile, viewConfig, contractRegistry] = await Promise.all([
         loadAutomationProfile(projectContext),
         loadViewConfig(projectContext),
+        loadEntryActionContracts(projectContext),
       ]);
       const sourceText = await readTextFile(projectContext, proposal.sourcePath);
       const parsed = parseDocument(proposal.sourcePath, sourceText);
       const model = buildDocumentModel(parsed.data, parsed.format, proposal.sourcePath);
       const { row } = resolveEntryActionRow(model, proposal.collectionPath, null, proposal.rowId);
       const currentAction = findAutomationEntryAction(profile, proposal.actionId);
+      const currentContract = resolveEntryActionContract(contractRegistry, currentAction.contractId);
       assertAuthorityCurrent({
         snapshot: { ...authoritySnapshot, ...expected },
         profile,
@@ -504,7 +589,9 @@ async function commitProposal(context, proposal) {
         textArtifact: proposal.textArtifact,
         row,
         documentTarget: resolveAuthorityDocumentTarget({ action: currentAction, viewConfig, sourcePath: proposal.sourcePath, collectionPath: proposal.collectionPath, row }),
+        contract: currentContract,
       });
+      assertEntryActionResultPolicies(currentContract, { textArtifact: { ...proposal.textArtifact, ...expected.textArtifact }, evidence });
     },
     refreshIdentities: async ({ sourcePath, artifactPath }) => ({
       source: await canonicalFileIdentity(projectContext, sourcePath),

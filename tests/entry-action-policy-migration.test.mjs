@@ -46,8 +46,12 @@ test("migration retires a leftover legacy policy when the profile is already mod
     const profilePath = path.join(root, ".data-editor", "automation-profile.json");
     const profile = JSON.parse(await readFile(profilePath, "utf8"));
     for (const rule of profile.rules) {
-      rule.execution = { kind: "proposal" };
-      for (const target of rule.targets) delete target.textArtifactId;
+      rule.execution = { kind: "proposal", resultPolicy: "proposal" };
+      rule.contractId = `legacy.${rule.id}.v1`;
+      for (const target of rule.targets) {
+        if (target.textArtifactId) target.textArtifact = {};
+        delete target.textArtifactId;
+      }
     }
     await writeFile(profilePath, JSON.stringify(profile, null, 2));
 

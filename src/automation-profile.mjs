@@ -23,6 +23,9 @@ export function ruleAuthorityDigest(rule) {
     enabled: rule.enabled,
     targets: rule.targets,
     payload: rule.payload,
+    execution: rule.execution,
+    contractId: rule.contractId,
+    ...(rule.createAuthority ? { createAuthority: rule.createAuthority } : {}),
     ...(rule.runtime ? { runtime: rule.runtime } : {}),
   };
   return crypto.createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
@@ -80,6 +83,8 @@ function normalizeRule(value, seenIds) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Entry action rule must be an object");
   }
+  const allowedKeys = new Set(["id", "label", "icon", "enabled", "targets", "payload", "execution", "contractId", "createAuthority", "runtime"]);
+  for (const key of Object.keys(value)) if (!allowedKeys.has(key)) throw new Error(`Unsupported entry action rule field: ${key}`);
   const id = normalizeRequiredString(value.id, "Entry action rule id");
   validateRuleId(id);
   if (seenIds.has(id)) throw new Error(`Duplicate entry action rule id: ${id}`);
@@ -90,16 +95,35 @@ function normalizeRule(value, seenIds) {
   const targets = normalizeTargets(value.targets, id);
   const payload = normalizePayload(value.payload, id);
   const execution = normalizeExecution(value.execution, id);
+  const contractId = normalizeRequiredString(value.contractId, `Entry action rule "${id}" contractId`);
+  const createAuthority = normalizeCreateAuthority(value.createAuthority, id, contractId);
   const runtime = normalizeRuntime(value.runtime, id);
-  return { id, label, icon, enabled, targets, payload, execution, ...(runtime ? { runtime } : {}) };
+  return { id, label, icon, enabled, targets, payload, execution, contractId, ...(createAuthority ? { createAuthority } : {}), ...(runtime ? { runtime } : {}) };
 }
 
 function normalizeExecution(value, ruleId) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Entry action rule "${ruleId}" execution is required`);
   const keys = Object.keys(value).sort();
-  if (keys.length !== 1 || keys[0] !== "kind") throw new Error(`Entry action rule "${ruleId}" execution fields are invalid`);
+  const transaction = value.resultPolicy === "project-transaction";
+  const expectedKeys = transaction ? ["capabilityId", "kind", "ownerId", "resultPolicy"] : ["kind", "resultPolicy"];
+  if (keys.join(",") !== expectedKeys.sort().join(",")) throw new Error(`Entry action rule "${ruleId}" execution fields are invalid`);
   const kind = normalizeRequiredEnum(value.kind, ["proposal", "project-skill"], `Entry action rule "${ruleId}" execution.kind`);
-  return { kind };
+  const resultPolicy = normalizeRequiredEnum(value.resultPolicy, ["proposal", "result-only", "project-transaction"], `Entry action rule "${ruleId}" execution.resultPolicy`);
+  const valid = kind === "proposal" ? resultPolicy === "proposal" : true;
+  if (!valid) throw new Error(`Entry action rule "${ruleId}" execution combination is invalid`);
+  if (transaction) return { kind, resultPolicy, ownerId: normalizeRequiredString(value.ownerId, `Entry action rule "${ruleId}" execution.ownerId`), capabilityId: normalizeRequiredString(value.capabilityId, `Entry action rule "${ruleId}" execution.capabilityId`) };
+  return { kind, resultPolicy };
+}
+
+function normalizeCreateAuthority(value, ruleId, contractId) {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Entry action rule "${ruleId}" createAuthority must be an object`);
+  const keys = Object.keys(value).sort();
+  if (keys.length !== 2 || keys[0] !== "contractId" || keys[1] !== "enabled") throw new Error(`Entry action rule "${ruleId}" createAuthority fields are invalid`);
+  if (value.enabled !== true) throw new Error(`Entry action rule "${ruleId}" createAuthority.enabled must be true`);
+  const createContractId = normalizeRequiredString(value.contractId, `Entry action rule "${ruleId}" createAuthority.contractId`);
+  if (createContractId !== contractId) throw new Error(`Entry action rule "${ruleId}" createAuthority.contractId must match contractId`);
+  return { enabled: true, contractId: createContractId };
 }
 
 function normalizeRuntime(value, ruleId) {
@@ -143,6 +167,8 @@ function normalizeTargetPairs(value, ruleId) {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error(`Entry action rule "${ruleId}" target must be an object`);
     }
+    const allowedKeys = new Set(["file", "collection", "textArtifact"]);
+    for (const key of Object.keys(item)) if (!allowedKeys.has(key)) throw new Error(`Unsupported entry action target field: ${key}`);
     result.push({
       file: normalizeRequiredString(item.file, `Entry action rule "${ruleId}" target.file`),
       collection: normalizeRequiredString(item.collection, `Entry action rule "${ruleId}" target.collection`),

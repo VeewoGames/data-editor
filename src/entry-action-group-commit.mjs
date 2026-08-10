@@ -34,10 +34,13 @@ export function createEntryActionGroupJournalEntry({ prepared, lease, documentTe
     artifactPath: artifact.path,
   };
   return {
+    operation: "proposal",
     idempotencyKey: `group_${digest(prepared.proposal.runId)}`,
     runId: prepared.proposal.runId,
     proposalDigest,
     ruleDigest: prepared.proposal.ruleDigest,
+    evidence: structuredClone(prepared.evidence ?? []),
+    evidenceDigest: digest(JSON.stringify(prepared.evidence ?? [])),
     ownership: {
       canonicalFileKey: lease.canonicalFileKey,
       ownerToken: lease.ownerToken,
@@ -61,10 +64,67 @@ export function createEntryActionGroupJournalEntry({ prepared, lease, documentTe
       childEntry: artifactChild,
       beforeExists: artifact.beforeExists,
       beforeDigest: artifact.beforeDigest,
+      beforeContent: artifact.beforeContent,
       afterExists: true,
       afterDigest: artifact.afterDigest,
       afterContent: artifact.afterContent,
     },
+    stage: "group_intent",
+  };
+}
+
+export function createCandidateCreateGroupJournalEntry({ prepared, lease, documentText, sourceIdentity, artifactIdentity }) {
+  if (prepared?.operation !== "candidate_create" || !prepared.textArtifact) fail("ENTRY_ACTION_GROUP_ARTIFACT_REQUIRED");
+  if (sourceIdentity?.canonicalFileKey !== prepared.binding.canonicalFileKey || !artifactIdentity?.canonicalFileKey
+    || sourceIdentity.canonicalFileKey === artifactIdentity.canonicalFileKey) fail("ENTRY_ACTION_GROUP_IDENTITY_INVALID");
+  assertLease(lease, sourceIdentity.canonicalFileKey, prepared.binding.runId);
+  const proposalDigest = digest(JSON.stringify({ manifest: prepared.manifest, binding: prepared.binding, semanticDigest: prepared.semanticDigest }));
+  const sourceChild = {
+    idempotencyKey: `candidate_${digest(`${prepared.idempotencyKey}:${prepared.rowId}:${prepared.semanticDigest}`)}`,
+    saveType: "candidate_create_commit",
+    canonicalFileKey: sourceIdentity.canonicalFileKey,
+    baseEtag: prepared.binding.baseDocumentEtag,
+    newEtag: etag(prepared.sourceAfterContent),
+    beforeDigest: digest(documentText),
+    afterDigest: digest(prepared.sourceAfterContent),
+    requestDigest: proposalDigest,
+    runId: prepared.binding.runId,
+    ownerToken: lease.ownerToken,
+    fencingToken: lease.fencingToken,
+    rowId: prepared.rowId,
+    proposalDigest,
+    changes: [],
+  };
+  const artifact = prepared.textArtifact;
+  const artifactChild = {
+    idempotencyKey: `artifact_${digest(`${prepared.idempotencyKey}:${artifact.id}:${artifact.afterDigest}`)}`,
+    saveType: "text_artifact_commit",
+    canonicalFileKey: artifactIdentity.canonicalFileKey,
+    baseEtag: '"missing"',
+    newEtag: etag(artifact.afterContent),
+    beforeDigest: digest(""),
+    afterDigest: artifact.afterDigest,
+    requestDigest: proposalDigest,
+    runId: prepared.binding.runId,
+    artifactId: artifact.id,
+    artifactPath: artifact.path,
+  };
+  return {
+    operation: "candidate_create",
+    idempotencyKey: prepared.idempotencyKey,
+    runId: prepared.binding.runId,
+    proposalDigest,
+    ruleDigest: prepared.binding.ruleDigest,
+    createContractDigest: prepared.createContractDigest,
+    candidateId: prepared.candidateId,
+    rowId: prepared.rowId,
+    semanticDigest: prepared.semanticDigest,
+    evidence: structuredClone(prepared.evidence ?? []),
+    evidenceDigest: digest(JSON.stringify(prepared.evidence ?? [])),
+    manifest: structuredClone(prepared.manifest),
+    ownership: { canonicalFileKey: lease.canonicalFileKey, ownerToken: lease.ownerToken, ownerHash: lease.ownerHash, fencingToken: lease.fencingToken, jobInstanceId: lease.jobInstanceId },
+    source: { path: prepared.binding.sourcePath, canonicalFileKey: sourceIdentity.canonicalFileKey, childEntry: sourceChild, beforeExists: true, beforeDigest: digest(documentText), afterExists: true, afterDigest: digest(prepared.sourceAfterContent), afterContent: prepared.sourceAfterContent },
+    artifact: { path: artifact.path, canonicalFileKey: artifactIdentity.canonicalFileKey, childEntry: artifactChild, beforeExists: false, beforeDigest: null, beforeContent: null, afterExists: true, afterDigest: artifact.afterDigest, afterContent: artifact.afterContent },
     stage: "group_intent",
   };
 }
@@ -115,6 +175,13 @@ export async function commitEntryActionGroup({
       await verifyOwnership(groupEntry.ownership);
       await verifyAuthority({
         ruleDigest: groupEntry.ruleDigest,
+        operation: groupEntry.operation ?? "proposal",
+        createContractDigest: groupEntry.createContractDigest ?? null,
+        candidateId: groupEntry.candidateId ?? null,
+        semanticDigest: groupEntry.semanticDigest ?? null,
+        evidence: groupEntry.evidence,
+        evidenceDigest: groupEntry.evidenceDigest,
+        textArtifact: { path: groupEntry.artifact.path, beforeExists: groupEntry.artifact.beforeExists, beforeContent: groupEntry.artifact.beforeContent, afterContent: groupEntry.artifact.afterContent },
       });
       await assertIdentitiesCurrent(groupEntry, refreshIdentities);
       const initialStates = await readStates({ readSource, readArtifact });
@@ -152,6 +219,13 @@ export async function commitEntryActionGroup({
           await verifyOwnership(group.ownership);
           await verifyAuthority({
             ruleDigest: group.ruleDigest,
+            operation: group.operation ?? "proposal",
+            createContractDigest: group.createContractDigest ?? null,
+            candidateId: group.candidateId ?? null,
+            semanticDigest: group.semanticDigest ?? null,
+            evidence: group.evidence,
+            evidenceDigest: group.evidenceDigest,
+            textArtifact: { path: group.artifact.path, beforeExists: group.artifact.beforeExists, beforeContent: group.artifact.beforeContent, afterContent: group.artifact.afterContent },
           });
           await assertIdentitiesCurrent(group, refreshIdentities);
         },
@@ -173,6 +247,13 @@ export async function commitEntryActionGroup({
           await verifyOwnership(group.ownership);
           await verifyAuthority({
             ruleDigest: group.ruleDigest,
+            operation: group.operation ?? "proposal",
+            createContractDigest: group.createContractDigest ?? null,
+            candidateId: group.candidateId ?? null,
+            semanticDigest: group.semanticDigest ?? null,
+            evidence: group.evidence,
+            evidenceDigest: group.evidenceDigest,
+            textArtifact: { path: group.artifact.path, beforeExists: group.artifact.beforeExists, beforeContent: group.artifact.beforeContent, afterContent: group.artifact.afterContent },
           });
           await assertIdentitiesCurrent(group, refreshIdentities);
         },

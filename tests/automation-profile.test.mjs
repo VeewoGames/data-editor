@@ -24,14 +24,15 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
           label: " Recheck ",
           icon: "refresh",
           targets: [
-            { file: " data/skills.json ", collection: " skills ", writableFields: ["name"] },
-            { file: "data/skills.json", collection: "skills", writableFields: ["name"] },
+            { file: " data/skills.json ", collection: " skills " },
+            { file: "data/skills.json", collection: "skills" },
           ],
           payload: {
             includeRow: false,
             includeNeighbors: true,
           },
-          execution: { kind: "proposal" },
+          execution: { kind: "proposal", resultPolicy: "proposal" },
+          contractId: "fixture.recheck.v1",
         },
       ],
     });
@@ -51,7 +52,8 @@ test("saveAutomationProfile writes normalized automation profile", async () => {
             includeRow: false,
             includeNeighbors: true,
           },
-          execution: { kind: "proposal" },
+          execution: { kind: "proposal", resultPolicy: "proposal" },
+          contractId: "fixture.recheck.v1",
         },
       ],
     });
@@ -72,7 +74,8 @@ test("automation profile preserves an optional text artifact declaration", () =>
         textArtifact: {},
       }],
       payload: { includeRow: true, includeNeighbors: false },
-      execution: { kind: "proposal" },
+      execution: { kind: "proposal", resultPolicy: "proposal" },
+      contractId: "fixture.design.v1",
     }],
   });
   assert.deepEqual(profile.rules[0].targets[0].textArtifact, {});
@@ -87,7 +90,8 @@ test("normalizeAutomationProfile rejects duplicate rule ids", () => {
         icon: "refresh",
         targets: [{ file: "data/skills.json", collection: "skills" }],
         payload: { includeRow: true, includeNeighbors: true },
-        execution: { kind: "proposal" },
+        execution: { kind: "proposal", resultPolicy: "proposal" },
+        contractId: "fixture.recheck.v1",
       },
       {
         id: "recheck",
@@ -95,7 +99,8 @@ test("normalizeAutomationProfile rejects duplicate rule ids", () => {
         icon: "sparkles",
         targets: [{ file: "data/skills.json", collection: "skills" }],
         payload: { includeRow: true, includeNeighbors: true },
-        execution: { kind: "proposal" },
+        execution: { kind: "proposal", resultPolicy: "proposal" },
+        contractId: "fixture.recheck.v1",
       },
     ],
   }), /Duplicate entry action rule id/i);
@@ -118,7 +123,8 @@ test("saveAutomationProfile rejects invalid rule ids", async () => {
           enabled: true,
           targets: [{ file: "data/skills.json", collection: "skills" }],
           payload: { includeRow: true, includeNeighbors: true },
-          execution: { kind: "proposal" },
+          execution: { kind: "proposal", resultPolicy: "proposal" },
+          contractId: "fixture.recheck.v1",
         },
       ],
     }), /Entry action rule id must use lowercase letters, numbers, "_" or "-"/i);
@@ -143,7 +149,8 @@ test("saveAutomationProfile uses profile home when configured", async () => {
           enabled: true,
           targets: [{ file: "data/skills.json", collection: "skills" }],
           payload: { includeRow: true, includeNeighbors: true },
-          execution: { kind: "proposal" },
+          execution: { kind: "proposal", resultPolicy: "proposal" },
+          contractId: "fixture.recheck.v1",
         },
       ],
     });
@@ -159,7 +166,7 @@ test("saveAutomationProfile uses profile home when configured", async () => {
 test("saveAutomationProfile rejects a stale ETag", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
   try {
-    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true }, execution: { kind: "proposal" } }] };
+    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills" }], payload: { includeRow: true, includeNeighbors: true }, execution: { kind: "proposal", resultPolicy: "proposal" }, contractId: "fixture.recheck.v1" }] };
     const first = await saveAutomationProfile(root, profile);
     await saveAutomationProfile(root, { ...profile, rules: [{ ...profile.rules[0], label: "Changed" }] }, first.etag);
     await assert.rejects(() => saveAutomationProfile(root, profile, first.etag), (error) => error?.code === "AUTOMATION_PROFILE_ETAG_STALE");
@@ -169,7 +176,7 @@ test("saveAutomationProfile rejects a stale ETag", async () => {
 test("concurrent saves with one ETag admit only one writer", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
   try {
-    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills", writableFields: ["name"] }], payload: { includeRow: true, includeNeighbors: true }, execution: { kind: "proposal" } }] };
+    const profile = { rules: [{ id: "recheck", label: "Recheck", icon: "refresh", targets: [{ file: "data/skills.json", collection: "skills" }], payload: { includeRow: true, includeNeighbors: true }, execution: { kind: "proposal", resultPolicy: "proposal" }, contractId: "fixture.recheck.v1" }] };
     const initial = await saveAutomationProfile(root, profile);
     const results = await Promise.allSettled([
       saveAutomationProfile(root, { ...profile, rules: [{ ...profile.rules[0], label: "First" }] }, initial.etag),
@@ -192,7 +199,8 @@ test("normalizeAutomationProfile migrates legacy file and collection arrays into
           collections: ["skills", "$"],
         },
         payload: { includeRow: true, includeNeighbors: true },
-        execution: { kind: "proposal" },
+        execution: { kind: "proposal", resultPolicy: "proposal" },
+        contractId: "fixture.recheck.v1",
       },
     ],
   });
@@ -208,6 +216,9 @@ test("normalizeAutomationProfile migrates legacy file and collection arrays into
 test("execution.kind is explicit and closed", () => {
   const base = { id: "check", label: "Check", icon: "refresh", targets: [{ file: "data/a.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false } };
   assert.throws(() => validateAutomationProfile({ rules: [base] }), /execution is required/i);
-  assert.throws(() => validateAutomationProfile({ rules: [{ ...base, execution: { kind: "unknown" } }] }), /execution.kind/i);
-  assert.equal(validateAutomationProfile({ rules: [{ ...base, execution: { kind: "project-skill" } }] }).rules[0].execution.kind, "project-skill");
+  assert.throws(() => validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "unknown", resultPolicy: "proposal" } }] }), /execution.kind/i);
+  assert.throws(() => validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "proposal", resultPolicy: "result-only" } }] }), /combination/i);
+  assert.throws(() => validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "proposal", resultPolicy: "proposal" }, unknown: true }] }), /Unsupported entry action rule field/i);
+  const projectSkill = validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "project-skill", resultPolicy: "proposal" } }] }).rules[0];
+  assert.deepEqual(projectSkill.execution, { kind: "project-skill", resultPolicy: "proposal" });
 });

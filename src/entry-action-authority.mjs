@@ -1,22 +1,36 @@
 import crypto from "node:crypto";
 import { defaultTextArtifactPolicy, ruleAuthorityDigest } from "./automation-profile.mjs";
+import { assertEntryActionChanges, assertEntryActionPredicate } from "./entry-action-contracts.mjs";
 
-export function createAuthoritySnapshot({ profile, actionId, file, collection, row = null, documentTarget = null }) {
+// Designer-authored requirements and notes are read-only inputs for every automated entry action.
+const HUMAN_NOTE_FIELDS = new Set(["dev_note", "dev_notes"]);
+
+export function createAuthoritySnapshot({ profile, actionId, file, collection, row = null, documentTarget = null, contract = null }) {
   const action = profile?.rules?.find((rule) => rule.id === actionId && rule.enabled === true);
   const target = action?.targets?.find((item) => item.file === file && item.collection === collection);
   if (!target || !row || typeof row !== "object" || Array.isArray(row)) targetNotConfigured();
   const textArtifact = target.textArtifact ? createTextArtifact(target.textArtifact, documentTarget, row, actionId, file, collection) : null;
+  if (contract) {
+    if (contract.contractId !== action.contractId || contract.resultPolicy !== action.execution?.resultPolicy) authorityStale();
+    assertEntryActionPredicate(contract.predicate, row);
+  }
   const ruleDigest = ruleAuthorityDigest(action);
+  const writableFields = (contract?.writableFields ?? Object.keys(row)).filter((field) => !HUMAN_NOTE_FIELDS.has(field)).sort();
   return Object.freeze({
     ruleDigest, actionId, file, collection,
-    writableFields: Object.keys(row).sort(), textArtifact,
+    writableFields, contractId: contract?.contractId ?? action.contractId ?? null, contractDigest: contract?.digest ?? null, textArtifact,
   });
 }
 
-export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifact, row, documentTarget = null }) {
+export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifact, row, documentTarget = null, contract = null }) {
   const action = profile?.rules?.find((rule) => rule.id === snapshot?.actionId && rule.enabled === true);
   const target = action?.targets?.find((item) => item.file === snapshot?.file && item.collection === snapshot?.collection);
   if (!snapshot || !target || ruleAuthorityDigest(action) !== snapshot.ruleDigest) authorityStale();
+  if (contract) {
+    if (contract.contractId !== snapshot.contractId || contract.digest !== snapshot.contractDigest || contract.resultPolicy !== action.execution?.resultPolicy) authorityStale();
+    assertEntryActionPredicate(contract.predicate, row);
+    assertEntryActionChanges(contract, changes);
+  }
   if (!Array.isArray(changes) || changes.length === 0) authorityStale();
   for (const change of changes) {
     if (!snapshot.writableFields.includes(change.field) || !Object.hasOwn(row, change.field) || change.after === undefined) authorityStale();

@@ -22,6 +22,22 @@ test("authority snapshot derives scope entirely from the profile rule", () => {
   assert.doesNotThrow(() => assertAuthorityCurrent({ snapshot, profile, changes, textArtifact, row, documentTarget }));
 });
 
+test("authority excludes designer note fields from every automated proposal", () => {
+  const noteRow = { ...row, dev_note: "designer requirement", dev_notes: "designer note" };
+  const snapshot = createAuthoritySnapshot({ profile, actionId: "recheck", file: "fixtures/items.json", collection: "items", row: noteRow, documentTarget });
+  const stale = (error) => error?.code === "ENTRY_ACTION_PROFILE_STALE";
+
+  assert.doesNotMatch(snapshot.writableFields.join(","), /(^|,)(dev_note|dev_notes)(,|$)/);
+  assert.throws(() => assertAuthorityCurrent({
+    snapshot,
+    profile,
+    changes: [{ field: "dev_note", beforeExists: true, before: "designer requirement", afterExists: true, after: "changed" }],
+    textArtifact,
+    row: noteRow,
+    documentTarget,
+  }), stale);
+});
+
 test("authority snapshot accepts a safe integer primary key", () => {
   const numericTarget = { primaryKeyField: "id", documentRoot: "docs", sourceValue: "1026", path: "docs/1026.md" };
   const snapshot = createAuthoritySnapshot({ profile, actionId: "recheck", file: "fixtures/items.json", collection: "items", row: { ...row, id: 1026 }, documentTarget: numericTarget });
@@ -69,4 +85,14 @@ test("authority reports a missing required text artifact without claiming stale 
   assert.throws(() => assertAuthorityCurrent({ snapshot, profile, changes, textArtifact: null, row, documentTarget }), {
     code: "ENTRY_ACTION_TEXT_ARTIFACT_REQUIRED",
   });
+});
+
+test("authority enforces contract predicate, allowlist, transition and digest", () => {
+  const contractedProfile = { ...profile, rules: [{ ...profile.rules[0], execution: { kind: "project-skill", resultPolicy: "proposal" }, contractId: "fixture.review.v1" }] };
+  const contract = { contractId: "fixture.review.v1", digest: "c".repeat(64), resultPolicy: "proposal", predicate: { all: [{ field: "owner", op: "eq", value: "player" }] }, writableFields: ["name"], legalTransitions: [] };
+  const snapshot = createAuthoritySnapshot({ profile: contractedProfile, actionId: "recheck", file: "fixtures/items.json", collection: "items", row, documentTarget, contract });
+  assert.deepEqual(snapshot.writableFields, ["name"]);
+  assert.doesNotThrow(() => assertAuthorityCurrent({ snapshot, profile: contractedProfile, changes, textArtifact, row, documentTarget, contract }));
+  assert.throws(() => assertAuthorityCurrent({ snapshot, profile: contractedProfile, changes: [{ ...changes[0], field: "notes" }], textArtifact, row, documentTarget, contract }), { code: "ENTRY_ACTION_FIELD_FORBIDDEN" });
+  assert.throws(() => assertAuthorityCurrent({ snapshot, profile: contractedProfile, changes, textArtifact, row, documentTarget, contract: { ...contract, digest: "d".repeat(64) } }), { code: "ENTRY_ACTION_PROFILE_STALE" });
 });

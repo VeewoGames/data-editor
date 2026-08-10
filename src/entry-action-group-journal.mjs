@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, readdir } from "node:fs/promises";
 import { atomicWrite, exclusiveCreateLock } from "./atomic-file.mjs";
 
 export const ENTRY_ACTION_GROUP_STAGES = Object.freeze([
@@ -46,6 +46,18 @@ export function createEntryActionGroupJournal({ directory }) {
         throw error;
       }
     },
+    async findByRunId(runId) {
+      if (!validId(runId)) fail("ENTRY_ACTION_GROUP_JOURNAL_INVALID");
+      let names;
+      try { names = await readdir(directory); } catch (error) { if (error?.code === "ENOENT") return null; throw error; }
+      const matches = [];
+      for (const name of names.filter((item) => item.endsWith(".json"))) {
+        const entry = await readStage(directory, name.slice(0, -5));
+        if (entry.runId === runId) matches.push(entry);
+      }
+      if (matches.length > 1) fail("ENTRY_ACTION_GROUP_JOURNAL_INVALID");
+      return matches[0] ?? null;
+    },
   };
 }
 
@@ -63,30 +75,46 @@ function normalize(value, expectedStage = null) {
   if (!value || typeof value !== "object" || Array.isArray(value)
     || !ENTRY_ACTION_GROUP_STAGES.includes(value.stage) || (expectedStage && value.stage !== expectedStage)
     || !validId(value.idempotencyKey) || !validId(value.runId) || !digest(value.proposalDigest)
+    || !["proposal", "candidate_create"].includes(value.operation ?? "proposal")
     || !digest(value.ruleDigest)
+    || !Array.isArray(value.evidence) || !digest(value.evidenceDigest) || digestText(JSON.stringify(value.evidence)) !== value.evidenceDigest
     || !validOwnership(value.ownership)
-    || !validTarget(value.source, false) || !validTarget(value.artifact, true)
-    || value.idempotencyKey !== `group_${digestText(value.runId)}`
+    || !validTarget(value.source, false, false) || !validTarget(value.artifact, true, true)
+    || !validGroupId(value)
     || value.source.canonicalFileKey !== value.ownership.canonicalFileKey
     || !validSourceChild(value.source.childEntry, value)
     || !validArtifactChild(value.artifact.childEntry, value)) {
     fail("ENTRY_ACTION_GROUP_JOURNAL_INVALID");
   }
+  if ((value.operation ?? "proposal") === "candidate_create" && (!digest(value.createContractDigest)
+    || !validId(value.candidateId) || !validId(value.rowId) || !digest(value.semanticDigest)
+    || !value.manifest || typeof value.manifest !== "object" || Array.isArray(value.manifest)
+    || value.manifest.kind !== "candidate-create" || value.manifest.candidateId !== value.candidateId)) {
+    fail("ENTRY_ACTION_GROUP_JOURNAL_INVALID");
+  }
   return {
     ...structuredClone(value),
+    operation: value.operation ?? "proposal",
     createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date().toISOString(),
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date().toISOString(),
   };
 }
 
 function validSourceChild(child, group) {
-  return child.saveType === "proposal_commit"
+  const expectedSaveType = (group.operation ?? "proposal") === "candidate_create" ? "candidate_create_commit" : "proposal_commit";
+  return child.saveType === expectedSaveType
     && child.canonicalFileKey === group.source.canonicalFileKey
     && child.runId === group.runId
     && child.proposalDigest === group.proposalDigest
     && child.requestDigest === group.proposalDigest
     && child.beforeDigest === group.source.beforeDigest
     && child.afterDigest === group.source.afterDigest;
+}
+
+function validGroupId(value) {
+  return (value.operation ?? "proposal") === "candidate_create"
+    ? /^candidate_create_[0-9a-f]{64}$/.test(value.idempotencyKey)
+    : value.idempotencyKey === `group_${digestText(value.runId)}`;
 }
 
 function validArtifactChild(child, group) {
@@ -105,12 +133,13 @@ function validOwnership(value) {
     && validId(value.jobInstanceId);
 }
 
-function validTarget(value, allowMissingBefore) {
+function validTarget(value, allowMissingBefore, requireBeforeContent) {
   return value && typeof value === "object" && !Array.isArray(value)
     && typeof value.path === "string" && value.path.length > 0
     && digest(value.canonicalFileKey) && validId(value.childEntry?.idempotencyKey)
     && typeof value.beforeExists === "boolean" && (allowMissingBefore || value.beforeExists === true)
     && (value.beforeExists ? digest(value.beforeDigest) : value.beforeDigest === null)
+    && (!requireBeforeContent || (value.beforeExists ? typeof value.beforeContent === "string" && digestText(value.beforeContent) === value.beforeDigest : value.beforeContent === null))
     && value.afterExists === true && digest(value.afterDigest)
     && typeof value.afterContent === "string" && digestText(value.afterContent) === value.afterDigest
     && value.childEntry && typeof value.childEntry === "object" && !Array.isArray(value.childEntry);

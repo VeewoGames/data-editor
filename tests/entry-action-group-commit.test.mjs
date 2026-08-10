@@ -13,6 +13,7 @@ import {
 } from "../src/entry-action-group-commit.mjs";
 import { createEntryActionGroupJournal } from "../src/entry-action-group-journal.mjs";
 import { prepareEntryActionProposalCommit } from "../src/entry-action-proposal-commit.mjs";
+import { assertTextArtifactSectionPolicy } from "../src/entry-action-text-section-policy.mjs";
 
 const digest = (value) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
 const etag = (value) => `"${digest(value)}"`;
@@ -118,6 +119,25 @@ async function makeFixture(t) {
     publishResultIdempotently: async () => {},
   };
 }
+
+test("section-only evidence is persisted and revalidated while recovering a group", async (t) => {
+  const fixture = await makeFixture(t); let source = documentText; let artifact = null; let failOnce = true; let checks = 0;
+  const input = {
+    ...fixture,
+    groupEntry: fixture.groupEntry,
+    readSource: async () => source,
+    writeSource: async (value) => { source = value; },
+    readArtifact: async () => artifact,
+    writeArtifact: async (value) => { if (failOnce) { failOnce = false; throw new Error("crash"); } artifact = value; },
+    verifyOwnership: async () => {},
+    verifyAuthority: async ({ textArtifact }) => { checks += 1; assert.equal(textArtifact.beforeContent, null); assertTextArtifactSectionPolicy({ sectionOnly: { heading: "Alpha", level: 1, allowCreate: true, allowUpdate: false } }, textArtifact); },
+    refreshIdentities: async () => ({ source: fixture.sourceIdentity, artifact: fixture.artifactIdentity }),
+    publishResultIdempotently: async () => {},
+  };
+  await assert.rejects(() => commitEntryActionGroup(input), /crash/);
+  const recovered = await commitEntryActionGroup(input); assert.equal(recovered.stage, "result_published"); assert.ok(checks >= 2);
+  assert.equal((await fixture.groupJournal.read(fixture.groupEntry.idempotencyKey)).artifact.beforeContent, null);
+});
 
 test("group commit writes and verifies both targets before publishing once", async (t) => {
   const fixture = await makeFixture(t);

@@ -21,6 +21,7 @@ import {
   normalizeEntryActionSourceRowIndex,
   readEntryActionResult,
   readEntryActionStarted,
+  publishEntryActionResultIdempotently,
 } from "./src/entry-actions.mjs";
 import { loadAutomationBindings, saveAutomationBindings } from "./src/automation-bindings.mjs";
 import { loadAutomationSkillCatalog } from "./src/automation-skill-catalog.mjs";
@@ -47,6 +48,15 @@ import { createJobSupervisor } from "./src/job-supervisor.mjs";
 import { createDocumentCommitCoordinator } from "./src/document-commit-coordinator.mjs";
 import { createEntryActionRunRoute } from "./src/entry-action-route.mjs";
 import { startProjectSkillEntryAction } from "./src/project-skill-action-service.mjs";
+import { submitFreshEntryActionProposal } from "./src/entry-action-service.mjs";
+import { submitExactArtifact } from "./src/entry-action-exact-artifact.mjs";
+import { publishExactArtifact, readExactArtifact } from "./src/entry-action-exact-artifact-store.mjs";
+import { entryActionHttpStatus } from "./src/entry-action-http-error.mjs";
+import { createEntryActionCreateAdapterRegistry } from "./src/entry-action-create-adapter-registry.mjs";
+import { createCandidateCreateAdmission } from "./src/entry-action-create-admission.mjs";
+import { createProjectTransactionDispatcher, createProjectTransactionRegistry } from "./src/entry-action-project-transaction.mjs";
+import { createProjectTransactionOwnerResolver, recoverProjectTransactionOwnerResults } from "./src/entry-action-project-owner-adapters.mjs";
+import { createProjectTransactionRecoveryMonitor } from "./src/entry-action-project-transaction-monitor.mjs";
 import { promoteEmbeddedIdentity, recoverPendingEmbeddedIdentityPromotions } from "./src/durable-identity-coordinator.mjs";
 import { createPendingEntryActionStore } from "./src/pending-entry-action.mjs";
 import { createFencingAllocator } from "./src/fencing-lock.mjs";
@@ -68,10 +78,17 @@ const execFileAsync = promisify(execFile);
 let shuttingDown = false;
 let initialProjectPromise = null;
 const recoveredIdentityPromotionProjects = new Set();
+const scannedProjectTransactionProjects = new Set();
 const entryActionStateMigrationByProjectRoot = new Map();
 const connectionShutdown = createConnectionShutdown();
 const jobSupervisor = createJobSupervisor({ toolRoot });
 const documentCommitCoordinator = createDocumentCommitCoordinator();
+const createAdapterRegistry = createEntryActionCreateAdapterRegistry();
+const submitCandidateCreate = createCandidateCreateAdmission({ adapterRegistry: createAdapterRegistry });
+const projectTransactionOwnerResolver = createProjectTransactionOwnerResolver({ jobSupervisor });
+const projectTransactionRegistry = createProjectTransactionRegistry({ resolveOwner: (ownerId, input) => projectTransactionOwnerResolver.resolve(ownerId, input) });
+const projectTransactionRecoveryMonitor = createProjectTransactionRecoveryMonitor({ scan: scanProjectTransactionRecovery });
+const dispatchProjectTransaction = createProjectTransactionDispatcher({ registry: projectTransactionRegistry });
 const projectCapabilityRegistry = createProjectCapabilityRegistry(registryOptions);
 const activeEntryActionCompletions = new Map();
 const runEntryAction = createEntryActionRunRoute({
@@ -83,6 +100,16 @@ const runEntryAction = createEntryActionRunRoute({
   jobSupervisor,
   documentCommitCoordinator,
   startProjectSkill: startProjectSkillEntryAction,
+  submitProjectSkillResult: async ({ projectContext, project, request, runId, result, documentCommitCoordinator: coordinator }) => {
+    if (result?.kind === "entry-action-proposal") {
+      return submitFreshEntryActionProposal({ projectContext, project, request, result, documentCommitCoordinator: coordinator });
+    }
+    if (result?.kind === "candidate-create") {
+      return submitCandidateCreate({ projectContext, project, request, manifest: result.manifest ?? result, evidence: result.evidence ?? [], humanNotes: request.humanNotes ?? null, documentCommitCoordinator: coordinator });
+    }
+    if (result?.kind === "project-transaction-result") { const transaction = await dispatchProjectTransaction({ projectContext, project, request, result, runId }); if (transaction.pending) projectTransactionRecoveryMonitor.schedule(projectContext, runId); return transaction; }
+    throw Object.assign(new Error("Project-skill result kind is unsupported."), { code: "PROJECT_SKILL_RESULT_INVALID", status: 400 });
+  },
   promoteIdentity: (input) => promoteEmbeddedIdentity({
     ...input,
     validateCandidate: async ({ sourcePath, root, format, capabilityState }) => {
@@ -109,7 +136,7 @@ const runEntryAction = createEntryActionRunRoute({
   resolveCapabilityState: (project) => projectCapabilityRegistry.resolve(project),
   onCompletion(started) {
     activeEntryActionCompletions.set(started.runId, started.completion);
-    void started.completion.finally(() => activeEntryActionCompletions.delete(started.runId));
+    void started.completion.finally(() => activeEntryActionCompletions.delete(started.runId)).catch(() => {});
   },
 });
 
@@ -122,6 +149,9 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/entry-actions/ack-start" && req.method === "POST") {
       return await handleAckStartEntryAction(req, res);
     }
+    if (url.pathname === "/api/entry-actions/submit-exact-artifact" && req.method === "POST") return await handleSubmitExactArtifact(req, res);
+    if (url.pathname === "/api/entry-actions/publish-exact-artifact" && req.method === "POST") return await handlePublishExactArtifact(req, res);
+    if (url.pathname === "/api/entry-actions/recover-project-transactions" && req.method === "POST") return await handleRecoverProjectTransactions(req, res);
     await ensureInitialProject();
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
     if (url.pathname === "/api/project-capabilities" && req.method === "GET") return await handleProjectCapabilities(url, res);
@@ -164,7 +194,7 @@ const server = http.createServer(async (req, res) => {
       ...(error?.code ? { code: error.code } : {}),
       ...(error?.field ? { field: error.field } : {}),
       ...(error?.details ? { details: error.details } : {}),
-    }, Number.isInteger(error?.status) ? error.status : 500, { "cache-control": "no-store" });
+    }, entryActionHttpStatus(error), { "cache-control": "no-store" });
   }
 });
 connectionShutdown.attach(server);
@@ -183,8 +213,9 @@ async function ensureInitialProject() {
   await initialProjectPromise;
   const registry = await loadProjectRegistry(registryOptions);
   const project = registry.projects.find((candidate) => candidate.id === registry.activeProjectId);
-  if (project && !recoveredIdentityPromotionProjects.has(project.id)) {
+  if (project) {
     const context = createProjectContext({ projectRoot: project.root, projectId: project.id, dataSources: project.dataSources, filePolicy: project.filePolicy });
+    if (!recoveredIdentityPromotionProjects.has(project.id)) {
     const capabilityState = await projectCapabilityRegistry.resolve(project);
     await recoverPendingEmbeddedIdentityPromotions({
       projectContext: context,
@@ -202,6 +233,11 @@ async function ensureInitialProject() {
       await allocator.cancelPromotion(pending.lease).then(() => pendingStore.write({ ...pending, state: "expired", expiredAt: new Date().toISOString() })).catch(() => {});
     }
     recoveredIdentityPromotionProjects.add(project.id);
+    }
+    if (!scannedProjectTransactionProjects.has(project.id)) {
+      const recovery = await scanProjectTransactionRecovery(context); for (const runId of recovery.pending) projectTransactionRecoveryMonitor.schedule(context, runId);
+      scannedProjectTransactionProjects.add(project.id);
+    }
   }
   return registry;
 }
@@ -597,6 +633,56 @@ async function handleAckStartEntryAction(req, res) {
   sendJson(res, await runEntryAction.ackStart(body));
 }
 
+async function handleSubmitExactArtifact(req, res) {
+  const body = await readJsonBody(req);
+  const registry = await loadProjectRegistry(registryOptions);
+  const project = registry.projects.find((candidate) => candidate.id === body.projectId);
+  if (!project) throw Object.assign(new Error("Unknown project."), { code: "ENTRY_ACTION_PROJECT_UNKNOWN", status: 404 });
+  if (registry.activeProjectId !== body.projectId) throw Object.assign(new Error("Exact artifact submission is limited to the active project."), { code: "ENTRY_ACTION_PROJECT_NOT_ACTIVE", status: 409 });
+  const projectContext = await projectContextForId(project.id);
+  const submitted = await submitExactArtifact(body, {
+    readArtifact: ({ artifactId }) => readExactArtifact({ projectContext, artifactId }),
+    submitFreshArtifact: async ({ runId, artifact, target, actionId }) => {
+      let envelope;
+      try { envelope = JSON.parse(artifact.content); }
+      catch (cause) { throw Object.assign(new Error("Exact artifact envelope is invalid."), { code: "EXACT_ARTIFACT_CONTENT_INVALID", cause }); }
+      if (!envelope || typeof envelope !== "object" || Array.isArray(envelope) || Object.keys(envelope).sort().join(",") !== "result,target,version" || envelope.version !== 1) throw Object.assign(new Error("Exact artifact envelope is invalid."), { code: "EXACT_ARTIFACT_CONTENT_INVALID", status: 400 });
+      if (!envelope.target || envelope.target.sourcePath !== target.sourcePath || envelope.target.collectionPath !== target.collectionPath) throw Object.assign(new Error("Exact artifact target does not match submission."), { code: "EXACT_ARTIFACT_TARGET_MISMATCH", status: 409 });
+      const request = { projectId: project.id, actionId, sourcePath: target.sourcePath, collectionPath: target.collectionPath, rowId: envelope.target.rowId ?? null, expectedRowDigest: envelope.target.expectedRowDigest ?? null };
+      if (envelope.result?.kind === "entry-action-proposal") return submitFreshEntryActionProposal({ projectContext, project, request, result: envelope.result, documentCommitCoordinator, dependencies: { runId } });
+      if (envelope.result?.kind === "candidate-create") {
+        if (Object.hasOwn(envelope.result, "humanNotes")) throw Object.assign(new Error("Model artifact may not contain humanNotes."), { code: "EXACT_ARTIFACT_CONTENT_INVALID", status: 400 });
+        return submitCandidateCreate({ projectContext, project, request, manifest: envelope.result.manifest ?? envelope.result, evidence: envelope.result.evidence ?? [], humanNotes: artifact.humanNotes, documentCommitCoordinator, dependencies: { runId } });
+      }
+      throw Object.assign(new Error("Exact artifact result is invalid."), { code: "EXACT_ARTIFACT_CONTENT_INVALID", status: 400 });
+    },
+  });
+  sendJson(res, { ok: true, ...submitted });
+}
+
+async function handlePublishExactArtifact(req, res) {
+  const body = await readJsonBody(req);
+  if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).sort().join(",") !== "artifactId,content,humanNotes,projectId") throw Object.assign(new Error("Exact artifact publication request is invalid."), { code: "EXACT_ARTIFACT_PUBLICATION_REQUEST_INVALID" });
+  const registry = await loadProjectRegistry(registryOptions);
+  const project = registry.projects.find((candidate) => candidate.id === body.projectId);
+  if (!project) throw Object.assign(new Error("Unknown project."), { code: "ENTRY_ACTION_PROJECT_UNKNOWN" });
+  if (registry.activeProjectId !== body.projectId) throw Object.assign(new Error("Exact artifact publication is limited to the active project."), { code: "ENTRY_ACTION_PROJECT_NOT_ACTIVE" });
+  const projectContext = await projectContextForId(project.id);
+  const published = await publishExactArtifact({ projectContext, artifactId: body.artifactId, content: body.content, humanNotes: body.humanNotes });
+  sendJson(res, { ok: true, receiptVersion: 1, ...published });
+}
+
+async function handleRecoverProjectTransactions(req, res) {
+  const body = await readJsonBody(req); const projectContext = await projectContextForId(body?.projectId);
+  const recovery = await scanProjectTransactionRecovery(projectContext); const selected = typeof body?.runId === "string" && body.runId ? body.runId : null;
+  for (const runId of recovery.pending) if (selected === null || selected === runId) projectTransactionRecoveryMonitor.schedule(projectContext, runId, { reset: true });
+  sendJson(res, { ok: true, ...recovery });
+}
+
+async function scanProjectTransactionRecovery(projectContext) {
+  return recoverProjectTransactionOwnerResults({ projectContext, publish: ({ runId, actionId, changed, receipt, message }) => publishEntryActionResultIdempotently(projectContext, runId, { version: 2, runId, actionId, phase: "terminal", outcome: changed ? "completed_with_writeback" : "completed_without_changes", message: message || "Recovered project transaction.", transactionReceipt: receipt }) });
+}
+
 async function handleLoadEntryActionResult(url, res) {
   const runId = String(url.searchParams.get("runId") ?? "").trim();
   if (!runId) throw new Error("Missing runId");
@@ -815,7 +901,8 @@ export async function runBuildCommand({
 async function readJsonBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); }
+  catch (cause) { throw Object.assign(new Error("Request body must be valid JSON."), { code: "HTTP_REQUEST_JSON_INVALID", cause }); }
 }
 
 function contentType(filePath) {
@@ -898,6 +985,7 @@ function registerRuntimeStateCleanup() {
 async function shutdownServer(exitCode) {
   if (shuttingDown) return;
   shuttingDown = true;
+  projectTransactionRecoveryMonitor.stop();
   process.exitCode = exitCode;
   await jobSupervisor.shutdown().catch((error) => console.error(error));
   await Promise.allSettled([...activeEntryActionCompletions.values()]);

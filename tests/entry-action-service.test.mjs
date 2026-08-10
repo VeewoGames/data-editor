@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -181,9 +182,12 @@ async function writeFixture(context) {
       icon: "edit",
       targets: [{ file: "data/items.json", collection: "items" }],
       payload: { includeRow: true, includeNeighbors: false },
-      execution: { kind: "project-skill" },
+      execution: { kind: "proposal", resultPolicy: "proposal" },
+      contractId: "fixture.rename.v1",
     }],
   }, null, 2)}\n`);
+  const contract = fixtureContract();
+  await writeFile(path.join(context.projectRoot, ".data-editor", "entry-action-contracts.json"), `${JSON.stringify({ version: 1, contracts: [contract] }, null, 2)}\n`);
   await writeFile(context.localAutomationBindingsPath, `${JSON.stringify({
     defaults: { model: "fixture-model", reasoning: "low", verbosity: "low", timeoutMs: 5_000 },
     bindings: { "fixture-rename": { provider: "codex", skill: "fixture-skill", enabled: true } },
@@ -199,6 +203,17 @@ async function writeFixture(context) {
   }, null, 2)}\n`);
   await mkdir(path.join(context.projectRoot, "fixture-skill"), { recursive: true });
   await writeFile(path.join(context.projectRoot, "fixture-skill", "SKILL.md"), "# Fixture\n");
+}
+
+function fixtureContract() {
+  const value = { contractId: "fixture.rename.v1", version: 1, predicate: { all: [] }, writableFields: ["name"], legalTransitions: [], textArtifactPolicy: {}, evidencePolicy: {}, resultPolicy: "proposal", createAuthority: null };
+  return { ...value, digest: crypto.createHash("sha256").update(canonical(value), "utf8").digest("hex") };
+}
+
+function canonical(value) {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
 }
 
 function parseArgs(argv) {

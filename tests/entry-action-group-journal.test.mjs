@@ -17,6 +17,8 @@ const entry = {
   runId,
   proposalDigest,
   ruleDigest: "4".repeat(64),
+  evidence: [],
+  evidenceDigest: digest("[]"),
   ownership: {
     canonicalFileKey: "c".repeat(64),
     ownerToken: "20000000-0000-4000-8000-000000000002",
@@ -57,6 +59,7 @@ const entry = {
     },
     beforeExists: false,
     beforeDigest: null,
+    beforeContent: null,
     afterExists: true,
     afterDigest: artifactAfterDigest,
     afterContent: "artifact",

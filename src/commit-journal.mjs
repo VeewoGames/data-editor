@@ -1,5 +1,6 @@
 import path from "node:path";
 import { mkdir, readFile } from "node:fs/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import { atomicWrite, exclusiveCreateLock } from "./atomic-file.mjs";
 
 export const COMMIT_JOURNAL_STAGES = Object.freeze(["commit_intent", "source_replaced", "verified", "result_published"]);
@@ -17,7 +18,7 @@ export function createCommitJournal({ directory }) {
       } catch (cause) {
         if (cause?.code !== "EEXIST") throw cause;
       }
-      const existing = await readStage(directory, intent.idempotencyKey);
+      const existing = await readStageAfterCreateCollision(directory, intent.idempotencyKey);
       assertSameLogicalSave(existing, intent);
       return existing;
     },
@@ -40,6 +41,20 @@ export function createCommitJournal({ directory }) {
   };
 }
 
+async function readStageAfterCreateCollision(directory, idempotencyKey) {
+  let lastError;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      return await readStage(directory, idempotencyKey);
+    } catch (error) {
+      if (!["COMMIT_JOURNAL_INVALID", "COMMIT_JOURNAL_MISSING"].includes(error?.code)) throw error;
+      lastError = error;
+      if (attempt < 7) await delay(Math.min(2 ** attempt, 32));
+    }
+  }
+  throw journalError("COMMIT_JOURNAL_INVALID", lastError);
+}
+
 async function writeStage(directory, entry) {
   await mkdir(directory, { recursive: true });
   await atomicWrite(file(directory, entry.idempotencyKey), `${JSON.stringify(entry, null, 2)}\n`);
@@ -59,7 +74,7 @@ async function readStage(directory, idempotencyKey) {
 function normalize(value, expectedStage = null) {
   if (!value || typeof value !== "object" || Array.isArray(value)
     || !COMMIT_JOURNAL_STAGES.includes(value.stage) || (expectedStage && value.stage !== expectedStage)
-    || !validId(value.idempotencyKey) || !["document_save", "proposal_commit", "text_artifact_commit"].includes(value.saveType)
+    || !validId(value.idempotencyKey) || !["document_save", "proposal_commit", "candidate_create_commit", "text_artifact_commit"].includes(value.saveType)
     || !digest(value.canonicalFileKey) || typeof value.baseEtag !== "string" || typeof value.newEtag !== "string"
     || !digest(value.beforeDigest) || !digest(value.afterDigest) || !digest(value.requestDigest)
     || (Object.hasOwn(value, "recovery_pending") && typeof value.recovery_pending !== "boolean")) {
@@ -68,6 +83,11 @@ function normalize(value, expectedStage = null) {
   if (value.saveType === "proposal_commit" && (!validId(value.runId) || !validId(value.ownerToken)
     || !Number.isInteger(value.fencingToken) || value.fencingToken < 0 || !validId(value.rowId)
     || !digest(value.proposalDigest) || !validProposalChanges(value.changes))) {
+    throw journalError("COMMIT_JOURNAL_INVALID");
+  }
+  if (value.saveType === "candidate_create_commit" && (!validId(value.runId) || !validId(value.ownerToken)
+    || !Number.isInteger(value.fencingToken) || value.fencingToken < 0 || !validId(value.rowId)
+    || !digest(value.proposalDigest))) {
     throw journalError("COMMIT_JOURNAL_INVALID");
   }
   if (value.saveType === "text_artifact_commit" && (!validId(value.runId) || !validId(value.artifactId)

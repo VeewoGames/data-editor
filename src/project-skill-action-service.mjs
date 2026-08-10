@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { loadAutomationBindings } from "./automation-bindings.mjs";
 import { loadAutomationProfile } from "./automation-profile.mjs";
 import { resolveAutomationExecutionConfig } from "./automation-runtime.mjs";
@@ -28,6 +28,8 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
   const runtime = resolveAutomationExecutionConfig({ rule: action, binding, defaults: bindings.defaults }).runtime;
   const runId = crypto.randomUUID();
   const scratch = path.join(os.tmpdir(), `data-editor-project-skill-${runId}`);
+  const inputRoot = path.join(scratch, "input");
+  const outputRoot = path.join(scratch, "output");
   const sourcePath = String(request.sourcePath ?? "").trim();
   const collectionPath = String(request.collectionPath ?? "").trim();
   const rowId = typeof request.rowId === "string" ? request.rowId.trim() : null;
@@ -64,13 +66,16 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
   let diagnosticsPath;
   try {
     await mkdir(scratch, { recursive: false });
-    promptPath = path.join(scratch, "prompt.md");
-    replyPath = path.join(scratch, "reply.json");
-    eventsPath = path.join(scratch, "events.jsonl");
-    diagnosticsPath = path.join(scratch, "diagnostics.log");
+    await (dependencies.prepareInputRoot ?? copyProjectSnapshot)(projectContext.projectRoot, inputRoot);
+    await mkdir(outputRoot, { recursive: false });
+    promptPath = path.join(outputRoot, "prompt.md");
+    replyPath = path.join(outputRoot, "reply.json");
+    eventsPath = path.join(outputRoot, "events.jsonl");
+    diagnosticsPath = path.join(outputRoot, "diagnostics.log");
     const skill = await readFile(status.skillPath, "utf8");
-    await writeFile(promptPath, `${skill}\n\n## Explicit invocation\nReturn exactly one JSON object with {"kind":"project-skill-result","resultOnly":true}.\n${JSON.stringify({ actionId: action.id, projectId: project.id, request }, null, 2)}\n`, "utf8");
-    handle = await jobSupervisor.start({ id: runId, command: process.execPath, args: [path.resolve(toolRoot, "scripts/run-project-skill-action-host.mjs"), "--codex", status.codexCliPath, "--project-root", projectContext.projectRoot, "--prompt", promptPath, "--reply", replyPath, "--events", eventsPath, "--diagnostics", diagnosticsPath, "--model", runtime.model, "--reasoning", runtime.reasoning, "--verbosity", runtime.verbosity], cwd: projectContext.projectRoot, timeoutMs: runtime.timeoutMs });
+    const resultPolicy = action.execution.resultPolicy;
+    await writeFile(promptPath, `${skill}\n\n## Explicit invocation\nProject input is a disposable read-only snapshot at ${JSON.stringify(inputRoot)}. Write task-owned output only under ${JSON.stringify(outputRoot)}. Return exactly one JSON object allowed by resultPolicy=${JSON.stringify(resultPolicy)}.\n${JSON.stringify({ actionId: action.id, projectId: project.id, resultPolicy, request }, null, 2)}\n`, "utf8");
+    handle = await jobSupervisor.start({ id: runId, command: process.execPath, args: [path.resolve(toolRoot, "scripts/run-project-skill-action-host.mjs"), "--codex", status.codexCliPath, "--input-root", inputRoot, "--output-root", outputRoot, "--prompt", promptPath, "--reply", replyPath, "--events", eventsPath, "--diagnostics", diagnosticsPath, "--model", runtime.model, "--reasoning", runtime.reasoning, "--verbosity", runtime.verbosity], cwd: outputRoot, timeoutMs: runtime.timeoutMs });
     await advanceEntryActionPhase(projectContext, runId, "running");
   } catch (error) {
     await publishProjectSkillTerminal(projectContext, runId, action.id, "failed", error.message ?? String(error));
@@ -91,10 +96,35 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
         throw protocolError("PROJECT_SKILL_FAILED", "Project skill did not complete successfully.");
       }
       const reply = await readFile(replyPath, "utf8");
-      await atomicWrite(entryActionOutputPath(projectContext, runId), reply);
+      const outputPath = entryActionOutputPath(projectContext, runId);
+      await atomicWrite(outputPath, reply);
       const result = JSON.parse(reply);
-      if (result?.kind !== "project-skill-result" || result?.resultOnly !== true) throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project skill must return a result-only object.");
-      await publishProjectSkillTerminal(projectContext, runId, action.id, "completed_without_changes", result.message ?? "Project skill completed.");
+      assertProjectSkillResultPolicy(result, action.execution.resultPolicy);
+      if (action.execution.resultPolicy === "proposal") {
+        if (typeof dependencies.submitProposalResult !== "function") throw protocolError("PROJECT_SKILL_PROPOSAL_ADMISSION_UNAVAILABLE", "Project-skill proposal admission is unavailable.");
+        const admitted = await dependencies.submitProposalResult({ projectContext, project, request, action, profile, runId, result });
+        await publishProjectSkillTerminal(projectContext, runId, action.id, "completed_with_writeback", resolveProjectSkillResultMessage(result), { admittedRunId: admitted.runId, admittedKind: admitted.kind });
+        return admitted;
+      }
+      if (action.execution.resultPolicy === "project-transaction") {
+        if (typeof dependencies.submitProjectTransactionResult !== "function") throw protocolError("PROJECT_TRANSACTION_OWNER_UNAVAILABLE", "Project transaction admission is unavailable.");
+        const transaction = await dependencies.submitProjectTransactionResult({ projectContext, project, request, action, profile, runId, result });
+        if (transaction.pending === true) return transaction;
+        await publishProjectSkillTerminal(projectContext, runId, action.id, transaction.changed ? "completed_with_writeback" : "completed_without_changes", transaction.message, { transactionReceipt: transaction.receipt });
+        return transaction;
+      }
+      await publishProjectSkillTerminal(
+        projectContext,
+        runId,
+        action.id,
+        "completed_without_changes",
+        resolveProjectSkillResultMessage(result),
+        {
+          outputPath,
+          resultOnly: action.execution.resultPolicy === "result-only",
+          resultStatus: resolveProjectSkillResultStatus(result),
+        },
+      );
       return result;
     } catch (error) {
       await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId)).catch(() => {});
@@ -105,7 +135,61 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
   return { runId, completion };
 }
 
-async function publishProjectSkillTerminal(projectContext, runId, actionId, outcome, message) {
+export function assertProjectSkillResultPolicy(result, resultPolicy) {
+  if (resultPolicy === "result-only") {
+    if (result?.kind !== "project-skill-result" || result?.resultOnly !== true) throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project skill must return a result-only object.");
+    return;
+  }
+  if (resultPolicy === "proposal") {
+    if (!result || result.resultOnly === true || Object.hasOwn(result, "humanNotes") || !["entry-action-proposal", "candidate-create"].includes(result.kind)) throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project skill must return an admitted proposal result without humanNotes.");
+    return;
+  }
+  if (resultPolicy === "project-transaction") {
+    if (result?.kind !== "project-transaction-result") throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project skill must return a project transaction result.");
+    return;
+  }
+  throw protocolError("PROJECT_SKILL_RESULT_POLICY_INVALID", "Project skill result policy is invalid.");
+}
+
+async function copyProjectSnapshot(projectRoot, inputRoot) {
+  await cp(projectRoot, inputRoot, {
+    recursive: true,
+    force: false,
+    errorOnExist: true,
+    async filter(source) {
+      const relative = path.relative(projectRoot, source).replaceAll("\\", "/");
+      const included = relative !== ".data-editor/runtime" && !relative.startsWith(".data-editor/runtime/")
+        && relative !== ".data-editor/logs" && !relative.startsWith(".data-editor/logs/");
+      if (!included) return false;
+      const stat = await lstat(source);
+      if (stat.isSymbolicLink()) throw protocolError("PROJECT_SKILL_INPUT_LINK_UNSUPPORTED", "Project snapshot contains a symbolic link or junction.");
+      return true;
+    },
+  });
+}
+
+function resolveProjectSkillResultStatus(result) {
+  for (const value of [
+    result?.status,
+    result?.designVerdict,
+    result?.verdict,
+    result?.result?.status,
+    result?.result?.designVerdict,
+    result?.result?.verdict,
+  ]) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function resolveProjectSkillResultMessage(result) {
+  for (const value of [result?.summary, result?.message, result?.result?.summary, result?.result?.message]) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "Project skill completed.";
+}
+
+async function publishProjectSkillTerminal(projectContext, runId, actionId, outcome, message, details = {}) {
   return publishEntryActionResultIdempotently(projectContext, runId, {
     version: 2,
     runId,
@@ -113,6 +197,7 @@ async function publishProjectSkillTerminal(projectContext, runId, actionId, outc
     phase: "terminal",
     outcome,
     message,
+    ...details,
   });
 }
 

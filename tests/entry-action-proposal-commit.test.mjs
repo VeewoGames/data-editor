@@ -117,6 +117,18 @@ test("proposal preparation binds one authorized Markdown create or update", asyn
   }), { code: "ENTRY_ACTION_GROUP_COMMIT_REQUIRED" });
 });
 
+test("proposal preparation enforces section-only update against the current bytes", async () => {
+  const beforeContent = "# Doc\nintro\n## Design\nold\n## Notes\nkeep\n"; const afterContent = "# Doc\nintro\n## Design\nnew\n## Notes\nkeep\n";
+  const sectionProfile = { ...artifactProfile, rules: [{ ...artifactProfile.rules[0], contractId: "fixture.section.v1", execution: { kind: "project-skill", resultPolicy: "proposal" } }] };
+  const contract = { contractId: "fixture.section.v1", digest: "section-contract", resultPolicy: "proposal", predicate: { all: [] }, writableFields: ["name", "notes"], legalTransitions: [], textArtifactPolicy: { required: true, allowedExtensions: [".md"], sectionOnly: { heading: "Design", level: 2, allowCreate: false, allowUpdate: true } }, evidencePolicy: {} };
+  const sectionSnapshot = createAuthoritySnapshot({ profile: sectionProfile, actionId: "rename", file: "data/items.json", collection: "$", row, documentTarget: artifactDocumentTarget, contract });
+  const artifactProposal = { ...proposal, ruleDigest: sectionSnapshot.ruleDigest, textArtifact: { id: "item-doc", path: "docs/items/item_alpha.md", beforeExists: true, beforeDigest: digest(beforeContent), afterContent, afterDigest: digest(afterContent) } };
+  const prepared = await prepareEntryActionProposalCommit({ proposal: artifactProposal, lease, authoritySnapshot: sectionSnapshot, contract, profile: sectionProfile, documentTarget: artifactDocumentTarget, documentText: text, textArtifactCurrentText: beforeContent, probeLease });
+  assert.equal(prepared.textArtifact.beforeContent, beforeContent);
+  const tampered = afterContent.replace("keep", "changed");
+  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...artifactProposal, textArtifact: { ...artifactProposal.textArtifact, afterContent: tampered, afterDigest: digest(tampered) } }, lease, authoritySnapshot: sectionSnapshot, contract, profile: sectionProfile, documentTarget: artifactDocumentTarget, documentText: text, textArtifactCurrentText: beforeContent, probeLease }), { code: "ENTRY_ACTION_TEXT_ARTIFACT_SECTION_POLICY_FAILED" });
+});
+
 test("proposal preparation fails closed on stale ownership, document, row or artifact", async () => {
   await assert.rejects(() => prepareEntryActionProposalCommit({ proposal, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease: () => ({ status: "absent" }) }), { code: "ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE" });
   await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...proposal, baseDocumentEtag: '"old"' }, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease }), { code: "ENTRY_ACTION_PROPOSAL_DOCUMENT_STALE" });

@@ -118,7 +118,7 @@ test("project-skill routes before identity promotion and returns result-only", a
   let started = false;
   const route = createEntryActionRunRoute({
     loadRegistry: async () => ({ activeProjectId: "project-a", projects: [{ id: "project-a", root: path.resolve("fixture-a") }] }),
-    resolveExecution: async () => ({ kind: "project-skill" }),
+    resolveExecution: async () => ({ kind: "project-skill", resultPolicy: "result-only" }),
     promoteIdentity: async () => { promoted = true; },
     startProjectSkill: async () => { started = true; return { runId: "00000000-0000-4000-8000-000000000003", completion: Promise.resolve() }; },
   });
@@ -126,4 +126,22 @@ test("project-skill routes before identity promotion and returns result-only", a
   assert.equal(result.resultOnly, true);
   assert.equal(started, true);
   assert.equal(promoted, false);
+});
+
+test("project-skill proposal receives the server admission dispatcher", async () => {
+  let admitted = false;
+  const coordinator = {};
+  const route = createEntryActionRunRoute({
+    loadRegistry: async () => ({ activeProjectId: "project-a", projects: [{ id: "project-a", root: path.resolve("fixture-a") }] }),
+    documentCommitCoordinator: coordinator,
+    resolveExecution: async () => ({ kind: "project-skill", resultPolicy: "proposal" }),
+    submitProjectSkillResult: async (input) => { admitted = true; assert.equal(input.documentCommitCoordinator, coordinator); return { runId: "fresh" }; },
+    startProjectSkill: async ({ dependencies }) => {
+      assert.equal(typeof dependencies.submitProposalResult, "function");
+      await dependencies.submitProposalResult({ result: { kind: "entry-action-proposal" } });
+      return { runId: "00000000-0000-4000-8000-000000000004", completion: Promise.resolve() };
+    },
+  });
+  await route.run({ projectId: "project-a", actionId: "fixture-action" });
+  assert.equal(admitted, true);
 });

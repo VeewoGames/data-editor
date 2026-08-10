@@ -7,11 +7,13 @@ import { setAuthorizedCellValueByRowId } from "./model/writeback-adapter.mjs";
 import { serializeJson } from "./json-codec.mjs";
 import { parseCsv, serializeCsv } from "./csv-codec.mjs";
 import { executeJournaledDocumentCommit } from "./document-commit-executor.mjs";
+import { assertEntryActionResultPolicies } from "./entry-action-contracts.mjs";
 
 export async function prepareEntryActionProposalCommit({
   proposal,
   lease,
   authoritySnapshot,
+  contract = null,
   profile,
   documentTarget = null,
   documentText,
@@ -19,8 +21,10 @@ export async function prepareEntryActionProposalCommit({
   format = "json",
   documentId = "document",
   probeLease,
+  evidence = [],
 }) {
   const value = validateEntryActionProposal(proposal);
+  if (contract) assertEntryActionResultPolicies(contract, { textArtifact: value.textArtifact, evidence });
   if (!lease || value.canonicalFileKey !== lease.canonicalFileKey || value.runId !== lease.runId || value.fencingToken !== lease.fencingToken) fail("ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE");
   const current = typeof probeLease === "function" ? await probeLease(lease) : null;
   if (!current || current.status !== "owned" || current.lease?.ownerToken !== lease.ownerToken || current.lease?.ownerHash !== lease.ownerHash || current.lease?.fencingToken !== lease.fencingToken) fail("ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE");
@@ -38,6 +42,7 @@ export async function prepareEntryActionProposalCommit({
     changes: value.changes,
     textArtifact: value.textArtifact,
     row,
+    contract,
     documentTarget,
   });
   for (const [index, change] of value.changes.entries()) {
@@ -56,6 +61,7 @@ export async function prepareEntryActionProposalCommit({
     });
   }
   const textArtifact = prepareTextArtifact(value.textArtifact, textArtifactCurrentText);
+  if (contract && textArtifact) assertEntryActionResultPolicies(contract, { textArtifact, evidence });
   return {
     proposal: value,
     model,

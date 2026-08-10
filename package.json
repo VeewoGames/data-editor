@@ -14,6 +14,7 @@
     "registry:migrate:v2": "node scripts/registry-migrate-v2.mjs",
     "build:job-helper": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-job-helper.ps1",
     "entry-action:recover": "node scripts/entry-action-recover.mjs",
+    "entry-action:publish-exact": "node scripts/publish-entry-action-exact-artifact.mjs",
     "test:entry-action-cli-e2e": "node --test tests/entry-action-cli-e2e.test.mjs",
     "build": "vite build",
     "start": "node server.mjs --project . --port 8787 --static dist",

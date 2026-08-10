@@ -39,7 +39,10 @@ export type EntryActionRule = {
   };
   execution: {
     kind: "proposal" | "project-skill";
+    resultPolicy: "proposal" | "result-only" | "project-transaction";
   };
+  contractId: string;
+  createAuthority?: { enabled: true; contractId: string };
   runtime?: {
     model?: string;
     reasoning?: "none" | "low" | "medium" | "high" | "xhigh";
@@ -167,6 +170,8 @@ export type EntryActionRunResult = {
   /** @deprecated The legacy protocol remains readable only for historical artifacts. */
   finishedAt?: string;
   outputPath?: string | null;
+  resultOnly?: boolean;
+  resultStatus?: string | null;
   reason?: string | null;
   message?: string | null;
   artifacts?: Record<"proposal" | "reply" | "diagnostics", { path: string; available: boolean }>;
@@ -836,7 +841,10 @@ function normalizeFetchedEntryActionRule(value: unknown): EntryActionRule | null
     },
     execution: {
       kind: (rule.execution as { kind?: unknown } | null)?.kind === "proposal" ? "proposal" : "project-skill",
+      resultPolicy: normalizeEntryActionResultPolicy((rule.execution as { resultPolicy?: unknown } | null)?.resultPolicy),
     },
+    contractId: typeof rule.contractId === "string" ? rule.contractId.trim() : "",
+    createAuthority: normalizeFetchedCreateAuthority(rule.createAuthority),
     runtime: normalizeFetchedEntryActionRuntime(rule.runtime),
   };
 }
@@ -874,6 +882,16 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
     return dedupeFetchedEntryActionTargets(files.flatMap((file) => collections.map((collection) => ({ file, collection }))));
   }
   return [];
+}
+
+function normalizeEntryActionResultPolicy(value: unknown): EntryActionRule["execution"]["resultPolicy"] {
+  return value === "proposal" || value === "project-transaction" ? value : "result-only";
+}
+
+function normalizeFetchedCreateAuthority(value: unknown): EntryActionRule["createAuthority"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const contractId = typeof (value as { contractId?: unknown }).contractId === "string" ? (value as { contractId: string }).contractId.trim() : "";
+  return (value as { enabled?: unknown }).enabled === true && contractId ? { enabled: true, contractId } : undefined;
 }
 
 function normalizeFetchedTextArtifact(value: unknown): Pick<EntryActionTarget, "textArtifact"> {

@@ -4,6 +4,11 @@ import { claimFencingAdmission, classifyRecoveryCommand, finalizeClaimedRecovery
 import { createProjectContext } from "../src/project-context.mjs";
 import { publishEntryActionResultIdempotently, readEntryActionResult, readEntryActionStarted } from "../src/entry-actions.mjs";
 import { recoverProposalOnlyEntryActionGroup } from "../src/entry-action-service.mjs";
+import { recoverCandidateCreate } from "../src/entry-action-candidate-create-service.mjs";
+import { loadAutomationProfile, ruleAuthorityDigest } from "../src/automation-profile.mjs";
+import { assertEntryActionResultPolicies, loadEntryActionContracts, resolveEntryActionContract } from "../src/entry-action-contracts.mjs";
+import { findAutomationEntryAction } from "../src/entry-actions.mjs";
+import { recoverDurableEntryActionOperation } from "../src/entry-action-durable-recovery.mjs";
 const args = process.argv.slice(2); const [command] = args;
 const value = (name) => { const i=args.indexOf(name); return i < 0 ? null : args[i+1] ?? null; };
 const project = value("--project"), runId = value("--run-id");
@@ -57,11 +62,18 @@ async function finishClaimedRecovery({ claim, inspection, claimedInspection }) {
     groupRecovery = { recovered: false, skipped: "terminal_result_exists" };
   } else {
     try {
-      groupRecovery = await recoverProposalOnlyEntryActionGroup({
-        projectContext,
-        runId,
-        recoveryLease: inspection.lease,
-      });
+      const started = await readEntryActionStarted(projectContext, runId).catch(() => null);
+      groupRecovery = await recoverDurableEntryActionOperation({ started, recoverCandidate: () => recoverCandidateCreate({
+          projectContext, runId, idempotencyKey: started.idempotencyKey, recoveryLease: inspection.lease,
+          verifyAuthority: async (expected) => {
+            const [profile, registry] = await Promise.all([loadAutomationProfile(projectContext), loadEntryActionContracts(projectContext)]);
+            const action = findAutomationEntryAction(profile, started.actionId);
+            const contract = resolveEntryActionContract(registry, action.contractId);
+            if (ruleAuthorityDigest(action) !== expected.ruleDigest || contract.createAuthority?.digest !== expected.createContractDigest || expected.candidateId !== started.candidateId) throw Object.assign(new Error("CANDIDATE_CREATE_AUTHORITY_STALE"), { code: "CANDIDATE_CREATE_AUTHORITY_STALE" });
+            assertEntryActionResultPolicies(contract, { textArtifact: expected.textArtifact, evidence: expected.evidence });
+          },
+          publishResultIdempotently: () => publishEntryActionResultIdempotently(projectContext, runId, { version: 2, runId, actionId: started.actionId, phase: "terminal", outcome: "completed_with_writeback", message: "Candidate create recovery completed.", operation: "candidate_create", candidateId: started.candidateId, idempotencyKey: started.idempotencyKey }),
+        }), recoverProposal: () => recoverProposalOnlyEntryActionGroup({ projectContext, runId, recoveryLease: inspection.lease }) });
     } catch (error) {
       return { exitCode: 2, decision: "error", reasonCode: error?.code ?? "RECOVERY_GROUP_COMMIT_FAILED", released: false };
     }

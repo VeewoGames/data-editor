@@ -83,7 +83,10 @@ async function retireLegacyPolicy({ context, policyText, profileText, markerPath
 function convertProfile(profile, policy) {
   if (!profile || typeof profile !== "object" || Array.isArray(profile) || !Array.isArray(profile.rules)) fail("ENTRY_ACTION_POLICY_MIGRATION_PROFILE_INVALID");
   const artifactKeys = new Set(); const rowMatchActions = [];
-  const rules = profile.rules.map((rule) => ({ ...rule, execution: rule.execution ?? { kind: "proposal" }, targets: (rule.targets ?? []).map((target) => {
+  const rules = profile.rules.map((rule) => ({ ...rule,
+    execution: rule.execution ?? { kind: "proposal", resultPolicy: "proposal" },
+    contractId: rule.contractId ?? `legacy.${rule.id}.v1`,
+    targets: (rule.targets ?? []).map((target) => {
     if (!target || typeof target !== "object" || Array.isArray(target)) fail("ENTRY_ACTION_POLICY_MIGRATION_TARGET_INVALID");
     const legacyId = target.textArtifactId;
     const next = { ...target }; delete next.textArtifactId;

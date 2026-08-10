@@ -1581,7 +1581,9 @@ test("server saves and loads automation profile and machine-local bindings", asy
           },
           execution: {
             kind: "project-skill",
+            resultPolicy: "result-only",
           },
+          contractId: "fixture.recheck.v1",
         },
       ],
     },
@@ -1631,6 +1633,14 @@ test("entry action run fails closed when durable identity is required but unavai
       { id: "gamma", name: "Gamma", tags: ["c"] },
     ],
   }, null, 2)}\n`, "utf8");
+  await mkdir(path.join(project, ".data-editor"), { recursive: true });
+  await writeFile(path.join(project, ".data-editor", "automation-profile.json"), `${JSON.stringify({ rules: [{
+    id: "recheck", label: "Recheck", icon: "refresh", enabled: true,
+    targets: [{ file: "data/items.json", collection: "items" }],
+    payload: { includeRow: true, includeNeighbors: false },
+    execution: { kind: "proposal", resultPolicy: "proposal" },
+    contractId: "fixture.recheck.v1",
+  }] }, null, 2)}\n`, "utf8");
 
   const port = await findAvailablePort();
   const child = spawnDataEditorServer(port, ["--project", project, "--registry-home", registryHome, "--static", "dist"]);

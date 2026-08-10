@@ -6,7 +6,9 @@
       "label": "Fixture rename",
       "icon": "edit",
       "targets": [{ "file": "data/items.json", "collection": "$" }],
-      "payload": { "includeRow": true, "includeNeighbors": false }
+      "payload": { "includeRow": true, "includeNeighbors": false },
+      "execution": { "kind": "proposal", "resultPolicy": "proposal" },
+      "contractId": "fixture.rename.v1"
     }
   ]
 }

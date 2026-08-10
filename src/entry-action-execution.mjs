@@ -8,5 +8,9 @@ export async function resolveEntryActionExecution(projectContext, actionId, { lo
   if (kind !== "proposal" && kind !== "project-skill") {
     throw Object.assign(new Error("Entry action execution kind is unavailable."), { code: "ENTRY_ACTION_EXECUTION_KIND_INVALID", status: 409 });
   }
-  return { action, kind };
+  const resultPolicy = action?.execution?.resultPolicy;
+  if (!["proposal", "result-only", "project-transaction"].includes(resultPolicy)) {
+    throw Object.assign(new Error("Entry action result policy is unavailable."), { code: "ENTRY_ACTION_RESULT_POLICY_INVALID", status: 409 });
+  }
+  return { action, kind, resultPolicy, contractId: action.contractId };
 }

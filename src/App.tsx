@@ -4264,6 +4264,18 @@ export function App() {
       };
     }
     if (result.outcome === "completed_without_changes") {
+      if (result.resultOnly) {
+        const needsAttention = ["stopped", "blocked", "failed", "evidence_insufficient", "changes_required"]
+          .includes(result.resultStatus ?? "");
+        return {
+          actionId,
+          runId: result.runId,
+          tone: needsAttention ? "warning" : "success",
+          title: needsAttention ? `${actionLabel} 需要处理` : `${actionLabel} 已完成`,
+          detail: result.message ?? "检查已经完成，请查看执行输出。",
+          output,
+        };
+      }
       return {
         actionId,
         runId: result.runId,
@@ -6645,7 +6657,9 @@ function AutomationSettingsDialog(props: {
           },
           execution: {
             kind: "project-skill",
+            resultPolicy: "result-only",
           },
+          contractId: `project.${nextId}.v1`,
         },
       ],
     }));
@@ -7505,6 +7519,8 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
     }
     if (!rule.label.trim()) issues.push(`${prefix}: Label 不能为空。`);
     if (!rule.icon.trim()) issues.push(`${prefix}: Icon 不能为空。`);
+    if (!rule.contractId.trim()) issues.push(`${prefix}: Contract Id 不能为空。`);
+    if (rule.execution.kind === "proposal" && rule.execution.resultPolicy !== "proposal") issues.push(`${prefix}: proposal 只能使用 proposal result policy。`);
     if (rule.targets.length === 0) {
       issues.push(`${prefix}: 目标范围至少要有一项。`);
     } else {
@@ -7586,6 +7602,8 @@ function resolveVisibleEntryActions(input: {
         includeNeighbors: rule.payload.includeNeighbors,
       },
       execution: rule.execution,
+      contractId: rule.contractId,
+      ...(rule.createAuthority ? { createAuthority: rule.createAuthority } : {}),
     }));
 }
 
