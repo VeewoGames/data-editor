@@ -371,7 +371,7 @@ export async function recoverProposalOnlyEntryActionGroup({
         contract,
       });
       assertAuthorityCurrent({
-        snapshot: { ...snapshot, ...expected },
+        snapshot: mergeGroupAuthoritySnapshot(snapshot, expected),
         profile,
         changes: proposal.changes,
         textArtifact: proposal.textArtifact,
@@ -583,7 +583,7 @@ async function commitProposal(context, proposal) {
       const currentAction = findAutomationEntryAction(profile, proposal.actionId);
       const currentContract = resolveEntryActionContract(contractRegistry, currentAction.contractId);
       assertAuthorityCurrent({
-        snapshot: { ...authoritySnapshot, ...expected },
+        snapshot: mergeGroupAuthoritySnapshot(authoritySnapshot, expected),
         profile,
         changes: proposal.changes,
         textArtifact: proposal.textArtifact,
@@ -605,6 +605,21 @@ function resolveAuthorityDocumentTarget({ action, viewConfig, sourcePath, collec
   const target = action?.targets?.find((item) => item.file === sourcePath && item.collection === collectionPath);
   if (!target?.textArtifact) return null;
   return resolveEntryActionDocumentTarget({ viewConfig, file: sourcePath, collection: collectionPath, row });
+}
+
+function mergeGroupAuthoritySnapshot(authoritySnapshot, expected) {
+  if (!authoritySnapshot || expected?.ruleDigest !== authoritySnapshot.ruleDigest) {
+    protocolError("ENTRY_ACTION_PROFILE_STALE", "Entry-action authority changed before group commit.", 409);
+  }
+  const authoritativeArtifact = authoritySnapshot.textArtifact;
+  if (!authoritativeArtifact || expected?.textArtifact?.path !== authoritativeArtifact.path) {
+    protocolError("ENTRY_ACTION_PROFILE_STALE", "Entry-action text artifact authority changed before group commit.", 409);
+  }
+  return {
+    ...authoritySnapshot,
+    ruleDigest: expected.ruleDigest,
+    textArtifact: { ...authoritativeArtifact },
+  };
 }
 
 function resolveProposalRow(documentText, proposal) {

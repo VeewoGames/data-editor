@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createDocumentCommitCoordinator } from "../src/document-commit-coordinator.mjs";
-import { bindProposalToHandoff, startProposalOnlyEntryAction } from "../src/entry-action-service.mjs";
+import { bindProposalToHandoff, startProposalOnlyEntryAction, submitFreshEntryActionProposal } from "../src/entry-action-service.mjs";
 import {
   entryActionHandoffPath,
   readEntryActionResult,
@@ -167,6 +167,45 @@ test("proposal-only service publishes timed_out without changing the source docu
   );
 });
 
+test("fresh existing-row proposal commits its row and authorized text artifact as one group", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-group-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" });
+  const fixture = await writeTextArtifactFixture(context);
+  const result = await submitFreshEntryActionProposal({
+    projectContext: context,
+    project: { id: "fixture-project", name: "Fixture" },
+    request: fixture.request,
+    result: fixture.result,
+  });
+  assert.equal(result.outcome, "completed_with_writeback");
+  assert.equal(JSON.parse(await readFile(fixture.sourcePath, "utf8")).items[0].name, "New");
+  assert.equal(await readFile(fixture.artifactPath, "utf8"), "# New design\n");
+});
+
+test("fresh existing-row group detects an externally changed artifact without overwriting either target", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-group-conflict-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" });
+  const fixture = await writeTextArtifactFixture(context);
+  const external = "# External edit\n";
+  const coordinator = {
+    async withIdentities(identities, operation) {
+      await writeFile(fixture.artifactPath, external, "utf8");
+      return operation(identities);
+    },
+  };
+  await assert.rejects(() => submitFreshEntryActionProposal({
+    projectContext: context,
+    project: { id: "fixture-project", name: "Fixture" },
+    request: fixture.request,
+    result: fixture.result,
+    documentCommitCoordinator: coordinator,
+  }), { code: "ENTRY_ACTION_GROUP_CONFLICTED" });
+  assert.equal(JSON.parse(await readFile(fixture.sourcePath, "utf8")).items[0].name, "Old");
+  assert.equal(await readFile(fixture.artifactPath, "utf8"), external);
+});
+
 async function writeFixture(context) {
   await mkdir(path.join(context.projectRoot, "data"), { recursive: true });
   await mkdir(path.dirname(context.automationProfilePath), { recursive: true });
@@ -203,6 +242,33 @@ async function writeFixture(context) {
   }, null, 2)}\n`);
   await mkdir(path.join(context.projectRoot, "fixture-skill"), { recursive: true });
   await writeFile(path.join(context.projectRoot, "fixture-skill", "SKILL.md"), "# Fixture\n");
+}
+
+async function writeTextArtifactFixture(context) {
+  const sourcePath = path.join(context.projectRoot, "data", "items.json");
+  const artifactPath = path.join(context.projectRoot, "docs", "alpha.md");
+  await mkdir(path.dirname(sourcePath), { recursive: true });
+  await mkdir(path.dirname(artifactPath), { recursive: true });
+  await mkdir(path.dirname(context.automationProfilePath), { recursive: true });
+  const row = { __entry_id: "01JTESTENTRY00000000000001", slug: "alpha", name: "Old" };
+  await writeFile(sourcePath, `${JSON.stringify({ items: [row] }, null, 2)}\n`);
+  const beforeArtifact = "# Old design\n";
+  await writeFile(artifactPath, beforeArtifact);
+  await writeFile(context.automationProfilePath, `${JSON.stringify({ rules: [{
+    id: "fixture-rename", enabled: true, label: "Fixture rename", icon: "edit",
+    targets: [{ file: "data/items.json", collection: "items", textArtifact: {} }],
+    payload: { includeRow: true, includeNeighbors: false }, execution: { kind: "proposal", resultPolicy: "proposal" }, contractId: "fixture.rename.v1",
+  }] }, null, 2)}\n`);
+  const unsigned = { contractId: "fixture.rename.v1", version: 1, predicate: { all: [] }, writableFields: ["name"], legalTransitions: [], textArtifactPolicy: { required: true, maxBytes: 4096, createOnly: false, allowedExtensions: [".md"] }, evidencePolicy: {}, resultPolicy: "proposal", createAuthority: null };
+  const contract = { ...unsigned, digest: crypto.createHash("sha256").update(canonical(unsigned), "utf8").digest("hex") };
+  await writeFile(path.join(context.projectRoot, ".data-editor", "entry-action-contracts.json"), `${JSON.stringify({ version: 1, contracts: [contract] }, null, 2)}\n`);
+  await writeFile(path.join(context.projectRoot, context.sharedViewConfigPath), `${JSON.stringify({ primaryKeys: { "data/items.json:items": "slug" }, documentFiles: { "data/items.json": { docRoot: "docs" } } }, null, 2)}\n`);
+  return {
+    sourcePath,
+    artifactPath,
+    request: { actionId: "fixture-rename", sourcePath: "data/items.json", collectionPath: "items", rowId: row.__entry_id, expectedRowDigest: rowDigest(row) },
+    result: { proposal: { changes: [{ field: "name", beforeExists: true, before: "Old", afterExists: true, after: "New" }], textArtifact: { id: "fixture-artifact", path: "docs/alpha.md", beforeExists: true, beforeDigest: crypto.createHash("sha256").update(beforeArtifact, "utf8").digest("hex"), afterContent: "# New design\n", afterDigest: "0".repeat(64) }, summary: "Update row and design document." }, evidence: [] },
+  };
 }
 
 function fixtureContract() {
