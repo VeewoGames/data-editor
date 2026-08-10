@@ -60,7 +60,7 @@ export function assertEntryActionChanges(contract, changes, currentRow = null) {
     const transitions = contract.legalTransitions.filter((item) => item.field === change.field);
     if (transitions.length === 0) continue;
     const admitted = transitions.some((transition) => transition.from.some((value) => stableJson(value) === stableJson(change.before))
-      && transition.to.some((value) => stableJson(value) === stableJson(change.after))
+      && transitionTargetMatches(transition, change.after)
       && transition.requires.every((requirement) => {
         const requiredChange = byField.get(requirement.field);
         return requiredChange
@@ -201,10 +201,17 @@ function normalizePredicate(value) {
 function normalizeTransitions(value) {
   if (!Array.isArray(value)) invalid("legalTransitions is invalid");
   return value.map((item) => {
-    const fields = Object.hasOwn(item ?? {}, "requires") ? ["field", "from", "requires", "to"] : ["field", "from", "to"];
+    const hasTo = Object.hasOwn(item ?? {}, "to");
+    const hasToPattern = Object.hasOwn(item ?? {}, "toPattern");
+    if (hasTo === hasToPattern) invalid("legal transition requires exactly one of to or toPattern");
+    const fields = ["field", "from", hasTo ? "to" : "toPattern", ...(Object.hasOwn(item ?? {}, "requires") ? ["requires"] : [])];
     exact(item, fields, "legal transition");
     requiredId(item.field, "transition field");
-    if (!Array.isArray(item.from) || !item.from.length || !Array.isArray(item.to) || !item.to.length) invalid("legal transition values are invalid");
+    if (!Array.isArray(item.from) || !item.from.length || (hasTo && (!Array.isArray(item.to) || !item.to.length))) invalid("legal transition values are invalid");
+    if (hasToPattern) {
+      if (typeof item.toPattern !== "string" || !item.toPattern || item.toPattern.length > 256) invalid("legal transition toPattern is invalid");
+      try { new RegExp(item.toPattern, "u"); } catch { invalid("legal transition toPattern is invalid"); }
+    }
     const requires = (item.requires ?? []).map((requirement) => {
       exact(requirement, ["field", "from", "to"], "legal transition requirement");
       requiredId(requirement.field, "transition requirement field");
@@ -214,6 +221,11 @@ function normalizeTransitions(value) {
     });
     return structuredClone({ ...item, requires });
   });
+}
+
+function transitionTargetMatches(transition, value) {
+  if (Object.hasOwn(transition, "toPattern")) return typeof value === "string" && new RegExp(transition.toPattern, "u").test(value);
+  return transition.to.some((candidate) => stableJson(candidate) === stableJson(value));
 }
 
 function stringArray(value, label) {

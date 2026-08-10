@@ -49,3 +49,22 @@ test("paired legal transitions require both fields to change to the configured p
   assert.throws(() => assertEntryActionChanges(current, [both[1]], { status: "ready", rating: null }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
   assert.throws(() => assertEntryActionChanges(current, [both[0], { ...both[1], after: "fail" }], { status: "ready", rating: null }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
 });
+
+test("pattern transitions permit only matching strings from an exact prior value", () => {
+  const base = contract(); const { digest: _digest, ...unsigned } = base;
+  const pattern = { ...unsigned, writableFields: ["name"], legalTransitions: [{ field: "name", from: [""], toPattern: "^[A-Za-z][A-Za-z0-9 _-]{1,31}$" }] };
+  const signed = (value) => ({ ...value, digest: crypto.createHash("sha256").update(canonical(value), "utf8").digest("hex") });
+  const current = validateEntryActionContracts({ version: 1, contracts: [signed(pattern)] }).contracts[0];
+  assert.doesNotThrow(() => assertEntryActionChanges(current, [{ field: "name", before: "", after: "Valid Name" }], { name: "" }));
+  assert.throws(() => assertEntryActionChanges(current, [{ field: "name", before: "Existing", after: "Replacement" }], { name: "Existing" }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
+  assert.throws(() => assertEntryActionChanges(current, [{ field: "name", before: "", after: "!" }], { name: "" }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
+  assert.throws(() => assertEntryActionChanges(current, [{ field: "name", before: "", after: 42 }], { name: "" }), { code: "ENTRY_ACTION_TRANSITION_ILLEGAL" });
+  for (const transition of [
+    { field: "name", from: [""], to: ["fixed"], toPattern: "^.+$" },
+    { field: "name", from: [""] },
+    { field: "name", from: [""], toPattern: "[" },
+  ]) {
+    const invalid = { ...unsigned, writableFields: ["name"], legalTransitions: [transition] };
+    assert.throws(() => validateEntryActionContracts({ version: 1, contracts: [signed(invalid)] }), { code: "ENTRY_ACTION_CONTRACT_INVALID" });
+  }
+});
