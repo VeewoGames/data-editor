@@ -1179,14 +1179,15 @@ test("ViewTabs and ViewFilterBar expose shared view controls in the expected row
   assert.doesNotMatch(viewTabsSource, /<span>重命名<\/span>/);
   assert.match(viewTabsSource, /<icons\.addField size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.save size=\{18\} \/>/);
-  assert.match(viewTabsSource, /<icons\.adjust size=\{18\} \/>/);
+  assert.match(viewTabsSource, /<icons\.document size=\{18\} \/>/);
   assert.match(viewTabsSource, /<icons\.edit size=\{18\} \/>/);
   assert.match(viewTabsSource, /className="view-tab-action view-tabs-add-row primary"/);
   assert.match(viewTabsSource, /"view-tab-action view-tabs-manual-save",/);
   assert.match(viewTabsSource, /<span>新建<\/span>/);
   assert.match(viewTabsSource, /<span>保存<\/span>/);
   assert.match(viewTabsSource, /<span>编辑<\/span>/);
-  assert.match(viewTabsSource, /<span>调整<\/span>/);
+  assert.match(viewTabsSource, /<span>文档<\/span>/);
+  assert.doesNotMatch(viewTabsSource, /<span>调整<\/span>/);
   assert.doesNotMatch(viewTabsSource, /<span>配置<\/span>/);
   assert.doesNotMatch(viewTabsSource, /view-tabs-search/);
   assert.doesNotMatch(viewTabsSource, /onSaveForEveryone/);

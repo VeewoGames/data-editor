@@ -874,15 +874,15 @@ export function ViewTabs({
                 <button
                   type="button"
                   className={[
-                    "view-tab-action settings-toggle view-tabs-settings-toggle",
+                    "view-tab-action document-toggle view-tabs-settings-toggle",
                     settingsOpen ? "active" : "",
                   ].filter(Boolean).join(" ")}
                   aria-expanded={settingsOpen}
                   disabled={viewTabsDisabled}
-                  title="调整显示选项"
+                  title="文档关联与索引"
                 >
-                  <icons.adjust size={18} />
-                  <span>调整</span>
+                  <icons.document size={18} />
+                  <span>文档</span>
                 </button>
               </Popover.Trigger>
               <Popover.Portal>

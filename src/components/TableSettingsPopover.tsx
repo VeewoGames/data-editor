@@ -35,28 +35,48 @@ export function TableSettingsPopover({
 
   return (
     <div className="menu-content table-settings-popover">
+      <div className="table-settings-heading">
+        <div className="table-settings-heading-icon"><icons.document size={18} /></div>
+        <div>
+          <div className="table-settings-eyebrow">文档关联</div>
+          <div className="table-settings-section-title">为当前数据文件建立文档索引</div>
+        </div>
+      </div>
       <div className="table-settings-section">
-        <div className="table-settings-section-title">关联文档</div>
         {hasSelection ? (
           <>
-            <div className="table-settings-file-path">{selectedFilePath}</div>
-            <label className="dialog-field table-settings-field">
-              <span>文档根目录</span>
-              <input
-                aria-label="文档根目录"
-                onChange={(event) => setDraftDocumentRoot(event.target.value)}
-                placeholder="例如 docs/keywords"
-                value={draftDocumentRoot}
-              />
-            </label>
-            <div className="table-settings-help">
-              相对项目根目录；系统会递归扫描其中所有 .md 文件。
+            <div className="table-settings-file-context">
+              <span>当前文件</span>
+              <code>{selectedFilePath}</code>
             </div>
-            <div className="table-settings-help">
-              解析规则：读取当前记录主键 ID，在该目录下唯一匹配同名 `.md` 文档。
+            <label className="dialog-field table-settings-field">
+              <span>文档根目录 <em>相对项目根目录</em></span>
+              <div className="table-settings-root-control">
+                <input
+                  aria-label="文档根目录"
+                  onChange={(event) => setDraftDocumentRoot(event.target.value)}
+                  placeholder="例如 docs/keywords"
+                  value={draftDocumentRoot}
+                />
+                <button
+                  className="primary-button table-settings-apply"
+                  disabled={!hasDraftChange}
+                  onClick={() => onSaveDocumentRoot(draftDocumentRoot)}
+                  type="button"
+                >
+                  <icons.save size={15} />
+                  <span>应用</span>
+                </button>
+              </div>
+            </label>
+            <div className="table-settings-help table-settings-rule">
+              读取记录主键 ID，在此目录下唯一匹配同名 <code>.md</code> 文档。
             </div>
             <div className="table-settings-subsection">
-              <div className="table-settings-subsection-title">启用字段</div>
+              <div className="table-settings-subsection-heading">
+                <div className="table-settings-subsection-title">关联字段</div>
+                <span>决定哪些字段显示文档链接</span>
+              </div>
               {documentFields.length > 0 ? (
                 <div className="table-settings-field-list">
                   {documentFields.map((field) => (
@@ -74,29 +94,24 @@ export function TableSettingsPopover({
                 <div className="table-settings-empty">当前文件还没有 `Document` 类型字段。</div>
               )}
             </div>
-            <div className="table-settings-summary">
-              <span>已索引 {resolvedCount} 篇</span>
-              <span>冲突 {conflictCount} 个</span>
+            <div className="table-settings-summary" aria-label="文档索引状态">
+              <div className="table-settings-stat is-resolved">
+                <strong>{resolvedCount}</strong><span>已索引文档</span>
+              </div>
+              <div className={`table-settings-stat ${conflictCount > 0 ? "is-warning" : "is-clear"}`}>
+                <strong>{conflictCount}</strong><span>命名冲突</span>
+              </div>
             </div>
             {indexError ? <div className="dialog-error">{indexError}</div> : null}
             <div className="table-settings-actions">
-              <button
-                className="primary-button"
-                disabled={!hasDraftChange}
-                onClick={() => onSaveDocumentRoot(draftDocumentRoot)}
-                type="button"
-              >
-                <icons.save size={15} />
-                <span>保存文档根目录</span>
-              </button>
               <button className="ghost-button" onClick={onRefreshDocumentIndex} type="button">
                 <icons.refresh size={15} />
-                <span>重新加载索引</span>
+                <span>刷新索引</span>
               </button>
             </div>
           </>
         ) : (
-          <div className="table-settings-empty">请选择一个数据文件后再配置关联文档。</div>
+          <div className="table-settings-empty">选择一个数据文件后，即可设置文档目录和关联字段。</div>
         )}
       </div>
     </div>

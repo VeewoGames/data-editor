@@ -29,6 +29,7 @@ import { resolveCodexBindingStatus } from "./src/codex-runtime.mjs";
 import { loadAutomationProfile, saveAutomationProfile } from "./src/automation-profile.mjs";
 import { listDataFiles, normalizeDataFileVirtualPath, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
+import { loadUserProfileNames, mergeUserProfileNames, registerUserProfileName } from "./src/user-profile-registry.mjs";
 import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
 import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
@@ -170,7 +171,10 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/view-config" && req.method === "POST") return await handleSaveViewConfig(req, res);
     if (url.pathname === "/api/shared-views" && req.method === "GET") return sendJson(res, await loadSharedViews(await projectContextForUrl(url)));
     if (url.pathname === "/api/shared-views" && req.method === "POST") return await handleSaveSharedViews(req, res);
-    if (url.pathname === "/api/view-profiles") return sendJson(res, await listViewProfiles(await projectContextForUrl(url)));
+    if (url.pathname === "/api/view-profiles") return sendJson(res, mergeUserProfileNames(
+      await loadUserProfileNames(registryOptions),
+      await listViewProfiles(await projectContextForUrl(url)),
+    ));
     if (url.pathname === "/api/view-profile" && req.method === "GET") return await handleLoadViewProfile(url, res);
     if (url.pathname === "/api/view-profile" && req.method === "POST") return await handleSaveViewProfile(req, res);
     if (url.pathname === "/api/automation-profile" && req.method === "GET") return await handleLoadAutomationProfile(url, res);
@@ -444,6 +448,7 @@ async function handleSaveViewProfile(req, res) {
   if (!body.name) throw new Error("Missing view profile name");
   const projectContext = await projectContextForId(body.projectId);
   const result = await saveViewProfile(projectContext, body.name, body.profile);
+  await registerUserProfileName(body.name, registryOptions);
   sendJson(res, { ok: true, ...result });
 }
 

@@ -32,13 +32,13 @@ export function DocumentFieldConfigDialog({
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog-content document-field-config-dialog">
-          <Dialog.Title>关联文档配置</Dialog.Title>
+          <Dialog.Title>文档字段</Dialog.Title>
           <div className="dialog-description">
             {fieldName ? `当前字段：${fieldName}` : "请选择一个 Document 字段。"}
           </div>
           <div className="document-field-config-meta">
-            <div>文件：{sourcePath ?? "未选择文件"}</div>
-            <div>docRoot：{docRoot ?? "尚未配置"}</div>
+            <span>当前文件</span><code>{sourcePath ?? "未选择文件"}</code>
+            <span>文档目录</span><code>{docRoot ?? "尚未配置"}</code>
           </div>
           <label className="dialog-check">
             <input
@@ -54,7 +54,7 @@ export function DocumentFieldConfigDialog({
             <p>系统会读取当前记录主键 ID，并在 &lt;docRoot&gt; 下唯一匹配同名 .md 文档。</p>
           </div>
           {!docRoot ? (
-            <div className="dialog-error">当前文件尚未配置文档根目录，请先在“调整”面板中设置 docRoot。</div>
+            <div className="dialog-error">当前文件尚未配置文档根目录，请先在“文档”面板中设置。</div>
           ) : null}
           <div className="dialog-actions">
             <Dialog.Close className="ghost-button">取消</Dialog.Close>

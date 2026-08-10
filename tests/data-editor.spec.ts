@@ -9318,11 +9318,11 @@ test("table settings popover saves docRoot for the current file", async ({ page 
   await page.locator('.view-tabs-settings-toggle').click();
   const settingsPopover = page.locator(".table-settings-popover");
   await expect(settingsPopover).toBeVisible();
-  await expect(settingsPopover).toContainText("关联文档");
+  await expect(settingsPopover).toContainText("文档关联");
 
   const docRootInput = settingsPopover.getByLabel("文档根目录");
   await docRootInput.fill("docs/e2e_document_field");
-  await settingsPopover.getByRole("button", { name: "保存文档根目录", exact: true }).click();
+  await settingsPopover.getByRole("button", { name: "应用", exact: true }).click();
 
   await waitForProjectConfigWrite(page, (text) => {
     const config = JSON.parse(text);

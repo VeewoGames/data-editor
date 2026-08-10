@@ -726,6 +726,7 @@ export function App() {
   const [primaryKeyCandidateDialogOpen, setPrimaryKeyCandidateDialogOpen] = useState(false);
   const [selectedPrimaryKeyCandidate, setSelectedPrimaryKeyCandidate] = useState<string>("");
   const openRequestRef = useRef(0);
+  const workspaceLoadRequestRef = useRef(0);
   const maintenanceRequestRef = useRef(0);
   const filesRef = useRef<DataFile[]>([]);
   const activeProjectIdRef = useRef<string | null>(null);
@@ -964,8 +965,7 @@ export function App() {
 
   useEffect(() => {
     if (!activeProjectId) return;
-    const resetProfile = loadedProjectIdRef.current !== null && loadedProjectIdRef.current !== activeProjectId;
-    void reloadProjectWorkspace(activeProjectId, { resetProfile });
+    void reloadProjectWorkspace(activeProjectId);
   }, [activeProjectId]);
 
   useEffect(() => {
@@ -1031,8 +1031,10 @@ export function App() {
       return;
     }
     localStorage.setItem(selectedViewProfileStorageKey, selectedViewProfileName);
+    let cancelled = false;
     loadViewProfile(selectedViewProfileName, activeProjectId)
       .then((profile) => {
+        if (cancelled) return;
         const normalizedProfile = normalizeUserViewProfile(profile);
         setSelectedViewProfile(normalizedProfile);
         setUiPreferences(resolveUiPreferences(normalizedProfile.appearance));
@@ -1041,7 +1043,10 @@ export function App() {
         setDetailDocumentPanelOpen(normalizedProfile.detailDocumentPanelOpen ?? false);
         setDetailDocumentPanelWidth(clampDetailDocumentPanelWidth(normalizedProfile.detailDocumentPanelWidth ?? defaultDetailDocumentPanelWidth));
       })
-      .catch((error) => setStatus(error.message));
+      .catch((error) => {
+        if (!cancelled) setStatus(error.message);
+      });
+    return () => { cancelled = true; };
   }, [selectedViewProfileName, activeProjectId]);
 
   useEffect(() => {
@@ -1067,13 +1072,15 @@ export function App() {
     };
   }, [selectedPath, activeProjectId, viewConfig.documentFiles]);
 
-  async function reloadProjectWorkspace(projectId: string, options: { resetProfile?: boolean } = {}) {
+  async function reloadProjectWorkspace(projectId: string) {
+    const requestId = ++workspaceLoadRequestRef.current;
+    const isCurrentRequest = () => requestId === workspaceLoadRequestRef.current;
     const previousFiles = loadedProjectIdRef.current === projectId ? filesRef.current : [];
     try {
       flushActiveTextEditorDraft();
       await saveCoordinator.flush("flush");
-      resetWorkspaceState(options);
-      const profileNameForInitialOrder = options.resetProfile ? null : selectedViewProfileNameRef.current;
+      resetWorkspaceState();
+      const profileNameForInitialOrder = selectedViewProfileNameRef.current;
       const [nextFiles, nextConfig, nextSharedViewsConfig, nextProfiles, nextProfile] = await Promise.all([
         listFiles(projectId),
         loadViewConfig(projectId),
@@ -1081,6 +1088,7 @@ export function App() {
         listViewProfiles(projectId),
         profileNameForInitialOrder ? loadViewProfile(profileNameForInitialOrder, projectId) : Promise.resolve(null),
       ]);
+      if (!isCurrentRequest()) return;
       let migratedConfig = nextConfig;
       let migratedSharedViewsConfig = nextSharedViewsConfig;
       let migratedLocalSharedViewDrafts = readLocalSharedViewDrafts(window.localStorage);
@@ -1144,6 +1152,7 @@ export function App() {
         }
       }
       const refreshedFingerprintCache = await refreshFingerprintCacheForFiles(fingerprintCache, nextFiles, projectId);
+      if (!isCurrentRequest()) return;
       if (refreshedFingerprintCache.changed) writeFingerprintCache(window.localStorage, refreshedFingerprintCache.value);
       setFiles(nextFiles);
       filesRef.current = nextFiles;
@@ -1183,6 +1192,7 @@ export function App() {
         sidebarTree,
         validUrlPath ?? currentPageContext.selectedPath ?? selectedPathRef.current,
       );
+      if (!isCurrentRequest()) return;
       loadedProjectIdRef.current = projectId;
       if (preferredPath) {
         const targetCollection = preferredPath === validUrlPath
@@ -1200,13 +1210,14 @@ export function App() {
           sharedViewUrlResolutionRef.current.invalidCollectionPath = true;
         }
       }
+      if (!isCurrentRequest()) return;
       loadedProjectIdRef.current = projectId;
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
+      if (isCurrentRequest()) setStatus(error instanceof Error ? error.message : String(error));
     }
   }
 
-  function resetWorkspaceState(options: { resetProfile?: boolean } = {}) {
+  function resetWorkspaceState() {
     openRequestRef.current += 1;
     relationIndexRequestRef.current += 1;
     loadedProjectIdRef.current = null;
@@ -1236,15 +1247,6 @@ export function App() {
     commitSharedViewsConfig(emptySharedViewsConfig());
     setLocalSharedViewDrafts(readLocalSharedViewDrafts(window.localStorage));
     setViewProfiles([]);
-    if (options.resetProfile) {
-      setSelectedViewProfileName(null);
-      selectedViewProfileNameRef.current = null;
-      setSelectedViewProfile(emptyUserViewProfile());
-      selectedViewProfileRef.current = emptyUserViewProfile();
-      setUiPreferences(readLocalUiPreferences(window.localStorage));
-      setDetailDocumentPanelOpen(readDetailDocumentPanelOpen());
-      setDetailDocumentPanelWidth(readDetailDocumentPanelWidth());
-    }
     setDocumentIndex({ docRoot: null, entries: {} });
     setDocumentIndexError(null);
     setActiveDocumentFieldName(null);

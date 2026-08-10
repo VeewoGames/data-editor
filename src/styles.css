@@ -700,16 +700,42 @@ select {
   z-index: 35;
 }
 
-.table-settings-popover {
+.menu-content.table-settings-popover {
   display: grid;
-  gap: 14px;
-  min-width: 340px;
-  padding: 14px;
+  gap: 18px;
+  min-width: 390px;
+  padding: 20px;
 }
 
 .table-settings-section {
   display: grid;
+  gap: 14px;
+}
+
+.table-settings-heading {
+  align-items: center;
+  display: flex;
   gap: 10px;
+}
+
+.table-settings-heading-icon {
+  align-items: center;
+  background: #e8f3e8;
+  border: 1px solid #c8e2ca;
+  border-radius: 9px;
+  color: #277a32;
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.table-settings-eyebrow {
+  color: #277a32;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
 .table-settings-section + .table-settings-section {
@@ -719,8 +745,9 @@ select {
 
 .table-settings-section-title {
   color: var(--color-text-strong);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .table-settings-check {
@@ -731,13 +758,58 @@ select {
 }
 
 .table-settings-field {
-  gap: 6px;
+  gap: 8px;
 }
 
-.table-settings-file-path {
+.table-settings-field > span {
+  color: var(--color-text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+}
+
+.table-settings-field em {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
-  word-break: break-all;
+  font-style: normal;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.table-settings-file-context {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+}
+
+.table-settings-file-context span,
+.table-settings-subsection-heading > span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.table-settings-file-context code {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-settings-root-control {
+  display: flex;
+  gap: 8px;
+}
+
+.table-settings-root-control input {
+  min-width: 0;
+}
+
+.table-settings-apply {
+  flex: 0 0 auto;
+  padding-inline: 12px;
 }
 
 .table-settings-help,
@@ -750,6 +822,13 @@ select {
 .table-settings-subsection {
   display: grid;
   gap: 8px;
+  padding-top: 2px;
+}
+
+.table-settings-subsection-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .table-settings-subsection-title {
@@ -760,20 +839,67 @@ select {
 
 .table-settings-field-list {
   display: grid;
-  gap: 8px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  gap: 0;
+  overflow: hidden;
+}
+
+.table-settings-field-list .table-settings-check {
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.table-settings-field-list .table-settings-check + .table-settings-check {
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .table-settings-summary {
-  color: var(--color-text-primary);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.table-settings-stat {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+}
+
+.table-settings-stat strong {
+  color: var(--color-text-strong);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.table-settings-stat span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.table-settings-stat.is-resolved strong,
+.table-settings-stat.is-clear strong {
+  color: #277a32;
+}
+
+.table-settings-stat.is-warning {
+  background: #fff8e8;
+  border-color: #ecd594;
+}
+
+.table-settings-stat.is-warning strong {
+  color: #9a6700;
 }
 
 .table-settings-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .table-settings-empty {
@@ -784,6 +910,7 @@ select {
 .document-field-config-dialog {
   display: grid;
   gap: 14px;
+  width: min(480px, calc(100vw - 32px));
 }
 
 .document-field-config-meta {
@@ -1453,10 +1580,25 @@ select {
   border-radius: 12px;
   color: var(--color-text-muted);
   display: grid;
-  gap: 6px;
+  column-gap: 12px;
+  grid-template-columns: max-content minmax(0, 1fr);
+  row-gap: 8px;
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 38px;
   padding: 0 10px;
+}
+
+.document-field-config-meta span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.document-field-config-meta code {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .automation-rule-nav-search input {

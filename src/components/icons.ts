@@ -67,6 +67,7 @@ export const icons = {
   borderAll: IconBorderAll,
   incompatible: IconAlertTriangleFilled,
   jsonFile: IconFileCodeFilled,
+  document: IconFileFilled,
   csvFile: IconTableFilled,
   table: IconTableFilled,
   textField: IconTextSize,

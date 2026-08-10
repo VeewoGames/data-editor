@@ -4,6 +4,26 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { emptyViewProfile, listViewProfiles, loadViewProfile, normalizeProfileName, saveViewProfile } from "../src/view-profile.mjs";
+import { loadUserProfileNames, mergeUserProfileNames, registerUserProfileName, userProfileRegistryPath } from "../src/user-profile-registry.mjs";
+
+test("global user profile names are shared while project view profiles remain separate", async () => {
+  const home = await mkdtemp(path.join(tmpdir(), "data-editor-user-profile-home-"));
+  const firstProject = await mkdtemp(path.join(tmpdir(), "data-editor-user-profile-first-"));
+  const secondProject = await mkdtemp(path.join(tmpdir(), "data-editor-user-profile-second-"));
+  try {
+    await saveViewProfile(firstProject, "Lans", { sidebarWidth: 311, collections: {} });
+    await registerUserProfileName("Lans", { home });
+    await Promise.all([registerUserProfileName("Ada", { home }), registerUserProfileName("Lans", { home })]);
+
+    assert.deepEqual(await loadUserProfileNames({ home }), ["Ada", "Lans"]);
+    assert.deepEqual(mergeUserProfileNames(await loadUserProfileNames({ home }), await listViewProfiles(secondProject)), ["Ada", "Lans"]);
+    assert.deepEqual(await loadViewProfile(secondProject, "Lans"), emptyViewProfile());
+    assert.equal(JSON.parse(await readFile(userProfileRegistryPath({ home }), "utf8")).version, 1);
+    assert.equal((await loadViewProfile(firstProject, "Lans")).sidebarWidth, 311);
+  } finally {
+    await Promise.all([rm(home, { recursive: true, force: true }), rm(firstProject, { recursive: true, force: true }), rm(secondProject, { recursive: true, force: true })]);
+  }
+});
 
 test("listViewProfiles returns sorted profile names", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-profile-"));
