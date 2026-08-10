@@ -30,6 +30,11 @@ export function resolveJobHelperPaths(toolRoot) {
   });
 }
 
+export function canonicalizeJobHelperSource(source) {
+  const text = Buffer.isBuffer(source) ? source.toString("utf8") : String(source);
+  return Buffer.from(text.replace(/\r\n/g, "\n"), "utf8");
+}
+
 export async function verifyJobHelper(paths, options = {}) {
   const platform = options.platform ?? process.platform;
   const arch = options.arch ?? process.arch;
@@ -66,7 +71,7 @@ export async function verifyJobHelper(paths, options = {}) {
     throw ownershipError("verify", "A test-fault Job helper cannot be used by the production supervisor.");
   }
   const executableHash = crypto.createHash("sha256").update(executable).digest("hex");
-  const sourceHash = crypto.createHash("sha256").update(source).digest("hex");
+  const sourceHash = crypto.createHash("sha256").update(canonicalizeJobHelperSource(source)).digest("hex");
   if (!isSha256(manifest.executableSha256) || executableHash !== manifest.executableSha256.toLowerCase()) {
     throw ownershipError("verify", "Job helper executable SHA-256 mismatch.");
   }

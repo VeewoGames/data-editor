@@ -6,23 +6,25 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
+  canonicalizeJobHelperSource,
   createJobSupervisor,
   ProcessOwnershipError,
   verifyJobHelper,
 } from "../src/job-supervisor.mjs";
 
-test("verifyJobHelper accepts matching fixed manifest and rejects tampering", async (t) => {
+test("verifyJobHelper accepts LF or CRLF source and rejects content tampering", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-helper-verify-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const executablePath = path.join(root, "data-editor-job-helper.exe");
   const manifestPath = path.join(root, "job-helper.manifest.json");
   const sourcePath = path.join(root, "JobHelper.cs");
   const bytes = Buffer.from("fixture helper");
-  const sourceBytes = Buffer.from("fixture source");
+  const sourceBytes = Buffer.from("fixture source\nsecond line\n");
   await writeFile(executablePath, bytes);
   await writeFile(sourcePath, sourceBytes);
   const hash = (await import("node:crypto")).createHash("sha256").update(bytes).digest("hex");
-  const sourceHash = (await import("node:crypto")).createHash("sha256").update(sourceBytes).digest("hex");
+  const sourceHash = (await import("node:crypto")).createHash("sha256")
+    .update(canonicalizeJobHelperSource(sourceBytes)).digest("hex");
   await writeFile(manifestPath, JSON.stringify({
     protocolVersion: 2,
     platform: "win32",
@@ -33,6 +35,17 @@ test("verifyJobHelper accepts matching fixed manifest and rejects tampering", as
   }));
   const manifest = await verifyJobHelper({ executablePath, manifestPath, sourcePath }, { platform: "win32", arch: "x64" });
   assert.equal(manifest.executableSha256, hash);
+  await writeFile(sourcePath, "fixture source\r\nsecond line\r\n");
+  assert.equal(
+    (await verifyJobHelper({ executablePath, manifestPath, sourcePath }, { platform: "win32", arch: "x64" })).sourceSha256,
+    sourceHash,
+  );
+  await writeFile(sourcePath, "fixture source\r\nchanged line\r\n");
+  await assert.rejects(
+    () => verifyJobHelper({ executablePath, manifestPath, sourcePath }, { platform: "win32", arch: "x64" }),
+    (error) => error instanceof ProcessOwnershipError && error.code === "ENTRY_ACTION_PROCESS_OWNERSHIP_UNAVAILABLE",
+  );
+  await writeFile(sourcePath, sourceBytes);
   await writeFile(executablePath, "tampered");
   await assert.rejects(
     () => verifyJobHelper({ executablePath, manifestPath, sourcePath }, { platform: "win32", arch: "x64" }),

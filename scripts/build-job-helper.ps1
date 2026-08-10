@@ -46,6 +46,12 @@ function Get-Sha256Bytes([byte[]]$Bytes) {
   }
 }
 
+function Get-CanonicalSourceBytes([byte[]]$Bytes) {
+  $utf8 = New-Object Text.UTF8Encoding($false, $true)
+  $sourceText = $utf8.GetString($Bytes).Replace("`r`n", "`n")
+  return $utf8.GetBytes($sourceText)
+}
+
 function Test-BytesEqual([byte[]]$Left, [byte[]]$Right) {
   if ($Left.Length -ne $Right.Length) { return $false }
   for ($index = 0; $index -lt $Left.Length; $index++) {
@@ -111,7 +117,7 @@ try {
     protocolVersion = 2
     platform = "win32"
     arch = "x64"
-    sourceSha256 = Get-Sha256Bytes $sourceBytes
+    sourceSha256 = Get-Sha256Bytes (Get-CanonicalSourceBytes $sourceBytes)
     executableSha256 = Get-Sha256 $tempExe
     testFaults = [bool]$TestFaults
   }
