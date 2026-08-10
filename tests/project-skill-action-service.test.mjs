@@ -6,8 +6,11 @@ import test from "node:test";
 import { assertProjectSkillResultPolicy, startProjectSkillEntryAction } from "../src/project-skill-action-service.mjs";
 import { entryActionOutputPath, readEntryActionResult, readEntryActionStarted } from "../src/entry-actions.mjs";
 
-test("project-skill proposal envelope may not carry model-authored humanNotes", () => {
-  assert.throws(() => assertProjectSkillResultPolicy({ kind: "candidate-create", manifest: {}, humanNotes: { field: "dev_note", text: "forged" } }, "proposal"), { code: "PROJECT_SKILL_RESULT_INVALID" });
+test("project-skill proposal envelope requires strict evidence and may not carry model-authored humanNotes", () => {
+  assert.doesNotThrow(() => assertProjectSkillResultPolicy({ kind: "candidate-create", manifest: {}, evidence: [] }, "proposal"));
+  assert.throws(() => assertProjectSkillResultPolicy({ kind: "candidate-create", manifest: {} }, "proposal"), { code: "PROJECT_SKILL_RESULT_INVALID" });
+  assert.throws(() => assertProjectSkillResultPolicy({ kind: "candidate-create", manifest: {}, evidence: [{ kind: "test", ref: "run/1", digest: "bad" }] }, "proposal"), { code: "PROJECT_SKILL_RESULT_INVALID" });
+  assert.throws(() => assertProjectSkillResultPolicy({ kind: "candidate-create", manifest: {}, evidence: [], humanNotes: { field: "dev_note", text: "forged" } }, "proposal"), { code: "PROJECT_SKILL_RESULT_INVALID" });
 });
 
 async function fixture(t, result = { kind: "project-skill-result", resultOnly: true, status: "checked" }) {
@@ -95,7 +98,7 @@ test("project skill mutates only its disposable input snapshot and preserves can
 });
 
 test("project-skill proposal is handed to the server admission dependency", async (t) => {
-  const { root, supervisor } = await fixture(t, { kind: "candidate-create", version: 1 });
+  const { root, supervisor } = await fixture(t, { kind: "candidate-create", version: 1, evidence: [] });
   const profilePath = path.join(root, ".data-editor", "automation-profile.json");
   const profile = JSON.parse(await readFile(profilePath, "utf8"));
   profile.rules[0].execution.resultPolicy = "proposal";
@@ -108,7 +111,7 @@ test("project-skill proposal is handed to the server admission dependency", asyn
 });
 
 test("project-skill proposal fails closed when server admission is unavailable", async (t) => {
-  const { root, supervisor } = await fixture(t, { kind: "candidate-create", version: 1 });
+  const { root, supervisor } = await fixture(t, { kind: "candidate-create", version: 1, evidence: [] });
   const profilePath = path.join(root, ".data-editor", "automation-profile.json");
   const profile = JSON.parse(await readFile(profilePath, "utf8")); profile.rules[0].execution.resultPolicy = "proposal"; await writeFile(profilePath, JSON.stringify(profile));
   const started = await startProjectSkillEntryAction({ projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" }, request: { actionId: "verify" }, toolRoot: process.cwd(), jobSupervisor: supervisor, dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) } });

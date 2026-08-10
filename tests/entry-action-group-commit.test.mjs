@@ -71,6 +71,7 @@ const proposal = {
     afterDigest: digest(afterArtifact),
   },
   summary: "rename",
+  evidence: [],
 };
 const sourceIdentity = { canonicalFileKey: lease.canonicalFileKey };
 const artifactIdentity = { canonicalFileKey: "c".repeat(64) };

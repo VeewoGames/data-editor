@@ -105,7 +105,7 @@ const runEntryAction = createEntryActionRunRoute({
       return submitFreshEntryActionProposal({ projectContext, project, request, result, documentCommitCoordinator: coordinator });
     }
     if (result?.kind === "candidate-create") {
-      return submitCandidateCreate({ projectContext, project, request, manifest: result.manifest ?? result, evidence: result.evidence ?? [], humanNotes: request.humanNotes ?? null, documentCommitCoordinator: coordinator });
+      return submitCandidateCreate({ projectContext, project, request, manifest: candidateManifest(result), evidence: result.evidence, humanNotes: request.humanNotes ?? null, documentCommitCoordinator: coordinator });
     }
     if (result?.kind === "project-transaction-result") { const transaction = await dispatchProjectTransaction({ projectContext, project, request, result, runId }); if (transaction.pending) projectTransactionRecoveryMonitor.schedule(projectContext, runId); return transaction; }
     throw Object.assign(new Error("Project-skill result kind is unsupported."), { code: "PROJECT_SKILL_RESULT_INVALID", status: 400 });
@@ -652,12 +652,18 @@ async function handleSubmitExactArtifact(req, res) {
       if (envelope.result?.kind === "entry-action-proposal") return submitFreshEntryActionProposal({ projectContext, project, request, result: envelope.result, documentCommitCoordinator, dependencies: { runId } });
       if (envelope.result?.kind === "candidate-create") {
         if (Object.hasOwn(envelope.result, "humanNotes")) throw Object.assign(new Error("Model artifact may not contain humanNotes."), { code: "EXACT_ARTIFACT_CONTENT_INVALID", status: 400 });
-        return submitCandidateCreate({ projectContext, project, request, manifest: envelope.result.manifest ?? envelope.result, evidence: envelope.result.evidence ?? [], humanNotes: artifact.humanNotes, documentCommitCoordinator, dependencies: { runId } });
+        return submitCandidateCreate({ projectContext, project, request, manifest: candidateManifest(envelope.result), evidence: envelope.result.evidence ?? [], humanNotes: artifact.humanNotes, documentCommitCoordinator, dependencies: { runId } });
       }
       throw Object.assign(new Error("Exact artifact result is invalid."), { code: "EXACT_ARTIFACT_CONTENT_INVALID", status: 400 });
     },
   });
   sendJson(res, { ok: true, ...submitted });
+}
+
+function candidateManifest(result) {
+  if (result?.manifest) return result.manifest;
+  const { evidence: _evidence, ...manifest } = result;
+  return manifest;
 }
 
 async function handlePublishExactArtifact(req, res) {

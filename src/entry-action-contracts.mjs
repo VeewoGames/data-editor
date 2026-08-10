@@ -3,6 +3,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { validateCandidateRowSchema } from "./entry-action-candidate-row-schema.mjs";
 import { assertTextArtifactSectionPolicy, normalizeSectionOnlyPolicy } from "./entry-action-text-section-policy.mjs";
+import { validateEntryActionEvidence } from "./entry-action-evidence.mjs";
 
 const DIGEST = /^[0-9a-f]{64}$/;
 const ID = /^[A-Za-z0-9._-]+$/;
@@ -143,11 +144,11 @@ export function assertEntryActionResultPolicies(contract, { textArtifact = null,
     if (textPolicy.allowedExtensions.length && !textPolicy.allowedExtensions.some((extension) => textArtifact.path.toLowerCase().endsWith(extension))) invalid("entry action text artifact extension is forbidden", "ENTRY_ACTION_TEXT_ARTIFACT_POLICY_FAILED");
   }
   if (textPolicy.sectionOnly && (textArtifact?.beforeExists === false || Object.hasOwn(textArtifact ?? {}, "beforeContent"))) assertTextArtifactSectionPolicy(textPolicy, textArtifact);
-  if (!Array.isArray(evidence)) invalid("entry action evidence is invalid", "ENTRY_ACTION_EVIDENCE_POLICY_FAILED");
+  try { evidence = validateEntryActionEvidence(evidence); }
+  catch { invalid("entry action evidence is invalid", "ENTRY_ACTION_EVIDENCE_POLICY_FAILED"); }
   if (evidencePolicy.required && evidence.length === 0) invalid("entry action evidence is required", "ENTRY_ACTION_EVIDENCE_POLICY_FAILED");
   if (evidence.length < evidencePolicy.minItems || evidence.length > evidencePolicy.maxItems) invalid("entry action evidence count violates policy", "ENTRY_ACTION_EVIDENCE_POLICY_FAILED");
   for (const item of evidence) {
-    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== "digest,kind,ref" || typeof item.kind !== "string" || !ID.test(item.kind) || typeof item.ref !== "string" || !item.ref || !DIGEST.test(item.digest)) invalid("entry action evidence item is invalid", "ENTRY_ACTION_EVIDENCE_POLICY_FAILED");
     if (evidencePolicy.allowedKinds.length && !evidencePolicy.allowedKinds.includes(item.kind)) invalid("entry action evidence kind is forbidden", "ENTRY_ACTION_EVIDENCE_POLICY_FAILED");
   }
 }

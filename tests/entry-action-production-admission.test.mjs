@@ -63,7 +63,7 @@ test("HTTP exact-artifact admission creates a candidate through the sole group c
   const note = "Designer note, punctuation  原样。\nSecond line.";
   await publishExactArtifact({ projectContext, artifactId: "candidate-alpha", content: envelope, humanNotes: { field: "dev_note", text: note } });
   const skillContent = "# Design\nEpsilon\n";
-  const skillReply = JSON.stringify({ version: 1, kind: "candidate-create", candidateId: "epsilon", designSubjectDigest: "e".repeat(64), row: { slug: "epsilon", name: "epsilon" }, textArtifact: { afterContent: skillContent, afterDigest: hash(skillContent) }, summary: "Create epsilon" });
+  const skillReply = JSON.stringify({ version: 1, kind: "candidate-create", candidateId: "epsilon", designSubjectDigest: "e".repeat(64), row: { slug: "epsilon", name: "epsilon" }, textArtifact: { afterContent: skillContent, afterDigest: hash(skillContent) }, summary: "Create epsilon", evidence: [] });
   const transactionRow = { id: 1, slug: "existing", name: "Renamed", dev_note: "", __entry_id: "01JEXISTING00000000000001" }; const transactionDigest = rowDigest(transactionRow);
   const ineligibleTransactionRow = { ...transactionRow, name: "Blocked" }; const ineligibleTransactionDigest = rowDigest(ineligibleTransactionRow);
   const transactionReply = JSON.stringify({ kind: "project-transaction-result", ownerId: "fixture-json-owner", capabilityId: "fixture-transaction-v1", subject: { sourcePath: "data/items.json", collectionPath: "items", rowId: transactionRow.__entry_id, expectedRowDigest: transactionDigest }, payload: { changed: true }, summary: "Transaction wrote" });

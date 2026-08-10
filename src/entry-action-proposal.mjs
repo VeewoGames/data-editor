@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import path from "node:path";
+import { validateEntryActionEvidence } from "./entry-action-evidence.mjs";
 
-const REQUIRED = ["version", "runId", "actionId", "sourcePath", "canonicalFileKey", "collectionPath", "rowId", "baseDocumentEtag", "ruleDigest", "fencingToken", "changes", "textArtifact", "summary"];
+const REQUIRED = ["version", "runId", "actionId", "sourcePath", "canonicalFileKey", "collectionPath", "rowId", "baseDocumentEtag", "ruleDigest", "fencingToken", "changes", "textArtifact", "summary", "evidence"];
 const CHANGE = ["field", "beforeExists", "before", "afterExists", "after"];
 const TEXT_ARTIFACT = ["id", "path", "beforeExists", "beforeDigest", "afterContent", "afterDigest"];
 const KEY = /^[0-9a-f]{64}$/;
@@ -28,6 +29,8 @@ export function validateEntryActionProposal(value) {
     if (stableJson(change.before) === stableJson(change.after)) invalid("proposal changes may not be no-ops");
   }
   validateTextArtifact(value.textArtifact);
+  try { validateEntryActionEvidence(value.evidence); }
+  catch { invalid("proposal evidence is invalid"); }
   return structuredClone(value);
 }
 

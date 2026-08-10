@@ -24,7 +24,8 @@ export async function prepareEntryActionProposalCommit({
   evidence = [],
 }) {
   const value = validateEntryActionProposal(proposal);
-  if (contract) assertEntryActionResultPolicies(contract, { textArtifact: value.textArtifact, evidence });
+  if (stableJson(evidence) !== stableJson(value.evidence)) fail("ENTRY_ACTION_PROPOSAL_EVIDENCE_MISMATCH");
+  if (contract) assertEntryActionResultPolicies(contract, { textArtifact: value.textArtifact, evidence: value.evidence });
   if (!lease || value.canonicalFileKey !== lease.canonicalFileKey || value.runId !== lease.runId || value.fencingToken !== lease.fencingToken) fail("ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE");
   const current = typeof probeLease === "function" ? await probeLease(lease) : null;
   if (!current || current.status !== "owned" || current.lease?.ownerToken !== lease.ownerToken || current.lease?.ownerHash !== lease.ownerHash || current.lease?.fencingToken !== lease.fencingToken) fail("ENTRY_ACTION_PROPOSAL_OWNERSHIP_STALE");
@@ -61,7 +62,7 @@ export async function prepareEntryActionProposalCommit({
     });
   }
   const textArtifact = prepareTextArtifact(value.textArtifact, textArtifactCurrentText);
-  if (contract && textArtifact) assertEntryActionResultPolicies(contract, { textArtifact, evidence });
+  if (contract && textArtifact) assertEntryActionResultPolicies(contract, { textArtifact, evidence: value.evidence });
   return {
     proposal: value,
     model,
@@ -69,6 +70,7 @@ export async function prepareEntryActionProposalCommit({
     documentEtag: etag(format === "csv" ? serializeCsv(model.root) : serializeJson(model.root)),
     format,
     textArtifact,
+    evidence: structuredClone(value.evidence),
   };
 }
 

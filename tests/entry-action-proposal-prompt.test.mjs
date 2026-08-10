@@ -20,5 +20,8 @@ test("proposal prompt requires the exact v3 output contract", () => {
   assert.match(prompt, /changes 必须至少包含一项/);
   assert.match(prompt, /field, beforeExists, before, afterExists, after/);
   assert.match(prompt, /id, path, beforeExists, beforeDigest, afterContent, afterDigest/);
+  assert.match(prompt, /summary, evidence/);
+  assert.match(prompt, /kind, ref, digest/);
+  assert.match(prompt, /可以为空/);
   assert.match(prompt, /SHA-256/);
 });

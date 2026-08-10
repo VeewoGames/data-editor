@@ -62,6 +62,7 @@ const proposal = {
   changes,
   textArtifact: null,
   summary: "rename",
+  evidence: [],
 };
 const probeLease = () => ({ status: "owned", lease });
 

@@ -17,6 +17,7 @@ import {
   writeEntryActionStarted,
 } from "./entry-actions.mjs";
 import { atomicWrite } from "./atomic-file.mjs";
+import { validateEntryActionEvidence } from "./entry-action-evidence.mjs";
 
 export async function startProjectSkillEntryAction({ projectContext, project, request, toolRoot, jobSupervisor, dependencies = {} }) {
   const [profile, bindings] = await Promise.all([loadAutomationProfile(projectContext), loadAutomationBindings(projectContext)]);
@@ -142,6 +143,8 @@ export function assertProjectSkillResultPolicy(result, resultPolicy) {
   }
   if (resultPolicy === "proposal") {
     if (!result || result.resultOnly === true || Object.hasOwn(result, "humanNotes") || !["entry-action-proposal", "candidate-create"].includes(result.kind)) throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project skill must return an admitted proposal result without humanNotes.");
+    try { validateEntryActionEvidence(result.evidence); }
+    catch { throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project-skill proposal evidence is invalid."); }
     return;
   }
   if (resultPolicy === "project-transaction") {

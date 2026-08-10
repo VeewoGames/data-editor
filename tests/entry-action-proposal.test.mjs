@@ -21,6 +21,7 @@ const proposal = {
   ],
   textArtifact: null,
   summary: "rename",
+  evidence: [],
 };
 
 test("proposal accepts multiple changes for one stable row", () => {
@@ -49,6 +50,10 @@ test("proposal rejects ambiguous, duplicate, no-op, escaping and unbound content
   assert.throws(() => validateEntryActionProposal({ ...proposal, version: 1 }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, runId: "../../escape" }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, ruleDigest: "not-a-digest" }), invalid);
+  const { evidence: _evidence, ...withoutEvidence } = proposal;
+  assert.throws(() => validateEntryActionProposal(withoutEvidence), invalid);
+  assert.throws(() => validateEntryActionProposal({ ...proposal, evidence: [{ kind: "test", ref: "run/1", digest: "bad" }] }), invalid);
+  assert.throws(() => validateEntryActionProposal({ ...proposal, evidence: [{ kind: "test", ref: "run/1", digest: "c".repeat(64), extra: true }] }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, changes: [] }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, changes: [proposal.changes[0], proposal.changes[0]] }), invalid);
   assert.throws(() => validateEntryActionProposal({ ...proposal, changes: [{ ...proposal.changes[0], after: "Alpha" }] }), invalid);

@@ -22,6 +22,7 @@ test("service recalculates the model-supplied Markdown digest from its content",
   };
   const proposal = bindProposalToHandoff({
     textArtifact: { afterContent: "# Skill\n", afterDigest: "0".repeat(64) },
+    evidence: [],
   }, handoff);
   assert.equal(proposal.textArtifact.afterDigest, "74daeff849609b74a42500aff45eb6229a086907ab1b2badae4c29ed4fc10e3c");
 });
@@ -58,6 +59,7 @@ test("proposal-only service commits an authorized row patch and publishes termin
         }],
         textArtifact: null,
         summary: "Renamed fixture row.",
+        evidence: [{ kind: "test-evidence", ref: "run/fixture", digest: "d".repeat(64) }],
       };
       await writeFile(args.reply, `${JSON.stringify(proposal)}\n`, "utf8");
       await writeFile(args.events, "", "utf8");
@@ -102,6 +104,7 @@ test("proposal-only service commits an authorized row patch and publishes termin
   assert.equal(document.items[0].__entry_id, "01JTESTENTRY00000000000001");
   const persistedProposal = JSON.parse(await readFile(path.join(root, ".data-editor", "runtime", "entry-actions", `${started.runId}.proposal.json`), "utf8"));
   assert.equal(persistedProposal.rowId, "01JTESTENTRY00000000000001");
+  assert.deepEqual(persistedProposal.evidence, [{ kind: "test-evidence", ref: "run/fixture", digest: "d".repeat(64) }]);
   assert.deepEqual(await readEntryActionResult(context, started.runId), {
     version: 2,
     runId: started.runId,
@@ -272,7 +275,7 @@ async function writeTextArtifactFixture(context) {
 }
 
 function fixtureContract() {
-  const value = { contractId: "fixture.rename.v1", version: 1, predicate: { all: [] }, writableFields: ["name"], legalTransitions: [], textArtifactPolicy: {}, evidencePolicy: {}, resultPolicy: "proposal", createAuthority: null };
+  const value = { contractId: "fixture.rename.v1", version: 1, predicate: { all: [] }, writableFields: ["name"], legalTransitions: [], textArtifactPolicy: {}, evidencePolicy: { required: true, minItems: 1, maxItems: 1, allowedKinds: ["test-evidence"] }, resultPolicy: "proposal", createAuthority: null };
   return { ...value, digest: crypto.createHash("sha256").update(canonical(value), "utf8").digest("hex") };
 }
 

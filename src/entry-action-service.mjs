@@ -17,6 +17,7 @@ import {
   createAuthoritySnapshot,
 } from "./entry-action-authority.mjs";
 import { resolveEntryActionDocumentTarget } from "./entry-action-document-target.mjs";
+import { validateEntryActionEvidence } from "./entry-action-evidence.mjs";
 import { assertEntryActionResultPolicies, loadEntryActionContracts, resolveEntryActionContract } from "./entry-action-contracts.mjs";
 import {
   commitEntryActionGroup,
@@ -275,7 +276,7 @@ export async function submitFreshEntryActionProposal({
   const jobInstanceId = dependencies.jobInstanceId ?? crypto.randomUUID();
   const allocator = (dependencies.createFencingAllocator ?? createFencingAllocator)({ stateRoot: fencingRoot(projectContext) });
   const lease = await allocator.allocate({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
-  const evidence = Array.isArray(result?.evidence) ? structuredClone(result.evidence) : [];
+  const evidence = validateEntryActionEvidence(result?.evidence);
   const rawProposal = result?.proposal ?? result;
   const handoff = {
     runId,
@@ -283,7 +284,7 @@ export async function submitFreshEntryActionProposal({
     entry: { sourcePath, canonicalFileKey: sourceIdentity.canonicalFileKey, collectionPath, rowId },
     proposalContract: { version: 3, baseDocumentEtag: etag(documentText), ruleDigest: authoritySnapshot.ruleDigest, fencingToken: lease.fencingToken },
   };
-  const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary }, handoff);
+  const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary, evidence }, handoff);
   await writeEntryActionHandoff(projectContext, runId, { ...handoff, authority: authoritySnapshot });
   await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
   let keepLease = false;
@@ -421,7 +422,7 @@ async function finishRun(context) {
       proposal,
     });
     await advanceEntryActionPhase(projectContext, runId, "proposal_ready");
-    await commitProposal(context, proposal);
+    await commitProposal({ ...context, evidence: proposal.evidence }, proposal);
   } catch (error) {
     const outcome = recoveryError(error) ? "failed_needs_recovery"
       : conflictError(error) ? "conflicted"

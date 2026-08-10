@@ -19,6 +19,7 @@ const proposal = {
   changes: [{ field: "name", beforeExists: true, before: "Alpha", afterExists: true, after: "Beta" }],
   textArtifact: null,
   summary: "rename",
+  evidence: [],
 };
 
 test("proposal publishes atomically only after success and validation", async () => {
@@ -35,6 +36,9 @@ test("failure or schema errors leave no proposal", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "proposal-"));
   try {
     await assert.rejects(() => publishEntryActionProposal({ directory: root, runId: proposal.runId, exitCode: 1, proposal }));
+    const { evidence: _evidence, ...withoutEvidence } = proposal;
+    await assert.rejects(() => publishEntryActionProposal({ directory: root, runId: proposal.runId, exitCode: 0, proposal: withoutEvidence }), { code: "ENTRY_ACTION_PROPOSAL_INVALID" });
+    await assert.rejects(() => publishEntryActionProposal({ directory: root, runId: proposal.runId, exitCode: 0, proposal: { ...proposal, evidence: [{ kind: "test", ref: "run/1", digest: "bad" }] } }), { code: "ENTRY_ACTION_PROPOSAL_INVALID" });
     await assert.rejects(() => stat(path.join(root, `${proposal.runId}.proposal.json`)));
   } finally {
     await rm(root, { recursive: true, force: true });
