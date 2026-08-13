@@ -242,10 +242,25 @@ select {
 }
 
 .project-switcher {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  position: relative;
+}
+
+.project-switcher-primary,
+.project-management-actions {
   align-items: center;
   display: flex;
   gap: 5px;
   min-width: 0;
+}
+
+.project-switcher-primary {
+  background: var(--color-bg-subtle);
+  border-radius: 10px;
+  min-height: 34px;
+  padding: 2px;
   position: relative;
 }
 
@@ -268,6 +283,23 @@ select {
   min-width: 0;
   padding: 0 8px 0 10px;
   text-align: left;
+}
+
+.project-switcher-primary .project-switcher-trigger {
+  background: transparent;
+  border-color: transparent;
+}
+
+.project-switcher-collapse,
+.toolbar-expand-sidebar-button {
+  flex: 0 0 30px;
+  height: 30px;
+  width: 30px;
+}
+
+.project-switcher-collapse:hover,
+.toolbar-expand-sidebar-button:hover {
+  background: var(--color-bg-hover);
 }
 
 .project-switcher-trigger:hover,
@@ -705,6 +737,10 @@ select {
   gap: 18px;
   min-width: 390px;
   padding: 20px;
+}
+
+.app-frame.is-sidebar-collapsed {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .table-settings-section {
@@ -2503,6 +2539,26 @@ select {
   display: grid;
   grid-template-rows: 52px minmax(0, 1fr);
   overflow: hidden;
+}
+
+.empty-workspace-header {
+  align-items: center;
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+.empty-workspace .empty-state {
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-resize-handle::after {
+    transition: none;
+  }
 }
 
 .toolbar {

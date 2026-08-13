@@ -18,6 +18,7 @@ import {
   writeLocalSharedViewDrafts,
   writeLocalViewState,
 } from "../src/view-state-storage.mjs";
+import { sidebarCollapsedStorageKey } from "../src/shell-preferences.mjs";
 
 test("profile mode reads detailOrder from the collection-global all layout", () => {
   const localState = {
@@ -618,6 +619,21 @@ test("deleteLocalViewState removes only the targeted view layout keys", () => {
   assert.equal(storage.getItem("data-editor:data/runes.json:$:view%3Adamage%2Fmain:description:hidden"), null);
   assert.equal(storage.getItem("data-editor:data/runes.json:$:all:description:hidden"), "1");
   assert.equal(storage.getItem("data-editor:data/other.json:$:all:name:hidden"), "1");
+});
+
+test("view state writes leave the independent sidebar collapsed preference untouched", () => {
+  const storage = createMemoryStorage({ [sidebarCollapsedStorageKey]: "1" });
+  writeLocalViewState({
+    path: "data/runes.json",
+    collectionPath: "$",
+    viewId: "all",
+    state: {
+      hidden: [], wrapped: [], order: [], detailOrder: [], widths: {}, sidebarWidth: 260,
+      detailPanelWidth: 400, detailDocumentPanelOpen: false, detailDocumentPanelWidth: 360,
+    },
+    localStorage: storage,
+  });
+  assert.equal(storage.getItem(sidebarCollapsedStorageKey), "1");
 });
 
 test("copyViewLayoutState duplicates the source profile layout into the target view only when a source layout exists", () => {

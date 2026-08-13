@@ -1,4 +1,4 @@
-import { Profiler, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { Profiler, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
@@ -85,6 +85,7 @@ import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitFo
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
 import { rowDigestBrowser } from "./row-digest-browser.mjs";
 import { defaultAutomationRuntime } from "./automation-runtime.mjs";
+import { readSidebarCollapsed, writeSidebarCollapsed } from "./shell-preferences.mjs";
 import {
   automationRuleSelectionAfterRemoval,
   normalizeAutomationRuleSelection,
@@ -780,6 +781,10 @@ export function App() {
   const disconnectConfirmTimerRef = useRef<number | null>(null);
   const manualClosedRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => readSidebarWidth());
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => readSidebarCollapsed(window.localStorage));
+  const collapseSidebarButtonRef = useRef<HTMLButtonElement | null>(null);
+  const expandSidebarButtonRef = useRef<HTMLButtonElement | null>(null);
+  const pendingSidebarFocusRef = useRef<"collapse" | "expand" | null>(null);
   const [detailPanelWidth, setDetailPanelWidth] = useState(() => readDetailPanelWidth());
   const [detailDocumentPanelOpen, setDetailDocumentPanelOpen] = useState(() => readDetailDocumentPanelOpen());
   const [detailDocumentPanelWidth, setDetailDocumentPanelWidth] = useState(() => readDetailDocumentPanelWidth());
@@ -2921,6 +2926,15 @@ export function App() {
   );
   const appFrameStyle = useMemo(() => ({ "--sidebar-width": `${sidebarWidth}px` }) as CSSProperties, [sidebarWidth]);
 
+  useLayoutEffect(() => {
+    const target = pendingSidebarFocusRef.current;
+    if (!target) return;
+    const button = target === "collapse" ? collapseSidebarButtonRef.current : expandSidebarButtonRef.current;
+    if (!button) return;
+    button.focus();
+    pendingSidebarFocusRef.current = null;
+  }, [isSidebarCollapsed, model]);
+
   useEffect(() => {
     if (!protectedSharedViewIconPackIds.length) return;
     const missingPackIds = protectedSharedViewIconPackIds.filter((packId) => !isSharedViewIconPackLoaded(packId as any));
@@ -4067,6 +4081,12 @@ export function App() {
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerCancel);
+  }
+
+  function setSidebarCollapsed(next: boolean, focusTarget?: "collapse" | "expand") {
+    if (focusTarget) pendingSidebarFocusRef.current = focusTarget;
+    writeSidebarCollapsed(window.localStorage, next);
+    setIsSidebarCollapsed(next);
   }
 
   function handleDetailPanelWidthChange(width: number) {
@@ -5587,7 +5607,8 @@ export function App() {
 
   if (!model) {
     return (
-      <main className="app-frame" style={appFrameStyle}>
+      <main className={`app-frame${isSidebarCollapsed ? " is-sidebar-collapsed" : ""}`} style={appFrameStyle}>
+        {!isSidebarCollapsed ? <>
         <Sidebar
           projects={projects}
           activeProjectId={activeProjectId}
@@ -5609,9 +5630,26 @@ export function App() {
           onOpenAddProject={() => setAddProjectOpen(true)}
           onOpenProjectSettings={() => setProjectSettingsOpen(true)}
           onOpenAutomationSettings={() => setAutomationSettingsOpen(true)}
+          onCollapse={() => setSidebarCollapsed(true, "expand")}
+          collapseButtonRef={collapseSidebarButtonRef}
         />
         <div className="sidebar-resize-handle" onPointerDown={beginSidebarResize} aria-label="调整左侧栏宽度" role="separator" />
-        <section className="empty-state">{status || "Loading..."}</section>
+        </> : null}
+        <section className="workspace empty-workspace">
+          <header className="empty-workspace-header">
+            {isSidebarCollapsed ? <button
+              aria-controls="app-sidebar"
+              aria-expanded="false"
+              aria-label="展开侧边栏"
+              className="ghost-button icon-button toolbar-expand-sidebar-button"
+              onClick={() => setSidebarCollapsed(false, "collapse")}
+              ref={expandSidebarButtonRef}
+              title="展开侧边栏"
+              type="button"
+            ><icons.expandSidebar aria-hidden="true" size={16} /></button> : null}
+          </header>
+          <section className="empty-state">{status || "Loading..."}</section>
+        </section>
         <ProjectSettingsDialog
           open={projectSettingsOpen}
           projects={projects}
@@ -5644,7 +5682,8 @@ export function App() {
   }
 
   return (
-    <main className="app-frame" style={appFrameStyle}>
+    <main className={`app-frame${isSidebarCollapsed ? " is-sidebar-collapsed" : ""}`} style={appFrameStyle}>
+      {!isSidebarCollapsed ? <>
       <Sidebar
         projects={projects}
         activeProjectId={activeProjectId}
@@ -5668,8 +5707,11 @@ export function App() {
         onOpenAddProject={() => setAddProjectOpen(true)}
         onOpenProjectSettings={() => setProjectSettingsOpen(true)}
         onOpenAutomationSettings={() => setAutomationSettingsOpen(true)}
+        onCollapse={() => setSidebarCollapsed(true, "expand")}
+        collapseButtonRef={collapseSidebarButtonRef}
       />
       <div className="sidebar-resize-handle" onPointerDown={beginSidebarResize} aria-label="调整左侧栏宽度" role="separator" />
+      </> : null}
       <section className="workspace">
         <Toolbar
           snapshot={toolbarSnapshot}
@@ -5687,6 +5729,8 @@ export function App() {
           onChangeBaseFontSize={handleChangeBaseFontSize}
           onUnhideField={handleUnhideField}
           onUnhideAllFields={handleUnhideAllFields}
+          onExpandSidebar={isSidebarCollapsed ? () => setSidebarCollapsed(false, "collapse") : undefined}
+          expandSidebarButtonRef={expandSidebarButtonRef}
         />
         {detailReorderReactProfilingEnabled ? (
           <Profiler id="main-content" onRender={handleDetailReorderProfilerRender}>

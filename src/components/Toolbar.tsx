@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as Select from "@radix-ui/react-select";
 import type { UiPreferences, UiTheme } from "../ui-preferences";
@@ -22,6 +22,8 @@ type ToolbarProps = {
   onChangeBaseFontSize: (size: UiPreferences["baseFontSize"]) => void;
   onUnhideField: (fieldName: string) => void;
   onUnhideAllFields: () => void;
+  onExpandSidebar?: () => void;
+  expandSidebarButtonRef?: RefObject<HTMLButtonElement>;
 };
 
 export type ToolbarSnapshot = {
@@ -90,6 +92,20 @@ export function Toolbar(props: ToolbarProps) {
 
   return (
     <header className="toolbar">
+      {props.onExpandSidebar ? (
+        <button
+          aria-controls="app-sidebar"
+          aria-expanded="false"
+          aria-label="展开侧边栏"
+          className="ghost-button icon-button toolbar-expand-sidebar-button"
+          onClick={props.onExpandSidebar}
+          ref={props.expandSidebarButtonRef}
+          title="展开侧边栏"
+          type="button"
+        >
+          <icons.expandSidebar aria-hidden="true" size={16} />
+        </button>
+      ) : null}
       <div className="toolbar-title">
         <strong>{snapshot.currentPath ?? "No file selected"}</strong>
         <span>{snapshot.collectionPath}</span>

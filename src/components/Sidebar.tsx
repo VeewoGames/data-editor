@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { icons } from "./icons";
 import type { DataFile, SidebarTreePreferences } from "../api/client";
 import type { ProjectDefinition } from "../api/client";
@@ -25,6 +25,8 @@ type SidebarProps = {
   onOpenProjectSettings?: () => void;
   onOpenAutomationSettings?: () => void;
   onOpenAddProject?: () => void;
+  onCollapse?: () => void;
+  collapseButtonRef?: RefObject<HTMLButtonElement>;
 };
 
 type SidebarTreeNode = {
@@ -94,20 +96,58 @@ export function Sidebar(props: SidebarProps) {
   }, [projectMenuOpen]);
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" id="app-sidebar">
       <div className="sidebar-title">
         {props.projects?.length ? (
           <div className="project-switcher" ref={switcherRef}>
-            <button
-              aria-expanded={projectMenuOpen}
-              aria-haspopup="menu"
-              className="project-switcher-trigger"
-              onClick={() => setProjectMenuOpen((open) => !open)}
-              type="button"
-            >
-              <span>{activeProject?.name ?? "Data Editor"}</span>
-              <icons.chevronDown className="project-switcher-caret" aria-hidden="true" size={16} />
-            </button>
+            <div className="project-switcher-primary">
+              <button
+                aria-expanded={projectMenuOpen}
+                aria-haspopup="menu"
+                className="project-switcher-trigger"
+                onClick={() => setProjectMenuOpen((open) => !open)}
+                type="button"
+              >
+                <span>{activeProject?.name ?? "Data Editor"}</span>
+                <icons.chevronDown className="project-switcher-caret" aria-hidden="true" size={16} />
+              </button>
+              <button
+                aria-controls="app-sidebar"
+                aria-expanded="true"
+                aria-label="收起侧边栏"
+                className="project-switcher-collapse ghost-button icon-button"
+                onClick={() => {
+                  setProjectMenuOpen(false);
+                  props.onCollapse?.();
+                }}
+                ref={props.collapseButtonRef}
+                title="收起侧边栏"
+                type="button"
+              >
+                <icons.collapseSidebar aria-hidden="true" size={16} />
+              </button>
+              {projectMenuOpen ? (
+                <div className="project-switcher-menu" role="menu">
+                  <div className="project-switcher-menu-label">浏览器本地</div>
+                  {props.projects.map((project) => (
+                    <button
+                      className={`project-switcher-option ${project.id === props.activeProjectId ? "selected" : ""}`}
+                      key={project.id}
+                      onClick={() => {
+                        setProjectMenuOpen(false);
+                        props.onSelectProject?.(project.id);
+                      }}
+                      role="menuitemradio"
+                      aria-checked={project.id === props.activeProjectId}
+                      type="button"
+                    >
+                      {project.name}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="project-management-actions">
             <button
               aria-label="Add project"
               className="project-switcher-add"
@@ -135,26 +175,7 @@ export function Sidebar(props: SidebarProps) {
             >
               <icons.wand aria-hidden="true" size={16} />
             </button>
-            {projectMenuOpen ? (
-              <div className="project-switcher-menu" role="menu">
-                <div className="project-switcher-menu-label">浏览器本地</div>
-                {props.projects.map((project) => (
-                  <button
-                    className={`project-switcher-option ${project.id === props.activeProjectId ? "selected" : ""}`}
-                    key={project.id}
-                    onClick={() => {
-                      setProjectMenuOpen(false);
-                      props.onSelectProject?.(project.id);
-                    }}
-                    role="menuitemradio"
-                    aria-checked={project.id === props.activeProjectId}
-                    type="button"
-                  >
-                    {project.name}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            </div>
           </div>
         ) : "Data Editor"}
       </div>

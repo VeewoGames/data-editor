@@ -11338,6 +11338,9 @@ test("project settings opens from the empty workspace state", async ({ page }) =
   await expect(page.locator(".project-switcher-trigger")).toContainText("Empty Project");
   await page.locator(".project-switcher-trigger").click();
   await expect(page.locator(".project-switcher-menu")).toBeVisible();
+  const projectRow = await page.locator(".project-switcher-primary").boundingBox();
+  const projectMenu = await page.locator(".project-switcher-menu").boundingBox();
+  expect(projectMenu!.y).toBeGreaterThanOrEqual(projectRow!.y + projectRow!.height);
   await expect(page.locator(".project-switcher-menu-label")).toHaveText("浏览器本地");
   await expect(page.getByRole("menuitemradio", { name: "Empty Project" })).toHaveAttribute("aria-checked", "true");
   await page.locator(".project-switcher-trigger").click();
@@ -11347,6 +11350,28 @@ test("project settings opens from the empty workspace state", async ({ page }) =
   await page.getByRole("button", { name: "Project settings" }).click();
   await expect(page.getByRole("dialog", { name: "Project Settings" })).toBeVisible();
   await expect(page.locator(".project-settings-dialog .dialog-field").filter({ hasText: "Data Sources" }).locator("textarea")).toContainText("data|Data|relative|data");
+});
+
+test("sidebar collapses independently and can be restored from the toolbar", async ({ page }) => {
+  await page.goto("/");
+  const sidebar = page.locator(".sidebar");
+  const workspace = page.locator(".workspace");
+  const before = await sidebar.boundingBox();
+  await page.getByRole("button", { name: "收起侧边栏" }).click();
+  await expect(sidebar).toHaveCount(0);
+  await expect(page.locator(".sidebar-resize-handle")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "展开侧边栏" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "展开侧边栏" })).toBeFocused();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("data-editor:sidebar-collapsed"))).toBe("1");
+  const collapsedWorkspace = await workspace.boundingBox();
+  expect(collapsedWorkspace!.width).toBeGreaterThan(before!.width);
+  await page.reload();
+  await expect(sidebar).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "展开侧边栏" })).toBeVisible();
+  await page.getByRole("button", { name: "展开侧边栏" }).click();
+  await expect(sidebar).toBeVisible();
+  await expect(page.getByRole("button", { name: "收起侧边栏" })).toBeFocused();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("data-editor:sidebar-collapsed"))).toBe("0");
 });
 
 test("add project opens from its own button", async ({ page }) => {
