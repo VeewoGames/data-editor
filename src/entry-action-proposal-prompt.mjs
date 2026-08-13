@@ -13,7 +13,7 @@ export function buildEntryActionProposalPrompt({ skillPath, skillContent, handof
     "changes 必须至少包含一项；每项必须且只能包含 field, beforeExists, before, afterExists, after。field 必须来自 proposalContract.writableFields，before 必须与 entry.row 当前值一致，after 必须是实际变化后的值。",
     "若 proposalContract.textArtifact 为 null，textArtifact 必须为 null；若 proposalContract.textArtifact 非 null，textArtifact 必须返回完整文档，且只能包含 id, path, beforeExists, beforeDigest, afterContent, afterDigest，并从 proposalContract.textArtifact 原样复制 id、path、beforeExists、beforeDigest。不得省略该文档。",
     "textArtifact.afterContent 必须是完整 Markdown 文档内容；afterDigest 必须是 afterContent UTF-8 内容的 SHA-256 小写十六进制摘要。",
-    "evidence 必须是数组（可以为空）；每项必须且只能包含 kind, ref, digest。kind 只能使用字母、数字、点、下划线或连字符，ref 必须是非空字符串，digest 必须是 64 位小写十六进制 SHA-256。是否允许空数组及允许的 kind 仍由 action contract 的 evidencePolicy 决定。",
+    "evidence 必须是数组（可以为空）；每项必须且只能包含 kind, ref, digest。不要为本次 Markdown 文档自行生成 evidence：服务端会在提交时使用最终文档摘要生成不可伪造的文档证据。其他独立证据才需要由你提供。",
     "不要输出空 changes、不要输出无变化的 change、不要用解释对象替代 proposal。若确实无法产生至少一项合法变更，应终止并明确失败。",
     `技能来源（只读）：${skillPath}`,
     "",

@@ -262,7 +262,7 @@ async function writeTextArtifactFixture(context) {
     targets: [{ file: "data/items.json", collection: "items", textArtifact: {} }],
     payload: { includeRow: true, includeNeighbors: false }, execution: { kind: "proposal", resultPolicy: "proposal" }, contractId: "fixture.rename.v1",
   }] }, null, 2)}\n`);
-  const unsigned = { contractId: "fixture.rename.v1", version: 1, predicate: { all: [] }, writableFields: ["name"], legalTransitions: [], textArtifactPolicy: { required: true, maxBytes: 4096, createOnly: false, allowedExtensions: [".md"] }, evidencePolicy: {}, resultPolicy: "proposal", createAuthority: null };
+  const unsigned = { contractId: "fixture.rename.v1", version: 1, predicate: { all: [] }, writableFields: ["name"], legalTransitions: [], textArtifactPolicy: { required: true, maxBytes: 4096, createOnly: false, allowedExtensions: [".md"] }, evidencePolicy: { required: true, minItems: 1, maxItems: 1, allowedKinds: ["test-evidence"] }, resultPolicy: "proposal", createAuthority: null };
   const contract = { ...unsigned, digest: crypto.createHash("sha256").update(canonical(unsigned), "utf8").digest("hex") };
   await writeFile(path.join(context.projectRoot, ".data-editor", "entry-action-contracts.json"), `${JSON.stringify({ version: 1, contracts: [contract] }, null, 2)}\n`);
   await writeFile(path.join(context.projectRoot, context.sharedViewConfigPath), `${JSON.stringify({ primaryKeys: { "data/items.json:items": "slug" }, documentFiles: { "data/items.json": { docRoot: "docs" } } }, null, 2)}\n`);

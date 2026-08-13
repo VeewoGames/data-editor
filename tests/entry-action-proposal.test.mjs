@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import test from "node:test";
+import { completeEntryActionEvidence } from "../src/entry-action-evidence.mjs";
 import { validateEntryActionProposal } from "../src/entry-action-proposal.mjs";
 
 const digest = (value) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
@@ -42,6 +43,30 @@ test("proposal accepts one normalized Markdown artifact with bound digests", () 
     },
   };
   assert.deepEqual(validateEntryActionProposal(withArtifact), withArtifact);
+});
+
+test("required document evidence is derived from the committed artifact instead of the model reply", () => {
+  const evidence = completeEntryActionEvidence({
+    contract: {
+      evidencePolicy: {
+        required: true,
+        minItems: 1,
+        maxItems: 1,
+        allowedKinds: ["design-completion"],
+      },
+    },
+    evidence: [],
+    textArtifact: {
+      path: "docs/skills/skill_throw_knife.md",
+      afterDigest: "a".repeat(64),
+    },
+  });
+
+  assert.deepEqual(evidence, [{
+    kind: "design-completion",
+    ref: "docs/skills/skill_throw_knife.md",
+    digest: "a".repeat(64),
+  }]);
 });
 
 test("proposal rejects ambiguous, duplicate, no-op, escaping and unbound content", () => {

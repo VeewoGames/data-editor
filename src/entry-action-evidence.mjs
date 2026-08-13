@@ -14,6 +14,24 @@ export function validateEntryActionEvidence(value) {
   return structuredClone(value);
 }
 
+// The final document digest is server-owned. A model cannot reliably produce it,
+// so contracts that require one document proof receive it after the proposal is bound.
+export function completeEntryActionEvidence({ contract, evidence, textArtifact }) {
+  const normalized = validateEntryActionEvidence(evidence);
+  const policy = contract?.evidencePolicy;
+  if (!policy?.required || normalized.length > 0 || policy.minItems !== 1
+    || !Array.isArray(policy.allowedKinds) || policy.allowedKinds.length !== 1
+    || !textArtifact || typeof textArtifact.path !== "string" || !textArtifact.path
+    || typeof textArtifact.afterDigest !== "string" || !DIGEST.test(textArtifact.afterDigest)) {
+    return normalized;
+  }
+  return [{
+    kind: policy.allowedKinds[0],
+    ref: textArtifact.path,
+    digest: textArtifact.afterDigest,
+  }];
+}
+
 function invalid() {
   throw Object.assign(new Error("Entry-action evidence schema is invalid."), {
     code: "ENTRY_ACTION_EVIDENCE_INVALID",

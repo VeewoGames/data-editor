@@ -17,7 +17,7 @@ import {
   createAuthoritySnapshot,
 } from "./entry-action-authority.mjs";
 import { resolveEntryActionDocumentTarget } from "./entry-action-document-target.mjs";
-import { validateEntryActionEvidence } from "./entry-action-evidence.mjs";
+import { completeEntryActionEvidence, validateEntryActionEvidence } from "./entry-action-evidence.mjs";
 import { assertEntryActionResultPolicies, loadEntryActionContracts, resolveEntryActionContract } from "./entry-action-contracts.mjs";
 import {
   commitEntryActionGroup,
@@ -276,7 +276,7 @@ export async function submitFreshEntryActionProposal({
   const jobInstanceId = dependencies.jobInstanceId ?? crypto.randomUUID();
   const allocator = (dependencies.createFencingAllocator ?? createFencingAllocator)({ stateRoot: fencingRoot(projectContext) });
   const lease = await allocator.allocate({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
-  const evidence = validateEntryActionEvidence(result?.evidence);
+  const submittedEvidence = validateEntryActionEvidence(result?.evidence);
   const rawProposal = result?.proposal ?? result;
   const handoff = {
     runId,
@@ -284,7 +284,9 @@ export async function submitFreshEntryActionProposal({
     entry: { sourcePath, canonicalFileKey: sourceIdentity.canonicalFileKey, collectionPath, rowId },
     proposalContract: { version: 3, baseDocumentEtag: etag(documentText), ruleDigest: authoritySnapshot.ruleDigest, fencingToken: lease.fencingToken },
   };
-  const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary, evidence }, handoff);
+  const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary, evidence: submittedEvidence }, handoff);
+  const evidence = completeEntryActionEvidence({ contract, evidence: proposal.evidence, textArtifact: proposal.textArtifact });
+  proposal.evidence = evidence;
   await writeEntryActionHandoff(projectContext, runId, { ...handoff, authority: authoritySnapshot });
   await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
   let keepLease = false;
@@ -415,6 +417,11 @@ async function finishRun(context) {
     const reply = await readFile(context.replyPath, "utf8");
     await atomicWrite(entryActionOutputPath(projectContext, runId), reply);
     const proposal = bindProposalToHandoff(JSON.parse(reply.trim()), context.handoff);
+    proposal.evidence = completeEntryActionEvidence({
+      contract: context.contract,
+      evidence: proposal.evidence,
+      textArtifact: proposal.textArtifact,
+    });
     await publishEntryActionProposal({
       directory: path.dirname(entryActionProposalPath(projectContext, runId)),
       runId,
