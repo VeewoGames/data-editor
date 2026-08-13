@@ -11,6 +11,7 @@ playwright-report/
 .data-editor/log-tests/
 
 tests/.scratch/
+docs/records/.grilling-temp/
 *.log
 .tmp-*
 *.import
