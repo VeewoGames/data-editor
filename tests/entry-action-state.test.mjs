@@ -31,7 +31,7 @@ test("legacy runtime artifacts are migrated once before v2-only reads", async (t
   const migration = await migrateLegacyEntryActionStateArtifacts(context);
 
   assert.equal(migration.migrated.length, 2);
-  assert.equal((await readEntryActionStarted(context, runId)).phase, "running");
+  assert.equal((await readEntryActionStarted(context, runId)).phase, "review_running");
   assert.equal((await readEntryActionResult(context, runId)).outcome, "completed_with_writeback");
   assert.equal(JSON.parse(await readFile(entryActionResultPath(context, runId), "utf8")).status, undefined);
   assert.deepEqual(migrateLegacyEntryActionStateRecord({ runId, status: "unrecognized" }, "result"), null);

@@ -29,21 +29,35 @@ test("saveAutomationBindings writes to machine-local path", async () => {
         },
       },
     });
-    assert.equal(result.path, ".data-editor/local/automation-bindings.json");
-    const stored = JSON.parse(await readFile(path.join(root, result.path), "utf8"));
+    assert.match(result.path, /data-editor[\\/]automation-bindings[\\/]/);
+    const stored = JSON.parse(await readFile(result.path, "utf8"));
     assert.deepEqual(stored, {
+      version: 2,
       defaults: {},
-      bindings: {
+      codexBindings: {
         recheck: {
           provider: "codex",
           skill: "recheck",
           enabled: true,
         },
       },
+      preflights: {},
     });
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(profileHome, { recursive: true, force: true });
+  }
+});
+
+test("automation bindings expose a revision and reject stale saves", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-bindings-"));
+  try {
+    const first = await saveAutomationBindings(root, { bindings: {} });
+    assert.match(first.revision, /^[a-f0-9]{64}$/);
+    await saveAutomationBindings(root, { bindings: {} }, { expectedRevision: first.revision });
+    await assert.rejects(() => saveAutomationBindings(root, { bindings: {} }, { expectedRevision: "0".repeat(64) }), { code: "AUTOMATION_BINDINGS_REVISION_STALE" });
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

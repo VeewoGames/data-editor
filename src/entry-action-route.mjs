@@ -20,6 +20,7 @@ export function createEntryActionRunRoute({
   preflightEntryAction = preflightEntryActionAdmission,
   startEntryAction = startProposalOnlyEntryAction,
   startProjectSkill = null,
+  projectSkillArtifactPublicationUrl = null,
   resolveExecution = resolveEntryActionExecution,
   submitProjectSkillResult = null,
   onCompletion = () => {},
@@ -79,7 +80,9 @@ export function createEntryActionRunRoute({
         if (typeof startProjectSkill !== "function") routeError("PROJECT_SKILL_HOST_UNAVAILABLE", "Project-skill execution host is unavailable.", 503);
         const started = await startProjectSkill({ projectContext, project, request: body, toolRoot, jobSupervisor, documentCommitCoordinator, dependencies: {
           ...(typeof submitProjectSkillResult === "function" ? { submitProposalResult: (input) => submitProjectSkillResult({ ...input, documentCommitCoordinator }) } : {}),
-          ...(typeof submitProjectSkillResult === "function" ? { submitProjectTransactionResult: (input) => submitProjectSkillResult({ ...input, documentCommitCoordinator }) } : {}),
+          ...(typeof projectSkillArtifactPublicationUrl === "string" && projectSkillArtifactPublicationUrl
+            ? { projectSkillArtifactPublicationUrl }
+            : {}),
         } });
         onCompletion(started);
         return { ok: true, status: "started", runId: started.runId, handoffPath: entryActionHandoffPath(projectContext, started.runId), resultOnly: execution.resultPolicy === "result-only", resultPolicy: execution.resultPolicy };

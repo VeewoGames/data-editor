@@ -145,3 +145,16 @@ test("project-skill proposal receives the server admission dispatcher", async ()
   await route.run({ projectId: "project-a", actionId: "fixture-action" });
   assert.equal(admitted, true);
 });
+
+test("project-skill receives the configured generic artifact publication endpoint", async () => {
+  const route = createEntryActionRunRoute({
+    loadRegistry: async () => ({ activeProjectId: "project-a", projects: [{ id: "project-a", root: path.resolve("fixture-a") }] }),
+    resolveExecution: async () => ({ kind: "project-skill", resultPolicy: "result-only" }),
+    projectSkillArtifactPublicationUrl: "http://127.0.0.1:8787/api/entry-actions/publish-exact-artifact",
+    startProjectSkill: async ({ dependencies }) => {
+      assert.equal(dependencies.projectSkillArtifactPublicationUrl, "http://127.0.0.1:8787/api/entry-actions/publish-exact-artifact");
+      return { runId: "00000000-0000-4000-8000-000000000005", completion: Promise.resolve() };
+    },
+  });
+  await route.run({ projectId: "project-a", actionId: "fixture-action" });
+});

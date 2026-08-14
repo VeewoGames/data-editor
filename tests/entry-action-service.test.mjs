@@ -106,7 +106,7 @@ test("proposal-only service commits an authorized row patch and publishes termin
   assert.equal(persistedProposal.rowId, "01JTESTENTRY00000000000001");
   assert.deepEqual(persistedProposal.evidence, [{ kind: "test-evidence", ref: "run/fixture", digest: "d".repeat(64) }]);
   assert.deepEqual(await readEntryActionResult(context, started.runId), {
-    version: 2,
+    version: 3,
     runId: started.runId,
     actionId: "fixture-rename",
     phase: "terminal",
@@ -207,6 +207,30 @@ test("fresh existing-row group detects an externally changed artifact without ov
   }), { code: "ENTRY_ACTION_GROUP_CONFLICTED" });
   assert.equal(JSON.parse(await readFile(fixture.sourcePath, "utf8")).items[0].name, "Old");
   assert.equal(await readFile(fixture.artifactPath, "utf8"), external);
+});
+
+test("fresh proposal admission publishes a terminal failure when required evidence is invalid", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-admission-failure-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" });
+  const fixture = await writeTextArtifactFixture(context);
+  const runId = "10000000-0000-4000-8000-000000000099";
+
+  await assert.rejects(() => submitFreshEntryActionProposal({
+    projectContext: context,
+    project: { id: "fixture-project", name: "Fixture" },
+    request: fixture.request,
+    result: {
+      proposal: { ...fixture.result.proposal, textArtifact: null },
+      evidence: [],
+    },
+    dependencies: { runId },
+  }), /text artifact is required/i);
+
+  const terminal = await readEntryActionResult(context, runId);
+  assert.equal(terminal.phase, "terminal");
+  assert.equal(terminal.outcome, "failed");
+  assert.match(terminal.message, /text artifact is required/i);
 });
 
 async function writeFixture(context) {

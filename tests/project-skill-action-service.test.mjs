@@ -23,7 +23,7 @@ async function fixture(t, result = { kind: "project-skill-result", resultOnly: t
   return { root, supervisor };
 }
 
-test("project skill runs from its project root and publishes the result-only report", async (t) => {
+test("project skill runs from its disposable snapshot and publishes the result-only report", async (t) => {
   const { root, supervisor } = await fixture(t, {
     kind: "project-skill-result",
     resultOnly: true,
@@ -85,8 +85,11 @@ test("project skill mutates only its disposable input snapshot and preserves can
   await writeFile(sentinel, "canonical", "utf8");
   const supervisor = {
     async start(spec) {
-      const inputRoot = spec.args[spec.args.indexOf("--input-root") + 1];
+      const inputRoot = spec.args[spec.args.indexOf("--workspace-root") + 1];
       const reply = spec.args[spec.args.indexOf("--reply") + 1];
+      assert.equal(path.relative(inputRoot, reply).startsWith(".."), false, "snapshot reply must remain writable below the snapshot workspace");
+      const prompt = await readFile(spec.args[spec.args.indexOf("--prompt") + 1], "utf8");
+      assert.match(prompt, /Use Codex's built-in shell tool/);
       await writeFile(path.join(inputRoot, "canonical-sentinel.txt"), "attempted mutation", "utf8");
       await writeFile(reply, JSON.stringify({ kind: "project-skill-result", resultOnly: true, status: "checked" }));
       return { completion: Promise.resolve({ exitCode: 0, timedOut: false }) };
@@ -95,6 +98,80 @@ test("project skill mutates only its disposable input snapshot and preserves can
   const started = await startProjectSkillEntryAction({ projectContext: { projectRoot: root, automationProfilePath: path.join(root, ".data-editor", "automation-profile.json"), localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" }, request: { actionId: "verify" }, toolRoot: process.cwd(), jobSupervisor: supervisor, dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) } });
   await started.completion;
   assert.equal(await readFile(sentinel, "utf8"), "canonical");
+});
+
+test("project skill exposes a generic immutable-artifact publication context", async (t) => {
+  const { root } = await fixture(t);
+  let prompt = "";
+  const supervisor = {
+    async start(spec) {
+      prompt = await readFile(spec.args[spec.args.indexOf("--prompt") + 1], "utf8");
+      await writeFile(spec.args[spec.args.indexOf("--reply") + 1], JSON.stringify({ kind: "project-skill-result", resultOnly: true, status: "checked" }));
+      return { completion: Promise.resolve({ exitCode: 0, timedOut: false }) };
+    },
+  };
+  const started = await startProjectSkillEntryAction({
+    projectContext: { projectRoot: root, automationProfilePath: path.join(root, ".data-editor", "automation-profile.json"), localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") },
+    project: { id: "fixture" }, request: { actionId: "verify" }, toolRoot: process.cwd(), jobSupervisor: supervisor,
+    dependencies: {
+      resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }),
+      projectSkillArtifactPublicationUrl: "http://127.0.0.1:8787/api/entry-actions/publish-exact-artifact",
+    },
+  });
+  await started.completion;
+  const invocation = JSON.parse(prompt.slice(prompt.lastIndexOf("\n{") + 1));
+  assert.equal(invocation.artifactPublication.endpoint, "http://127.0.0.1:8787/api/entry-actions/publish-exact-artifact");
+  assert.equal(invocation.artifactPublication.projectId, "fixture");
+  assert.match(invocation.artifactPublication.artifactId, /^project-skill-/);
+  assert.equal(invocation.artifactPublication.artifactPath, `.data-editor/runtime/entry-action-artifacts/${invocation.artifactPublication.artifactId}.json`);
+});
+
+test("project-write runs from the real project root and keeps diagnostics in scratch output", async (t) => {
+  const { root } = await fixture(t);
+  const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+  const profile = JSON.parse(await readFile(profilePath, "utf8"));
+  profile.rules[0].execution = { kind: "project-skill", resultPolicy: "result-only", workspaceMode: "project-write" };
+  await writeFile(profilePath, JSON.stringify(profile));
+  let spec = null;
+  const supervisor = {
+    async start(nextSpec) {
+      spec = nextSpec;
+      await writeFile(path.join(root, "project-owned.txt"), "changed", "utf8");
+      await writeFile(nextSpec.args[nextSpec.args.indexOf("--reply") + 1], JSON.stringify({ kind: "project-skill-result", resultOnly: true, status: "checked" }));
+      return { completion: Promise.resolve({ exitCode: 0, timedOut: false }) };
+    },
+  };
+  const started = await startProjectSkillEntryAction({
+    projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") },
+    project: { id: "fixture" }, request: { actionId: "verify", sourcePath: "data/a.json", collectionPath: "items" }, toolRoot: process.cwd(), jobSupervisor: supervisor,
+    dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) },
+  });
+  await started.completion;
+  assert.equal(spec.cwd, root);
+  assert.equal(spec.args[spec.args.indexOf("--workspace-root") + 1], root);
+  const outputRoot = spec.args[spec.args.indexOf("--output-root") + 1];
+  assert.equal(path.relative(root, outputRoot).startsWith(".."), false, "project-write output must remain writable below the project workspace");
+  assert.match(outputRoot, /\.data-editor[\\/]runtime[\\/]entry-actions[\\/]\.task-output[\\/]/);
+  assert.equal(spec.args.includes("--ignore-rules"), false);
+  assert.equal(await readFile(path.join(root, "project-owned.txt"), "utf8"), "changed");
+});
+
+test("project snapshot skips linked assistant-skill aliases without following them", async (t) => {
+  const { root, supervisor } = await fixture(t);
+  const skills = path.join(root, ".claude", "skills");
+  const target = path.join(root, ".agents", "skills", "review");
+  const alias = path.join(skills, "review");
+  await mkdir(target, { recursive: true });
+  await mkdir(skills, { recursive: true });
+  try { await symlink(target, alias, process.platform === "win32" ? "junction" : "dir"); }
+  catch (error) { if (["EPERM", "EACCES", "ENOSYS"].includes(error?.code)) return; throw error; }
+
+  const started = await startProjectSkillEntryAction({
+    projectContext: { projectRoot: root, automationProfilePath: path.join(root, ".data-editor", "automation-profile.json"), localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") },
+    project: { id: "fixture" }, request: { actionId: "verify" }, toolRoot: process.cwd(), jobSupervisor: supervisor,
+    dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) },
+  });
+  await started.completion;
 });
 
 test("project-skill proposal is handed to the server admission dependency", async (t) => {
@@ -110,6 +187,30 @@ test("project-skill proposal is handed to the server admission dependency", asyn
   assert.equal(admitted.runId, started.runId);
 });
 
+test("project-skill proposal policy accepts a no-change result without proposal admission", async (t) => {
+  const result = {
+    kind: "project-skill-result",
+    resultOnly: true,
+    status: "evidence_insufficient",
+    summary: "Review evidence is incomplete.",
+  };
+  const { root, supervisor } = await fixture(t, result);
+  const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+  const profile = JSON.parse(await readFile(profilePath, "utf8"));
+  profile.rules[0].execution.resultPolicy = "proposal";
+  await writeFile(profilePath, JSON.stringify(profile));
+  const started = await startProjectSkillEntryAction({
+    projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") },
+    project: { id: "fixture" }, request: { actionId: "verify" }, toolRoot: process.cwd(), jobSupervisor: supervisor,
+    dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) },
+  });
+  assert.deepEqual(await started.completion, result);
+  const terminal = await readEntryActionResult({ projectRoot: root }, started.runId);
+  assert.equal(terminal.outcome, "completed_without_changes");
+  assert.equal(terminal.resultOnly, true);
+  assert.equal(terminal.resultStatus, "evidence_insufficient");
+});
+
 test("project-skill proposal fails closed when server admission is unavailable", async (t) => {
   const { root, supervisor } = await fixture(t, { kind: "candidate-create", version: 1, evidence: [] });
   const profilePath = path.join(root, ".data-editor", "automation-profile.json");
@@ -118,25 +219,87 @@ test("project-skill proposal fails closed when server admission is unavailable",
   await assert.rejects(started.completion, { code: "PROJECT_SKILL_PROPOSAL_ADMISSION_UNAVAILABLE" });
 });
 
-test("project transaction publishes stable write and no-write terminal outcomes on the same run", async (t) => {
-  for (const changed of [false, true]) {
-    const { root, supervisor } = await fixture(t, { kind: "project-transaction-result", ownerId: "receipt-only-v1", capabilityId: "receipt-v1", subject: { sourcePath: "data/a.json", collectionPath: "items", rowId: "row", expectedRowDigest: "digest" }, payload: {}, summary: "Transaction complete" });
-    const profilePath = path.join(root, ".data-editor", "automation-profile.json"); const profile = JSON.parse(await readFile(profilePath, "utf8"));
-    profile.rules[0].execution = { kind: "project-skill", resultPolicy: "project-transaction", ownerId: "receipt-only-v1", capabilityId: "receipt-v1" }; await writeFile(profilePath, JSON.stringify(profile));
-    const started = await startProjectSkillEntryAction({ projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" }, request: { actionId: "verify", sourcePath: "data/a.json", collectionPath: "items" }, toolRoot: process.cwd(), jobSupervisor: supervisor, dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }), submitProjectTransactionResult: async ({ runId }) => ({ kind: "project-transaction", runId, changed, receipt: { ok: true }, message: "Transaction complete" }) } });
-    const result = await started.completion; assert.equal(result.runId, started.runId);
-    assert.equal((await readEntryActionResult({ projectRoot: root }, started.runId)).outcome, changed ? "completed_with_writeback" : "completed_without_changes");
-  }
-  const { root, supervisor } = await fixture(t, { kind: "project-transaction-result", ownerId: "receipt-only-v1", capabilityId: "receipt-v1", subject: { sourcePath: "data/a.json", collectionPath: "items", rowId: "row", expectedRowDigest: "digest" }, payload: {}, summary: "Transaction pending" });
-  const profilePath = path.join(root, ".data-editor", "automation-profile.json"); const profile = JSON.parse(await readFile(profilePath, "utf8")); profile.rules[0].execution = { kind: "project-skill", resultPolicy: "project-transaction", ownerId: "receipt-only-v1", capabilityId: "receipt-v1" }; await writeFile(profilePath, JSON.stringify(profile));
-  const pendingStarted = await startProjectSkillEntryAction({ projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" }, request: { actionId: "verify", sourcePath: "data/a.json", collectionPath: "items" }, toolRoot: process.cwd(), jobSupervisor: supervisor, dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }), submitProjectTransactionResult: async ({ runId }) => ({ kind: "project-transaction", runId, pending: true, receipt: { state: "abort_unacknowledged" }, message: "pending" }) } });
-  assert.equal((await pendingStarted.completion).pending, true); assert.equal((await readEntryActionStarted({ projectRoot: root }, pendingStarted.runId)).phase, "running"); await assert.rejects(() => readEntryActionResult({ projectRoot: root }, pendingStarted.runId), { code: "ENOENT" });
-});
-
 test("project snapshot rejects symbolic-link or junction input escape", async (t) => {
   const { root } = await fixture(t);
   const target = path.join(root, "linked-target"); const link = path.join(root, "linked-input"); await mkdir(target);
   try { await symlink(target, link, process.platform === "win32" ? "junction" : "dir"); }
   catch (error) { if (error?.code === "EPERM") return; throw error; }
   await assert.rejects(() => startProjectSkillEntryAction({ projectContext: { projectRoot: root, automationProfilePath: path.join(root, ".data-editor", "automation-profile.json"), localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" }, request: { actionId: "verify" }, toolRoot: process.cwd(), jobSupervisor: { start: async () => { throw new Error("must not start"); } }, dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) } }), { code: "PROJECT_SKILL_INPUT_LINK_UNSUPPORTED" });
+});
+
+test("project-skill copies declared input and runs only the matching local preflight", async (t) => {
+  const { root } = await fixture(t);
+  await mkdir(path.join(root, "data"), { recursive: true });
+  await writeFile(path.join(root, "data", "a.json"), "{}", "utf8");
+  await writeFile(path.join(root, "check.mjs"), "process.exit(0);", "utf8");
+  const script = path.join(root, "check.mjs");
+  const sha256 = (await import("node:crypto")).createHash("sha256").update(await readFile(script)).digest("hex");
+  const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+  const profile = JSON.parse(await readFile(profilePath, "utf8"));
+  profile.rules[0].execution.advancedExecution = { projectInput: { paths: ["data/a.json"], preflightId: "fixture-preflight" } };
+  await writeFile(profilePath, JSON.stringify(profile));
+  const bindingPath = path.join(root, ".data-editor", "local-automation-bindings.json");
+  await writeFile(bindingPath, JSON.stringify({
+    defaults: {}, bindings: { verify: { provider: "codex", skill: "verify" } },
+    preflights: { "fixture-preflight": { interpreter: process.execPath, script, sha256, timeoutMs: 10000 } },
+  }));
+  let preflight = null;
+  const supervisor = { async start(spec) { await writeFile(spec.args[spec.args.indexOf("--reply") + 1], JSON.stringify({ kind: "project-skill-result", resultOnly: true })); return { completion: Promise.resolve({ exitCode: 0, timedOut: false }) }; } };
+  const started = await startProjectSkillEntryAction({
+    projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: bindingPath }, project: { id: "fixture" },
+    request: { actionId: "verify", sourcePath: "data/a.json", collectionPath: "items" }, toolRoot: process.cwd(), jobSupervisor: supervisor,
+    dependencies: {
+      resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }),
+      runPreflight: async (input) => { preflight = input; return { exitCode: 0, timedOut: false }; },
+    },
+  });
+  await started.completion;
+  assert.deepEqual(preflight.args.slice(0, 3), [script, "--input-root", preflight.args[2]]);
+  assert.match(preflight.args[2], /data-editor-project-skill-.+\\input$/);
+  assert.deepEqual(preflight.args.slice(3), ["--source-path", "data/a.json", "--collection-path", "items", "--row-id", "", "--source-row-index", ""]);
+  assert.match(preflight.stdoutPath, /preflight\.stdout\.log$/);
+  assert.match(preflight.stderrPath, /preflight\.stderr\.log$/);
+  assert.equal(await readEntryActionStarted({ projectRoot: root }, started.runId).then((value) => value.phaseHistory.some((item) => item.phase === "preflight_running")), true);
+});
+
+test("project-skill with declared input but no preflight starts Codex directly", async (t) => {
+  const { root } = await fixture(t);
+  await mkdir(path.join(root, "data"), { recursive: true });
+  await writeFile(path.join(root, "data", "a.json"), "{}", "utf8");
+  const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+  const profile = JSON.parse(await readFile(profilePath, "utf8"));
+  profile.rules[0].execution.advancedExecution = { projectInput: { paths: ["data/a.json"] } };
+  await writeFile(profilePath, JSON.stringify(profile));
+  const supervisor = { async start(spec) { await writeFile(spec.args[spec.args.indexOf("--reply") + 1], JSON.stringify({ kind: "project-skill-result", resultOnly: true })); return { completion: Promise.resolve({ exitCode: 0, timedOut: false }) }; } };
+  const started = await startProjectSkillEntryAction({
+    projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" },
+    request: { actionId: "verify", sourcePath: "data/a.json", collectionPath: "items" }, toolRoot: process.cwd(), jobSupervisor: supervisor,
+    dependencies: {
+      resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }),
+      runPreflight: async () => { throw new Error("must not run"); },
+    },
+  });
+  await started.completion;
+  const state = await readEntryActionStarted({ projectRoot: root }, started.runId);
+  assert.equal(state.phaseHistory.some((item) => item.phase === "preflight_running"), false);
+  assert.equal(state.phaseHistory.some((item) => item.phase === "review_running"), true);
+});
+
+test("project-skill rejects a changed local preflight script before Codex starts", async (t) => {
+  const { root } = await fixture(t);
+  await mkdir(path.join(root, "data"), { recursive: true });
+  await writeFile(path.join(root, "data", "a.json"), "{}", "utf8");
+  const script = path.join(root, "check.mjs");
+  await writeFile(script, "process.exit(1);", "utf8");
+  const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+  const profile = JSON.parse(await readFile(profilePath, "utf8"));
+  profile.rules[0].execution.advancedExecution = { projectInput: { paths: ["data/a.json"], preflightId: "fixture-preflight" } };
+  await writeFile(profilePath, JSON.stringify(profile));
+  const bindingPath = path.join(root, ".data-editor", "local-automation-bindings.json");
+  await writeFile(bindingPath, JSON.stringify({ defaults: {}, bindings: { verify: { provider: "codex", skill: "verify" } }, preflights: { "fixture-preflight": { interpreter: process.execPath, script, sha256: "0".repeat(64), timeoutMs: 10000 } } }));
+  await assert.rejects(() => startProjectSkillEntryAction({
+    projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: bindingPath }, project: { id: "fixture" },
+    request: { actionId: "verify", sourcePath: "data/a.json", collectionPath: "items" }, toolRoot: process.cwd(), jobSupervisor: { start: async () => { throw new Error("must not start"); } },
+    dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) },
+  }), { code: "PROJECT_SKILL_PREFLIGHT_BINDING_INVALID" });
 });

@@ -74,7 +74,7 @@ export function assertEntryActionChanges(contract, changes, currentRow = null) {
 }
 
 function normalizeContract(value) {
-  const contractFields = ["contractId", "createAuthority", "digest", "evidencePolicy", "legalTransitions", "predicate", "resultPolicy", "textArtifactPolicy", "version", "writableFields", ...(Object.hasOwn(value ?? {}, "projectTransaction") ? ["projectTransaction"] : [])];
+  const contractFields = ["contractId", "createAuthority", "digest", "evidencePolicy", "legalTransitions", "predicate", "resultPolicy", "textArtifactPolicy", "version", "writableFields"];
   exact(value, contractFields, "entry action contract");
   requiredId(value.contractId, "contractId");
   if (!Number.isSafeInteger(value.version) || value.version < 1) invalid("contract version is invalid");
@@ -85,20 +85,11 @@ function normalizeContract(value) {
   const predicate = normalizePredicate(value.predicate);
   const writableFields = stringArray(value.writableFields, "writableFields");
   const legalTransitions = normalizeTransitions(value.legalTransitions);
-  if (!["proposal", "result-only", "project-transaction"].includes(value.resultPolicy)) invalid("contract resultPolicy is invalid");
+  if (!["proposal", "result-only"].includes(value.resultPolicy)) invalid("contract resultPolicy is invalid");
   const textArtifactPolicy = normalizeTextArtifactPolicy(value.textArtifactPolicy);
   const evidencePolicy = normalizeEvidencePolicy(value.evidencePolicy);
   const createAuthority = value.createAuthority === null ? null : normalizeCreateAuthority(value.createAuthority);
-  const projectTransaction = normalizeProjectTransaction(value.projectTransaction ?? null, value.resultPolicy);
-  return structuredClone({ ...value, predicate, writableFields, legalTransitions, textArtifactPolicy, evidencePolicy, createAuthority, projectTransaction });
-}
-
-function normalizeProjectTransaction(value, resultPolicy) {
-  if (value === null) { if (resultPolicy === "project-transaction") invalid("projectTransaction is required"); return null; }
-  exact(value, ["capabilityId", "ownerId"], "projectTransaction");
-  requiredId(value.ownerId, "projectTransaction.ownerId"); requiredId(value.capabilityId, "projectTransaction.capabilityId");
-  if (resultPolicy !== "project-transaction") invalid("projectTransaction requires project-transaction resultPolicy");
-  return structuredClone(value);
+  return structuredClone({ ...value, predicate, writableFields, legalTransitions, textArtifactPolicy, evidencePolicy, createAuthority });
 }
 
 function normalizeCreateAuthority(value) {

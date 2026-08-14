@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { emptyAutomationProfile, loadAutomationProfile, normalizeAutomationProfile, saveAutomationProfile, validateAutomationProfile } from "../src/automation-profile.mjs";
+import { automationProfileRuleDigest, emptyAutomationProfile, loadAutomationProfile, normalizeAutomationProfile, patchAutomationProfileRule, saveAutomationProfile, validateAutomationProfile } from "../src/automation-profile.mjs";
 
 test("loadAutomationProfile returns empty profile when file is missing", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
@@ -14,7 +14,7 @@ test("loadAutomationProfile returns empty profile when file is missing", async (
   }
 });
 
-test("loadAutomationProfile rejects runtime timeout beyond the Node timer limit", async () => {
+test("loadAutomationProfile reports runtime timeout beyond the Node timer limit per rule", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
   try {
     const directory = path.join(root, ".data-editor");
@@ -31,7 +31,48 @@ test("loadAutomationProfile rejects runtime timeout beyond the Node timer limit"
         runtime: { timeoutMs: 2_147_483_648 },
       }],
     }, null, 2)}\n`, "utf8");
-    await assert.rejects(() => loadAutomationProfile(root), /runtime\.timeoutMs must be at most 2147483647/i);
+    const profile = await loadAutomationProfile(root);
+    assert.equal(profile.rules.length, 0);
+    assert.match(profile.ruleIssues[0].issues[0], /runtime\.timeoutMs must be at most 2147483647/i);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("loadAutomationProfile isolates an invalid rule without hiding valid rules", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
+  try {
+    const directory = path.join(root, ".data-editor");
+    await mkdir(directory, { recursive: true });
+    await writeFile(path.join(directory, "automation-profile.json"), JSON.stringify({ rules: [
+      { id: "valid", label: "Valid", icon: "refresh", targets: [{ file: "data/a.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false }, execution: { kind: "project-skill", resultPolicy: "result-only" }, contractId: "fixture.valid.v1" },
+      { id: "broken", label: "Broken", execution: { kind: "project-skill", resultPolicy: "result-only", advancedExecution: {} } },
+    ] }), "utf8");
+    const profile = await loadAutomationProfile(root);
+    assert.deepEqual(profile.rules.map((rule) => rule.id), ["valid"]);
+    assert.equal(profile.ruleIssues.length, 1);
+    assert.equal(profile.ruleIssues[0].ruleId, "broken");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("patchAutomationProfileRule replaces only the matching raw rule and rejects stale state", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-automation-profile-"));
+  try {
+    const profile = { rules: [
+      { id: "first", label: "First", icon: "refresh", targets: [{ file: "data/a.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false }, execution: { kind: "project-skill", resultPolicy: "result-only" }, contractId: "fixture.first.v1" },
+      { id: "second", label: "Second", icon: "refresh", targets: [{ file: "data/b.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false }, execution: { kind: "project-skill", resultPolicy: "result-only" }, contractId: "fixture.second.v1" },
+    ] };
+    const saved = await saveAutomationProfile(root, profile);
+    const loaded = await loadAutomationProfile(root);
+    const first = loaded.rules[0];
+    const digest = automationProfileRuleDigest(first);
+    const patched = await patchAutomationProfileRule(root, "first", { ...first, label: "Updated" }, saved.etag, digest);
+    const afterPatch = await loadAutomationProfile(root);
+    assert.deepEqual(afterPatch.rules.map((rule) => rule.label), ["Updated", "Second"]);
+    await assert.rejects(() => patchAutomationProfileRule(root, "first", { ...afterPatch.rules[0], label: "Again" }, saved.etag, digest), { code: "AUTOMATION_PROFILE_ETAG_STALE" });
+    assert.ok(patched.etag);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -241,7 +282,34 @@ test("execution.kind is explicit and closed", () => {
   assert.throws(() => validateAutomationProfile({ rules: [base] }), /execution is required/i);
   assert.throws(() => validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "unknown", resultPolicy: "proposal" } }] }), /execution.kind/i);
   assert.throws(() => validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "proposal", resultPolicy: "result-only" } }] }), /combination/i);
+  assert.throws(() => validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "proposal", resultPolicy: "proposal", workspaceMode: "snapshot" } }] }), /workspaceMode is unavailable/i);
   assert.throws(() => validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "proposal", resultPolicy: "proposal" }, unknown: true }] }), /Unsupported entry action rule field/i);
   const projectSkill = validateAutomationProfile({ rules: [{ ...base, contractId: "fixture.check.v1", execution: { kind: "project-skill", resultPolicy: "proposal" } }] }).rules[0];
-  assert.deepEqual(projectSkill.execution, { kind: "project-skill", resultPolicy: "proposal" });
+  assert.deepEqual(projectSkill.execution, { kind: "project-skill", resultPolicy: "proposal", workspaceMode: "snapshot" });
+});
+
+test("project-skill advancedExecution rejects a whole-project snapshot path", () => {
+  const base = { id: "check", label: "Check", icon: "refresh", targets: [{ file: "data/a.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false }, contractId: "fixture.check.v1" };
+  assert.throws(() => validateAutomationProfile({
+    rules: [{ ...base, execution: { kind: "project-skill", resultPolicy: "result-only", advancedExecution: { projectInput: { paths: ["."], preflightId: "fixture" } } } }],
+  }), /projectInput path is invalid/);
+});
+
+test("project-skill advancedExecution permits project input without a preflight", () => {
+  const base = { id: "check", label: "Check", icon: "refresh", targets: [{ file: "data/a.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false }, contractId: "fixture.check.v1" };
+  const profile = validateAutomationProfile({
+    rules: [{ ...base, execution: { kind: "project-skill", resultPolicy: "result-only", advancedExecution: { projectInput: { paths: ["data/a.json"] } } } }],
+  });
+  assert.deepEqual(profile.rules[0].execution.advancedExecution, { projectInput: { paths: ["data/a.json"] } });
+});
+
+test("project-write rejects a project snapshot but permits a standalone preflight", () => {
+  const base = { id: "check", label: "Check", icon: "refresh", targets: [{ file: "data/a.json", collection: "items" }], payload: { includeRow: true, includeNeighbors: false }, contractId: "fixture.check.v1" };
+  assert.throws(() => validateAutomationProfile({
+    rules: [{ ...base, execution: { kind: "project-skill", resultPolicy: "result-only", workspaceMode: "project-write", advancedExecution: { projectInput: { paths: ["data/a.json"] } } } }],
+  }), /projectInput is unavailable/i);
+  const profile = validateAutomationProfile({
+    rules: [{ ...base, execution: { kind: "project-skill", resultPolicy: "result-only", workspaceMode: "project-write", advancedExecution: { preflightId: "fixture" } } }],
+  });
+  assert.deepEqual(profile.rules[0].execution.advancedExecution, { preflightId: "fixture" });
 });

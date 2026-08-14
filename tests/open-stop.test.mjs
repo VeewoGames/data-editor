@@ -594,7 +594,7 @@ async function waitForExit(child, timeoutMs = 5000) {
 
 test("npm run stop terminates a matching data-editor server process and clears runtime state", async (t) => {
   const toolRoot = await makeToolRoot(t);
-  const server = spawnDataEditorServer();
+  const server = spawnDataEditorServer("0", ["--registry-home", toolRoot]);
   t.after(() => {
     if (!server.killed) {
       try {
@@ -621,7 +621,7 @@ test("npm run stop terminates a matching data-editor server process and clears r
 
 test("npm run stop clears stale runtime state when pid is no longer running", async (t) => {
   const toolRoot = await makeToolRoot(t);
-  const server = spawnDataEditorServer();
+  const server = spawnDataEditorServer("0", ["--registry-home", toolRoot]);
   await delay(300);
   const pid = server.pid;
   server.kill("SIGTERM");
@@ -640,6 +640,40 @@ test("npm run stop clears stale runtime state when pid is no longer running", as
   assert.equal(result.code, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /stale|not running/i);
   assert.equal(await loadServiceState(toolRoot), null);
+});
+
+test("fixture projects require an explicit isolated registry home", async (t) => {
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-fixture-registry-"));
+  t.after(async () => {
+    await rm(registryHome, { recursive: true, force: true });
+  });
+  const port = await findAvailablePort();
+
+  await assert.rejects(
+    execFileAsync(process.execPath, [serverScriptPath, "--root", projectRoot, "--port", String(port)], {
+      cwd: repoRoot,
+      env: { ...process.env, DATA_EDITOR_HOME: registryHome },
+      windowsHide: true,
+    }),
+    (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /TEST_PROJECT_REGISTRY_HOME_REQUIRED/);
+      return true;
+    },
+  );
+  await assert.rejects(readFile(path.join(registryHome, "projects.json"), "utf8"), { code: "ENOENT" });
+
+  const isolated = spawnDataEditorServer(port, ["--registry-home", registryHome]);
+  t.after(async () => {
+    try {
+      isolated.kill();
+    } catch {}
+    await waitForExit(isolated).catch(() => {});
+  });
+  await waitForHttpOk(port);
+  const registry = await waitForJsonOk(port, "/api/projects");
+  assert.equal(registry.projects.length, 1);
+  assert.equal(path.resolve(registry.projects[0].root), projectRoot);
 });
 
 test("npm run stop refuses to terminate a live process whose identity does not match runtime state", async (t) => {

@@ -296,6 +296,15 @@ export async function submitFreshEntryActionProposal({
     return { kind: "entry-action-proposal", runId, outcome: "completed_with_writeback" };
   } catch (error) {
     keepLease = recoveryError(error);
+    if (!keepLease) {
+      await publishTerminal(
+        projectContext,
+        runId,
+        actionId,
+        conflictError(error) ? "conflicted" : "failed",
+        error?.message ?? String(error),
+      ).catch(() => {});
+    }
     throw error;
   } finally {
     if (!keepLease) await allocator.abortLaunching(lease).catch(() => {});

@@ -12,6 +12,7 @@ import {
   listProjects,
   loadAutomationBindings,
   loadAutomationProfile,
+  patchAutomationProfileRule,
   loadAutomationSkillCatalog,
   loadNestedSchemaCapabilities,
   listViewProfiles,
@@ -31,8 +32,7 @@ import {
   ackStartEntryAction,
   saveDocument,
   saveDocuments,
-  saveAutomationBindings,
-  saveAutomationProfile,
+  saveAutomationSettings as saveAutomationSettingsRequest,
   saveSharedViews,
   shutdownServer,
   saveViewConfig,
@@ -4160,7 +4160,8 @@ export function App() {
         });
         return;
       }
-      const expectedRowDigest = action?.execution.kind === "proposal" && selectedRow
+      // Every proposal result, including project-skill proposals, needs a stable row snapshot.
+      const expectedRowDigest = action?.execution.resultPolicy === "proposal" && selectedRow
         ? await rowDigestBrowser(selectedRow)
         : undefined;
       const result = await runEntryAction({
@@ -6258,15 +6259,22 @@ function AutomationSettingsDialog(props: {
   const [skillPickerQuery, setSkillPickerQuery] = useState("");
   const [targetPickerOpenId, setTargetPickerOpenId] = useState<string | null>(null);
   const [targetPickerQuery, setTargetPickerQuery] = useState("");
+  const [projectInputPickerOpen, setProjectInputPickerOpen] = useState(false);
+  const [projectInputPickerQuery, setProjectInputPickerQuery] = useState("");
+  const [preflightMaintenanceOpen, setPreflightMaintenanceOpen] = useState(false);
   const [ruleSearchQuery, setRuleSearchQuery] = useState("");
   const [, setAutomationIconPackVersion] = useState(0);
   const profileRef = useRef(profile);
   const bindingsRef = useRef(bindings);
   const commitProfile = useCallback((updater: UserAutomationProfile | ((current: UserAutomationProfile) => UserAutomationProfile)) => {
     const current = profileRef.current;
-    const next = typeof updater === "function"
+    const resolved = typeof updater === "function"
       ? (updater as (current: UserAutomationProfile) => UserAutomationProfile)(current)
       : updater;
+    // Keep unreadable historical rules in memory until their dedicated patch path repairs them.
+    const next = "ruleIssues" in resolved
+      ? resolved
+      : { ...resolved, ruleIssues: current.ruleIssues };
     profileRef.current = next;
     setProfile(next);
   }, []);
@@ -6279,6 +6287,7 @@ function AutomationSettingsDialog(props: {
     setBindings(next);
   }, []);
   const rules = profile.rules;
+  const ruleIssues = profile.ruleIssues ?? [];
   const filteredRuleIndexes = useMemo(() => {
     const query = ruleSearchQuery.trim().toLowerCase();
     if (!query) return rules.map((_, index) => index);
@@ -6313,6 +6322,9 @@ function AutomationSettingsDialog(props: {
     setSkillPickerQuery("");
     setTargetPickerOpenId(null);
     setTargetPickerQuery("");
+    setProjectInputPickerOpen(false);
+    setProjectInputPickerQuery("");
+    setPreflightMaintenanceOpen(false);
     setRuleSearchQuery("");
   }, [props.open]);
 
@@ -6553,26 +6565,17 @@ function AutomationSettingsDialog(props: {
   }
 
   function updateRuleTargets(index: number, nextTargets: EntryActionTarget[]) {
-    updateRuleWith(index, (rule) => ({
-      ...rule,
-      targets: nextTargets,
-    }));
+    updateRuleWith(index, (rule) => withProjectInputTargetFiles({ ...rule, targets: nextTargets }));
   }
 
   function addRuleTarget(index: number) {
     const file = targetCatalog[0]?.file ?? "";
     const collection = resolveTargetCollectionOptions(targetCatalogByFile, file)[0] ?? "$";
-    updateRuleWith(index, (rule) => ({
-      ...rule,
-      targets: [...rule.targets, { file, collection }],
-    }));
+    updateRuleWith(index, (rule) => withProjectInputTargetFiles({ ...rule, targets: [...rule.targets, { file, collection }] }));
   }
 
   function removeRuleTarget(index: number, targetIndex: number) {
-    updateRuleWith(index, (rule) => ({
-      ...rule,
-      targets: rule.targets.filter((_, currentIndex) => currentIndex !== targetIndex),
-    }));
+    updateRuleWith(index, (rule) => withProjectInputTargetFiles({ ...rule, targets: rule.targets.filter((_, currentIndex) => currentIndex !== targetIndex) }));
   }
 
   function updateRuleTargetFile(index: number, targetIndex: number, file: string) {
@@ -6600,7 +6603,7 @@ function AutomationSettingsDialog(props: {
   }
 
   function updateRuleTargetTextArtifact(index: number, targetIndex: number, enabled: boolean) {
-    updateRuleWith(index, (rule) => ({
+    updateRuleWith(index, (rule) => withProjectInputTargetFiles({
       ...rule,
       targets: rule.targets.map((target, currentIndex) => {
         if (currentIndex !== targetIndex) return target;
@@ -6638,6 +6641,100 @@ function AutomationSettingsDialog(props: {
         [ruleId]: nextBinding,
       },
     }));
+  }
+
+  function updateProjectInput(index: number, paths: string[]) {
+    const existing = profileRef.current.rules[index]?.execution.advancedExecution?.projectInput;
+    if (!existing) return;
+    updateRuleWith(index, (rule) => ({
+      ...rule,
+      execution: {
+        ...rule.execution,
+        advancedExecution: {
+          projectInput: {
+            paths: paths.map((item) => item.trim()).filter(Boolean),
+          },
+          ...(rule.execution.advancedExecution?.preflightId ? { preflightId: rule.execution.advancedExecution.preflightId } : {}),
+        },
+      },
+    }));
+  }
+
+  function updatePreflightSelection(index: number, preflightId: string) {
+    updateRuleWith(index, (rule) => {
+      const advancedExecution = rule.execution.advancedExecution;
+      const nextPreflightId = preflightId.trim();
+      if (!advancedExecution && !nextPreflightId) return rule;
+      return {
+        ...rule,
+        execution: {
+          ...rule.execution,
+          advancedExecution: {
+            ...(advancedExecution?.projectInput ? { projectInput: advancedExecution.projectInput } : {}),
+            ...(nextPreflightId ? { preflightId: nextPreflightId } : {}),
+          },
+        },
+      };
+    });
+  }
+
+  function setWorkspaceMode(index: number, workspaceMode: "snapshot" | "project-write") {
+    updateRuleWith(index, (rule) => {
+      const advancedExecution = rule.execution.advancedExecution;
+      const { projectInput: _projectInput, ...projectWriteAdvanced } = advancedExecution ?? {};
+      return {
+        ...rule,
+        execution: {
+          ...rule.execution,
+          workspaceMode,
+          ...(workspaceMode === "project-write"
+            ? (Object.keys(projectWriteAdvanced).length ? { advancedExecution: projectWriteAdvanced } : {})
+            : (advancedExecution ? { advancedExecution } : {})),
+        },
+      };
+    });
+  }
+
+  function setAdvancedExecutionEnabled(index: number, enabled: boolean) {
+    updateRuleWith(index, (rule) => {
+      const { advancedExecution, ...execution } = rule.execution;
+      return {
+        ...rule,
+        execution: enabled
+          // Advanced input always uses the project-skill host. The result policy stays
+          // unchanged, so a proposal rule still returns the same proposal contract.
+          ? { ...execution, kind: "project-skill", workspaceMode: "snapshot", advancedExecution: { projectInput: { paths: collectRuleTargetFiles(rule) }, ...(advancedExecution?.preflightId ? { preflightId: advancedExecution.preflightId } : {}) } }
+          : { ...execution, ...(advancedExecution?.preflightId ? { advancedExecution: { preflightId: advancedExecution.preflightId } } : {}) },
+      };
+    });
+  }
+
+  function updatePreflight(preflightId: string, field: "label" | "description" | "recommendedSkills" | "interpreter" | "script" | "sha256" | "timeoutMs", value: string) {
+    commitBindings((current) => {
+      const previous = current.preflights?.[preflightId] ?? { label: preflightId, interpreter: "", script: "", sha256: "", timeoutMs: 30000 };
+      const next = field === "timeoutMs"
+        ? { ...previous, timeoutMs: Number(value) }
+        : field === "recommendedSkills"
+          ? { ...previous, recommendedSkills: value.split(",").map((item) => item.trim()).filter(Boolean) }
+          : { ...previous, [field]: value.trim() };
+      return { ...current, preflights: { ...(current.preflights ?? {}), [preflightId]: next } };
+    });
+  }
+
+  function addPreflight() {
+    commitBindings((current) => {
+      const existing = current.preflights ?? {};
+      let index = Object.keys(existing).length + 1;
+      let id = `preflight-${index}`;
+      while (existing[id]) id = `preflight-${++index}`;
+      return {
+        ...current,
+        preflights: {
+          ...existing,
+          [id]: { label: `运行前检查 ${index}`, interpreter: "", script: "", sha256: "", timeoutMs: 30000 },
+        },
+      };
+    });
   }
 
   function updateBindingDefaultsField(field: "model" | "timeoutMs", value: string) {
@@ -6723,8 +6820,57 @@ function AutomationSettingsDialog(props: {
     setSelectedRuleIndex(rules.length);
   }
 
+  function isLegacyAdvancedRuleIssue(ruleIssue: NonNullable<UserAutomationProfile["ruleIssues"]>[number]) {
+    const rawRule = ruleIssue.rawRule;
+    if (!rawRule || typeof rawRule !== "object" || Array.isArray(rawRule)) return false;
+    const execution = (rawRule as Record<string, unknown>).execution;
+    if (!execution || typeof execution !== "object" || Array.isArray(execution)) return false;
+    return "projectInput" in execution && !("advancedExecution" in execution);
+  }
+
+  async function repairLegacyAdvancedRule(ruleIssue: NonNullable<UserAutomationProfile["ruleIssues"]>[number]) {
+    if (!props.project?.id || !profile.etag || !ruleIssue.ruleId) return;
+    const rawRule = ruleIssue.rawRule;
+    if (!rawRule || typeof rawRule !== "object" || Array.isArray(rawRule)) return;
+    const execution = (rawRule as Record<string, unknown>).execution;
+    if (!execution || typeof execution !== "object" || Array.isArray(execution)) return;
+    const legacyProjectInput = (execution as Record<string, unknown>).projectInput;
+    if (!legacyProjectInput || typeof legacyProjectInput !== "object" || Array.isArray(legacyProjectInput)) return;
+
+    setSaving(true);
+    setError(null);
+    setSaveMessage(null);
+    try {
+      const { projectInput: _legacyProjectInput, advancedExecution: _advancedExecution, ...baseExecution } = execution as Record<string, unknown>;
+      const replacement = {
+        ...(rawRule as Record<string, unknown>),
+        execution: {
+          ...baseExecution,
+          advancedExecution: { projectInput: legacyProjectInput },
+        },
+      } as EntryActionRule;
+      await patchAutomationProfileRule(ruleIssue.ruleId, replacement, ruleIssue.rawDigest, profile.etag, props.project.id);
+      const [nextProfile, nextBindings] = await Promise.all([
+        loadAutomationProfile(props.project.id),
+        loadAutomationBindings(props.project.id),
+      ]);
+      commitProfile(nextProfile);
+      commitBindings(pruneOrphanAutomationRuleBindings(nextBindings, nextProfile.rules.map((rule) => rule.id)));
+      setSaveMessage(`已迁移规则“${ruleIssue.ruleId}”，请检查后保存。`);
+    } catch (repairError) {
+      setError(repairError instanceof Error ? repairError.message : String(repairError));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveAutomationSettings() {
     if (!props.project?.id) return;
+    if (profileRef.current.ruleIssues?.length) {
+      setError("存在无法解析的历史规则。请先逐条迁移或修复，避免保存时覆盖它们。");
+      setSaveMessage(null);
+      return;
+    }
     const latestProfile = profileRef.current;
     const latestBindings = pruneOrphanAutomationRuleBindings(
       bindingsRef.current,
@@ -6741,16 +6887,9 @@ function AutomationSettingsDialog(props: {
     setError(null);
     setSaveMessage(null);
     try {
-      try {
-        await saveAutomationProfile(latestProfile, props.project.id);
-      } catch (profileSaveError) {
-        throw new Error(`规则配置保存失败：${profileSaveError instanceof Error ? profileSaveError.message : String(profileSaveError)}`);
-      }
-      try {
-        await saveAutomationBindings(latestBindings, props.project.id);
-      } catch (bindingsSaveError) {
-        throw new Error(`本机默认配置保存失败：${bindingsSaveError instanceof Error ? bindingsSaveError.message : String(bindingsSaveError)}`);
-      }
+      const saved = await saveAutomationSettingsRequest(latestProfile, latestBindings, props.project.id);
+      latestProfile.etag = saved.profile?.etag ?? latestProfile.etag;
+      latestBindings.revision = saved.bindings?.revision ?? latestBindings.revision;
       const refreshedBindings = await loadAutomationBindings(props.project.id);
       commitBindings(refreshedBindings);
       props.onSaved(latestProfile, refreshedBindings);
@@ -6871,6 +7010,38 @@ function AutomationSettingsDialog(props: {
                   </div>
                   <small>模型使用 `-m` 下发；推理强度与输出详略会通过 Codex CLI 的 config override 下发。</small>
                 </div>
+                <div className="automation-preflight-maintenance">
+                  <div className="automation-preflight-maintenance__summary">
+                    <div>
+                      <strong>本机运行前检查</strong>
+                      <small>{Object.keys(bindings.preflights ?? {}).length ? `已注册 ${Object.keys(bindings.preflights ?? {}).length} 个检查，供规则按需选择。` : "尚未注册检查；规则可直接选择“无运行前检查”。"}</small>
+                    </div>
+                    <button className="ghost-button automation-preflight-maintenance__trigger" onClick={() => setPreflightMaintenanceOpen((open) => !open)} type="button">
+                      <icons.settings size={15} />
+                      {preflightMaintenanceOpen ? "收起维护" : "维护"}
+                    </button>
+                  </div>
+                  {preflightMaintenanceOpen ? (
+                    <div className="automation-preflight-maintenance__content">
+                      <small className="dialog-help">仅在需要新增或维护本机检查时填写。解释器、脚本和摘要不会写入项目规则。</small>
+                      <div><button className="secondary-button" onClick={addPreflight} type="button">新增本机检查</button></div>
+                      {Object.entries(bindings.preflights ?? {}).map(([preflightId, preflight]) => (
+                        <div className="automation-validation-panel" key={preflightId}>
+                          <strong>{preflightId}</strong>
+                          <div className="automation-rule-grid">
+                            <label className="dialog-field"><span>名称</span><input value={preflight.label} onChange={(event) => updatePreflight(preflightId, "label", event.target.value)} /></label>
+                            <label className="dialog-field"><span>说明</span><input value={preflight.description ?? ""} onChange={(event) => updatePreflight(preflightId, "description", event.target.value)} /></label>
+                            <label className="dialog-field"><span>推荐技能（逗号分隔）</span><input value={(preflight.recommendedSkills ?? []).join(", ")} onChange={(event) => updatePreflight(preflightId, "recommendedSkills", event.target.value)} /></label>
+                            <label className="dialog-field"><span>超时（毫秒）</span><input type="number" value={preflight.timeoutMs} onChange={(event) => updatePreflight(preflightId, "timeoutMs", event.target.value)} /></label>
+                            <label className="dialog-field"><span>解释器路径</span><input value={preflight.interpreter} onChange={(event) => updatePreflight(preflightId, "interpreter", event.target.value)} /></label>
+                            <label className="dialog-field"><span>脚本路径</span><input value={preflight.script} onChange={(event) => updatePreflight(preflightId, "script", event.target.value)} /></label>
+                            <label className="dialog-field automation-rule-grid__wide"><span>脚本 SHA-256</span><input value={preflight.sha256} onChange={(event) => updatePreflight(preflightId, "sha256", event.target.value)} /></label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
                 {skillCatalogError ? <div className="dialog-help">{skillCatalogError}</div> : null}
                 {loading ? <div className="automation-settings-loading">正在加载自动化设置...</div> : null}
                 <div className="automation-settings-header">
@@ -6883,6 +7054,29 @@ function AutomationSettingsDialog(props: {
                     <span>新增动作</span>
                   </button>
                 </div>
+                {ruleIssues.length ? (
+                  <div className="automation-validation-panel">
+                    <strong>需要迁移的历史规则</strong>
+                    <ul className="automation-validation-list">
+                      {ruleIssues.map((ruleIssue, index) => (
+                        <li key={`${ruleIssue.ruleId ?? "unknown"}-${ruleIssue.rawDigest}`}>
+                          <span>{ruleIssue.ruleId || `未命名规则 ${index + 1}`}：{ruleIssue.issues.join("；")}</span>
+                          {isLegacyAdvancedRuleIssue(ruleIssue) ? (
+                            <button
+                              className="secondary-button"
+                              disabled={controlsDisabled}
+                              onClick={() => void repairLegacyAdvancedRule(ruleIssue)}
+                              type="button"
+                            >
+                              迁移高级配置
+                            </button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                    <small>历史规则不会参与运行，也不会在全量保存时被覆盖。</small>
+                  </div>
+                ) : null}
                 {rules.length ? (
                   <div className="automation-rules-shell">
                     <div className="automation-rule-nav-panel">
@@ -7094,6 +7288,82 @@ function AutomationSettingsDialog(props: {
                               </label>
                             </div>
                           </div>
+                          <div className="automation-rule-section">
+                              <div className="automation-rule-grid">
+                                <label className="dialog-field">
+                                  <span>工作范围</span>
+                                  <select value={selectedRule.execution.workspaceMode ?? "snapshot"} onChange={(event) => setWorkspaceMode(selectedIndex, event.target.value as "snapshot" | "project-write")}>
+                                    <option value="snapshot">只读快照（默认）</option>
+                                    <option value="project-write">允许修改项目文件</option>
+                                  </select>
+                                </label>
+                                <label className="dialog-field">
+                                  <span>运行前检查</span>
+                                  <select value={selectedRule.execution.advancedExecution?.preflightId ?? ""} onChange={(event) => updatePreflightSelection(selectedIndex, event.target.value)}>
+                                    <option value="">无运行前检查</option>
+                                    {Object.entries(bindings.preflights ?? {}).map(([preflightId, preflight]) => (
+                                      <option key={preflightId} value={preflightId}>{preflight.label}{preflight.recommendedSkills?.includes(binding.skill) ? "（推荐）" : ""}</option>
+                                    ))}
+                                  </select>
+                                </label>
+                              </div>
+                              {selectedRule.execution.workspaceMode !== "project-write" ? <label className="automation-option" title="启用后仅复制所选资料到临时快照。">
+                                <input checked={Boolean(selectedRule.execution.advancedExecution?.projectInput)} onChange={(event) => setAdvancedExecutionEnabled(selectedIndex, event.target.checked)} type="checkbox" />
+                                <span>需要读取项目资料</span>
+                              </label> : <small className="dialog-help">此模式会在真实项目目录运行。项目资料选择器已关闭；所选本机检查会在真实项目目录执行。</small>}
+                              {selectedRule.execution.workspaceMode !== "project-write" && selectedRule.execution.advancedExecution?.projectInput ? <>
+                                <div className="automation-rule-section__label">项目资料</div>
+                                <small className="dialog-help">当前规则的目标文件会自动保留。你可以补充其他文件或目录作为参考资料。</small>
+                                <div className="automation-rule-grid">
+                                  <label className="dialog-field">
+                                    <span>项目资料</span>
+                                    <SearchablePicker
+                                      open={projectInputPickerOpen}
+                                      onOpenChange={setProjectInputPickerOpen}
+                                      query={projectInputPickerQuery}
+                                      onQueryChange={setProjectInputPickerQuery}
+                                      searchAriaLabel="筛选项目资料"
+                                      searchPlaceholder="筛选文件或目录..."
+                                      listAriaLabel="项目资料候选列表"
+                                      contentClassName="automation-target-picker-content"
+                                      listClassName="automation-target-picker-list"
+                                      emptyContent={<div className="automation-skill-picker-empty">没有匹配的项目资料。</div>}
+                                      trigger={(
+                                        <button className="select-trigger automation-target-picker-trigger" type="button">
+                                          <span className="automation-target-picker-trigger__value">已选 {selectedRule.execution.advancedExecution.projectInput.paths.length} 项资料</span>
+                                          <icons.chevronDown size={16} />
+                                        </button>
+                                      )}
+                                    >
+                                      {buildProjectInputOptions(props.files, selectedRule.execution.advancedExecution.projectInput.paths)
+                                        .filter((option) => matchesFileSearchQuery(option.path, projectInputPickerQuery))
+                                        .map((option) => {
+                                          const selected = selectedRule.execution.advancedExecution!.projectInput!.paths.includes(option.path);
+                                          const locked = collectRuleTargetFiles(selectedRule).includes(option.path);
+                                          return (
+                                            <button
+                                              className={`searchable-picker-option automation-target-picker-option ${selected ? "is-selected" : ""}`}
+                                              key={option.path}
+                                              type="button"
+                                              onClick={() => {
+                                                if (locked && selected) return;
+                                                const current = selectedRule.execution.advancedExecution!.projectInput!.paths;
+                                                updateProjectInput(selectedIndex, selected ? current.filter((path) => path !== option.path) : [...current, option.path]);
+                                              }}
+                                            >
+                                              <span className="searchable-picker-option__title">{option.label}</span>
+                                              <span className="searchable-picker-option__meta">{locked ? "当前目标，始终保留" : option.kind === "directory" ? "目录" : "文件"}</span>
+                                            </button>
+                                          );
+                                        })}
+                                    </SearchablePicker>
+                                  </label>
+                                </div>
+                                {selectedRule.execution.advancedExecution.preflightId && bindings.preflights?.[selectedRule.execution.advancedExecution.preflightId]?.description ? (
+                                  <small className="dialog-help">{bindings.preflights[selectedRule.execution.advancedExecution.preflightId].description}</small>
+                                ) : null}
+                              </> : null}
+                            </div>
                           <div className="automation-rule-section">
                             <div className="automation-rule-section__label">目标范围</div>
                             <div className="automation-target-editor">
@@ -7418,9 +7688,13 @@ function AutomationSettingsDialog(props: {
             <Dialog.Close className="ghost-button">关闭</Dialog.Close>
             <button
               className="primary-button"
-              disabled={controlsDisabled || validationIssues.length > 0}
+              disabled={controlsDisabled || validationIssues.length > 0 || ruleIssues.length > 0}
               onClick={() => void saveAutomationSettings()}
-              title={validationIssues.length > 0 ? validationIssues.join("\n") : undefined}
+              title={validationIssues.length > 0
+                ? validationIssues.join("\n")
+                : ruleIssues.length > 0
+                  ? "请先迁移或修复历史规则。"
+                  : undefined}
               type="button"
             >
               {saving ? "正在保存..." : "保存自动化设置"}
@@ -7536,6 +7810,16 @@ function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile,
     } else {
       ruleIssues.push("缺少本机绑定。");
     }
+    if (rule.execution.advancedExecution) {
+      const projectInput = rule.execution.advancedExecution.projectInput;
+      if (rule.execution.workspaceMode === "project-write" && projectInput) ruleIssues.push("允许修改项目文件时不能同时选择项目资料快照。");
+      if (projectInput && !projectInput.paths.length) ruleIssues.push("最小项目输入至少需要一项。");
+      const preflightId = rule.execution.advancedExecution.preflightId;
+      if (preflightId) {
+        const preflight = bindings.preflights?.[preflightId];
+        if (!preflight || !preflight.interpreter || !preflight.script || !/^[a-f0-9]{64}$/i.test(preflight.sha256) || !Number.isInteger(preflight.timeoutMs) || preflight.timeoutMs <= 0 || preflight.timeoutMs > 120000) ruleIssues.push("所选运行前检查不可用。");
+      }
+    }
     const bindingStatus = bindings.bindingStatuses?.[rule.id];
     if (bindingStatus?.status === "invalid" && bindingStatus.message) {
       ruleIssues.push(bindingStatus.message);
@@ -7587,6 +7871,17 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
     }
     if (rule.runtime?.timeoutMs != null && (!Number.isInteger(rule.runtime.timeoutMs) || rule.runtime.timeoutMs <= 0)) {
       issues.push(`${prefix}: 规则超时时间必须为正整数。`);
+    }
+    if (rule.execution.advancedExecution) {
+      if (rule.execution.kind !== "project-skill" || !["proposal", "result-only"].includes(rule.execution.resultPolicy)) issues.push(`${prefix}: 当前结果策略不支持高级执行配置。`);
+      const projectInput = rule.execution.advancedExecution.projectInput;
+      if (rule.execution.workspaceMode === "project-write" && projectInput) issues.push(`${prefix}: 允许修改项目文件时不能同时选择项目资料快照。`);
+      if (projectInput && !projectInput.paths.length) issues.push(`${prefix}: 最小项目输入至少需要一项。`);
+      const preflightId = rule.execution.advancedExecution.preflightId;
+      if (preflightId) {
+        const preflight = bindings.preflights?.[preflightId];
+        if (!preflight || !preflight.interpreter || !preflight.script || !/^[a-f0-9]{64}$/i.test(preflight.sha256) || !Number.isInteger(preflight.timeoutMs) || preflight.timeoutMs <= 0 || preflight.timeoutMs > 120000) issues.push(`${prefix}: 所选运行前检查不可用。`);
+      }
     }
 
     const binding = bindings.bindings[ruleId];
@@ -7665,6 +7960,45 @@ function buildTargetFileOptions(catalog: AutomationTargetCatalogItem[], selected
     options.unshift({ file: selectedFile, label: selectedFile, collections: [] });
   }
   return options;
+}
+
+function collectRuleTargetFiles(rule: EntryActionRule) {
+  return [...new Set(rule.targets.map((target) => target.file).filter(Boolean))];
+}
+
+function withProjectInputTargetFiles(rule: EntryActionRule): EntryActionRule {
+  const projectInput = rule.execution.advancedExecution?.projectInput;
+  if (!projectInput) return rule;
+  return {
+    ...rule,
+    execution: {
+      ...rule.execution,
+      advancedExecution: {
+        projectInput: {
+          ...projectInput,
+          paths: [...new Set([...projectInput.paths, ...collectRuleTargetFiles(rule)])],
+        },
+        ...(rule.execution.advancedExecution?.preflightId ? { preflightId: rule.execution.advancedExecution.preflightId } : {}),
+      },
+    },
+  };
+}
+
+function buildProjectInputOptions(files: DataFile[], selectedPaths: string[]) {
+  const options = new Map<string, { path: string; label: string; kind: "file" | "directory" }>();
+  for (const file of files) {
+    const filePath = file.path.replaceAll("\\", "/");
+    options.set(filePath, { path: filePath, label: filePath, kind: "file" });
+    const segments = filePath.split("/").filter(Boolean);
+    for (let index = 1; index < segments.length; index += 1) {
+      const directory = segments.slice(0, index).join("/");
+      options.set(directory, { path: directory, label: `${directory}/`, kind: "directory" });
+    }
+  }
+  for (const selectedPath of selectedPaths) {
+    if (!options.has(selectedPath)) options.set(selectedPath, { path: selectedPath, label: selectedPath, kind: "file" });
+  }
+  return [...options.values()].sort((left, right) => left.path.localeCompare(right.path));
 }
 
 function describeTargetFileName(filePath: string) {

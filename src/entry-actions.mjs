@@ -148,13 +148,16 @@ export async function advanceEntryActionPhase(projectContextOrRoot, runId, phase
   if (activePhaseRank(phase) < activePhaseRank(current.phase)) {
     throw Object.assign(new Error("ENTRY_ACTION_PHASE_REGRESSION"), { code: "ENTRY_ACTION_PHASE_REGRESSION" });
   }
+  const advancedAt = new Date().toISOString();
   const normalized = normalizeEntryActionStateRecord({
     ...current,
     ...details,
     runId,
     phase,
     outcome: null,
-    updatedAt: new Date().toISOString(),
+    phaseStartedAt: advancedAt,
+    phaseHistory: [...(Array.isArray(current.phaseHistory) ? current.phaseHistory : []), { phase, startedAt: advancedAt }],
+    updatedAt: advancedAt,
   });
   await atomicWrite(targetPath, `${JSON.stringify(normalized, null, 2)}\n`);
   return normalized;
@@ -345,7 +348,7 @@ function stableJson(value) {
 }
 
 function activePhaseRank(phase) {
-  const rank = ["queued", "running", "proposal_ready", "committing"].indexOf(phase);
+  const rank = ["queued", "preparing_input", "preflight_running", "running", "review_running", "proposal_ready", "committing"].indexOf(phase);
   if (rank < 0) throw Object.assign(new Error("ENTRY_ACTION_STATE_INVALID"), { code: "ENTRY_ACTION_STATE_INVALID" });
   return rank;
 }

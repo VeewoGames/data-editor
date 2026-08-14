@@ -1,4 +1,4 @@
-export const entryActionActivePhases = Object.freeze(["queued", "running", "proposal_ready", "committing"]);
+export const entryActionActivePhases = Object.freeze(["queued", "preparing_input", "preflight_running", "running", "review_running", "proposal_ready", "committing"]);
 export const entryActionTerminalOutcomes = Object.freeze([
   "completed_with_writeback",
   "completed_without_changes",
@@ -6,6 +6,8 @@ export const entryActionTerminalOutcomes = Object.freeze([
   "rejected",
   "failed",
   "timed_out",
+  "preflight_failed",
+  "preflight_timed_out",
   "failed_needs_recovery",
 ]);
 
@@ -16,7 +18,7 @@ export function isTerminalEntryActionState(value) {
 
 export function normalizeEntryActionStateRecord(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw stateError();
-  if (isTerminalEntryActionState(value) || entryActionActivePhases.includes(value.phase)) return { ...value };
+  if (isTerminalEntryActionState(value) || entryActionActivePhases.includes(value.phase)) return { ...value, version: Math.max(Number(value.version) || 2, 3) };
   throw stateError();
 }
 
@@ -32,9 +34,10 @@ export function migrateLegacyEntryActionStateRecord(value, artifactKind) {
   if (artifactKind === "started" && status === "started") {
     return {
       ...rest,
-      version: 2,
-      phase: "running",
+      version: 3,
+      phase: "review_running",
       outcome: null,
+      phaseStartedAt: value.startedAt ?? null,
       updatedAt: value.updatedAt ?? value.startedAt ?? null,
     };
   }
@@ -44,7 +47,7 @@ export function migrateLegacyEntryActionStateRecord(value, artifactKind) {
   if (!outcome) return null;
   return {
     ...rest,
-    version: 2,
+    version: 3,
     phase: "terminal",
     outcome,
     updatedAt: value.updatedAt ?? value.finishedAt ?? null,

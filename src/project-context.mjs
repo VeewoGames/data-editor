@@ -26,6 +26,8 @@ export function createProjectContext(input = {}) {
   const entryActionPolicyPath = input.entryActionPolicyPath
     ?? path.join(projectRoot, defaultEntryActionPolicyPath);
   const localAutomationBindingsPath = input.localAutomationBindingsPath
+    ?? path.join(machineAutomationBindingsRoot(), String(projectId), "automation-bindings.json");
+  const legacyLocalAutomationBindingsPath = input.legacyLocalAutomationBindingsPath
     ?? path.join(projectRoot, defaultLocalAutomationBindingsPath);
   return {
     projectRoot,
@@ -37,12 +39,19 @@ export function createProjectContext(input = {}) {
     automationProfilePath,
     entryActionPolicyPath,
     localAutomationBindingsPath,
+    legacyLocalAutomationBindingsPath,
     runtimeDir: input.runtimeDir ?? defaultRuntimeDir,
     logsDir: input.logsDir ?? defaultLogsDir,
     filePolicy: input.filePolicy ?? {
       includeExtensions: [".json", ".csv"],
     },
   };
+}
+
+function machineAutomationBindingsRoot() {
+  const configured = process.env.APPDATA || process.env.DATA_EDITOR_HOME;
+  const home = configured || process.env.USERPROFILE || process.env.HOME || process.cwd();
+  return path.resolve(home, "data-editor", "automation-bindings");
 }
 
 export function normalizeDataSources(dataSources, dataRoot = "data") {

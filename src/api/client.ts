@@ -39,7 +39,9 @@ export type EntryActionRule = {
   };
   execution: {
     kind: "proposal" | "project-skill";
-    resultPolicy: "proposal" | "result-only" | "project-transaction";
+    resultPolicy: "proposal" | "result-only";
+    workspaceMode?: "snapshot" | "project-write";
+    advancedExecution?: { projectInput?: { paths: string[] }; preflightId?: string };
   };
   contractId: string;
   createAuthority?: { enabled: true; contractId: string };
@@ -58,6 +60,7 @@ export type EntryActionTarget = {
 export type UserAutomationProfile = {
   rules: EntryActionRule[];
   etag?: string | null;
+  ruleIssues?: Array<{ ruleId: string | null; rawRule: unknown; rawDigest: string; issues: string[] }>;
 };
 export type EntryActionBinding = {
   provider: "codex";
@@ -65,6 +68,8 @@ export type EntryActionBinding = {
   enabled: boolean;
 };
 export type DeviceEntryActionBindings = {
+  version?: 2;
+  revision?: string;
   defaults: {
     model?: string;
     reasoning?: "none" | "low" | "medium" | "high" | "xhigh";
@@ -72,6 +77,15 @@ export type DeviceEntryActionBindings = {
     timeoutMs?: number;
   };
   bindings: Record<string, EntryActionBinding>;
+  preflights?: Record<string, {
+    label: string;
+    description?: string;
+    recommendedSkills?: string[];
+    interpreter: string;
+    script: string;
+    sha256: string;
+    timeoutMs: number;
+  }>;
   bindingStatuses?: Record<string, {
     status: "ready" | "missing" | "invalid";
     reason: string | null;
@@ -718,6 +732,28 @@ export async function loadEntryActionResult(runId: string, projectId?: string | 
   return fetchJson(withProjectId(`/api/entry-actions/result?runId=${encodeURIComponent(runId)}`, projectId));
 }
 
+export async function saveAutomationSettings(profile: UserAutomationProfile, bindings: DeviceEntryActionBindings, projectId?: string | null) {
+  return fetchJson("/api/automation-settings", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      projectId,
+      profile: normalizeFetchedAutomationProfile(profile),
+      bindings,
+      ...(profile.etag ? { profileEtag: profile.etag } : {}),
+      ...(bindings.revision ? { bindingsRevision: bindings.revision } : {}),
+    }),
+  });
+}
+
+export async function patchAutomationProfileRule(ruleId: string, rule: EntryActionRule, ruleDigest: string, profileEtag: string, projectId?: string | null) {
+  return fetchJson(`/api/automation-profile/rules/${encodeURIComponent(ruleId)}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId, rule, ruleDigest, etag: profileEtag }),
+  });
+}
+
 export async function ackStartEntryAction(request: { projectId: string; pendingActionToken: string }): Promise<StartedEntryActionResponse> {
   return fetchJson("/api/entry-actions/ack-start", {
     method: "POST",
@@ -817,6 +853,12 @@ function normalizeFetchedAutomationProfile(value: unknown): UserAutomationProfil
   return {
     rules: rules.map((rule) => normalizeFetchedEntryActionRule(rule)).filter(Boolean) as EntryActionRule[],
     etag: typeof (value as { etag?: unknown }).etag === "string" ? (value as { etag: string }).etag : null,
+    ruleIssues: Array.isArray((value as { ruleIssues?: unknown }).ruleIssues) ? (value as { ruleIssues: unknown[] }).ruleIssues.flatMap((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+      const issue = item as { ruleId?: unknown; rawRule?: unknown; rawDigest?: unknown; issues?: unknown };
+      if (typeof issue.rawDigest !== "string" || !Array.isArray(issue.issues)) return [];
+      return [{ ruleId: typeof issue.ruleId === "string" ? issue.ruleId : null, rawRule: issue.rawRule, rawDigest: issue.rawDigest, issues: issue.issues.filter((value): value is string => typeof value === "string") }];
+    }) : [],
   };
 }
 
@@ -842,6 +884,7 @@ function normalizeFetchedEntryActionRule(value: unknown): EntryActionRule | null
     execution: {
       kind: (rule.execution as { kind?: unknown } | null)?.kind === "proposal" ? "proposal" : "project-skill",
       resultPolicy: normalizeEntryActionResultPolicy((rule.execution as { resultPolicy?: unknown } | null)?.resultPolicy),
+      ...normalizeFetchedAdvancedExecution((rule.execution as { advancedExecution?: unknown } | null)?.advancedExecution),
     },
     contractId: typeof rule.contractId === "string" ? rule.contractId.trim() : "",
     createAuthority: normalizeFetchedCreateAuthority(rule.createAuthority),
@@ -884,8 +927,22 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
   return [];
 }
 
+function normalizeFetchedAdvancedExecution(value: unknown): { advancedExecution?: { projectInput: { paths: string[]; preflightId?: string } } } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const projectInput = normalizeFetchedProjectInput((value as { projectInput?: unknown }).projectInput);
+  return projectInput.projectInput ? { advancedExecution: { projectInput: projectInput.projectInput } } : {};
+}
+
+function normalizeFetchedProjectInput(value: unknown): { projectInput?: { paths: string[]; preflightId?: string } } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const input = value as { paths?: unknown; preflightId?: unknown };
+  const paths = Array.isArray(input.paths) ? input.paths.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim()) : [];
+  const preflightId = typeof input.preflightId === "string" ? input.preflightId.trim() : "";
+  return paths.length ? { projectInput: { paths, ...(preflightId ? { preflightId } : {}) } } : {};
+}
+
 function normalizeEntryActionResultPolicy(value: unknown): EntryActionRule["execution"]["resultPolicy"] {
-  return value === "proposal" || value === "project-transaction" ? value : "result-only";
+  return value === "proposal" ? value : "result-only";
 }
 
 function normalizeFetchedCreateAuthority(value: unknown): EntryActionRule["createAuthority"] {
@@ -920,12 +977,14 @@ function dedupeFetchedEntryActionTargets(value: EntryActionTarget[]) {
 
 function normalizeFetchedAutomationBindings(value: unknown): DeviceEntryActionBindings {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { defaults: {}, bindings: {} };
+    return { version: 2, defaults: {}, bindings: {}, preflights: {} };
   }
   const raw = value as {
     defaults?: { model?: unknown; reasoning?: unknown; verbosity?: unknown; timeoutMs?: unknown };
     bindings?: Record<string, EntryActionBinding>;
     bindingStatuses?: DeviceEntryActionBindings["bindingStatuses"];
+    preflights?: DeviceEntryActionBindings["preflights"];
+    revision?: unknown;
   };
   const model = typeof raw.defaults?.model === "string" && raw.defaults.model.trim() ? raw.defaults.model.trim() : undefined;
   const reasoning = normalizeFetchedReasoning(raw.defaults?.reasoning);
@@ -940,7 +999,10 @@ function normalizeFetchedAutomationBindings(value: unknown): DeviceEntryActionBi
       ...(verbosity != null ? { verbosity } : {}),
       ...(timeoutMs != null ? { timeoutMs } : {}),
     },
+    version: 2,
+    ...(typeof raw.revision === "string" ? { revision: raw.revision } : {}),
     bindings: raw.bindings && typeof raw.bindings === "object" ? raw.bindings : {},
+    preflights: raw.preflights && typeof raw.preflights === "object" ? raw.preflights : {},
     bindingStatuses: raw.bindingStatuses,
   };
 }
