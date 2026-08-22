@@ -18,12 +18,13 @@ test("service recalculates the model-supplied Markdown digest from its content",
     runId: "10000000-0000-4000-8000-000000000001",
     action: { id: "fixture-rename" },
     entry: { sourcePath: "data/items.json", canonicalFileKey: "a".repeat(64), collectionPath: "items", rowId: "entry" },
-    proposalContract: { version: 3, baseDocumentEtag: "\"etag\"", ruleDigest: "b".repeat(64), fencingToken: 1 },
+    proposalContract: { version: 3, baseDocumentEtag: "\"etag\"", ruleDigest: "b".repeat(64), fencingToken: 1, textArtifact: { id: "skill-doc", path: "docs/skill.md", beforeExists: true, beforeDigest: "c".repeat(64) } },
   };
   const proposal = bindProposalToHandoff({
     textArtifact: { afterContent: "# Skill\n", afterDigest: "0".repeat(64) },
     evidence: [],
   }, handoff);
+  assert.deepEqual(proposal.textArtifact, { id: "skill-doc", path: "docs/skill.md", beforeExists: true, beforeDigest: "c".repeat(64), afterContent: "# Skill\n", afterDigest: proposal.textArtifact.afterDigest });
   assert.equal(proposal.textArtifact.afterDigest, "74daeff849609b74a42500aff45eb6229a086907ab1b2badae4c29ed4fc10e3c");
 });
 

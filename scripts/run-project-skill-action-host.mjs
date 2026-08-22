@@ -16,7 +16,7 @@ const prompt = await readFile(path.resolve(options.prompt), "utf8");
 const events = createWriteStream(path.resolve(options.events), { flags: "w" });
 const diagnostics = createWriteStream(path.resolve(options.diagnostics), { flags: "w" });
 const child = spawn(path.resolve(options.codex), [
-  "exec", "--ignore-user-config", ...(options["ignore-rules"] ? ["--ignore-rules"] : []), "--ephemeral", "--json", "--skip-git-repo-check", "--sandbox", "workspace-write",
+  "exec", "--ignore-user-config", ...(options["ignore-rules"] ? ["--ignore-rules"] : []), "--ephemeral", "--json", "--skip-git-repo-check", "--sandbox", "danger-full-access",
   "-c", 'approval_policy="never"',
   "-m", options.model,
   "-c", `model_reasoning_effort=${JSON.stringify(options.reasoning)}`,

@@ -120,6 +120,7 @@ test("project skill exposes a generic immutable-artifact publication context", a
   });
   await started.completion;
   const invocation = JSON.parse(prompt.slice(prompt.lastIndexOf("\n{") + 1));
+  assert.equal(invocation.execution.kind, "project-skill");
   assert.equal(invocation.artifactPublication.endpoint, "http://127.0.0.1:8787/api/entry-actions/publish-exact-artifact");
   assert.equal(invocation.artifactPublication.projectId, "fixture");
   assert.match(invocation.artifactPublication.artifactId, /^project-skill-/);

@@ -272,6 +272,7 @@ export async function submitFreshEntryActionProposal({
     profile, actionId, file: sourcePath, collection: collectionPath, row: rowContext.row,
     documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig, sourcePath, collectionPath, row: rowContext.row }), contract,
   });
+  const handoffArtifactState = await readArtifactState(projectContext, authoritySnapshot.textArtifact);
   const runId = dependencies.runId ?? createEntryActionRunId();
   const jobInstanceId = dependencies.jobInstanceId ?? crypto.randomUUID();
   const allocator = (dependencies.createFencingAllocator ?? createFencingAllocator)({ stateRoot: fencingRoot(projectContext) });
@@ -282,7 +283,17 @@ export async function submitFreshEntryActionProposal({
     runId,
     action: { id: action.id },
     entry: { sourcePath, canonicalFileKey: sourceIdentity.canonicalFileKey, collectionPath, rowId },
-    proposalContract: { version: 3, baseDocumentEtag: etag(documentText), ruleDigest: authoritySnapshot.ruleDigest, fencingToken: lease.fencingToken },
+    proposalContract: {
+      version: 3,
+      baseDocumentEtag: etag(documentText),
+      ruleDigest: authoritySnapshot.ruleDigest,
+      fencingToken: lease.fencingToken,
+      textArtifact: authoritySnapshot.textArtifact ? {
+        ...authoritySnapshot.textArtifact,
+        beforeExists: handoffArtifactState.text !== null,
+        beforeDigest: handoffArtifactState.text === null ? null : digest(handoffArtifactState.text),
+      } : null,
+    },
   };
   const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary, evidence: submittedEvidence }, handoff);
   const evidence = completeEntryActionEvidence({ contract, evidence: proposal.evidence, textArtifact: proposal.textArtifact });
@@ -460,8 +471,11 @@ async function finishRun(context) {
 // Proposal identity belongs to the server-created run, not to the model response.
 // Models still supply only the requested changes and summary.
 export function bindProposalToHandoff(proposal, handoff) {
+  const authority = handoff?.proposalContract?.textArtifact ?? null;
   const textArtifact = proposal?.textArtifact && typeof proposal.textArtifact.afterContent === "string"
-    ? { ...proposal.textArtifact, afterDigest: digest(proposal.textArtifact.afterContent) }
+    ? authority
+      ? { id: authority.id, path: authority.path, beforeExists: authority.beforeExists, beforeDigest: authority.beforeDigest, afterContent: proposal.textArtifact.afterContent, afterDigest: digest(proposal.textArtifact.afterContent) }
+      : { ...proposal.textArtifact, afterDigest: digest(proposal.textArtifact.afterContent) }
     : proposal?.textArtifact;
   return {
     ...proposal,

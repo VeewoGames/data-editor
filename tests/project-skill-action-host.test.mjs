@@ -26,7 +26,7 @@ test("project-skill host runs the cli from its disposable project snapshot", asy
   assert.ok(approvalConfigIndex > 0);
   assert.equal(result.argv[approvalConfigIndex - 1], "-c");
   assert.equal(result.argv.includes("--ignore-rules"), true);
-  assert.deepEqual(result.argv.slice(result.argv.indexOf("--sandbox"), result.argv.indexOf("--sandbox") + 2), ["--sandbox", "workspace-write"]);
+  assert.deepEqual(result.argv.slice(result.argv.indexOf("--sandbox"), result.argv.indexOf("--sandbox") + 2), ["--sandbox", "danger-full-access"]);
 });
 
 test("project-skill host rejects an output path escaping output-root", async (t) => {

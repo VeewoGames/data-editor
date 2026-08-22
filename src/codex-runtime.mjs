@@ -1,11 +1,11 @@
 import path from "node:path";
-import { access } from "node:fs/promises";
+import { access, readdir, stat } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 
 const defaultCodexModel = "gpt-5.6-terra";
 
 export async function resolveCodexCli() {
-  for (const candidate of codexCliCandidates()) {
+  for (const candidate of await codexCliCandidates()) {
     if (await pathExists(candidate)) {
       return {
         available: true,
@@ -147,17 +147,41 @@ export async function resolveCodexBindingStatus(binding, options = {}) {
   };
 }
 
-function codexCliCandidates() {
+async function codexCliCandidates() {
   const candidates = [];
   if (process.env.DATA_EDITOR_CODEX_CLI) {
     candidates.push(process.env.DATA_EDITOR_CODEX_CLI);
   }
   const localAppData = process.env.LOCALAPPDATA;
   if (localAppData) {
-    candidates.push(path.join(localAppData, "OpenAI", "Codex", "bin", "codex.exe"));
+    const binRoot = path.join(localAppData, "OpenAI", "Codex", "bin");
+    // The stable shim can lag behind the desktop app. Prefer the newest installed
+    // version directory, while retaining the shim as a fallback for older installs.
+    candidates.push(...await installedCodexCliCandidates(binRoot));
+    candidates.push(path.join(binRoot, "codex.exe"));
   }
   candidates.push(path.join(process.cwd(), "codex.exe"));
   return uniquePaths(candidates);
+}
+
+async function installedCodexCliCandidates(binRoot) {
+  try {
+    const entries = await readdir(binRoot, { withFileTypes: true });
+    const installed = await Promise.all(entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
+        const directory = path.join(binRoot, entry.name);
+        return {
+          cliPath: path.join(directory, "codex.exe"),
+          modifiedAt: (await stat(directory)).mtimeMs,
+        };
+      }));
+    return installed
+      .sort((left, right) => right.modifiedAt - left.modifiedAt)
+      .map((entry) => entry.cliPath);
+  } catch {
+    return [];
+  }
 }
 
 function uniquePaths(paths) {

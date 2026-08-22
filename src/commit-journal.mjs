@@ -90,7 +90,7 @@ function normalize(value, expectedStage = null) {
     || !digest(value.proposalDigest))) {
     throw journalError("COMMIT_JOURNAL_INVALID");
   }
-  if (value.saveType === "text_artifact_commit" && (!validId(value.runId) || !validId(value.artifactId)
+  if (value.saveType === "text_artifact_commit" && (!validId(value.runId) || !nonEmptyString(value.artifactId)
     || typeof value.artifactPath !== "string" || value.artifactPath.length === 0)) {
     throw journalError("COMMIT_JOURNAL_INVALID");
   }
@@ -105,6 +105,7 @@ function assertSameLogicalSave(existing, requested) {
 
 function file(directory, id) { if (!validId(id)) throw journalError("COMMIT_JOURNAL_INVALID"); return path.join(directory, `${id}.json`); }
 function validId(value) { return typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value); }
+function nonEmptyString(value) { return typeof value === "string" && value.length > 0; }
 function digest(value) { return typeof value === "string" && /^[0-9a-f]{64}$/.test(value); }
 function validProposalChanges(value) {
   return Array.isArray(value) && value.length > 0 && value.every((change) => (
