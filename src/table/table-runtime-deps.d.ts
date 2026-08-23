@@ -21,4 +21,6 @@ export function buildTableRuntimeDeps(input: {
   selectOptions: Record<string, TableFieldOptionConfig>;
   relationOptionsByField: Record<string, RelationOption[]>;
   relationConfigByField: Record<string, RelationConfig | null>;
+  fieldLabelsByField: Record<string, string>;
 };
+

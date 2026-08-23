@@ -21,6 +21,7 @@ type TableColumnsRuntime = {
   titleField: string | null;
   primaryKeyField: string | null;
   textEditable: boolean;
+  showFieldNames: boolean;
   activeTextCellId: string | null;
   onEnableTextEditMode: () => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
@@ -146,6 +147,8 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
   return (
     <ColumnHeader
       fieldName={columnModel.fieldName}
+      fieldLabel={columnModel.fieldLabel}
+      showFieldNames={columnModel.showFieldNames}
       roleKind={columnModel.roleKind}
       allowTypeChange={columnModel.allowTypeChange}
       baseDisplayType={columnModel.baseDisplayType}
@@ -394,3 +397,4 @@ function sameHeaderSnapshot(previous: TableColumnHeaderSnapshot, next: TableColu
     previous.isDragging === next.isDragging &&
     previous.tooltipSuppressed === next.tooltipSuppressed;
 }
+

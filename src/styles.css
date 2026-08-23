@@ -724,6 +724,12 @@ select {
   font-weight: 600;
 }
 
+.view-tabs-field-name-toggle.active {
+  background: transparent;
+  color: #2f7d32;
+  font-weight: 600;
+}
+
 .view-tabs-settings-toggle {
   flex: 0 0 auto;
 }
@@ -4387,6 +4393,13 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.column-header-field-name {
+  color: #a09f9a;
+  font-size: 12px;
+  font-weight: 400;
+  margin-left: 4px;
 }
 
 .column-trigger small {

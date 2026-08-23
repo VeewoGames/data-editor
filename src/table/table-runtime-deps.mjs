@@ -40,10 +40,14 @@ export function buildTableRuntimeDeps({
   const relationConfigByField = {};
   /** @type {Record<string, Record<string, string>>} */
   const documentLabelsByField = {};
+  /** @type {Record<string, string>} */
+  const fieldLabelsByField = {};
 
   for (const fieldName of visibleFields) {
     const sample = rows.find((row) => row[fieldName] !== undefined && row[fieldName] !== null)?.[fieldName]
       ?? rows.find((row) => row[fieldName] !== undefined)?.[fieldName];
+    const fieldLabel = fieldViewConfigs[fieldName]?.label;
+    if (typeof fieldLabel === "string" && fieldLabel.trim()) fieldLabelsByField[fieldName] = fieldLabel.trim();
     const currentDisplayType = resolveCompatibleDisplayType(displayTypes[fieldName], sample);
     if (currentDisplayType === "Multi-select") {
       fieldOptions[fieldName] = buildMultiSelectFieldConfigFromRows(optionRows, fieldName, fieldViewConfigs[fieldName]);
@@ -94,6 +98,7 @@ export function buildTableRuntimeDeps({
   return {
     fieldOptions,
     selectOptions,
+    fieldLabelsByField,
     relationOptionsByField,
     relationConfigByField,
     documentLabelsByField,
@@ -115,3 +120,5 @@ function getFieldRole(sourcePath, collectionPath, fieldName, relationConfigs) {
     },
   });
 }
+
+

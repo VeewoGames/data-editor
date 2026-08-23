@@ -36,6 +36,7 @@ export type ViewTabsProps = {
   onReorderViews: (operation: ViewTabReorderOperation) => void;
   onToggleFilterBar: () => void;
   onToggleTableTextEditMode: () => void;
+  onToggleShowFieldNames: () => void;
   onSetDocumentFieldEnabled: (fieldName: string, enabled: boolean) => void;
   onSaveDocumentRoot: (value: string) => void;
   onRefreshDocumentIndex: () => void;
@@ -58,6 +59,7 @@ export type ViewTabsSnapshot = {
   filterBarVisible: boolean;
   hasActiveFilters: boolean;
   tableTextEditMode: boolean;
+  showFieldNames: boolean;
   viewOrderDirty: boolean;
   selectedFilePath: string | null;
   documentRoot: string;
@@ -97,6 +99,7 @@ export function ViewTabs({
   onReorderViews,
   onToggleFilterBar,
   onToggleTableTextEditMode,
+  onToggleShowFieldNames,
   onSetDocumentFieldEnabled,
   onSaveDocumentRoot,
   onRefreshDocumentIndex,
@@ -115,6 +118,7 @@ export function ViewTabs({
     filterBarVisible,
     hasActiveFilters,
     tableTextEditMode,
+    showFieldNames,
     viewOrderDirty,
     selectedFilePath,
     documentRoot,
@@ -868,6 +872,20 @@ export function ViewTabs({
             >
               <icons.edit size={18} />
               <span>编辑</span>
+            </button>
+            <button
+              type="button"
+              className={[
+                "view-tab-action view-tabs-field-name-toggle",
+                showFieldNames ? "active" : "",
+              ].filter(Boolean).join(" ")}
+              onClick={onToggleShowFieldNames}
+              aria-pressed={showFieldNames}
+              disabled={viewTabsDisabled}
+              title="在表头显示原始字段名"
+            >
+              <icons.code size={18} />
+              <span>字段名</span>
             </button>
             <Popover.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
               <Popover.Trigger asChild>

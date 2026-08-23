@@ -33,7 +33,9 @@ function normalizeFields(value) {
     if (!fieldConfig || typeof fieldConfig !== "object" || Array.isArray(fieldConfig)) continue;
     const normalizedSelectOptions = normalizeOptionMap(fieldConfig.selectOptions);
     const normalizedMultiSelectOptions = normalizeOptionMap(fieldConfig.multiSelectOptions);
+    const displayLabel = typeof fieldConfig.label === "string" && fieldConfig.label.trim() ? fieldConfig.label.trim() : undefined;
     normalizedFields[fieldKey] = {
+      ...(displayLabel ? { label: displayLabel } : {}),
       type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
       selectOptions: normalizedSelectOptions,
       multiSelectOptions: normalizedMultiSelectOptions,

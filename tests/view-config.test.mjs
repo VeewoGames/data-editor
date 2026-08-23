@@ -28,6 +28,32 @@ test("loadViewConfig returns empty config when file is missing", async () => {
   }
 });
 
+
+
+test("normalizeViewConfig preserves field display labels", () => {
+  const normalized = normalizeViewConfig({
+    fields: {
+      "data/player.json:$:max_health": {
+        label: "最大生命",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+      "data/player.json:$:max_shield": {
+        label: "  最大护盾  ",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+      "data/player.json:$:plain_field": {
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+    },
+  });
+
+  assert.equal(normalized.fields["data/player.json:$:max_health"].label, "最大生命");
+  assert.equal(normalized.fields["data/player.json:$:max_shield"].label, "最大护盾");
+  assert.equal(normalized.fields["data/player.json:$:plain_field"].label, undefined);
+});
 test("saveViewConfig preserves field type and select options", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
   try {
@@ -542,3 +568,4 @@ test("loadViewConfig normalizes invalid document config entries", async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+

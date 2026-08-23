@@ -132,6 +132,7 @@ export type TableSnapshot = {
   scrollRestoreKey: string | null;
   initialScrollPosition: { scrollTop: number; scrollLeft: number } | null;
   textEditable: boolean;
+  showFieldNames: boolean;
   canReorderRows: boolean;
   onEnableTextEditMode?: () => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
@@ -364,6 +365,7 @@ function DataTableComponent(props: DataTableProps) {
     relationOptionsByField,
     relationConfigByField,
     documentLabelsByField,
+    fieldLabelsByField,
   } = useMemo(() => buildTableRuntimeDeps({
     visibleFields,
     rows,
@@ -484,10 +486,12 @@ function DataTableComponent(props: DataTableProps) {
     relationConfigByField,
     fieldOptions,
     selectOptions,
+    fieldLabelsByField,
     documentLabelsByField,
     documentConfiguredFields: new Set(snapshot.documentConfiguredFields),
     widths: snapshot.fieldConfig.widths,
     textEditable: snapshot.textEditable,
+    showFieldNames: snapshot.showFieldNames,
   }), [
     visibleFields,
     rows,
@@ -500,10 +504,12 @@ function DataTableComponent(props: DataTableProps) {
     relationConfigByField,
     fieldOptions,
     selectOptions,
+    fieldLabelsByField,
     documentLabelsByField,
     snapshot.documentConfiguredFields,
     snapshot.fieldConfig.widths,
     snapshot.textEditable,
+    snapshot.showFieldNames,
   ]);
   const columnModels = useMemo(() => buildTableColumnModels({
     visibleFields,
@@ -518,6 +524,8 @@ function DataTableComponent(props: DataTableProps) {
     relationConfigByField,
     fieldOptions,
     selectOptions,
+    fieldLabelsByField,
+    showFieldNames: snapshot.showFieldNames,
     documentLabelsByField,
     documentConfiguredFields: new Set(snapshot.documentConfiguredFields),
     getColumnWidth,
@@ -706,6 +714,7 @@ function DataTableComponent(props: DataTableProps) {
     titleField: snapshot.titleField,
     primaryKeyField: snapshot.primaryKeyField,
     textEditable: snapshot.textEditable,
+    showFieldNames: snapshot.showFieldNames,
     activeTextCellId,
     onEnableTextEditMode: snapshot.onEnableTextEditMode ?? (() => {}),
     onRegisterActiveTextEditor: snapshot.onRegisterActiveTextEditor,
@@ -746,6 +755,7 @@ function DataTableComponent(props: DataTableProps) {
     snapshot.titleField,
     snapshot.primaryKeyField,
     snapshot.textEditable,
+    snapshot.showFieldNames,
     activeTextCellId,
     snapshot.onEnableTextEditMode,
     snapshot.onRegisterActiveTextEditor,
@@ -1519,6 +1529,7 @@ function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
     sameSort(previous.sort, next.sort) &&
     previous.validation === next.validation &&
     previous.textEditable === next.textEditable &&
+    previous.showFieldNames === next.showFieldNames &&
     previous.canReorderRows === next.canReorderRows &&
     previous.onRegisterActiveTextEditor === next.onRegisterActiveTextEditor &&
     sameFieldViewConfigs(previous.fieldViewConfigs, next.fieldViewConfigs);
@@ -1785,4 +1796,6 @@ const MemoColumnDragGhost = memo(
 function sameFieldOrder(previous: string[], next: string[]) {
   return previous.length === next.length && previous.every((field, index) => next[index] === field);
 }
+
+
 

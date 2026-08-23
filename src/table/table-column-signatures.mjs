@@ -17,9 +17,11 @@ import { isDerivedField } from "../view/derived-field-projection.mjs";
  *   fieldOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   selectOptions: Record<string, { options: import("../model/viewConfig").MultiSelectOptionView[]; optionMap: Record<string, import("../model/viewConfig").MultiSelectOptionView> }>;
  *   documentLabelsByField: Record<string, Record<string, string>>;
+ *   fieldLabelsByField: Record<string, string>;
  *   documentConfiguredFields?: Set<string>;
  *   widths: Record<string, number>;
  *   textEditable: boolean;
+ *   showFieldNames?: boolean;
  * }} input
  */
 export function buildTableColumnModelsSignature({
@@ -36,9 +38,11 @@ export function buildTableColumnModelsSignature({
   fieldOptions,
   selectOptions,
   documentLabelsByField = {},
+  fieldLabelsByField = {},
   documentConfiguredFields = new Set(),
   widths,
   textEditable,
+  showFieldNames = false,
 }) {
   return visibleFields.map((fieldName) => {
     const backlinkColumn = backlinkColumns.find((column) => column.fieldName === fieldName);
@@ -82,8 +86,10 @@ export function buildTableColumnModelsSignature({
       signatureRelationOptions(relationOptionsByField[fieldName] ?? []),
       signatureOptionConfig(fieldOptions[fieldName]),
       signatureOptionConfig(selectOptions[fieldName]),
+      fieldLabelsByField[fieldName] ?? "",
       signatureDocumentLabels(documentLabelsByField[fieldName]),
       textEditable && effectiveDisplayType === "Text" && fieldName !== detectedTitleField ? "text-editable" : "text-readonly",
+      showFieldNames ? "show-field-names" : "hide-field-names",
     ].join("::");
   }).join("||");
 }
@@ -143,3 +149,4 @@ function signatureDocumentLabels(labels) {
   if (!labels) return "";
   return Object.entries(labels).map(([value, label]) => `${value}|${label}`).join(",");
 }
+
