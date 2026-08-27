@@ -95,7 +95,16 @@ const runEntryAction = createEntryActionRunRoute({
   projectSkillArtifactPublicationUrl: `http://127.0.0.1:${port}/api/entry-actions/publish-exact-artifact`,
   submitProjectSkillResult: async ({ projectContext, project, request, runId, result, documentCommitCoordinator: coordinator }) => {
     if (result?.kind === "entry-action-proposal") {
-      return submitFreshEntryActionProposal({ projectContext, project, request, result, documentCommitCoordinator: coordinator });
+      return submitFreshEntryActionProposal({
+        projectContext,
+        project,
+        request,
+        result,
+        documentCommitCoordinator: coordinator,
+        // A project skill already owns this lifecycle; do not create a
+        // second invisible child run merely to commit its proposal.
+        dependencies: { runId },
+      });
     }
     if (result?.kind === "candidate-create") {
       return submitCandidateCreate({ projectContext, project, request, manifest: candidateManifest(result), evidence: result.evidence, humanNotes: request.humanNotes ?? null, documentCommitCoordinator: coordinator });

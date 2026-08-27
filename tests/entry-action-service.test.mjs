@@ -9,6 +9,8 @@ import { bindProposalToHandoff, startProposalOnlyEntryAction, submitFreshEntryAc
 import {
   entryActionHandoffPath,
   readEntryActionResult,
+  readEntryActionStarted,
+  writeEntryActionStarted,
 } from "../src/entry-actions.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
 import { rowDigest } from "../src/row-digest.mjs";
@@ -185,6 +187,40 @@ test("fresh existing-row proposal commits its row and authorized text artifact a
   assert.equal(result.outcome, "completed_with_writeback");
   assert.equal(JSON.parse(await readFile(fixture.sourcePath, "utf8")).items[0].name, "New");
   assert.equal(await readFile(fixture.artifactPath, "utf8"), "# New design\n");
+});
+
+test("project-skill proposal commits into its accepted run without resetting duration", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "data-editor-entry-action-same-run-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" });
+  const fixture = await writeTextArtifactFixture(context);
+  const runId = "10000000-0000-4000-8000-000000000077";
+  const acceptedAt = "2026-08-26T04:00:00.000Z";
+  await writeEntryActionStarted(context, runId, {
+    version: 3,
+    runId,
+    actionId: "fixture-rename",
+    phase: "proposal_ready",
+    outcome: null,
+    startedAt: acceptedAt,
+    phaseStartedAt: acceptedAt,
+    phaseHistory: [{ phase: "queued", startedAt: acceptedAt }, { phase: "proposal_ready", startedAt: acceptedAt }],
+  });
+
+  const result = await submitFreshEntryActionProposal({
+    projectContext: context,
+    project: { id: "fixture-project", name: "Fixture" },
+    request: fixture.request,
+    result: fixture.result,
+    dependencies: { runId },
+  });
+
+  assert.equal(result.runId, runId);
+  assert.equal(JSON.parse(await readFile(fixture.sourcePath, "utf8")).items[0].name, "New");
+  assert.equal((await readEntryActionResult(context, runId)).outcome, "completed_with_writeback");
+  const activeState = await readEntryActionStarted(context, runId);
+  assert.equal(activeState.startedAt, acceptedAt);
+  assert.equal(activeState.phase, "committing");
 });
 
 test("fresh existing-row group detects an externally changed artifact without overwriting either target", async (t) => {

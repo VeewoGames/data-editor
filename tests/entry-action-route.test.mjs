@@ -135,10 +135,10 @@ test("project-skill proposal receives the server admission dispatcher", async ()
     loadRegistry: async () => ({ activeProjectId: "project-a", projects: [{ id: "project-a", root: path.resolve("fixture-a") }] }),
     documentCommitCoordinator: coordinator,
     resolveExecution: async () => ({ kind: "project-skill", resultPolicy: "proposal" }),
-    submitProjectSkillResult: async (input) => { admitted = true; assert.equal(input.documentCommitCoordinator, coordinator); return { runId: "fresh" }; },
+    submitProjectSkillResult: async (input) => { admitted = true; assert.equal(input.documentCommitCoordinator, coordinator); assert.equal(input.runId, "00000000-0000-4000-8000-0000same0001"); return { runId: "fresh" }; },
     startProjectSkill: async ({ dependencies }) => {
       assert.equal(typeof dependencies.submitProposalResult, "function");
-      await dependencies.submitProposalResult({ result: { kind: "entry-action-proposal" } });
+      await dependencies.submitProposalResult({ runId: "00000000-0000-4000-8000-0000same0001", result: { kind: "entry-action-proposal" } });
       return { runId: "00000000-0000-4000-8000-000000000004", completion: Promise.resolve() };
     },
   });

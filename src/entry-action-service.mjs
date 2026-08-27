@@ -299,7 +299,20 @@ export async function submitFreshEntryActionProposal({
   const evidence = completeEntryActionEvidence({ contract, evidence: proposal.evidence, textArtifact: proposal.textArtifact });
   proposal.evidence = evidence;
   await writeEntryActionHandoff(projectContext, runId, { ...handoff, authority: authoritySnapshot });
-  await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
+  if (dependencies.runId) {
+    // Keep the original acceptedAt/startedAt as the lifecycle's only clock.
+    try {
+      await advanceEntryActionPhase(projectContext, runId, "committing", { operation: "proposal" });
+    } catch (error) {
+      // Exact-artifact callers may reserve an id before their own lifecycle
+      // receipt exists. Preserve that established admission path while a
+      // project-skill run always takes the branch above.
+      if (error?.code !== "ENOENT") throw error;
+      await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
+    }
+  } else {
+    await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
+  }
   let keepLease = false;
   try {
     assertEntryActionResultPolicies(contract, { textArtifact: proposal.textArtifact, evidence });

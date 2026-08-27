@@ -4182,6 +4182,15 @@ export function App() {
           return ackStartEntryAction({ projectId: activeProjectId, pendingActionToken: result.pendingActionToken });
         })()
         : result;
+      setEntryActionStatus({
+        actionId,
+        runId: started.runId,
+        startedAt: started.acceptedAt ?? null,
+        phase: started.phase ?? "queued",
+        tone: "running",
+        title: `${actionLabel} 已排队`,
+        detail: "自动化已受理，正在准备执行资料。",
+      });
       if (started.message) {
         setEntryActionErrorMessage(started.message);
       }
@@ -4338,11 +4347,30 @@ export function App() {
       actionId,
       runId: result.runId,
       startedAt: result.startedAt,
+      phase: result.phase,
       tone: "running",
-      title: `${actionLabel} 运行中`,
-      detail: "自动化仍在执行，正在等待完成结果。",
+      title: `${actionLabel} ${entryActionPhaseLabel(result.phase)}`,
+      detail: entryActionPhaseDetail(result.phase),
       output,
     };
+  }
+
+  function entryActionPhaseLabel(phase: EntryActionRunResult["phase"]) {
+    if (phase === "queued") return "已排队";
+    if (phase === "preparing_input") return "准备资料中";
+    if (phase === "preflight_running") return "运行前检查中";
+    if (phase === "proposal_ready") return "校验提案中";
+    if (phase === "committing") return "提交中";
+    return "运行中";
+  }
+
+  function entryActionPhaseDetail(phase: EntryActionRunResult["phase"]) {
+    if (phase === "queued") return "自动化已受理，正在等待准备。";
+    if (phase === "preparing_input") return "正在准备此自动化声明的项目资料。";
+    if (phase === "preflight_running") return "正在运行自动化的本地前置检查。";
+    if (phase === "proposal_ready") return "自动化已返回提案，正在校验其写入权限。";
+    if (phase === "committing") return "正在提交经过校验的条目变更。";
+    return "自动化仍在执行，正在等待完成结果。";
   }
 
   async function waitForEntryActionResult(runId: string, projectId: string): Promise<EntryActionRunResult> {

@@ -67,6 +67,7 @@ export type DetailSnapshot = {
     actionId: string;
     runId?: string | null;
     startedAt?: string | null;
+    phase?: string | null;
     tone: "running" | "success" | "warning" | "error";
     title: string;
     detail: string | null;

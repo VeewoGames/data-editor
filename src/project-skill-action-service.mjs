@@ -1,18 +1,23 @@
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { cp, lstat, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { loadAutomationBindings } from "./automation-bindings.mjs";
 import { loadAutomationProfile } from "./automation-profile.mjs";
 import { resolveAutomationExecutionConfig } from "./automation-runtime.mjs";
 import { resolveCodexBindingStatus } from "./codex-runtime.mjs";
+import { readTextFile } from "./file-service.mjs";
+import { buildDocumentModel } from "./document-model.mjs";
+import { parseCsv } from "./csv-codec.mjs";
+import { parseJson } from "./json-codec.mjs";
 import {
   advanceEntryActionPhase,
   buildEntryActionHandoff,
   entryActionDiagnosticsPath,
   entryActionOutputPath,
   findAutomationEntryAction,
+  resolveEntryActionRow,
   publishEntryActionResultIdempotently,
   writeEntryActionHandoff,
   writeEntryActionStarted,
@@ -29,13 +34,18 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
   const projectInput = action.execution.advancedExecution?.projectInput ?? null;
   const preflightId = action.execution.advancedExecution?.preflightId ?? null;
   if (workspaceMode === "project-write" && projectInput) throw protocolError("PROJECT_SKILL_WORKSPACE_INVALID", "Project input is unavailable in project-write mode.");
-  const requiresScopedTarget = projectInput != null || workspaceMode === "project-write";
-  const sourcePath = requiresScopedTarget ? normalizeEntryActionPath(request.sourcePath, "sourcePath") : String(request.sourcePath ?? "").trim();
-  const collectionPath = requiresScopedTarget ? normalizeEntryActionPath(request.collectionPath, "collectionPath") : String(request.collectionPath ?? "").trim();
-  if (requiresScopedTarget) validateEntryActionTarget(action, sourcePath, collectionPath);
+  const sourcePath = projectInput != null || workspaceMode === "project-write"
+    ? normalizeEntryActionPath(request.sourcePath, "sourcePath")
+    : String(request.sourcePath ?? "").trim();
+  const collectionPath = projectInput != null || workspaceMode === "project-write"
+    ? normalizeEntryActionPath(request.collectionPath, "collectionPath")
+    : String(request.collectionPath ?? "").trim();
+  if (sourcePath && collectionPath) validateEntryActionTarget(action, sourcePath, collectionPath);
   const binding = bindings.bindings?.[action.id];
   const status = await (dependencies.resolveBindingStatus ?? resolveCodexBindingStatus)(binding, { projectRoot: projectContext.projectRoot });
   if (status.status !== "ready") throw protocolError("ENTRY_ACTION_BINDING_INVALID", status.message ?? "Automation binding is unavailable.");
+  const skill = await readFile(status.skillPath, "utf8");
+  const skillDigest = crypto.createHash("sha256").update(skill).digest("hex");
   const runtime = resolveAutomationExecutionConfig({ rule: action, binding, defaults: bindings.defaults }).runtime;
   const runId = crypto.randomUUID();
   const scratch = path.join(os.tmpdir(), `data-editor-project-skill-${runId}`);
@@ -47,6 +57,9 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
     : path.join(snapshotRoot, ".data-editor-output");
   const rowId = typeof request.rowId === "string" ? request.rowId.trim() : null;
   const sourceRowIndex = Number.isInteger(request.sourceRowIndex) ? request.sourceRowIndex : null;
+  const rowContext = sourcePath && collectionPath && rowId
+    ? await readProjectSkillRowContext(projectContext, sourcePath, collectionPath, sourceRowIndex, rowId)
+    : null;
   const artifactId = `project-skill-${runId}`;
   const artifactPublication = typeof dependencies.projectSkillArtifactPublicationUrl === "string"
     ? {
@@ -66,23 +79,42 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
     collectionPath,
     rowId,
     sourceRowIndex,
-    row: null,
-    previousRow: null,
-    nextRow: null,
-    rowCount: null,
+    row: rowContext?.row ?? null,
+    previousRow: rowContext?.previousRow ?? null,
+    nextRow: rowContext?.nextRow ?? null,
+    rowCount: rowContext?.rowCount ?? null,
   });
+  handoff.skillArtifact = { logicalName: binding.skill, sourcePath: status.skillPath, sha256: skillDigest };
+  if (action.execution.resultPolicy === "proposal") {
+    handoff.projectSkillProposal = {
+      envelope: "entry-action-proposal.v1",
+      requiredKeys: ["kind", "changes", "textArtifact", "summary", "evidence"],
+      writableFields: null,
+    };
+  }
   await writeEntryActionHandoff(projectContext, runId, handoff);
+  const acceptedAt = new Date().toISOString();
   await writeEntryActionStarted(projectContext, runId, {
     version: 3,
     runId,
     actionId: action.id,
     phase: "queued",
     outcome: null,
-    startedAt: new Date().toISOString(),
-    phaseStartedAt: new Date().toISOString(),
-    phaseHistory: [{ phase: "queued", startedAt: new Date().toISOString() }],
+    startedAt: acceptedAt,
+    phaseStartedAt: acceptedAt,
+    phaseHistory: [{ phase: "queued", startedAt: acceptedAt }],
   });
 
+  const completion = continueProjectSkillEntryAction({
+    projectContext, project, request, toolRoot, jobSupervisor, dependencies,
+    action, profile, bindings, workspaceMode, projectInput, preflightId, sourcePath, collectionPath,
+    binding, status, skill, skillDigest, runtime, runId, scratch, snapshotRoot, outputRoot, rowId, sourceRowIndex, artifactPublication, handoff,
+  });
+  return { runId, acceptedAt, phase: "queued", completion };
+}
+
+async function continueProjectSkillEntryAction(context) {
+  const { projectContext, project, request, toolRoot, jobSupervisor, dependencies, action, profile, bindings, workspaceMode, projectInput, preflightId, sourcePath, collectionPath, binding, status, skill, skillDigest, runtime, runId, scratch, snapshotRoot, outputRoot, rowId, sourceRowIndex, artifactPublication, handoff } = context;
   let handle;
   let promptPath;
   let replyPath;
@@ -94,13 +126,14 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
       ? await realpath(projectContext.projectRoot)
       : snapshotRoot;
     if (workspaceMode === "snapshot") {
-      if (projectInput) await advanceEntryActionPhase(projectContext, runId, "preparing_input");
-      await (dependencies.prepareInputRoot ?? (projectInput ? copyDeclaredProjectInput : copyProjectSnapshot))(
-        projectContext.projectRoot,
-        workspaceRoot,
-        projectInput,
-        sourcePath,
-      );
+      await advanceEntryActionPhase(projectContext, runId, "preparing_input");
+      if (projectInput) {
+        await (dependencies.prepareInputRoot ?? runSupervisedInputPreparation)(
+          { projectRoot: projectContext.projectRoot, inputRoot: workspaceRoot, projectInput, runId, toolRoot, jobSupervisor },
+        );
+      } else {
+        await mkdir(workspaceRoot, { recursive: false });
+      }
     }
     await mkdir(outputRoot, { recursive: true });
     promptPath = path.join(outputRoot, "prompt.md");
@@ -111,19 +144,23 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
       await advanceEntryActionPhase(projectContext, runId, "preflight_running");
       await runPreflight({ binding: bindings.preflights?.[preflightId], workspaceRoot, outputRoot, sourcePath, collectionPath, rowId, sourceRowIndex, preflightId, dependencies });
     }
-    const skill = await readFile(status.skillPath, "utf8");
     const resultPolicy = action.execution.resultPolicy;
     const shellInstruction = "Use Codex's built-in shell tool. Do not explicitly invoke an absolute path to pwsh.exe, powershell.exe, cmd.exe, or another command interpreter.";
     const workspaceInstructions = workspaceMode === "project-write"
       ? `Project workspace is the real project root at ${JSON.stringify(workspaceRoot)}. Follow the project's own instructions and only change files owned by this project skill. Data Editor diagnostics and the required JSON reply belong under ${JSON.stringify(outputRoot)}. ${shellInstruction}`
       : `Project workspace is a disposable read-only snapshot at ${JSON.stringify(workspaceRoot)}. Do not treat changes there as project output. Write task-owned output only under ${JSON.stringify(outputRoot)}. ${shellInstruction}`;
-    await writeFile(promptPath, `${skill}\n\n## Explicit invocation\n${workspaceInstructions}\nReturn exactly one JSON object allowed by resultPolicy=${JSON.stringify(resultPolicy)}.\n${JSON.stringify({ actionId: action.id, projectId: project.id, execution: action.execution, resultPolicy, workspaceMode, request, artifactPublication }, null, 2)}\n`, "utf8");
+    const proposalInstruction = resultPolicy === "proposal"
+      ? "For a write proposal, return exactly {\\\"kind\\\":\\\"entry-action-proposal\\\",\\\"changes\\\":[...],\\\"textArtifact\\\":null,\\\"summary\\\":\\\"...\\\",\\\"evidence\\\":[]}. Each change must contain field, beforeExists, before, afterExists, after. Do not include authority tokens or humanNotes: Data Editor binds them from the canonical target after execution. If no safe change is possible, return exactly {\\\"kind\\\":\\\"project-skill-result\\\",\\\"resultOnly\\\":true,\\\"status\\\":\\\"no_changes\\\",\\\"summary\\\":\\\"...\\\"}."
+      : "Return exactly one JSON object allowed by the configured result policy.";
+    await writeFile(promptPath, `${skill}\n\n## Explicit invocation\n${workspaceInstructions}\n${proposalInstruction}\n${JSON.stringify({ actionId: action.id, projectId: project.id, execution: action.execution, resultPolicy, workspaceMode, request, skillArtifact: { logicalName: binding.skill, sha256: skillDigest }, artifactPublication }, null, 2)}\n\n## Data Editor handoff\n${JSON.stringify(handoff, null, 2)}\n`, "utf8");
     const hostArgs = [path.resolve(toolRoot, "scripts/run-project-skill-action-host.mjs"), "--codex", status.codexCliPath, "--workspace-root", workspaceRoot, "--output-root", outputRoot, "--prompt", promptPath, "--reply", replyPath, "--events", eventsPath, "--diagnostics", diagnosticsPath, "--model", runtime.model, "--reasoning", runtime.reasoning, "--verbosity", runtime.verbosity];
     if (workspaceMode === "snapshot") hostArgs.push("--ignore-rules");
     handle = await jobSupervisor.start({ id: runId, command: process.execPath, args: hostArgs, cwd: workspaceRoot, timeoutMs: runtime.timeoutMs });
-    await advanceEntryActionPhase(projectContext, runId, projectInput || preflightId ? "review_running" : "running");
+    await advanceEntryActionPhase(projectContext, runId, "running");
   } catch (error) {
-    const outcome = error?.code === "PROJECT_SKILL_PREFLIGHT_TIMED_OUT" ? "preflight_timed_out"
+    const outcome = error?.code === "PROJECT_SKILL_PREPARATION_TIMED_OUT" ? "preparation_timed_out"
+      : error?.code === "PROJECT_SKILL_PREPARATION_FAILED" ? "preparation_failed"
+      : error?.code === "PROJECT_SKILL_PREFLIGHT_TIMED_OUT" ? "preflight_timed_out"
       : error?.code === "PROJECT_SKILL_PREFLIGHT_FAILED" ? "preflight_failed"
         : "failed";
     await publishProjectSkillTerminal(projectContext, runId, action.id, outcome, error.message ?? String(error));
@@ -131,8 +168,7 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
     if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
     throw error;
   }
-  const completion = (async () => {
-    try {
+  try {
       const terminal = await handle.completion;
       if (terminal.timedOut) {
         await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId));
@@ -162,8 +198,13 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
           return result;
         }
         if (typeof dependencies.submitProposalResult !== "function") throw protocolError("PROJECT_SKILL_PROPOSAL_ADMISSION_UNAVAILABLE", "Project-skill proposal admission is unavailable.");
+        await advanceEntryActionPhase(projectContext, runId, "proposal_ready");
         const admitted = await dependencies.submitProposalResult({ projectContext, project, request, action, profile, runId, result });
-        await publishProjectSkillTerminal(projectContext, runId, action.id, "completed_with_writeback", resolveProjectSkillResultMessage(result), { admittedRunId: admitted.runId, admittedKind: admitted.kind });
+        // Same-run admission publishes the terminal receipt as part of its
+        // commit. A second publication would violate idempotency.
+        if (admitted.runId !== runId) {
+          await publishProjectSkillTerminal(projectContext, runId, action.id, "completed_with_writeback", resolveProjectSkillResultMessage(result), { admittedRunId: admitted.runId, admittedKind: admitted.kind });
+        }
         return admitted;
       }
       await publishProjectSkillTerminal(
@@ -179,16 +220,37 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
         },
       );
       return result;
-    } catch (error) {
+  } catch (error) {
       await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId)).catch(() => {});
       await publishProjectSkillTerminal(projectContext, runId, action.id, "failed", error.message ?? String(error)).catch(() => {});
-      throw error;
-    } finally {
+    throw error;
+  } finally {
       await rm(scratch, { recursive: true, force: true }).catch(() => {});
       if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
-    }
-  })();
-  return { runId, completion };
+  }
+}
+
+async function runSupervisedInputPreparation({ projectRoot, inputRoot, projectInput, runId, toolRoot, jobSupervisor }) {
+  const handle = await jobSupervisor.start({
+    id: `${runId}:prepare`,
+    command: process.execPath,
+    args: [path.resolve(toolRoot, "scripts/prepare-project-skill-input.mjs"), "--project-root", projectRoot, "--input-root", inputRoot, "--paths-json", JSON.stringify(projectInput.paths)],
+    cwd: projectRoot,
+    timeoutMs: 60_000,
+  });
+  const terminal = await handle.completion;
+  if (terminal.timedOut) throw protocolError("PROJECT_SKILL_PREPARATION_TIMED_OUT", "Project input preparation timed out.");
+  if (terminal.exitCode !== 0) throw protocolError("PROJECT_SKILL_PREPARATION_FAILED", "Project input preparation failed.");
+}
+
+async function readProjectSkillRowContext(projectContext, sourcePath, collectionPath, sourceRowIndex, rowId) {
+  const text = await readTextFile(projectContext, sourcePath);
+  const extension = path.extname(sourcePath).toLowerCase();
+  const parsed = extension === ".csv"
+    ? { format: "csv", data: parseCsv(text) }
+    : parseJson(text);
+  const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
+  return resolveEntryActionRow(model, collectionPath, sourceRowIndex, rowId);
 }
 
 export function assertProjectSkillResultPolicy(result, resultPolicy) {
@@ -210,53 +272,6 @@ export function assertProjectSkillResultPolicy(result, resultPolicy) {
 // Treat that as a completed report, not as an incomplete proposal submission.
 function isProjectSkillNoChangeResult(result) {
   return result?.kind === "project-skill-result" && result?.resultOnly === true;
-}
-
-async function copyProjectSnapshot(projectRoot, inputRoot) {
-  await cp(projectRoot, inputRoot, {
-    recursive: true,
-    force: false,
-    errorOnExist: true,
-    async filter(source) {
-      const relative = path.relative(projectRoot, source).replaceAll("\\", "/");
-      const included = relative !== ".data-editor/runtime" && !relative.startsWith(".data-editor/runtime/")
-        && relative !== ".data-editor/logs" && !relative.startsWith(".data-editor/logs/");
-      if (!included) return false;
-      const stat = await lstat(source);
-      // Linked assistant-skill aliases are already supplied by the bound skill path.
-      // Never follow them into a project snapshot, but retain the hard boundary for project links.
-      if (stat.isSymbolicLink() && isAssistantSkillAlias(relative)) return false;
-      if (stat.isSymbolicLink()) throw protocolError("PROJECT_SKILL_INPUT_LINK_UNSUPPORTED", "Project snapshot contains a symbolic link or junction.");
-      return true;
-    },
-  });
-}
-
-async function copyDeclaredProjectInput(projectRoot, inputRoot, projectInput, sourcePath) {
-  if (!projectInput?.paths?.some((item) => sourcePath === item || sourcePath.startsWith(`${item}/`))) {
-    throw protocolError("PROJECT_SKILL_INPUT_TARGET_UNDECLARED", `Project input does not cover action target: ${sourcePath}`);
-  }
-  await mkdir(inputRoot, { recursive: false });
-  for (const relative of projectInput.paths) {
-    const source = path.resolve(projectRoot, relative);
-    const resolved = await realpath(source).catch(() => null);
-    if (!resolved || !isInside(projectRoot, resolved)) throw protocolError("PROJECT_SKILL_INPUT_PATH_INVALID", `Project input path is unavailable: ${relative}`);
-    const stat = await lstat(source);
-    if (stat.isSymbolicLink()) throw protocolError("PROJECT_SKILL_INPUT_LINK_UNSUPPORTED", "Project input contains a symbolic link or junction.");
-    await assertProjectInputHasNoLinks(source);
-    const target = path.join(inputRoot, relative);
-    await mkdir(path.dirname(target), { recursive: true });
-    await cp(source, target, { recursive: stat.isDirectory(), force: false, errorOnExist: true, dereference: false });
-  }
-}
-
-async function assertProjectInputHasNoLinks(target) {
-  const stat = await lstat(target);
-  if (stat.isSymbolicLink()) throw protocolError("PROJECT_SKILL_INPUT_LINK_UNSUPPORTED", "Project input contains a symbolic link or junction.");
-  if (!stat.isDirectory()) return;
-  for (const entry of await readdir(target)) {
-    await assertProjectInputHasNoLinks(path.join(target, entry));
-  }
 }
 
 async function runPreflight({ binding, workspaceRoot, outputRoot, sourcePath, collectionPath, rowId, sourceRowIndex, preflightId, dependencies }) {
@@ -284,15 +299,6 @@ async function runPreflightProcess({ command, args, cwd, timeoutMs, stdoutPath, 
     child.once("error", reject);
     child.once("close", (exitCode) => { clearTimeout(timer); resolve({ exitCode, timedOut }); });
   });
-}
-
-function isInside(root, target) {
-  const relative = path.relative(path.resolve(root), path.resolve(target));
-  return !relative || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
-function isAssistantSkillAlias(relativePath) {
-  return /^\.(?:agents|claude|codex)\/skills\/[^/]+(?:\/|$)/.test(relativePath);
 }
 
 function resolveProjectSkillResultStatus(result) {

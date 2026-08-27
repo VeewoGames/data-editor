@@ -156,9 +156,11 @@ export type RunEntryActionRequest = {
 };
 export type StartedEntryActionResponse = {
   ok: true;
-  status: "started" | "completed";
+  status: "started" | "queued" | "completed";
   runId: string;
   handoffPath: string;
+  acceptedAt?: string;
+  phase?: EntryActionRunResult["phase"];
   outputPath?: string | null;
   message?: string | null;
 };
@@ -179,7 +181,9 @@ export type EntryActionRunResult = {
   actionId?: string | null;
   createdAt?: string | null;
   startedAt?: string | null;
-  phase: "queued" | "running" | "proposal_ready" | "committing" | "terminal";
+  phase: "queued" | "preparing_input" | "preflight_running" | "running" | "proposal_ready" | "committing" | "terminal";
+  phaseStartedAt?: string | null;
+  phaseHistory?: Array<{ phase: string; startedAt: string }>;
   outcome?: "completed_with_writeback" | "completed_without_changes" | "conflicted" | "rejected" | "failed" | "timed_out" | "failed_needs_recovery" | null;
   /** @deprecated The legacy protocol remains readable only for historical artifacts. */
   finishedAt?: string;

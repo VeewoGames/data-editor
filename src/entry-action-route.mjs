@@ -85,7 +85,7 @@ export function createEntryActionRunRoute({
             : {}),
         } });
         onCompletion(started);
-        return { ok: true, status: "started", runId: started.runId, handoffPath: entryActionHandoffPath(projectContext, started.runId), resultOnly: execution.resultPolicy === "result-only", resultPolicy: execution.resultPolicy };
+        return { ok: true, status: "queued", runId: started.runId, acceptedAt: started.acceptedAt, phase: started.phase, handoffPath: entryActionHandoffPath(projectContext, started.runId), resultOnly: execution.resultPolicy === "result-only", resultPolicy: execution.resultPolicy };
       }
       if (typeof promoteIdentity !== "function" || typeof resolveCapabilityState !== "function") return start(body);
       const capabilityState = await resolveCapabilityState(project);
