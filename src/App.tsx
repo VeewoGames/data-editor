@@ -6,7 +6,6 @@ import * as Select from "@radix-ui/react-select";
 import {
   checkEditorHealth,
   checkRecoveryBridgeHealth,
-  activateProject,
   createProject,
   listFiles,
   listProjects,
@@ -156,6 +155,7 @@ import {
 import {
   clearSharedViewUrlLocation,
   readSharedViewUrlLocation,
+  writeProjectUrlLocation,
   writeSharedViewUrlLocation,
 } from "./shared-view-location.mjs";
 import {
@@ -947,25 +947,36 @@ export function App() {
     sharedViewUrlResolutionRef.current = emptySharedViewUrlResolutionResult();
   }
 
+  function restoreProjectFromUrl(registry: { projects: ProjectDefinition[]; activeProjectId: string | null }) {
+    setProjects(registry.projects);
+    const pending = pendingSharedViewUrlLocationRef.current;
+    const hasUrlProject = Boolean(
+      pending?.projectId
+      && registry.projects.some((project) => project.id === pending.projectId),
+    );
+    if (pending?.projectId && !hasUrlProject) {
+      sharedViewUrlResolutionRef.current.invalidProjectId = true;
+      setFlashStatus("链接中的项目不存在，已打开默认项目。");
+    }
+    setActiveProjectId(hasUrlProject ? pending?.projectId ?? null : registry.activeProjectId);
+  }
+
   useEffect(() => {
     listProjects()
-      .then(async (registry) => {
-        setProjects(registry.projects);
-        const pending = pendingSharedViewUrlLocationRef.current;
-        const hasUrlProject = Boolean(
-          pending?.projectId
-          && registry.projects.some((project) => project.id === pending.projectId),
-        );
-        if (pending?.projectId && !hasUrlProject) {
-          sharedViewUrlResolutionRef.current.invalidProjectId = true;
-        }
-        const nextProjectId = hasUrlProject ? pending?.projectId ?? null : registry.activeProjectId;
-        if (hasUrlProject && nextProjectId && nextProjectId !== registry.activeProjectId) {
-          await activateProject(nextProjectId);
-        }
-        setActiveProjectId(nextProjectId);
-      })
+      .then(restoreProjectFromUrl)
       .catch((error) => setStatus(error.message));
+  }, []);
+
+  useEffect(() => {
+    function onPopState() {
+      pendingSharedViewUrlLocationRef.current = readSharedViewUrlLocation(window.location);
+      sharedViewUrlResolutionRef.current = emptySharedViewUrlResolutionResult();
+      void listProjects()
+        .then(restoreProjectFromUrl)
+        .catch((error) => setStatus(error.message));
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   useEffect(() => {
@@ -1282,7 +1293,10 @@ export function App() {
     try {
       flushActiveTextEditorDraft();
       await saveCoordinator.flush("flush");
-      await activateProject(projectId);
+      const url = writeProjectUrlLocation(window.location, projectId);
+      window.history.pushState(null, "", url.toString());
+      pendingSharedViewUrlLocationRef.current = null;
+      sharedViewUrlResolutionRef.current = emptySharedViewUrlResolutionResult();
       setActiveProjectId(projectId);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -1294,8 +1308,10 @@ export function App() {
       const result = await updateProject(project) as { registry?: { projects: ProjectDefinition[]; activeProjectId: string | null } };
       const registry = result.registry ?? await listProjects();
       setProjects(registry.projects);
-      setActiveProjectId(registry.activeProjectId);
-      if (registry.activeProjectId) await reloadProjectWorkspace(registry.activeProjectId);
+      const currentProjectId = activeProjectIdRef.current;
+      if (currentProjectId && registry.projects.some((candidate) => candidate.id === currentProjectId)) {
+        await reloadProjectWorkspace(currentProjectId);
+      }
       setProjectSettingsOpen(false);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -1304,10 +1320,10 @@ export function App() {
 
   async function createProjectFromSettings(input: { name: string; root: string }) {
     try {
-      await createProject({ name: input.name, root: input.root });
+      const created = await createProject({ name: input.name, root: input.root }) as { project: ProjectDefinition };
       const registry = await listProjects();
       setProjects(registry.projects);
-      setActiveProjectId(registry.activeProjectId);
+      await selectProject(created.project.id);
       setAddProjectOpen(false);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));

@@ -21,13 +21,15 @@ test("ViewTabs copy-link flow uses shared-view-location helper and App passes co
   assert.match(helperSource, /viewId/);
 });
 
-test("App restores shared-view URL through project activation, preferred view resolution, and single replaceState cleanup", async () => {
+test("App restores shared-view URLs from their project owner without changing the registry default", async () => {
   const appSource = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 
   assert.match(appSource, /readSharedViewUrlLocation/);
   assert.match(appSource, /pendingSharedViewUrlLocationRef/);
   assert.match(appSource, /sharedViewUrlResolutionRef/);
-  assert.match(appSource, /activateProject\(nextProjectId\)/);
+  assert.match(appSource, /restoreProjectFromUrl/);
+  assert.match(appSource, /writeProjectUrlLocation/);
+  assert.doesNotMatch(appSource, /activateProject\(/);
   assert.match(appSource, /preferredViewId: pendingPreferredViewId/);
   assert.match(appSource, /updateSharedViewDraftState\(\{/);
   assert.match(appSource, /updatePageContextViewGrouping\(window\.localStorage, activeProjectId,/);

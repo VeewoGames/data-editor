@@ -6,7 +6,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { createEntryActionRunRoute } from "../src/entry-action-route.mjs";
 import { createPendingEntryActionStore } from "../src/pending-entry-action.mjs";
 
-test("entry-action route starts only for the active project and exposes the handoff", async () => {
+test("entry-action route starts for the requested registered project and exposes the handoff", async () => {
   const completion = Promise.resolve();
   let observed = null;
   const route = createEntryActionRunRoute({
@@ -35,7 +35,7 @@ test("entry-action route starts only for the active project and exposes the hand
   assert.equal(observed.completion, completion);
 });
 
-test("entry-action route rejects a non-active project before orchestration", async () => {
+test("entry-action route starts a registered project even when it is not the registry default", async () => {
   let started = false;
   const route = createEntryActionRunRoute({
     loadRegistry: async () => ({
@@ -44,15 +44,13 @@ test("entry-action route rejects a non-active project before orchestration", asy
     }),
     startEntryAction: async () => {
       started = true;
+      return { runId: "00000000-0000-4000-8000-000000000006", completion: Promise.resolve() };
     },
     resolveExecution: async () => ({ kind: "proposal" }),
   });
 
-  await assert.rejects(
-    () => route.run({ projectId: "project-b", actionId: "fixture-action" }),
-    { code: "ENTRY_ACTION_PROJECT_NOT_ACTIVE", status: 409 },
-  );
-  assert.equal(started, false);
+  await route.run({ projectId: "project-b", actionId: "fixture-action" });
+  assert.equal(started, true);
 });
 
 test("identity promotion returns a durable-only pending token and starts only after acknowledgement", async (t) => {

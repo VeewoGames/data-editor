@@ -730,7 +730,6 @@ async function handleSubmitExactArtifact(req, res) {
   const registry = await loadProjectRegistry(registryOptions);
   const project = registry.projects.find((candidate) => candidate.id === body.projectId);
   if (!project) throw Object.assign(new Error("Unknown project."), { code: "ENTRY_ACTION_PROJECT_UNKNOWN", status: 404 });
-  if (registry.activeProjectId !== body.projectId) throw Object.assign(new Error("Exact artifact submission is limited to the active project."), { code: "ENTRY_ACTION_PROJECT_NOT_ACTIVE", status: 409 });
   const projectContext = await projectContextForId(project.id);
   const submitted = await submitExactArtifact(body, {
     readArtifact: ({ artifactId }) => readExactArtifact({ projectContext, artifactId }),
@@ -764,7 +763,6 @@ async function handlePublishExactArtifact(req, res) {
   const registry = await loadProjectRegistry(registryOptions);
   const project = registry.projects.find((candidate) => candidate.id === body.projectId);
   if (!project) throw Object.assign(new Error("Unknown project."), { code: "ENTRY_ACTION_PROJECT_UNKNOWN" });
-  if (registry.activeProjectId !== body.projectId) throw Object.assign(new Error("Exact artifact publication is limited to the active project."), { code: "ENTRY_ACTION_PROJECT_NOT_ACTIVE" });
   const projectContext = await projectContextForId(project.id);
   const published = await publishExactArtifact({ projectContext, artifactId: body.artifactId, content: body.content, humanNotes: body.humanNotes });
   sendJson(res, { ok: true, receiptVersion: 1, ...published });

@@ -8,6 +8,17 @@ function normalizeCollectionPath(value) {
   return normalizeString(value) ?? "$";
 }
 
+export function writeProjectUrlLocation(url, projectId) {
+  const nextUrl = url instanceof URL ? new URL(url.toString()) : new URL(String(url));
+  const normalizedProjectId = normalizeString(projectId);
+  nextUrl.searchParams.delete("path");
+  nextUrl.searchParams.delete("collectionPath");
+  nextUrl.searchParams.delete("viewId");
+  if (normalizedProjectId) nextUrl.searchParams.set("projectId", normalizedProjectId);
+  else nextUrl.searchParams.delete("projectId");
+  return nextUrl;
+}
+
 export function readSharedViewUrlLocation(input) {
   const url = input instanceof URL ? input : new URL(input.href);
   const params = url.searchParams;

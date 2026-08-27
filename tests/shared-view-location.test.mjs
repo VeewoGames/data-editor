@@ -4,6 +4,7 @@ import {
   buildSharedViewUrl,
   clearSharedViewUrlLocation,
   readSharedViewUrlLocation,
+  writeProjectUrlLocation,
   writeSharedViewUrlLocation,
 } from "../src/shared-view-location.mjs";
 
@@ -50,4 +51,13 @@ test("writeSharedViewUrlLocation overwrites stale params and clearSharedViewUrlL
 
   const cleared = clearSharedViewUrlLocation(written);
   assert.equal(cleared.toString(), "http://127.0.0.1:8787/#view=legacy");
+});
+
+test("writeProjectUrlLocation keeps the project owner and clears stale shared-view state", () => {
+  const url = writeProjectUrlLocation(
+    new URL("http://127.0.0.1:8787/?projectId=old&path=data%2Fold.json&collectionPath=%24&viewId=old#view=legacy"),
+    "project-beta",
+  );
+
+  assert.equal(url.toString(), "http://127.0.0.1:8787/?projectId=project-beta#view=legacy");
 });

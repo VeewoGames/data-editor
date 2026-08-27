@@ -33,13 +33,6 @@ export function createEntryActionRunRoute({
     if (!projectId) routeError("ENTRY_ACTION_PROJECT_REQUIRED", "Missing projectId", 400);
 
     const registry = await loadRegistry();
-    if (registry.activeProjectId !== projectId) {
-      routeError(
-        "ENTRY_ACTION_PROJECT_NOT_ACTIVE",
-        `Entry actions are limited to the active project: ${projectId}`,
-        409,
-      );
-    }
     const project = registry.projects.find((candidate) => candidate.id === projectId);
     if (!project) routeError("ENTRY_ACTION_PROJECT_UNKNOWN", `Unknown project: ${projectId}`, 404);
 
