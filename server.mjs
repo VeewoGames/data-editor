@@ -34,6 +34,7 @@ import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
+import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import { createProjectCapabilityRegistry, findCapabilityBindings } from "./src/project-capability-registry.mjs";
 import { loadDocumentContract, DocumentContractError } from "./src/document-contract-service.mjs";
 import {
@@ -63,11 +64,16 @@ import { classifyCommitJournalRecovery } from "./src/commit-journal-recovery.mjs
 import { listSharedViewIconManifestEntries } from "./src/shared-view-icon-manifest.mjs";
 
 const args = parseArgs(process.argv.slice(2));
-const projectRoot = path.resolve(args.project ?? args.root ?? process.cwd());
 const registryOptions = args.registryHome ? { home: path.resolve(args.registryHome) } : {};
-const port = Number(args.port ?? 8787);
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const toolRoot = args.toolRoot ? path.resolve(args.toolRoot) : scriptRoot;
+const requestedProjectRoot = args.project ?? args.root;
+const projectRoot = path.resolve(requestedProjectRoot ?? inferDefaultProjectRoot({
+  toolRoot,
+  cwd: process.cwd(),
+  registryHome: args.registryHome,
+}));
+const port = Number(args.port ?? 8787);
 const bridgePort = Number(args.bridgePort ?? 8791);
 const staticRoot = args.static ? path.resolve(scriptRoot, args.static) : null;
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -205,6 +211,7 @@ const server = http.createServer(async (req, res) => {
 connectionShutdown.attach(server);
 
 if (isMainModule) {
+  assertImplicitStartupDoesNotUseToolRoot(projectRoot, requestedProjectRoot, toolRoot);
   assertTestProjectRegistryIsolation(projectRoot, args.registryHome);
   registerRuntimeStateCleanup();
   await ensureInitialProject();
@@ -212,6 +219,15 @@ if (isMainModule) {
     console.log(`Data Editor running at http://127.0.0.1:${port}`);
     console.log(`Project root: ${projectRoot}`);
   });
+}
+
+export function assertImplicitStartupDoesNotUseToolRoot(candidateProjectRoot, requestedProjectRoot, candidateToolRoot) {
+  if (requestedProjectRoot) return;
+  if (!samePath(candidateProjectRoot, candidateToolRoot)) return;
+  throw Object.assign(
+    new Error("PROJECT_ROOT_REQUIRED: Start Data Editor with --project or select an existing active project before starting the service."),
+    { code: "PROJECT_ROOT_REQUIRED" },
+  );
 }
 
 export function assertTestProjectRegistryIsolation(candidateProjectRoot, registryHome, repositoryRoot = scriptRoot) {
@@ -231,6 +247,10 @@ export function assertTestProjectRegistryIsolation(candidateProjectRoot, registr
 function isPathInside(root, target) {
   const relative = path.relative(path.resolve(root), path.resolve(target));
   return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+function samePath(left, right) {
+  return path.resolve(left).toLowerCase() === path.resolve(right).toLowerCase();
 }
 
 async function ensureInitialProject() {

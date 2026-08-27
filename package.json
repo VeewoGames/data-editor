@@ -17,7 +17,7 @@
     "entry-action:publish-exact": "node scripts/publish-entry-action-exact-artifact.mjs",
     "test:entry-action-cli-e2e": "node --test tests/entry-action-cli-e2e.test.mjs",
     "build": "vite build",
-    "start": "node server.mjs --project . --port 8787 --static dist",
+    "start": "node server.mjs --port 8787 --static dist",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs && tsc --noEmit",
     "test:e2e": "playwright test",

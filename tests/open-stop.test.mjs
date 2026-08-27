@@ -12,7 +12,7 @@ import { EventEmitter } from "node:events";
 import { promisify } from "node:util";
 import { loadControllerState, loadRecoveryBridgeState, loadServiceState, saveServiceState } from "../src/runtime-state.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
-import { runtimeHome } from "../src/project-registry.mjs";
+import { runtimeHome, saveProjectRegistry } from "../src/project-registry.mjs";
 import { hasSameRecoveryBridgeConfig, openService } from "../open.mjs";
 import { startMainService } from "../service-lifecycle.mjs";
 import { postControllerStopRequest, runBuildCommand } from "../server.mjs";
@@ -338,6 +338,14 @@ function requestBridge(port, requestPath, method, headers = {}) {
 
 function spawnDataEditorServer(port = "0", extraArgs = []) {
   return spawn(process.execPath, [serverScriptPath, "--root", projectRoot, "--port", String(port), ...extraArgs], {
+    cwd: repoRoot,
+    shell: false,
+    stdio: ["ignore", "ignore", "ignore"],
+  });
+}
+
+function spawnServer(port = "0", extraArgs = []) {
+  return spawn(process.execPath, [serverScriptPath, "--port", String(port), ...extraArgs], {
     cwd: repoRoot,
     shell: false,
     stdio: ["ignore", "ignore", "ignore"],
@@ -674,6 +682,62 @@ test("fixture projects require an explicit isolated registry home", async (t) =>
   const registry = await waitForJsonOk(port, "/api/projects");
   assert.equal(registry.projects.length, 1);
   assert.equal(path.resolve(registry.projects[0].root), projectRoot);
+});
+
+test("implicit server startup selects the registered active project instead of the tool root", async (t) => {
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-active-registry-"));
+  const activeProjectRoot = await mkdtemp(path.join(os.tmpdir(), "data-editor-active-project-"));
+  await mkdir(path.join(activeProjectRoot, "data"));
+  await saveProjectRegistry({
+    version: 2,
+    activeProjectId: "active-project",
+    projects: [{
+      id: "active-project",
+      name: "Active Project",
+      root: activeProjectRoot,
+      dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }],
+      filePolicy: { includeExtensions: [".json", ".csv"] },
+    }],
+  }, { home: registryHome });
+  t.after(async () => {
+    await rm(registryHome, { recursive: true, force: true });
+    await rm(activeProjectRoot, { recursive: true, force: true });
+  });
+  const port = await findAvailablePort();
+  const server = spawnServer(port, ["--registry-home", registryHome]);
+  t.after(async () => {
+    try {
+      server.kill();
+    } catch {}
+    await waitForExit(server).catch(() => {});
+  });
+
+  await waitForHttpOk(port);
+  const registry = await waitForJsonOk(port, "/api/projects");
+  assert.equal(registry.projects.length, 1);
+  assert.equal(registry.activeProjectId, "active-project");
+  assert.equal(path.resolve(registry.projects[0].root), activeProjectRoot);
+});
+
+test("implicit server startup never registers the Data Editor tool root", async (t) => {
+  const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-empty-registry-"));
+  t.after(async () => {
+    await rm(registryHome, { recursive: true, force: true });
+  });
+  const port = await findAvailablePort();
+
+  await assert.rejects(
+    execFileAsync(process.execPath, [serverScriptPath, "--port", String(port), "--registry-home", registryHome], {
+      cwd: repoRoot,
+      windowsHide: true,
+    }),
+    (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /PROJECT_ROOT_REQUIRED/);
+      return true;
+    },
+  );
+  await assert.rejects(readFile(path.join(registryHome, "projects.json"), "utf8"), { code: "ENOENT" });
 });
 
 test("npm run stop refuses to terminate a live process whose identity does not match runtime state", async (t) => {
