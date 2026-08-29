@@ -2,7 +2,7 @@ import type { BacklinkGridColumn } from "../model/backlinkGrid";
 import type { DataRecord } from "../model/documentModel";
 import type { FieldDisplayType } from "../model/fieldTypes";
 import type { RelationOption } from "../model/relations";
-import type { MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
+import type { FieldPresentation, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { FieldMenuCapabilities } from "./field-capabilities";
 
 type OptionConfig = {
@@ -12,6 +12,7 @@ type OptionConfig = {
 
 export type TableColumnModel = {
   fieldName: string;
+  presentation?: FieldPresentation;
   baseDisplayType: FieldDisplayType;
   effectiveDisplayType: FieldDisplayType;
   roleKind: "normal" | "relation" | "backlink";
@@ -39,6 +40,7 @@ export function buildTableColumnModels(input: {
   rows: DataRecord[];
   nestedFieldSet: Set<string>;
   displayTypes: Record<string, FieldDisplayType>;
+  fieldPresentations?: Record<string, FieldPresentation | undefined>;
   wrappedFields: Set<string>;
   detectedTitleField: string | null;
   primaryKeyField?: string | null;

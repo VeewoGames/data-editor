@@ -7,6 +7,7 @@ const emptyRelationOptions = [];
 /**
  * @typedef {{
  *   fieldName: string;
+ *   presentation: import("../model/viewConfig").FieldPresentation | undefined;
  *   baseDisplayType: import("../model/fieldTypes").FieldDisplayType;
  *   effectiveDisplayType: import("../model/fieldTypes").FieldDisplayType;
  *   roleKind: "normal" | "relation" | "backlink";
@@ -36,6 +37,7 @@ const emptyRelationOptions = [];
  *   rows: import("../model/documentModel").DataRecord[];
  *   nestedFieldSet: Set<string>;
  *   displayTypes: Record<string, import("../model/fieldTypes").FieldDisplayType>;
+ *   fieldPresentations?: Record<string, import("../model/viewConfig").FieldPresentation | undefined>;
  *   wrappedFields: Set<string>;
  *   detectedTitleField: string | null;
  *   primaryKeyField?: string | null;
@@ -56,6 +58,7 @@ export function buildTableColumnModels({
   rows,
   nestedFieldSet,
   displayTypes,
+  fieldPresentations = {},
   wrappedFields,
   detectedTitleField,
   primaryKeyField = null,
@@ -100,6 +103,7 @@ export function buildTableColumnModels({
     });
     const nextModel = {
       fieldName,
+      presentation: fieldPresentations[fieldName],
       baseDisplayType,
       effectiveDisplayType,
       roleKind,
@@ -145,6 +149,7 @@ function inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes) {
 function sameColumnModel(previous, next) {
   return Boolean(previous) &&
     previous.fieldName === next.fieldName &&
+    previous.presentation === next.presentation &&
     previous.baseDisplayType === next.baseDisplayType &&
     previous.effectiveDisplayType === next.effectiveDisplayType &&
     previous.roleKind === next.roleKind &&

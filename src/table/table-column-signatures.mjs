@@ -8,6 +8,7 @@ import { isDerivedField } from "../view/derived-field-projection.mjs";
  *   rows: import("../model/documentModel").DataRecord[];
  *   nestedFieldSet: Set<string>;
  *   displayTypes: Record<string, import("../model/fieldTypes").FieldDisplayType>;
+ *   fieldPresentations?: Record<string, import("../model/viewConfig").FieldPresentation | undefined>;
  *   wrappedFields: Set<string>;
  *   detectedTitleField: string | null;
  *   primaryKeyField?: string | null;
@@ -27,6 +28,7 @@ export function buildTableColumnModelsSignature({
   rows,
   nestedFieldSet,
   displayTypes,
+  fieldPresentations = {},
   wrappedFields,
   detectedTitleField,
   primaryKeyField = null,
@@ -67,6 +69,8 @@ export function buildTableColumnModelsSignature({
     });
     return [
       fieldName,
+      fieldPresentations[fieldName]?.label ?? "",
+      fieldPresentations[fieldName]?.description ?? "",
       baseDisplayType,
       effectiveDisplayType,
       roleKind,

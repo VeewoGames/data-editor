@@ -33,13 +33,29 @@ function normalizeFields(value) {
     if (!fieldConfig || typeof fieldConfig !== "object" || Array.isArray(fieldConfig)) continue;
     const normalizedSelectOptions = normalizeOptionMap(fieldConfig.selectOptions);
     const normalizedMultiSelectOptions = normalizeOptionMap(fieldConfig.multiSelectOptions);
+    const presentation = normalizeFieldPresentation(fieldConfig.presentation);
     normalizedFields[fieldKey] = {
       type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
       selectOptions: normalizedSelectOptions,
       multiSelectOptions: normalizedMultiSelectOptions,
+      ...(presentation ? { presentation } : {}),
     };
   }
   return normalizedFields;
+}
+
+function normalizeFieldPresentation(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const label = normalizePresentationText(value.label, 120);
+  const description = normalizePresentationText(value.description, 2000);
+  if (!label && !description) return undefined;
+  return { ...(label ? { label } : {}), ...(description ? { description } : {}) };
+}
+
+function normalizePresentationText(value, maxLength) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized && normalized.length <= maxLength ? normalized : undefined;
 }
 
 function normalizeOptionMap(value) {

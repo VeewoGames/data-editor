@@ -74,6 +74,7 @@ import type { ActiveTextEditorHandle, ActiveTextEditorRegistrar } from "./editin
 import { RelationConfigDialog } from "./components/RelationConfigDialog";
 import { SearchablePicker } from "./components/SearchablePicker";
 import { DocumentFieldConfigDialog } from "./components/DocumentFieldConfigDialog";
+import { FieldPresentationDialog } from "./components/FieldPresentationDialog";
 import { PrimaryKeyCandidateBanner } from "./components/PrimaryKeyCandidateBanner";
 import { collectProtectedIconPackIdsFromIcons, icons, isSharedViewIconPackLoaded, loadSharedViewIconPack, readSharedViewIconComponent, sharedViewDefaultIconId, sharedViewFallbackIcon } from "./components/icons";
 import type { OptionFieldDraftCommit } from "./table/OptionFieldEditor";
@@ -723,6 +724,7 @@ export function App() {
   const [newProfileName, setNewProfileName] = useState("");
   const [relationConfigField, setRelationConfigField] = useState<string | null>(null);
   const [documentConfigField, setDocumentConfigField] = useState<string | null>(null);
+  const [fieldPresentationField, setFieldPresentationField] = useState<string | null>(null);
   const [dismissedCandidateKeys, setDismissedCandidateKeys] = useState<string[]>([]);
   const [primaryKeyCandidateDialogOpen, setPrimaryKeyCandidateDialogOpen] = useState(false);
   const [selectedPrimaryKeyCandidate, setSelectedPrimaryKeyCandidate] = useState<string>("");
@@ -1280,6 +1282,7 @@ export function App() {
     setPrimaryKeySyncResult(null);
     primaryKeySyncSnapshotRef.current = null;
     setRelationConfigField(null);
+    setFieldPresentationField(null);
     setPendingDeleteRow(null);
     setPendingDeleteField(null);
     setAddFieldOpen(false);
@@ -3610,6 +3613,23 @@ export function App() {
     setDocumentConfigField(null);
   }
 
+  function handleConfigureFieldPresentation(fieldName: string) {
+    if (!selectedPath) return;
+    setFieldPresentationField(fieldName);
+  }
+
+  function confirmFieldPresentation(presentation: FieldViewConfig["presentation"] | null) {
+    if (!selectedPath || !fieldPresentationField) return;
+    const key = fieldViewConfigKey(selectedPath, collectionPath, fieldPresentationField);
+    if (!key) return;
+    mutateViewConfig((draft) => {
+      const config = ensureFieldViewConfig(draft, key);
+      if (presentation) config.presentation = presentation;
+      else delete config.presentation;
+    });
+    setFieldPresentationField(null);
+  }
+
   function setDocumentFieldEnabled(fieldName: string, enabled: boolean) {
     if (!selectedPath) return;
     if (enabled && !canConfigureDocumentForField(fieldName)) {
@@ -5860,6 +5880,7 @@ export function App() {
                   onClearRelation={handleClearRelation}
                   onConfigureDocument={handleConfigureDocument}
                   onClearDocument={handleClearDocument}
+                  onConfigurePresentation={handleConfigureFieldPresentation}
                   onOpenRelationTarget={handleOpenRelationTarget}
                   onAddRow={handleAddRow}
                   onDuplicateRow={handleDuplicateRow}
@@ -5974,6 +5995,7 @@ export function App() {
               onClearRelation={handleClearRelation}
               onConfigureDocument={handleConfigureDocument}
               onClearDocument={handleClearDocument}
+              onConfigurePresentation={handleConfigureFieldPresentation}
               onOpenRelationTarget={handleOpenRelationTarget}
               onAddRow={handleAddRow}
               onDuplicateRow={handleDuplicateRow}
@@ -6045,6 +6067,13 @@ export function App() {
         enabled={documentFieldConfigEnabled}
         onOpenChange={(open) => !open && setDocumentConfigField(null)}
         onConfirm={confirmDocumentFieldConfig}
+      />
+      <FieldPresentationDialog
+        open={fieldPresentationField != null}
+        fieldName={fieldPresentationField}
+        presentation={fieldPresentationField ? fieldViewConfigs[fieldPresentationField]?.presentation : undefined}
+        onOpenChange={(open) => !open && setFieldPresentationField(null)}
+        onConfirm={confirmFieldPresentation}
       />
       <ConfirmDialog
         open={pendingDeleteRow != null}
@@ -8874,6 +8903,7 @@ function cloneViewConfig(config: ViewConfig): ViewConfig {
         type: value.type,
         selectOptions: { ...value.selectOptions },
         multiSelectOptions: { ...value.multiSelectOptions },
+        ...(value.presentation ? { presentation: { ...value.presentation } } : {}),
       },
     ])),
     titleFields: { ...config.titleFields },

@@ -62,10 +62,16 @@ export type RealFieldType = "Text" | "Select" | "Document";
 export type RelationMode = "single" | "multi";
 export type BacklinkDisplayMode = "list";
 
+export type FieldPresentation = {
+  label?: string;
+  description?: string;
+};
+
 export type FieldViewConfig = {
   type?: RealFieldType;
   selectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null }>;
   multiSelectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null }>;
+  presentation?: FieldPresentation;
 };
 
 export type RelationConfig = {

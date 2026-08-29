@@ -4,10 +4,12 @@ import type { FieldDisplayType } from "../model/fieldTypes";
 import { FieldTypeIcon } from "../components/FieldTypeIcon";
 import { icons } from "../components/icons";
 import type { FieldMenuCapabilities } from "./field-capabilities";
+import type { FieldPresentation } from "../model/viewConfig";
 import { shouldStartColumnDrag } from "./column-dnd.mjs";
 
 type ColumnHeaderProps = {
   fieldName: string;
+  presentation?: FieldPresentation;
   baseDisplayType: FieldDisplayType;
   effectiveDisplayType: FieldDisplayType;
   roleKind?: "normal" | "relation" | "backlink";
@@ -41,6 +43,7 @@ type ColumnHeaderProps = {
   onClearRelation: () => void;
   onConfigureDocument: () => void;
   onClearDocument: () => void;
+  onConfigurePresentation: () => void;
   onDeleteField: () => void;
   isReadonly?: boolean;
 };
@@ -64,10 +67,10 @@ const displayTypeLabels: Record<FieldDisplayType, string> = {
 export function ColumnHeader(props: ColumnHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isPointerPressActive, setIsPointerPressActive] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
+  const [tooltipDelayElapsed, setTooltipDelayElapsed] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ left: 12, top: 0 });
   const headerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -110,7 +113,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     if (titleRef.current) observer.observe(titleRef.current);
     if (triggerRef.current) observer.observe(triggerRef.current);
     return () => observer.disconnect();
-  }, [props.fieldName, props.width]);
+  }, [props.fieldName, props.presentation?.label, props.width]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -132,19 +135,29 @@ export function ColumnHeader(props: ColumnHeaderProps) {
     };
   }, [menuOpen]);
 
-  const shouldShowTooltip = (hovered || focused) &&
-    isTruncated &&
+  const tooltipInteractionEligible = hovered &&
     !menuOpen &&
     !isResizing &&
     !isPointerPressActive &&
     !props.isDragging &&
     !props.tooltipSuppressed;
+  const hasDescription = Boolean(props.presentation?.description);
+  const shouldDelayDescription = tooltipInteractionEligible && hasDescription;
+  const shouldShowTooltip = tooltipInteractionEligible &&
+    (isTruncated || (hasDescription && tooltipDelayElapsed));
   const showTypeActions = props.capabilities.allowedTypeTargets.length > 0;
   const showTitleAction = props.capabilities.canBeTitle;
   const showPrimaryKeyAction = props.capabilities.canBePrimaryKey;
   const showDocumentActions = props.capabilities.canConfigureDocument;
   const showRelationActions = props.relationConfigured || props.capabilities.canConfigureRelation;
   const showFieldSemanticSection = showTitleAction || showPrimaryKeyAction || showDocumentActions || showRelationActions;
+
+  useEffect(() => {
+    setTooltipDelayElapsed(false);
+    if (!shouldDelayDescription) return;
+    const timer = window.setTimeout(() => setTooltipDelayElapsed(true), 1000);
+    return () => window.clearTimeout(timer);
+  }, [shouldDelayDescription]);
 
   useEffect(() => {
     if (!shouldShowTooltip) return;
@@ -161,9 +174,10 @@ export function ColumnHeader(props: ColumnHeaderProps) {
       const preferredTop = anchorRect.top - tooltipHeight - 6;
       const fallbackTop = anchorRect.bottom + 6;
       const nextLeft = Math.min(Math.max(anchorRect.left, 12), maxLeft);
+      const nextTop = preferredTop >= 12 ? preferredTop : Math.min(Math.max(fallbackTop, 12), maxTop);
       setTooltipPosition({
         left: nextLeft,
-        top: preferredTop >= 12 ? preferredTop : Math.min(Math.max(fallbackTop, 12), maxTop),
+        top: nextTop,
       });
     };
     updateTooltipPosition();
@@ -175,7 +189,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
       window.removeEventListener("resize", updateTooltipPosition);
       window.removeEventListener("scroll", updateTooltipPosition, true);
     };
-  }, [shouldShowTooltip, props.fieldName, props.width]);
+  }, [shouldShowTooltip, tooltipDelayElapsed, props.fieldName, props.width]);
 
   function beginResize(event: ReactPointerEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -310,15 +324,13 @@ export function ColumnHeader(props: ColumnHeaderProps) {
       ref={headerRef}
     >
       <button
-        aria-label={props.fieldName}
+        aria-label={props.presentation?.label ? `${props.presentation.label}（字段名：${props.fieldName}）` : props.fieldName}
         className="column-trigger"
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
           setMenuOpen(true);
         }}
-        onBlur={() => setFocused(false)}
-        onFocus={() => setFocused(true)}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
@@ -331,7 +343,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
         ref={triggerRef}
         type="button"
       >
-        <span ref={titleRef}>{props.fieldName}</span>
+        <span ref={titleRef}>{props.presentation?.label ?? props.fieldName}</span>
         <small>{displayTypeLabels[props.effectiveDisplayType]}</small>
       </button>
       {menuOpen ? (
@@ -357,6 +369,11 @@ export function ColumnHeader(props: ColumnHeaderProps) {
           <button className="menu-item" onClick={copyFieldText} type="button">
             <icons.copy size={15} /> 复制字段文本
           </button>
+          {props.roleKind === "backlink" ? null : (
+            <button className="menu-item" data-column-action="edit-presentation" onClick={() => runDialogAction(props.onConfigurePresentation)} type="button">
+              <icons.textField size={15} /> 编辑字段说明…
+            </button>
+          )}
           {showTypeActions ? (
             <>
               <div className="menu-separator" />
@@ -473,14 +490,16 @@ export function ColumnHeader(props: ColumnHeaderProps) {
       {shouldShowTooltip && typeof document !== "undefined"
         ? createPortal(
           <div
-            className="column-header-full-title-tooltip"
+            className={`column-header-full-title-tooltip ${tooltipDelayElapsed && props.presentation?.description ? "is-expanded" : ""}`}
             ref={tooltipRef}
             style={{
               left: `${tooltipPosition.left}px`,
               top: `${tooltipPosition.top}px`,
             }}
           >
-            {props.fieldName}
+            <strong className="column-header-tooltip-title">{props.presentation?.label ?? props.fieldName}</strong>
+            {tooltipDelayElapsed && props.presentation?.label ? <span className="column-header-tooltip-field-name">{props.fieldName}</span> : null}
+            {tooltipDelayElapsed && props.presentation?.description ? <p className="column-header-tooltip-description">{props.presentation.description}</p> : null}
           </div>,
           document.body,
         )

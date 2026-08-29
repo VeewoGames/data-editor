@@ -45,6 +45,7 @@ type TableColumnsRuntime = {
   onClearRelation: (fieldName: string) => void;
   onConfigureDocument: (fieldName: string) => void;
   onClearDocument: (fieldName: string) => void;
+  onConfigurePresentation: (fieldName: string) => void;
   onDeleteField: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onSelectRow: (rowIndex: number, rowId: string | null) => void;
@@ -146,6 +147,7 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
   return (
     <ColumnHeader
       fieldName={columnModel.fieldName}
+      presentation={columnModel.presentation}
       roleKind={columnModel.roleKind}
       allowTypeChange={columnModel.allowTypeChange}
       baseDisplayType={columnModel.baseDisplayType}
@@ -179,6 +181,7 @@ function TableColumnHeaderView({ columnModel }: { columnModel: TableColumnModel 
       onClearRelation={() => runtime.onClearRelation(columnModel.fieldName)}
       onConfigureDocument={() => runtime.onConfigureDocument(columnModel.fieldName)}
       onClearDocument={() => runtime.onClearDocument(columnModel.fieldName)}
+      onConfigurePresentation={() => runtime.onConfigurePresentation(columnModel.fieldName)}
       onDeleteField={() => runtime.onDeleteField(columnModel.fieldName)}
       isReadonly={columnModel.isReadonly}
     />

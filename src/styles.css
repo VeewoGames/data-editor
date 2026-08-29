@@ -4346,20 +4346,45 @@ select {
 
 .column-header-full-title-tooltip {
   background: rgba(20, 20, 20, 0.96);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
   color: #f6f4ef;
+  display: grid;
   font-size: 12px;
+  gap: 4px;
   left: 0;
-  line-height: 1.45;
-  max-width: min(360px, calc(100vw - 24px));
-  padding: 7px 10px;
+  line-height: 1.5;
+  max-inline-size: min(300px, calc(100vw - 24px));
+  padding: 10px 12px;
   pointer-events: none;
   position: fixed;
   top: 0;
   white-space: normal;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   z-index: 55;
+}
+
+.column-header-full-title-tooltip.is-expanded {
+  inline-size: min(300px, calc(100vw - 24px));
+  max-block-size: min(240px, calc(100vh - 24px));
+  overflow-y: auto;
+}
+
+.column-header-tooltip-title {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.column-header-tooltip-field-name {
+  color: rgba(246, 244, 239, 0.64);
+  font-size: 11px;
+}
+
+.column-header-tooltip-description {
+  color: rgba(246, 244, 239, 0.9);
+  margin: 2px 0 0;
 }
 
 .view-tab-icon-picker-tooltip {
@@ -6536,6 +6561,22 @@ th:hover .column-resize-handle,
 .relation-config-dialog .select-trigger,
 .relation-config-dialog input[type="text"],
 .relation-config-dialog .dialog-field input {
+  width: 100%;
+}
+
+.field-presentation-dialog {
+  width: 460px;
+}
+
+.field-presentation-dialog textarea {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  box-sizing: border-box;
+  font: inherit;
+  line-height: 1.5;
+  padding: 8px;
+  resize: vertical;
   width: 100%;
 }
 

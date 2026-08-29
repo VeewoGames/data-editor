@@ -150,12 +150,12 @@ test("buildTableColumnModels ignores incompatible persisted Text override for bo
   assert.equal(models[0]?.effectiveDisplayType, "Checkbox");
 });
 
-test("buildTableColumnModels marks derived projection columns readonly", () => {
-  const [model] = buildTableColumnModels({
-    visibleFields: ["@selection_type"],
-    rows: [{ "@selection_type": "entity" }],
+test("buildTableColumnModels rebuilds a column when its presentation changes", () => {
+  const input = {
+    visibleFields: ["skill_id"],
+    rows: [{ skill_id: "lightning_chain" }],
     nestedFieldSet: new Set(),
-    displayTypes: { "@selection_type": "Select" },
+    displayTypes: { skill_id: "Text" },
     wrappedFields: new Set(),
     detectedTitleField: null,
     primaryKeyField: null,
@@ -165,8 +165,14 @@ test("buildTableColumnModels marks derived projection columns readonly", () => {
     fieldOptions: {},
     selectOptions: {},
     getColumnWidth: () => 180,
+  };
+  const [first] = buildTableColumnModels(input);
+  const previousByField = { skill_id: first };
+  const [second] = buildTableColumnModels({
+    ...input,
+    fieldPresentations: { skill_id: { label: "闪电链", description: "连锁伤害" } },
+    previousByField,
   });
-  assert.equal(model.isReadonly, true);
-  assert.equal(model.allowTypeChange, false);
-  assert.equal(model.capabilities.canConfigureRelation, false);
+  assert.notEqual(second, first);
+  assert.deepEqual(second.presentation, { label: "闪电链", description: "连锁伤害" });
 });

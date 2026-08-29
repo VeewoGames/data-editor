@@ -229,6 +229,10 @@ export type BacklinkConfig = {
 export type ViewConfig = {
   fields: Record<string, {
     type?: "Text" | "Select" | "Document";
+    presentation?: {
+      label?: string;
+      description?: string;
+    };
     selectOptions: Record<string, {
       label: string;
       color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "rose" | "amber" | "purple" | "pink" | "red" | "mid_gray" | "mid_brown" | "mid_orange" | "mid_yellow" | "mid_green" | "mid_blue" | "mid_teal" | "mid_cyan" | "mid_lime" | "mid_indigo" | "mid_purple" | "mid_pink" | "mid_red" | "mid_rose" | "mid_amber" | "dark_gray" | "dark_brown" | "dark_orange" | "dark_yellow" | "dark_green" | "dark_blue" | "dark_teal" | "dark_cyan" | "dark_lime" | "dark_indigo" | "dark_purple" | "dark_pink" | "dark_red" | "dark_rose" | "dark_amber" | null;

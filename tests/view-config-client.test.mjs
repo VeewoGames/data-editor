@@ -25,6 +25,23 @@ test("normalizeFetchedViewConfig fills document config buckets for legacy server
   assert.equal(normalized.primaryKeys["data/runes.json:$"], "rune_id");
 });
 
+test("normalizeFetchedViewConfig preserves valid field presentation", () => {
+  const normalized = normalizeFetchedViewConfig({
+    fields: {
+      "data/items.json:$:skill_id": {
+        selectOptions: {},
+        multiSelectOptions: {},
+        presentation: { label: " 闪电链 ", description: " 对目标造成伤害。 " },
+      },
+    },
+  });
+
+  assert.deepEqual(normalized.fields["data/items.json:$:skill_id"].presentation, {
+    label: "闪电链",
+    description: "对目标造成伤害。",
+  });
+});
+
 test("normalizeFetchedViewConfig drops relation configs that conflict with enabled document fields", () => {
   const normalized = normalizeFetchedViewConfig({
     fields: {

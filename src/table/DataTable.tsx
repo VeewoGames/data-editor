@@ -161,6 +161,7 @@ type DataTableProps = {
   onClearRelation: (fieldName: string) => void;
   onConfigureDocument: (fieldName: string) => void;
   onClearDocument: (fieldName: string) => void;
+  onConfigurePresentation: (fieldName: string) => void;
   onOpenRelationTarget: (config: RelationConfig, value: string | number) => void;
   onAddRow: () => void;
   onDuplicateRow: (rowIndex: number, rowId: string | null) => void;
@@ -225,6 +226,7 @@ function DataTableComponent(props: DataTableProps) {
     onClearRelation: props.onClearRelation,
     onConfigureDocument: props.onConfigureDocument,
     onClearDocument: props.onClearDocument,
+    onConfigurePresentation: props.onConfigurePresentation,
     onDeleteField: props.onDeleteField,
     onOpenRelationTarget: props.onOpenRelationTarget,
     onSelectRow: props.onSelectRow,
@@ -427,6 +429,7 @@ function DataTableComponent(props: DataTableProps) {
       onClearRelation: props.onClearRelation,
       onConfigureDocument: props.onConfigureDocument,
       onClearDocument: props.onClearDocument,
+      onConfigurePresentation: props.onConfigurePresentation,
       onDeleteField: props.onDeleteField,
       onOpenRelationTarget: props.onOpenRelationTarget,
       onSelectRow: props.onSelectRow,
@@ -455,6 +458,7 @@ function DataTableComponent(props: DataTableProps) {
     props.onClearRelation,
     props.onConfigureDocument,
     props.onClearDocument,
+    props.onConfigurePresentation,
     props.onDeleteField,
     props.onOpenRelationTarget,
     props.onSelectRow,
@@ -476,6 +480,7 @@ function DataTableComponent(props: DataTableProps) {
     rows,
     nestedFieldSet,
     displayTypes: snapshot.fieldConfig.displayTypes,
+    fieldPresentations: Object.fromEntries(Object.entries(snapshot.fieldViewConfigs).map(([fieldName, config]) => [fieldName, config.presentation])),
     wrappedFields: snapshot.fieldConfig.wrapped,
     detectedTitleField,
     primaryKeyField: snapshot.primaryKeyField,
@@ -493,6 +498,7 @@ function DataTableComponent(props: DataTableProps) {
     rows,
     nestedFieldSet,
     snapshot.fieldConfig.displayTypes,
+    snapshot.fieldViewConfigs,
     snapshot.fieldConfig.wrapped,
     detectedTitleField,
     snapshot.backlinkColumns,
@@ -510,6 +516,7 @@ function DataTableComponent(props: DataTableProps) {
     rows,
     nestedFieldSet,
     displayTypes: snapshot.fieldConfig.displayTypes,
+    fieldPresentations: Object.fromEntries(Object.entries(snapshot.fieldViewConfigs).map(([fieldName, config]) => [fieldName, config.presentation])),
     wrappedFields: snapshot.fieldConfig.wrapped,
     detectedTitleField,
     primaryKeyField: snapshot.primaryKeyField,
@@ -566,6 +573,9 @@ function DataTableComponent(props: DataTableProps) {
   }, []);
   const handleClearDocument = useCallback((fieldName: string) => {
     runtimeActionRef.current.onClearDocument(fieldName);
+  }, []);
+  const handleConfigurePresentation = useCallback((fieldName: string) => {
+    runtimeActionRef.current.onConfigurePresentation(fieldName);
   }, []);
   const handleDeleteField = useCallback((fieldName: string) => {
     runtimeActionRef.current.onDeleteField(fieldName);
@@ -730,6 +740,7 @@ function DataTableComponent(props: DataTableProps) {
     onClearRelation: handleClearRelation,
     onConfigureDocument: handleConfigureDocument,
     onClearDocument: handleClearDocument,
+    onConfigurePresentation: handleConfigurePresentation,
     onDeleteField: handleDeleteField,
     onOpenRelationTarget: handleOpenRelationTarget,
     onSelectRow: selectRowByRuntime,
@@ -770,6 +781,7 @@ function DataTableComponent(props: DataTableProps) {
     handleClearRelation,
     handleConfigureDocument,
     handleClearDocument,
+    handleConfigurePresentation,
     handleDeleteField,
     handleOpenRelationTarget,
     selectRowByRuntime,

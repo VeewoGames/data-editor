@@ -1486,18 +1486,53 @@ test("column header full title tooltip only appears for truncated headers and hi
   await page.mouse.move(4, 4);
   await expect(tooltip).toHaveCount(0);
 
-  await truncatedHeader.focus();
-  await expect(tooltip).toBeVisible();
-  await expect(tooltip).toHaveText("description");
-
-  await shortHeader.focus();
-  await expect(tooltip).toHaveCount(0);
-
   await truncatedHeader.hover();
   await expect(tooltip).toBeVisible();
   await truncatedHeader.click();
   await expect(page.locator(".column-menu-popup")).toBeVisible();
   await expect(tooltip).toHaveCount(0);
+});
+
+test("configured field description appears after one second even when its column title is not truncated", async ({ page }) => {
+  const originalResponse = await page.request.get("/api/view-config");
+  expect(originalResponse.ok()).toBe(true);
+  const originalConfig = await originalResponse.json();
+  const fieldKey = "data/runes.json:$:rune_name";
+  const nextConfig = structuredClone(originalConfig);
+  nextConfig.fields[fieldKey] = {
+    ...(nextConfig.fields[fieldKey] ?? { selectOptions: {}, multiSelectOptions: {} }),
+    presentation: {
+      label: "名称",
+      description: "完成活动需要的最小输入动作描述，不是最终键位表。",
+    },
+  };
+  const saveResponse = await page.request.post("/api/view-config", { data: { config: nextConfig } });
+  expect(saveResponse.ok()).toBe(true);
+
+  try {
+    await page.goto("/");
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    const header = page.locator('th[data-column-field="rune_name"] .column-trigger');
+    const tooltip = columnHeaderTooltip(page);
+    await expect.poll(async () => header.evaluate((element) => {
+      const title = element.querySelector("span");
+      return title instanceof HTMLElement && title.scrollWidth <= title.clientWidth;
+    })).toBe(true);
+
+    await header.hover();
+    await expect(tooltip).toHaveCount(0);
+    await page.waitForTimeout(1050);
+    await expect(tooltip).toContainText("名称");
+    await expect(tooltip).toContainText("rune_name");
+    await expect(tooltip).not.toContainText("字段名：");
+    await expect(tooltip).toContainText("完成活动需要的最小输入动作描述，不是最终键位表。");
+    await expect(tooltip).toHaveCSS("overflow-y", "auto");
+  } finally {
+    const restoreResponse = await page.request.post("/api/view-config", { data: { config: originalConfig } });
+    if (!restoreResponse.ok()) throw new Error(`Failed to restore view config: ${restoreResponse.status()}`);
+  }
 });
 
 test("column header tooltip hides during drag and resize and can recover after pointercancel", async ({ page }) => {

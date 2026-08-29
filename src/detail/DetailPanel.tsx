@@ -628,7 +628,7 @@ export function DetailPanel({
                     />
                   ) : (
                     <section className="property-block" onClick={forwardOptionFieldSurfaceClick}>
-                      <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} />
+                      <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} presentation={fieldViewConfigs[key]?.presentation} />
                       {renderValueEditor({
                         cellId: `detail:${rowId ?? sourceRowIndex ?? "detail"}:${key}`,
                         pathParts: [key],
@@ -1132,14 +1132,14 @@ function renderUnsupportedNestedItem(
   );
 }
 
-function PropertyHeading({ fieldName, fieldType, issue }: { fieldName: string; fieldType: FieldDisplayType; issue?: ValidationIssue | null }) {
+function PropertyHeading({ fieldName, fieldType, issue, presentation }: { fieldName: string; fieldType: FieldDisplayType; issue?: ValidationIssue | null; presentation?: FieldViewConfig["presentation"] }) {
   return (
     <div className="property-heading">
       <span className="property-heading-label">
         <span className="property-heading-icon" data-field-type-icon={fieldType}>
           <FieldTypeIcon fieldType={fieldType} size={14} strokeWidth={2.2} />
         </span>
-        <span>{fieldName}</span>
+        <span title={presentation?.description}>{presentation?.label ?? fieldName}</span>
       </span>
       {issue ? <small className={issue.severity}>{issue.message}</small> : null}
     </div>

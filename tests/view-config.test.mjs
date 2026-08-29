@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { defaultRelationConfigs, emptyViewConfig, loadViewConfig, normalizeViewConfig, saveViewConfig } from "../src/view-config.mjs";
+import { assertValidFieldPresentations, defaultRelationConfigs, emptyViewConfig, loadViewConfig, normalizeViewConfig, saveViewConfig } from "../src/view-config.mjs";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys } from "../src/relation-defaults.mjs";
 
 test("emptyViewConfig includes project relations", () => {
@@ -356,6 +356,41 @@ test("loadViewConfig prunes stale backlinks and persists active relation backlin
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("normalizeViewConfig preserves valid field presentation and drops malformed values", () => {
+  const normalized = normalizeViewConfig({
+    fields: {
+      "data/items.json:$:skill_id": {
+        selectOptions: {},
+        multiSelectOptions: {},
+        presentation: { label: " 闪电链 ", description: " 对目标造成伤害。 " },
+      },
+      "data/items.json:$:invalid": {
+        selectOptions: {},
+        multiSelectOptions: {},
+        presentation: { label: " ", description: "x".repeat(2001) },
+      },
+    },
+  });
+  assert.deepEqual(normalized.fields["data/items.json:$:skill_id"].presentation, {
+    label: "闪电链",
+    description: "对目标造成伤害。",
+  });
+  assert.equal(normalized.fields["data/items.json:$:invalid"].presentation, undefined);
+});
+
+test("assertValidFieldPresentations rejects malformed write payloads", () => {
+  assert.throws(() => assertValidFieldPresentations({
+    fields: {
+      "data/items.json:$:skill_id": {
+        presentation: { label: "x".repeat(121) },
+      },
+    },
+  }), {
+    code: "VIEW_CONFIG_FIELD_PRESENTATION_INVALID",
+    status: 400,
+  });
 });
 
 test("loadViewConfig preserves configured collection title fields and drops invalid values", async () => {

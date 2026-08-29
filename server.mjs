@@ -29,7 +29,7 @@ import { loadAutomationProfile, patchAutomationProfileRule, saveAutomationProfil
 import { listDataFiles, normalizeDataFileVirtualPath, readTextFile, resolveInsideRoot, writeTextFile } from "./src/file-service.mjs";
 import { listViewProfiles, loadViewProfile, saveViewProfile } from "./src/view-profile.mjs";
 import { loadUserProfileNames, mergeUserProfileNames, registerUserProfileName } from "./src/user-profile-registry.mjs";
-import { loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
+import { assertValidFieldPresentations, loadViewConfig, saveViewConfig } from "./src/view-config.mjs";
 import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
@@ -462,6 +462,7 @@ async function handleSaveViewConfig(req, res) {
   const body = await readJsonBody(req);
   const projectContext = await projectContextForId(body.projectId);
   const config = body && typeof body === "object" && "config" in body ? body.config : body;
+  assertValidFieldPresentations(config);
   const result = await saveViewConfig(projectContext, config);
   sendJson(res, { ok: true, ...result });
 }

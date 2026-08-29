@@ -54,6 +54,7 @@ export function normalizeViewConfig(value) {
       if (!fieldConfig || typeof fieldConfig !== "object" || Array.isArray(fieldConfig)) continue;
       const multiSelectOptionMap = fieldConfig.multiSelectOptions;
       const selectOptionMap = fieldConfig.selectOptions;
+      const presentation = normalizeFieldPresentation(fieldConfig.presentation);
       const normalizedOptions = {};
       if (multiSelectOptionMap && typeof multiSelectOptionMap === "object" && !Array.isArray(multiSelectOptionMap)) {
         for (const [optionValue, optionConfig] of Object.entries(multiSelectOptionMap)) {
@@ -74,11 +75,13 @@ export function normalizeViewConfig(value) {
           };
         }
       }
-      normalizedFields[fieldKey] = {
+      const normalizedField = {
         type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
         selectOptions: normalizedSelectOptions,
         multiSelectOptions: normalizedOptions,
       };
+      if (presentation) normalizedField.presentation = presentation;
+      normalizedFields[fieldKey] = normalizedField;
     }
   }
 
@@ -102,6 +105,52 @@ export function normalizeViewConfig(value) {
   normalized.relations = filterInvalidPrimaryKeySelfRelations(normalized.relations, normalized.primaryKeys);
   normalized.backlinks = syncBacklinksWithRelations(normalized.relations, normalized.backlinks);
   return normalized;
+}
+
+export function assertValidFieldPresentations(value) {
+  const fields = value?.fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return;
+  for (const [fieldKey, fieldConfig] of Object.entries(fields)) {
+    if (!fieldConfig || typeof fieldConfig !== "object" || Array.isArray(fieldConfig)) continue;
+    if (!("presentation" in fieldConfig)) continue;
+    const presentation = fieldConfig.presentation;
+    if (!presentation || typeof presentation !== "object" || Array.isArray(presentation)) {
+      throw invalidFieldPresentation(fieldKey, "必须是对象。");
+    }
+    const keys = Object.keys(presentation);
+    if (!keys.length || keys.some((key) => key !== "label" && key !== "description")) {
+      throw invalidFieldPresentation(fieldKey, "只能包含 label 或 description。");
+    }
+    for (const [key, limit] of [["label", 120], ["description", 2000]]) {
+      if (!(key in presentation)) continue;
+      const text = presentation[key];
+      if (typeof text !== "string" || !text.trim() || text.trim().length > limit) {
+        throw invalidFieldPresentation(fieldKey, `${key} 必须是去除首尾空白后不超过 ${limit} 个字符的文本。`);
+      }
+    }
+  }
+}
+
+function invalidFieldPresentation(fieldKey, message) {
+  return Object.assign(new Error(`字段 ${fieldKey} 的显示信息无效：${message}`), {
+    code: "VIEW_CONFIG_FIELD_PRESENTATION_INVALID",
+    field: fieldKey,
+    status: 400,
+  });
+}
+
+function normalizeFieldPresentation(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const label = normalizeFieldPresentationText(value.label, 120);
+  const description = normalizeFieldPresentationText(value.description, 2000);
+  if (!label && !description) return undefined;
+  return { ...(label ? { label } : {}), ...(description ? { description } : {}) };
+}
+
+function normalizeFieldPresentationText(value, maxLength) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized && normalized.length <= maxLength ? normalized : undefined;
 }
 
 function normalizePrimaryKeys(value) {
