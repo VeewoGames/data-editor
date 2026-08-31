@@ -340,13 +340,11 @@ function filterChipLabel(
     const labels = normalizeFilterValues(rule.value)
       .map((value) => optionLabel(rule.field, value, fieldType, fieldViewConfigs, relationFilterOptions));
     const operator = valueOperatorLabel(rule.operator);
-    if (!labels.length) return `${label} ${operator}`;
-    return `${label} ${operator} ${truncateList(labels)}`;
+    return filterChipExpression(label, operator, truncateList(labels), isDefaultValueOperator(rule.operator));
   }
   const textOperator = textOperatorLabel(rule.operator);
   const value = textValue(rule.value);
-  if (!value) return `${label} ${textOperator}`;
-  return `${label} ${textOperator} ${truncateText(value, 28)}`;
+  return filterChipExpression(label, textOperator, truncateText(value, 28), isDefaultValueOperator(rule.operator));
 }
 
 function filterChipTitle(
@@ -365,14 +363,21 @@ function filterChipTitle(
   if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
     const operator = valueOperatorLabel(rule.operator);
     const values = normalizeFilterValues(rule.value);
-    if (!values.length) return `${label} ${operator}`;
     const labels = values.map((value) => optionLabel(rule.field, value, fieldType, fieldViewConfigs, relationFilterOptions));
-    return `${label} ${operator} ${labels.join(", ")}`;
+    return filterChipExpression(label, operator, labels.join(", "), isDefaultValueOperator(rule.operator));
   }
   const operator = textOperatorLabel(rule.operator);
   const values = normalizeFilterValues(rule.value);
-  if (!values.length) return `${label} ${operator}`;
-  return `${label} ${operator} ${values.join(", ")}`;
+  return filterChipExpression(label, operator, values.join(", "), isDefaultValueOperator(rule.operator));
+}
+
+function isDefaultValueOperator(operator: FilterRule["operator"]) {
+  return operator === "contains" || operator === "is";
+}
+
+function filterChipExpression(label: string, operator: string, value: string, isDefaultMatch: boolean) {
+  if (isDefaultMatch) return value ? `${label}: ${value}` : label;
+  return value ? `${label}: ${operator} ${value}` : `${label}: ${operator}`;
 }
 
 function booleanLabel(rule: FilterRule) {

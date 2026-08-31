@@ -1613,8 +1613,8 @@ test("filter controls prefer configured field aliases without changing the store
     await fieldOption.click();
 
     const filterChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "符文名称" });
-    await expect(filterChip).toContainText("符文名称 包含");
-    await expect(filterChip).toHaveAttribute("title", "符文名称 包含");
+    await expect(filterChip).toHaveText("符文名称");
+    await expect(filterChip).toHaveAttribute("title", "符文名称");
     await filterChip.click();
     await expect(page.locator(".filter-popover-content strong")).toHaveText("符文名称");
 
@@ -3476,8 +3476,7 @@ test("multi-select filter popover supports operator text, selected chips, search
 
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" })).toBeVisible();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("包含");
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("spell");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "features" })).toContainText("features: spell");
   await expect(tableRows(page)).toHaveCount(1);
 
   const selectedChipRemove = filterPopover.locator(".filter-selected-chip-list .selected-chip").filter({ hasText: "spell" }).locator(".selected-chip-remove").first();
@@ -3860,7 +3859,7 @@ test("rapid ordinary filter value updates persist the latest profile snapshot", 
 
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category 包含 spell" })).toHaveCount(1);
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category: spell" })).toHaveCount(1);
   await expect(tableRows(page)).toHaveCount(1);
 });
 
@@ -4285,8 +4284,7 @@ test("select filter restores cached values after empty operators hide the value 
   const filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await filterPopover.locator(".filter-option-row").filter({ hasText: "spell" }).click();
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("spell");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("category: spell");
   await expect(tableRows(page)).toHaveCount(1);
 
   await filterPopover.locator(".filter-select-trigger").click();
@@ -4368,7 +4366,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).not.toContainText("包含");
   await expect(tableRows(page)).toHaveCount(3);
 
   await filterPopover.locator(".filter-select-trigger").click();
@@ -4386,7 +4384,7 @@ test("value filter cache stays scoped per view and clears after delete and recre
   filterPopover = page.locator(".filter-popover-content");
   await expect(filterPopover).toBeVisible();
   await expect(filterPopover.locator(".filter-selected-chip-list .selected-chip")).toHaveCount(0);
-  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).toContainText("包含");
+  await expect(page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "category" })).not.toContainText("包含");
   await expect(tableRows(page)).toHaveCount(3);
 });
 
@@ -4511,14 +4509,15 @@ test("relation filter keeps missing selected keys visible with fallback labels",
   expect(activeView).toBeTruthy();
   activeView!.filters = {
     op: "and",
-    rules: [{ id: "filter:skill_id", field: "skill_id", operator: "contains", value: ["missing_skill"] }],
+    rules: [{ id: "filter:skill_id", field: "skill_id", operator: "is", value: "missing_skill" }],
   };
   await saveSharedViewsConfig(page, sharedViews);
 
   await page.reload();
   await page.locator('.sidebar-item[title="data/e2e_relation.json"]').click();
   const relationChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "skill_id" });
-  await expect(relationChip).toContainText("包含");
+  await expect(relationChip).toHaveAttribute("title", "skill_id: missing_skill");
+  await expect(relationChip).not.toContainText("包含");
   await expect(relationChip).toContainText("missing_skill");
   await relationChip.click();
 
