@@ -5,11 +5,12 @@ import { FilterActionMenu } from "./FilterActionMenu";
 type BooleanFilterPopoverProps = {
   filters: FilterGroup;
   rule: FilterRule;
+  fieldLabel?: string;
   onMergeIntoAdvanced?: (() => void) | null;
   onChangeFilters: (filters: FilterGroup) => void;
 };
 
-export function BooleanFilterPopover({ filters, rule, onMergeIntoAdvanced = null, onChangeFilters }: BooleanFilterPopoverProps) {
+export function BooleanFilterPopover({ filters, rule, fieldLabel = rule.field, onMergeIntoAdvanced = null, onChangeFilters }: BooleanFilterPopoverProps) {
   function updateRule(nextRule: FilterRule) {
     onChangeFilters(replaceRule(filters, nextRule));
   }
@@ -23,7 +24,7 @@ export function BooleanFilterPopover({ filters, rule, onMergeIntoAdvanced = null
   return (
     <div className="filter-popover filter-popover-shell">
       <div className="filter-popover-header">
-        <strong>{rule.field}</strong>
+        <strong>{fieldLabel}</strong>
         <FilterActionMenu onDelete={deleteRule} onMergeIntoAdvanced={onMergeIntoAdvanced} />
       </div>
       <div className="filter-popover-section">

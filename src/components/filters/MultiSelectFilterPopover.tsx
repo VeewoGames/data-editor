@@ -22,6 +22,7 @@ export type CreateFilterOptionInput = {
 type MultiSelectFilterPopoverProps = {
   filters: FilterGroup;
   rule: FilterRule;
+  fieldLabel?: string;
   fieldType: "Select" | "Multi-select" | "Relation";
   options: MultiSelectOptionView[];
   mode?: "single" | "multi";
@@ -35,6 +36,7 @@ type MultiSelectFilterPopoverProps = {
 export function MultiSelectFilterPopover({
   filters,
   rule,
+  fieldLabel = rule.field,
   fieldType,
   options,
   mode = "multi",
@@ -157,7 +159,7 @@ export function MultiSelectFilterPopover({
   return (
     <div className="filter-popover filter-popover-shell">
       <div className="filter-popover-header">
-        <strong>{rule.field}</strong>
+        <strong>{fieldLabel}</strong>
         <FilterActionMenu onDelete={deleteRule} onMergeIntoAdvanced={onMergeIntoAdvanced} />
       </div>
       <div className="filter-popover-section">

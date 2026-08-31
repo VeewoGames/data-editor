@@ -7,6 +7,7 @@ export type DocumentPanelSnapshot = {
   width: number;
   activeFieldName: string | null;
   fieldName: string | null;
+  fieldLabel: string | null;
   documentId: string | null;
   title: string | null;
   relativePath: string | null;
@@ -116,7 +117,7 @@ export const DocumentPanel = forwardRef<HTMLElement, DocumentPanelProps>(functio
             <span>{snapshot.relativePath ?? snapshot.documentId}</span>
           ) : null}
           {snapshot.docRoot ? <span>docRoot: {snapshot.docRoot}</span> : null}
-          {snapshot.fieldName ? <span>字段: {snapshot.fieldName}</span> : null}
+          {snapshot.fieldName ? <span>字段: {snapshot.fieldLabel ?? snapshot.fieldName}</span> : null}
         </div>
       ) : null}
     </aside>

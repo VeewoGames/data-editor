@@ -1535,6 +1535,153 @@ test("configured field description appears after one second even when its column
   }
 });
 
+test("hidden fields panel prefers configured aliases and avoids horizontal scrolling", async ({ page }) => {
+  const originalResponse = await page.request.get("/api/view-config");
+  expect(originalResponse.ok()).toBe(true);
+  const originalConfig = await originalResponse.json();
+  const fieldKey = "data/runes.json:$:description";
+  const nextConfig = structuredClone(originalConfig);
+  nextConfig.fields[fieldKey] = {
+    ...(nextConfig.fields[fieldKey] ?? { selectOptions: {}, multiSelectOptions: {} }),
+    presentation: { label: "技能效果说明" },
+  };
+  const saveResponse = await page.request.post("/api/view-config", { data: { config: nextConfig } });
+  expect(saveResponse.ok()).toBe(true);
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("data-editor:data/runes.json:$:all:description:hidden", "1");
+    });
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator('col[data-column-field="description"]')).toHaveCount(0);
+
+    await page.locator(".toolbar-hidden-fields .ghost-button").click();
+    const panel = page.locator(".hidden-fields-panel");
+    const item = page.locator(".hidden-field-item");
+    await expect(panel).toBeVisible();
+    await expect(item).toContainText("技能效果说明");
+    await expect(item).not.toContainText("description");
+
+    const layout = await panel.evaluate((element) => {
+      const listElement = element.querySelector(".hidden-fields-list") as HTMLElement;
+      return {
+        width: element.getBoundingClientRect().width,
+        listMaxHeight: getComputedStyle(listElement).maxHeight,
+        listOverflowX: getComputedStyle(listElement).overflowX,
+        listScrollsHorizontally: listElement.scrollWidth > listElement.clientWidth,
+      };
+    });
+    expect(layout.width).toBeGreaterThanOrEqual(400);
+    expect(layout.listMaxHeight).toBe("420px");
+    expect(layout.listOverflowX).toBe("hidden");
+    expect(layout.listScrollsHorizontally).toBe(false);
+  } finally {
+    const restoreResponse = await page.request.post("/api/view-config", { data: { config: originalConfig } });
+    if (!restoreResponse.ok()) throw new Error(`Failed to restore view config: ${restoreResponse.status()}`);
+  }
+});
+
+test("filter controls prefer configured field aliases without changing the stored field key", async ({ page }) => {
+  const originalResponse = await page.request.get("/api/view-config");
+  expect(originalResponse.ok()).toBe(true);
+  const originalConfig = await originalResponse.json();
+  await page.goto("/");
+  const originalLocalStorage = await snapshotLocalStorage(page);
+  const fieldKey = "data/runes.json:$:rune_name";
+  const nextConfig = structuredClone(originalConfig);
+  nextConfig.fields[fieldKey] = {
+    ...(nextConfig.fields[fieldKey] ?? { selectOptions: {}, multiSelectOptions: {} }),
+    presentation: { label: "符文名称" },
+  };
+  const saveResponse = await page.request.post("/api/view-config", { data: { config: nextConfig } });
+  expect(saveResponse.ok()).toBe(true);
+
+  try {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.locator('.sidebar-item[title="data/runes.json"]').click();
+    await expect(page.locator(".data-table")).toBeVisible();
+
+    await page.getByRole("button", { name: "+ 筛选" }).click();
+    const fieldOption = page.locator(".add-filter-field-option").filter({ hasText: "符文名称" });
+    await expect(fieldOption).toHaveCount(1);
+    await expect(fieldOption.locator(".add-filter-field-name")).toHaveText("符文名称");
+    await fieldOption.click();
+
+    const filterChip = page.locator(".view-filter-chip:not(.sort-chip)").filter({ hasText: "符文名称" });
+    await expect(filterChip).toContainText("符文名称 包含");
+    await expect(filterChip).toHaveAttribute("title", "符文名称 包含");
+    await filterChip.click();
+    await expect(page.locator(".filter-popover-content strong")).toHaveText("符文名称");
+
+    await page.locator(".filter-action-trigger").click();
+    await page.locator(".filter-action-menu .menu-item").filter({ hasText: "合并到高级筛选中" }).click();
+    const advancedRule = page.locator(".advanced-filter-rule").first();
+    await expect(advancedRule.locator(".advanced-filter-field-trigger")).toContainText("符文名称");
+    await advancedRule.locator(".advanced-filter-field-trigger").click();
+    await expect(page.locator(".advanced-filter-field-content .menu-item").filter({ hasText: "符文名称" })).toHaveCount(1);
+
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "排序" }).click();
+    await page.locator('[data-sort-action="add"]').click();
+    const sortFieldTrigger = page.locator(".sort-field-trigger");
+    await sortFieldTrigger.click();
+    await page.locator(".sort-select-content .menu-item").filter({ hasText: "符文名称" }).click();
+    const sortChip = page.locator(".view-filter-chip.sort-chip");
+    await expect(sortChip).toContainText("↑ 符文名称");
+    await expect(sortChip).toHaveAttribute("title", "符文名称 asc");
+    await expect(sortFieldTrigger).toContainText("符文名称");
+  } finally {
+    const restoreResponse = await page.request.post("/api/view-config", { data: { config: originalConfig } });
+    if (!restoreResponse.ok()) throw new Error(`Failed to restore view config: ${restoreResponse.status()}`);
+    await restoreLocalStorage(page, originalLocalStorage);
+  }
+});
+
+test("truncated text cell reveals its complete value after one second and cancels on leave or scroll", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await page.locator('.sidebar-item[title="data/runes.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await resizeColumnHeader(page, "description", -220);
+
+  const display = page.locator('td[data-column-field="description"] .text-cell-display-layer span').first();
+  const tooltip = page.locator(".cell-truncation-tooltip");
+  const completeValue = await display.textContent();
+  expect(completeValue).toBeTruthy();
+  await expect.poll(async () => display.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+
+  await display.hover();
+  await page.waitForTimeout(900);
+  await expect(tooltip).toHaveCount(0);
+  await page.waitForTimeout(180);
+  await expect(tooltip).toHaveText(completeValue!);
+
+  await page.mouse.move(4, 4);
+  await expect(tooltip).toHaveCount(0);
+
+  await display.hover();
+  await page.waitForTimeout(1050);
+  await expect(tooltip).toBeVisible();
+  await page.locator(".table-scroll").evaluate((element) => element.dispatchEvent(new Event("scroll")));
+  await expect(tooltip).toHaveCount(0);
+
+  await page.mouse.move(4, 4);
+  await display.hover();
+  await page.waitForTimeout(1050);
+  await expect(tooltip).toBeVisible();
+  await page.mouse.down();
+  await expect(tooltip).toHaveCount(0);
+  await page.mouse.up();
+  await page.mouse.move(4, 4);
+});
+
 test("column header tooltip hides during drag and resize and can recover after pointercancel", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());

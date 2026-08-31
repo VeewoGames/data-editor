@@ -16,6 +16,7 @@ import { useListboxPointerNavigation } from "../useListboxPointerNavigation";
 import {
   checkboxOperatorOptions,
   discreteOperatorOptions,
+  fieldLabel,
   filterOptions,
   mergeSelectedOptions,
   normalizeSelectedValues,
@@ -61,7 +62,7 @@ export function AdvancedFilterRuleEditor({
   const operatorOptions = operatorsForFieldType(fieldType);
   const fieldOptions = fields.map((field) => ({
     value: field,
-    label: field,
+    label: fieldLabel(field, fieldViewConfigs),
     fieldType: resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes),
   }));
   const normalizedOperatorOptions = operatorOptions.map((option) => ({

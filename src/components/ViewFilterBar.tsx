@@ -9,7 +9,7 @@ import { isListboxNavigationKey, resolveListboxNavigationIndex } from "./listbox
 import { icons } from "./icons";
 import { AdvancedFilterPanel } from "./filters/AdvancedFilterPanel";
 import { BooleanFilterPopover } from "./filters/BooleanFilterPopover";
-import { optionsForField, resolveFieldType } from "./filters/filter-rule-ui";
+import { fieldLabel, optionsForField, resolveFieldType } from "./filters/filter-rule-ui";
 import { MultiSelectFilterPopover, type CreateFilterOptionInput } from "./filters/MultiSelectFilterPopover";
 import { TextFilterPopover } from "./filters/TextFilterPopover";
 import { SortPopover } from "./sort/SortPopover";
@@ -85,21 +85,22 @@ export function ViewFilterBar({
 
   useEffect(() => {
     if (!autoOpenRuleId) return;
-    if (handledAutoOpenRuleIdRef.current === autoOpenRuleId) return;
+    const autoOpenRequestKey = `${currentScopeKey}::${autoOpenRuleId}`;
+    if (handledAutoOpenRuleIdRef.current === autoOpenRequestKey) return;
     if (!visibleFilterRules.some((rule) => rule.id === autoOpenRuleId)) return;
     if (openRuleId === autoOpenRuleId) {
-      handledAutoOpenRuleIdRef.current = autoOpenRuleId;
+      handledAutoOpenRuleIdRef.current = autoOpenRequestKey;
       onAutoOpenRuleHandled();
       return;
     }
     setAddFilterOpen(false);
     const frameId = window.requestAnimationFrame(() => {
-      handledAutoOpenRuleIdRef.current = autoOpenRuleId;
+      handledAutoOpenRuleIdRef.current = autoOpenRequestKey;
       setOpenRuleId(autoOpenRuleId);
       onAutoOpenRuleHandled();
     });
     return () => window.cancelAnimationFrame(frameId);
-  }, [autoOpenRuleId, onAutoOpenRuleHandled, openRuleId, visibleFilterRules]);
+  }, [autoOpenRuleId, currentScopeKey, onAutoOpenRuleHandled, openRuleId, visibleFilterRules]);
 
   useEffect(() => {
     const liveRuleKeys = new Set(visibleFilterRules.map((rule) => scopedRecentValueKey(currentScopeKey, rule.id)));
@@ -134,7 +135,7 @@ export function ViewFilterBar({
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content className="menu-content sort-popover-content" sideOffset={6} align="start">
-            <SortPopover fields={fields} sorts={sorts} onChangeSorts={onChangeSorts} />
+            <SortPopover fields={fields} fieldViewConfigs={fieldViewConfigs} sorts={sorts} onChangeSorts={onChangeSorts} />
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
@@ -174,7 +175,7 @@ export function ViewFilterBar({
                   <span className="add-filter-field-icon" data-field-icon={resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes)}>
                     <FieldTypeIcon fieldType={resolveFieldType(field, displayTypes, fieldViewConfigs, fieldTypes)} size={14} strokeWidth={2.2} />
                   </span>
-                  <span className="add-filter-field-name">{field}</span>
+                  <span className="add-filter-field-name">{fieldLabel(field, fieldViewConfigs)}</span>
                 </button>
               ))}
             </div>
@@ -185,14 +186,14 @@ export function ViewFilterBar({
         {sorts.length ? (
           <Popover.Root>
             <Popover.Trigger asChild>
-              <button className="view-filter-chip filter-chip sort-chip" type="button" title={sortChipTitle(sorts)}>
-                <span className="filter-chip-label">{sortChipLabel(sorts)}</span>
+              <button className="view-filter-chip filter-chip sort-chip" type="button" title={sortChipTitle(sorts, fieldViewConfigs)}>
+                <span className="filter-chip-label">{sortChipLabel(sorts, fieldViewConfigs)}</span>
                 <icons.chevronDown className="filter-chip-chevron" size={14} />
               </button>
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content className="menu-content sort-popover-content" sideOffset={6} align="start">
-                <SortPopover fields={fields} sorts={sorts} onChangeSorts={onChangeSorts} />
+                <SortPopover fields={fields} fieldViewConfigs={fieldViewConfigs} sorts={sorts} onChangeSorts={onChangeSorts} />
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
@@ -298,14 +299,16 @@ function renderFilterPopover(
   onCreateFormalOption?: (input: CreateFilterOptionInput) => Promise<MultiSelectOptionView[]>,
 ) {
   const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
+  const label = fieldLabel(rule.field, fieldViewConfigs);
   if (fieldType === "Checkbox") {
-    return <BooleanFilterPopover filters={filters} rule={rule} onMergeIntoAdvanced={onMergeIntoAdvanced} onChangeFilters={onChangeFilters} />;
+    return <BooleanFilterPopover filters={filters} rule={rule} fieldLabel={label} onMergeIntoAdvanced={onMergeIntoAdvanced} onChangeFilters={onChangeFilters} />;
   }
   if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
     return (
       <MultiSelectFilterPopover
         filters={filters}
         rule={rule}
+        fieldLabel={label}
         fieldType={fieldType}
         mode="multi"
         options={optionsForField(rule.field, fieldType, fieldViewConfigs, relationFilterOptions)}
@@ -317,7 +320,7 @@ function renderFilterPopover(
       />
     );
   }
-  return <TextFilterPopover filters={filters} rule={rule} onMergeIntoAdvanced={onMergeIntoAdvanced} onChangeFilters={onChangeFilters} />;
+  return <TextFilterPopover filters={filters} rule={rule} fieldLabel={label} onMergeIntoAdvanced={onMergeIntoAdvanced} onChangeFilters={onChangeFilters} />;
 }
 
 function filterChipLabel(
@@ -328,21 +331,22 @@ function filterChipLabel(
   relationFilterOptions: Record<string, MultiSelectOptionView[]> = {},
 ) {
   const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
+  const label = fieldLabel(rule.field, fieldViewConfigs);
   if (fieldType === "Checkbox") {
-    const label = booleanLabel(rule);
-    return label ? `${rule.field}: ${label}` : rule.field;
+    const valueLabel = booleanLabel(rule);
+    return valueLabel ? `${label}: ${valueLabel}` : label;
   }
   if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
     const labels = normalizeFilterValues(rule.value)
       .map((value) => optionLabel(rule.field, value, fieldType, fieldViewConfigs, relationFilterOptions));
     const operator = valueOperatorLabel(rule.operator);
-    if (!labels.length) return `${rule.field} ${operator}`;
-    return `${rule.field} ${operator} ${truncateList(labels)}`;
+    if (!labels.length) return `${label} ${operator}`;
+    return `${label} ${operator} ${truncateList(labels)}`;
   }
   const textOperator = textOperatorLabel(rule.operator);
   const value = textValue(rule.value);
-  if (!value) return `${rule.field} ${textOperator}`;
-  return `${rule.field} ${textOperator} ${truncateText(value, 28)}`;
+  if (!value) return `${label} ${textOperator}`;
+  return `${label} ${textOperator} ${truncateText(value, 28)}`;
 }
 
 function filterChipTitle(
@@ -353,21 +357,22 @@ function filterChipTitle(
   relationFilterOptions: Record<string, MultiSelectOptionView[]> = {},
 ) {
   const fieldType = resolveFieldType(rule.field, displayTypes, fieldViewConfigs, fieldTypes);
+  const label = fieldLabel(rule.field, fieldViewConfigs);
   if (fieldType === "Checkbox") {
-    const label = booleanLabel(rule);
-    return label ? `${rule.field}: ${label}` : rule.field;
+    const valueLabel = booleanLabel(rule);
+    return valueLabel ? `${label}: ${valueLabel}` : label;
   }
   if (fieldType === "Multi-select" || fieldType === "Select" || fieldType === "Relation") {
     const operator = valueOperatorLabel(rule.operator);
     const values = normalizeFilterValues(rule.value);
-    if (!values.length) return `${rule.field} ${operator}`;
+    if (!values.length) return `${label} ${operator}`;
     const labels = values.map((value) => optionLabel(rule.field, value, fieldType, fieldViewConfigs, relationFilterOptions));
-    return `${rule.field} ${operator} ${labels.join(", ")}`;
+    return `${label} ${operator} ${labels.join(", ")}`;
   }
   const operator = textOperatorLabel(rule.operator);
   const values = normalizeFilterValues(rule.value);
-  if (!values.length) return `${rule.field} ${operator}`;
-  return `${rule.field} ${operator} ${values.join(", ")}`;
+  if (!values.length) return `${label} ${operator}`;
+  return `${label} ${operator} ${values.join(", ")}`;
 }
 
 function booleanLabel(rule: FilterRule) {
@@ -425,14 +430,14 @@ function textOperatorLabel(operator: FilterRule["operator"]) {
   return "包含";
 }
 
-function sortChipLabel(sorts: SortRule[]) {
+function sortChipLabel(sorts: SortRule[], fieldViewConfigs: Record<string, FieldViewConfig>) {
   if (sorts.length > 1) return `⇵ ${sorts.length} 个排序`;
   const firstSort = sorts[0];
   if (!firstSort) return "";
-  return `${firstSort.direction === "asc" ? "↑" : "↓"} ${firstSort.field}`;
+  return `${firstSort.direction === "asc" ? "↑" : "↓"} ${fieldLabel(firstSort.field, fieldViewConfigs)}`;
 }
 
-function sortChipTitle(sorts: SortRule[]) {
+function sortChipTitle(sorts: SortRule[], fieldViewConfigs: Record<string, FieldViewConfig>) {
   if (!sorts.length) return "";
-  return sorts.map((sort) => `${sort.field} ${sort.direction}`).join(", ");
+  return sorts.map((sort) => `${fieldLabel(sort.field, fieldViewConfigs)} ${sort.direction}`).join(", ");
 }

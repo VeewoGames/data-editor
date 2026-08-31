@@ -4,7 +4,7 @@ import { icons } from "./icons";
 type TableSettingsPopoverProps = {
   selectedFilePath: string | null;
   documentRoot: string;
-  documentFields: Array<{ fieldName: string; enabled: boolean }>;
+  documentFields: Array<{ fieldName: string; label: string; enabled: boolean }>;
   resolvedCount: number;
   conflictCount: number;
   indexError: string | null;
@@ -86,7 +86,7 @@ export function TableSettingsPopover({
                         onChange={(event) => onSetDocumentFieldEnabled(field.fieldName, event.target.checked)}
                         type="checkbox"
                       />
-                      <span>{field.fieldName}</span>
+                      <span>{field.label}</span>
                     </label>
                   ))}
                 </div>

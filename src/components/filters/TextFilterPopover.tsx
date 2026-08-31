@@ -8,11 +8,12 @@ import { FilterActionMenu } from "./FilterActionMenu";
 type TextFilterPopoverProps = {
   filters: FilterGroup;
   rule: FilterRule;
+  fieldLabel?: string;
   onMergeIntoAdvanced?: (() => void) | null;
   onChangeFilters: (filters: FilterGroup) => void;
 };
 
-export function TextFilterPopover({ filters, rule, onMergeIntoAdvanced = null, onChangeFilters }: TextFilterPopoverProps) {
+export function TextFilterPopover({ filters, rule, fieldLabel = rule.field, onMergeIntoAdvanced = null, onChangeFilters }: TextFilterPopoverProps) {
   const activeOperator = textOperatorOptions.some((item) => item.value === rule.operator) ? rule.operator : "contains";
   const operatorConfig = textOperatorOptions.find((item) => item.value === activeOperator) ?? textOperatorOptions[0];
 
@@ -27,7 +28,7 @@ export function TextFilterPopover({ filters, rule, onMergeIntoAdvanced = null, o
   return (
     <div className="filter-popover filter-popover-shell">
       <div className="filter-popover-header">
-        <strong>{rule.field}</strong>
+        <strong>{fieldLabel}</strong>
         <FilterActionMenu onDelete={deleteRule} onMergeIntoAdvanced={onMergeIntoAdvanced} />
       </div>
       <div className="filter-popover-section">

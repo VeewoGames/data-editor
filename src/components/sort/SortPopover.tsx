@@ -1,12 +1,15 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import * as Select from "@radix-ui/react-select";
 import type { SortRule } from "../../api/client";
+import type { FieldViewConfig } from "../../model/viewConfig";
+import { fieldLabel } from "../filters/filter-rule-ui";
 import { useVerticalListDragReorder } from "../useVerticalListDragReorder";
 import { icons } from "../icons";
 import { reorderSortRulesById } from "./reorder-sort-rules.mjs";
 
 type SortPopoverProps = {
   fields: string[];
+  fieldViewConfigs: Record<string, FieldViewConfig>;
   sorts: SortRule[];
   onChangeSorts: (sorts: SortRule[]) => void;
 };
@@ -16,7 +19,7 @@ const sortDirections: Array<{ value: SortRule["direction"]; label: string }> = [
   { value: "desc", label: "降序" },
 ];
 
-export function SortPopover({ fields, sorts, onChangeSorts }: SortPopoverProps) {
+export function SortPopover({ fields, fieldViewConfigs, sorts, onChangeSorts }: SortPopoverProps) {
   const availableFields = fields.length ? fields : sorts.map((sort) => sort.field);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const sortRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -77,6 +80,7 @@ export function SortPopover({ fields, sorts, onChangeSorts }: SortPopoverProps) 
             ) : null}
             <SortRuleRow
               availableFields={availableFields}
+              fieldViewConfigs={fieldViewConfigs}
               onBeginDrag={beginDrag}
               onDeleteSort={deleteSort}
               onUpdateSort={updateSort}
@@ -105,7 +109,7 @@ export function SortPopover({ fields, sorts, onChangeSorts }: SortPopoverProps) 
           {(() => {
             const activeSort = sorts.find((sort) => sort.id === draggingId);
             if (!activeSort) return null;
-            return <SortRuleGhost sort={activeSort} />;
+            return <SortRuleGhost fieldViewConfigs={fieldViewConfigs} sort={activeSort} />;
           })()}
         </div>
       ) : null}
@@ -115,6 +119,7 @@ export function SortPopover({ fields, sorts, onChangeSorts }: SortPopoverProps) 
 
 type SortRuleRowProps = {
   availableFields: string[];
+  fieldViewConfigs: Record<string, FieldViewConfig>;
   onBeginDrag: (id: string, event: ReactPointerEvent<HTMLElement>) => void;
   onDeleteSort: (sortId: string) => void;
   onUpdateSort: (sortId: string, patch: Partial<SortRule>) => void;
@@ -125,6 +130,7 @@ type SortRuleRowProps = {
 
 function SortRuleRow({
   availableFields,
+  fieldViewConfigs,
   onBeginDrag,
   onDeleteSort,
   onUpdateSort,
@@ -135,7 +141,7 @@ function SortRuleRow({
   return (
     <div className="sort-rule-row" data-sort-id={sort.id} ref={rowRef}>
       <button
-        aria-label={`拖拽排序 ${sort.field}`}
+        aria-label={`拖拽排序 ${fieldLabel(sort.field, fieldViewConfigs)}`}
         className="sort-rule-drag-handle"
         onPointerDown={(event) => {
           event.preventDefault();
@@ -155,7 +161,7 @@ function SortRuleRow({
             <Select.Viewport>
               {availableFields.map((field) => (
                 <Select.Item className="menu-item" key={field} value={field}>
-                  <Select.ItemText>{field}</Select.ItemText>
+                  <Select.ItemText>{fieldLabel(field, fieldViewConfigs)}</Select.ItemText>
                 </Select.Item>
               ))}
             </Select.Viewport>
@@ -186,11 +192,11 @@ function SortRuleRow({
   );
 }
 
-function SortRuleGhost({ sort }: { sort: SortRule }) {
+function SortRuleGhost({ fieldViewConfigs, sort }: { fieldViewConfigs: Record<string, FieldViewConfig>; sort: SortRule }) {
   return (
     <>
       <span className="sort-rule-drag-handle ghost"><icons.dragHandle size={14} /></span>
-      <span className="sort-rule-ghost-field">{sort.field}</span>
+      <span className="sort-rule-ghost-field">{fieldLabel(sort.field, fieldViewConfigs)}</span>
       <span className="sort-rule-ghost-direction">{sort.direction === "asc" ? "升序" : "降序"}</span>
       <span className="sort-rule-ghost-delete"><icons.delete size={15} /></span>
     </>

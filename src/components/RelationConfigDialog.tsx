@@ -7,12 +7,15 @@ import { SearchablePicker } from "./SearchablePicker";
 import type { CollectionInfo, DataRecord, DocumentModel } from "../model/documentModel";
 import { getMainColumns, getRows } from "../model/documentModel";
 import type { RelationConfig, RelationMode } from "../model/viewConfig";
+import type { FieldViewConfig } from "../model/viewConfig";
 import { describeFileBasename, matchesFileSearchQuery } from "../searchable-picker-utils.mjs";
 
 type RelationConfigDialogProps = {
   open: boolean;
   files: DataFile[];
   fieldName: string | null;
+  fieldLabel?: string | null;
+  fieldViewConfigs: Record<string, FieldViewConfig>;
   config: RelationConfig | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: (config: RelationConfig) => void;
@@ -131,6 +134,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
   const hasValidCollection = Boolean(targetModel?.collections.some((collection) => collection.path === targetCollection));
   const hasValidTargetKey = targetFields.includes(targetKey);
   const isValidConfig = Boolean(targetFile && hasValidCollection && hasValidTargetKey && !loadingTarget && !loadError);
+  const targetFieldLabel = (field: string) => props.fieldViewConfigs[`${targetFile}:${targetCollection}:${field}`]?.presentation?.label ?? field;
 
   return (
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
@@ -139,7 +143,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
         <Dialog.Content className="dialog-content relation-config-dialog">
           <Dialog.Title asChild><h2>{props.config ? "编辑关联字段" : "设为关联字段"}</h2></Dialog.Title>
           <div className="dialog-description">
-            {props.fieldName ? `当前字段：${props.fieldName}` : "选择一个字段后配置关联。"}
+            {props.fieldName ? `当前字段：${props.fieldLabel ?? props.fieldName}` : "选择一个字段后配置关联。"}
           </div>
           <label className="dialog-field">
             <span>目标文件</span>
@@ -212,7 +216,7 @@ export function RelationConfigDialog(props: RelationConfigDialogProps) {
                 <Select.Content className="menu-content select-content relation-config-select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
                     {targetFields.map((field: string) => (
-                      <Select.Item className="menu-item" key={field} value={field}><Select.ItemText>{field}</Select.ItemText></Select.Item>
+                      <Select.Item className="menu-item" key={field} value={field}><Select.ItemText>{targetFieldLabel(field)}</Select.ItemText></Select.Item>
                     ))}
                   </Select.Viewport>
                 </Select.Content>

@@ -25,6 +25,10 @@ export const checkboxOperatorOptions: Array<{ value: FilterOperator; label: stri
   { value: "is_not_empty", label: "不为空", needsValue: false },
 ];
 
+export function fieldLabel(field: string, fieldViewConfigs: Record<string, FieldViewConfig>) {
+  return fieldViewConfigs[field]?.presentation?.label ?? field;
+}
+
 export function resolveFieldType(
   field: string,
   displayTypes: Record<string, FieldDisplayType>,

@@ -5,6 +5,7 @@ type PrimaryKeyCandidateBannerProps = {
   filePath: string;
   collectionPath: string;
   candidates: PrimaryKeyCandidate[];
+  fieldLabels: Record<string, string>;
   onConfirm: () => void;
   onDismiss: () => void;
 };
@@ -16,7 +17,7 @@ export function PrimaryKeyCandidateBanner(props: PrimaryKeyCandidateBannerProps)
   const description = hasMultiple
     ? "检测到多个候选主键。该集合尚未配置 primary key，请确认后启用完整关联能力。"
     : primaryCandidate
-      ? `检测到 1 个候选主键：${primaryCandidate.fieldName}。该集合尚未配置 primary key，部分关联能力暂不可用。`
+      ? `检测到 1 个候选主键：${props.fieldLabels?.[primaryCandidate.fieldName] ?? primaryCandidate.fieldName}。该集合尚未配置 primary key，部分关联能力暂不可用。`
       : "该集合尚未配置 primary key。";
 
   return (

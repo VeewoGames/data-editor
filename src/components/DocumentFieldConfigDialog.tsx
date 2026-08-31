@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 type DocumentFieldConfigDialogProps = {
   open: boolean;
   fieldName: string | null;
+  fieldLabel?: string | null;
   sourcePath: string | null;
   docRoot: string | null;
   enabled: boolean;
@@ -14,6 +15,7 @@ type DocumentFieldConfigDialogProps = {
 export function DocumentFieldConfigDialog({
   open,
   fieldName,
+  fieldLabel,
   sourcePath,
   docRoot,
   enabled,
@@ -34,7 +36,7 @@ export function DocumentFieldConfigDialog({
         <Dialog.Content className="dialog-content document-field-config-dialog">
           <Dialog.Title>文档字段</Dialog.Title>
           <div className="dialog-description">
-            {fieldName ? `当前字段：${fieldName}` : "请选择一个 Document 字段。"}
+            {fieldName ? `当前字段：${fieldLabel ?? fieldName}` : "请选择一个 Document 字段。"}
           </div>
           <div className="document-field-config-meta">
             <span>当前文件</span><code>{sourcePath ?? "未选择文件"}</code>

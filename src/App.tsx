@@ -705,6 +705,9 @@ export function App() {
     setTableTextEditMode((current) => current ? current : true);
   }, []);
   const [pendingOpenFilterRuleId, setPendingOpenFilterRuleId] = useState<string | null>(null);
+  const handleAutoOpenFilterRuleHandled = useCallback(() => {
+    setPendingOpenFilterRuleId(null);
+  }, []);
   const [uiRevision, bumpUiRevision] = useState(0);
   const [layoutRevision, bumpLayoutRevision] = useState(0);
   const [tableRevision, bumpTableRevision] = useState(0);
@@ -2453,9 +2456,10 @@ export function App() {
       .filter(([, displayType]) => displayType === "Document")
       .map(([fieldName]) => ({
         fieldName,
+        label: fieldViewConfigs[fieldName]?.presentation?.label ?? fieldName,
         enabled: configuredDocumentFields.includes(fieldName),
       })),
-    [fieldConfig.displayTypes, configuredDocumentFields],
+    [fieldConfig.displayTypes, configuredDocumentFields, fieldViewConfigs],
   );
   const validationSnapshot = useMemo(
     () => {
@@ -2734,6 +2738,7 @@ export function App() {
             ? (documentContent?.status ?? "missing")
             : "empty",
       fieldName: activeDocumentField?.fieldName ?? null,
+      fieldLabel: activeDocumentField?.fieldName ? (fieldViewConfigs[activeDocumentField.fieldName]?.presentation?.label ?? activeDocumentField.fieldName) : null,
       documentId: activeDocumentField?.documentId || null,
       title: documentContent?.status === "resolved"
         ? (documentContent.title ?? activeDocumentField?.label ?? activeDocumentField?.documentId ?? null)
@@ -2781,6 +2786,7 @@ export function App() {
     activeDocumentFieldName,
     selectedDocumentFields,
     activeDocumentField,
+    fieldViewConfigs,
     documentContent,
     documentContentLoading,
     documentContentError,
@@ -5845,7 +5851,7 @@ export function App() {
                     onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
                     onAddFilter={handleAddFilter}
                     onCreateFormalOption={handleCreateFormalFilterOption}
-                    onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
+                    onAutoOpenRuleHandled={handleAutoOpenFilterRuleHandled}
                     onResetView={handleResetSharedViewDraft}
                   />
                 </Profiler>
@@ -5856,6 +5862,7 @@ export function App() {
                     filePath={selectedPath}
                     collectionPath={collectionPath}
                     candidates={activePrimaryKeyCandidates}
+                    fieldLabels={Object.fromEntries(Object.keys(fieldViewConfigs).map((fieldName) => [fieldName, fieldViewConfigs[fieldName]?.presentation?.label ?? fieldName]))}
                     onConfirm={openPrimaryKeyCandidateDialog}
                     onDismiss={dismissPrimaryKeyCandidates}
                   />
@@ -5964,7 +5971,7 @@ export function App() {
                 onChangeSorts={(sorts) => updateActiveViewDraft({ sorts })}
                 onAddFilter={handleAddFilter}
                 onCreateFormalOption={handleCreateFormalFilterOption}
-                onAutoOpenRuleHandled={() => setPendingOpenFilterRuleId(null)}
+                onAutoOpenRuleHandled={handleAutoOpenFilterRuleHandled}
                 onResetView={handleResetSharedViewDraft}
               />
             ) : null}
@@ -5973,6 +5980,7 @@ export function App() {
                 filePath={selectedPath}
                 collectionPath={collectionPath}
                 candidates={activePrimaryKeyCandidates}
+                fieldLabels={Object.fromEntries(Object.keys(fieldViewConfigs).map((fieldName) => [fieldName, fieldViewConfigs[fieldName]?.presentation?.label ?? fieldName]))}
                 onConfirm={openPrimaryKeyCandidateDialog}
                 onDismiss={dismissPrimaryKeyCandidates}
               />
@@ -6061,6 +6069,8 @@ export function App() {
         open={relationConfigField != null}
         files={files}
         fieldName={relationConfigField}
+        fieldLabel={relationConfigField ? (fieldViewConfigs[relationConfigField]?.presentation?.label ?? relationConfigField) : null}
+        fieldViewConfigs={viewConfig.fields}
         config={relationConfigForDialog}
         onOpenChange={(open) => !open && setRelationConfigField(null)}
         onConfirm={confirmRelationConfig}
@@ -6068,6 +6078,7 @@ export function App() {
       <DocumentFieldConfigDialog
         open={documentConfigField != null}
         fieldName={documentConfigField}
+        fieldLabel={documentConfigField ? (fieldViewConfigs[documentConfigField]?.presentation?.label ?? documentConfigField) : null}
         sourcePath={selectedPath}
         docRoot={selectedPath ? (viewConfig.documentFiles[selectedPath]?.docRoot ?? null) : null}
         enabled={documentFieldConfigEnabled}
@@ -6100,6 +6111,7 @@ export function App() {
         filePath={selectedPath}
         collectionPath={collectionPath}
         candidates={activePrimaryKeyCandidates}
+        fieldLabels={Object.fromEntries(Object.keys(fieldViewConfigs).map((fieldName) => [fieldName, fieldViewConfigs[fieldName]?.presentation?.label ?? fieldName]))}
         filtered={activePrimaryKeyCandidateAnalysis.filtered}
         warnings={activePrimaryKeyCandidateWarnings}
         value={selectedPrimaryKeyCandidate}
@@ -8232,6 +8244,7 @@ function PrimaryKeyCandidateDialog(props: {
   filePath: string | null;
   collectionPath: string;
   candidates: PrimaryKeyCandidate[];
+  fieldLabels: Record<string, string>;
   filtered: FilteredPrimaryKeyCandidate[];
   warnings: string[];
   value: string;
@@ -8249,7 +8262,7 @@ function PrimaryKeyCandidateDialog(props: {
           <Dialog.Description className="dialog-description">
             {hasMultiple
               ? `为 ${props.filePath ?? ""} / ${props.collectionPath} 选择一个 primary key。`
-              : `将 ${props.value} 设为 ${props.filePath ?? ""} / ${props.collectionPath} 的 primary key。`}
+              : `将 ${props.fieldLabels[props.value] ?? props.value} 设为 ${props.filePath ?? ""} / ${props.collectionPath} 的 primary key。`}
           </Dialog.Description>
           {hasMultiple ? (
             <label className="dialog-field">
@@ -8264,7 +8277,7 @@ function PrimaryKeyCandidateDialog(props: {
                     <Select.Viewport>
                       {props.candidates.map((candidate) => (
                         <Select.Item className="menu-item" key={candidate.fieldName} value={candidate.fieldName}>
-                          <Select.ItemText>{candidate.fieldName}</Select.ItemText>
+                          <Select.ItemText>{props.fieldLabels[candidate.fieldName] ?? candidate.fieldName}</Select.ItemText>
                         </Select.Item>
                       ))}
                     </Select.Viewport>
@@ -8277,7 +8290,7 @@ function PrimaryKeyCandidateDialog(props: {
             <div className="primary-key-candidate-summary">
               {props.candidates.map((candidate) => (
                 <div className={`primary-key-candidate-summary__row ${candidate.fieldName === props.value ? "is-selected" : ""}`} key={candidate.fieldName}>
-                  <strong>{candidate.fieldName}</strong>
+                  <strong>{props.fieldLabels[candidate.fieldName] ?? candidate.fieldName}</strong>
                   <small>
                     {candidate.confidence === "high" ? "高置信" : "次级候选"} · 唯一值 {candidate.uniqueCount} · 缺失 {candidate.missingCount}
                   </small>
@@ -8291,7 +8304,7 @@ function PrimaryKeyCandidateDialog(props: {
               <div className="primary-key-candidate-filtered__list">
                 {props.filtered.map((candidate) => (
                   <div className="primary-key-candidate-filtered__row" key={candidate.fieldName}>
-                    <strong>{candidate.fieldName}</strong>
+                    <strong>{props.fieldLabels[candidate.fieldName] ?? candidate.fieldName}</strong>
                     <small>{formatFilteredCandidateReason(candidate)}</small>
                   </div>
                 ))}

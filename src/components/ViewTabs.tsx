@@ -61,7 +61,7 @@ export type ViewTabsSnapshot = {
   viewOrderDirty: boolean;
   selectedFilePath: string | null;
   documentRoot: string;
-  documentFields: Array<{ fieldName: string; enabled: boolean }>;
+  documentFields: Array<{ fieldName: string; label: string; enabled: boolean }>;
   documentResolvedCount: number;
   documentConflictCount: number;
   documentIndexError: string | null;
