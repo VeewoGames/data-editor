@@ -58,7 +58,7 @@ export type SingleSelectOptionView = {
   color: MultiSelectOptionColor | null;
 };
 
-export type RealFieldType = "Text" | "Select" | "Document";
+export type RealFieldType = "Text" | "Checkbox" | "Select" | "Document";
 export type RelationMode = "single" | "multi";
 export type BacklinkDisplayMode = "list";
 

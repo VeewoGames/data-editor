@@ -1,6 +1,7 @@
 import { saveDocumentsWith } from "./save-documents.mjs";
 import { createSaveIdempotencyKey } from "./save-idempotency-key.mjs";
 import type { DocumentModel } from "../model/documentModel";
+import type { RealFieldType } from "../model/viewConfig";
 import normalizeFetchedViewConfig from "../view-config-client.mjs";
 import { recordWindowAutosaveDebugEvent } from "../autosave-debug.mjs";
 
@@ -228,7 +229,7 @@ export type BacklinkConfig = {
 };
 export type ViewConfig = {
   fields: Record<string, {
-    type?: "Text" | "Select" | "Document";
+    type?: RealFieldType;
     presentation?: {
       label?: string;
       description?: string;

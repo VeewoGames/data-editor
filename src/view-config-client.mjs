@@ -35,7 +35,7 @@ function normalizeFields(value) {
     const normalizedMultiSelectOptions = normalizeOptionMap(fieldConfig.multiSelectOptions);
     const presentation = normalizeFieldPresentation(fieldConfig.presentation);
     normalizedFields[fieldKey] = {
-      type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
+      type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Checkbox" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
       selectOptions: normalizedSelectOptions,
       multiSelectOptions: normalizedMultiSelectOptions,
       ...(presentation ? { presentation } : {}),

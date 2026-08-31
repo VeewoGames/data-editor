@@ -4574,7 +4574,7 @@ export function App() {
       }
       addField(model, collectionPath, selectedSourceRowIndex, fieldName, defaultEmptyValue(newFieldType), newFieldApplyAll);
     });
-    if (selectedPath && (newFieldType === "Text" || newFieldType === "Select" || newFieldType === "Document")) {
+    if (selectedPath && (newFieldType === "Text" || newFieldType === "Checkbox" || newFieldType === "Select" || newFieldType === "Document")) {
       mutateViewConfig((draft) => {
         const key = fieldViewConfigKey(selectedPath, collectionPath, fieldName);
         if (!key) return;
@@ -6171,7 +6171,7 @@ function AddFieldDialog(props: {
               <Select.Portal>
                 <Select.Content className="menu-content select-content" position="popper" sideOffset={6}>
                   <Select.Viewport>
-                    {["Text", "Select", "Document"].map((type) => (
+                    {["Text", "Checkbox", "Select", "Document"].map((type) => (
                       <Select.Item className="menu-item" key={type} value={type}><Select.ItemText>{type}</Select.ItemText></Select.Item>
                     ))}
                   </Select.Viewport>

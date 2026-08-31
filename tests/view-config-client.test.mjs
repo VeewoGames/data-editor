@@ -42,6 +42,19 @@ test("normalizeFetchedViewConfig preserves valid field presentation", () => {
   });
 });
 
+test("normalizeFetchedViewConfig preserves Checkbox field declarations", () => {
+  const normalized = normalizeFetchedViewConfig({
+    fields: {
+      "data/items.json:$:enabled": {
+        type: "Checkbox",
+        selectOptions: {},
+        multiSelectOptions: {},
+      },
+    },
+  });
+  assert.equal(normalized.fields["data/items.json:$:enabled"].type, "Checkbox");
+});
+
 test("normalizeFetchedViewConfig drops relation configs that conflict with enabled document fields", () => {
   const normalized = normalizeFetchedViewConfig({
     fields: {

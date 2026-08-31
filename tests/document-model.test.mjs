@@ -188,6 +188,13 @@ test("add field writes empty value to selected row only by default", () => {
   assert.equal("notes" in model.root[1], false);
 });
 
+test("add field writes false for Checkbox values without overwriting existing fields", () => {
+  const model = buildDocumentModel([{ id: 1 }, { id: 2, enabled: true }], "json");
+  addField(model, "$", 0, "enabled", false, true);
+  assert.equal(model.root[0].enabled, false);
+  assert.equal(model.root[1].enabled, true);
+});
+
 test("delete field removes key from every record in collection", () => {
   const model = buildDocumentModel([{ id: 1, tmp: "x" }, { id: 2, tmp: "y" }], "json");
   const count = deleteField(model, "$", "tmp");

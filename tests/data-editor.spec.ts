@@ -9345,6 +9345,29 @@ test("add field dialog persists document field type into project config", async 
   });
 });
 
+test("add field dialog creates and persists Checkbox fields", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();
+  await expect(page.locator(".data-table")).toBeVisible();
+  await page.locator('button[title="Add field"]').click();
+  await page.getByRole("textbox", { name: "字段名" }).fill("enabled");
+  await page.locator(".dialog-content .dialog-check input").check();
+  const trigger = page.locator(".dialog-content .select-trigger");
+  await trigger.click();
+  await page.locator('[role="option"]').filter({ hasText: "Checkbox" }).click();
+  await page.locator(".dialog-content .primary-button").click();
+
+  await waitForProjectConfigWrite(page, (text) => {
+    const config = JSON.parse(text);
+    return config.fields?.["data/e2e_select.json:$:enabled"]?.type === "Checkbox";
+  });
+  const checkboxCells = page.locator('td[data-column-field="enabled"] input[type="checkbox"]');
+  const rowCount = await tableRows(page).count();
+  expect(rowCount).toBeGreaterThan(1);
+  await expect(checkboxCells).toHaveCount(rowCount);
+  for (const checkbox of await checkboxCells.all()) await expect(checkbox).not.toBeChecked();
+});
+
 test("table settings popover saves docRoot for the current file", async ({ page }) => {
   await page.goto("/");
   await page.locator('.sidebar-item[title="data/e2e_select.json"]').click();

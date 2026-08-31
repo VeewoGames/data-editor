@@ -76,7 +76,7 @@ export function normalizeViewConfig(value) {
         }
       }
       const normalizedField = {
-        type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
+        type: fieldConfig.type === "Select" || fieldConfig.type === "Text" || fieldConfig.type === "Checkbox" || fieldConfig.type === "Document" ? fieldConfig.type : undefined,
         selectOptions: normalizedSelectOptions,
         multiSelectOptions: normalizedOptions,
       };

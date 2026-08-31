@@ -1,4 +1,4 @@
-export const fieldTypes = ["Text", "Select", "Document"];
+export const fieldTypes = ["Text", "Checkbox", "Select", "Document"];
 
 export function isCompatible(type, value) {
   if (type === "Text" || type === "JSON") return true;

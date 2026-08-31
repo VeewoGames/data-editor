@@ -491,6 +491,26 @@ test("saveViewConfig preserves document file roots and document field toggles", 
   }
 });
 
+test("saveViewConfig preserves Checkbox field declarations", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
+  try {
+    const result = await saveViewConfig(root, {
+      fields: {
+        "data/items.json:$:enabled": {
+          type: "Checkbox",
+          selectOptions: {},
+          multiSelectOptions: {},
+        },
+      },
+    });
+    const stored = JSON.parse(await readFile(path.join(root, result.path), "utf8"));
+    assert.equal(stored.fields["data/items.json:$:enabled"].type, "Checkbox");
+    assert.equal((await loadViewConfig(root)).fields["data/items.json:$:enabled"].type, "Checkbox");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("normalizeViewConfig removes relation configs for enabled document fields", () => {
   const normalized = normalizeViewConfig({
     fields: {
