@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { TableTextCellEditor, type ActiveTextEditorRegistrar } from "../editing";
+import { TextCellTruncationHint } from "./TextCellTruncationHint";
 
 type TextCellSurfaceProps = {
   cellId: string;
@@ -15,6 +16,7 @@ type TextCellSurfaceProps = {
   onDeactivate: (cellId: string) => void;
   onChangeValue: (value: string) => void;
   onRegisterActiveEditor?: ActiveTextEditorRegistrar;
+  truncationHintSuppressed?: boolean;
 };
 
 function stringifyValue(value: unknown) {
@@ -42,6 +44,7 @@ function TextCellSurfaceComponent({
   onDeactivate,
   onChangeValue,
   onRegisterActiveEditor,
+  truncationHintSuppressed = false,
 }: TextCellSurfaceProps) {
   const textValue = stringifyValue(value);
   const mode = !editable ? "readonly" : active ? "editable-active" : "editable-idle";
@@ -100,7 +103,12 @@ function TextCellSurfaceComponent({
         onDoubleClick={handleRequestEnableEditing}
         onKeyDown={handleActivateByKeyboard}
       >
-        <span aria-hidden={active}>{textValue}</span>
+        <TextCellTruncationHint
+          ariaHidden={active}
+          enabled={!wrapped && !active}
+          suppressed={truncationHintSuppressed}
+          text={textValue}
+        />
       </div>
       {active ? (
         <div className="text-cell-editor-overlay" data-cell-role="text-editor-overlay">
@@ -133,5 +141,6 @@ export const TextCellSurface = memo(TextCellSurfaceComponent, (previous, next) =
   previous.onActivate === next.onActivate &&
   previous.onDeactivate === next.onDeactivate &&
   previous.onChangeValue === next.onChangeValue &&
-  previous.onRegisterActiveEditor === next.onRegisterActiveEditor,
+  previous.onRegisterActiveEditor === next.onRegisterActiveEditor &&
+  previous.truncationHintSuppressed === next.truncationHintSuppressed,
 );

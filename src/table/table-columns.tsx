@@ -22,6 +22,7 @@ type TableColumnsRuntime = {
   primaryKeyField: string | null;
   textEditable: boolean;
   activeTextCellId: string | null;
+  truncationHintSuppressed: boolean;
   onEnableTextEditMode: () => void;
   onRegisterActiveTextEditor?: ActiveTextEditorRegistrar;
   onActivateTextCell: (cellId: string) => void;
@@ -287,6 +288,7 @@ function TableColumnCellView(
         onEdit={(next) => runtime.onEditCell(originalRowIndex, rowId, columnModel.fieldName, next)}
         onCommitMultiSelectDraft={(patch) => runtime.onCommitMultiSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
         onCommitSelectDraft={(patch) => runtime.onCommitSelectDraft(originalRowIndex, rowId, columnModel.fieldName, patch)}
+        truncationHintSuppressed={runtime.truncationHintSuppressed}
       />
     </TableCellFrame>
   );

@@ -3034,7 +3034,7 @@ select {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  width: 240px;
+  width: min(440px, calc(100vw - 24px));
   z-index: 20;
 }
 
@@ -3053,8 +3053,9 @@ select {
 .hidden-fields-list {
   display: grid;
   gap: 6px;
-  max-height: 240px;
-  overflow: auto;
+  max-height: min(420px, calc(100vh - 150px));
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .appearance-popover-content {
@@ -3139,6 +3140,7 @@ select {
   display: flex;
   gap: 8px;
   justify-content: space-between;
+  min-width: 0;
   min-height: 32px;
   padding: 0 10px;
   text-align: left;
@@ -3156,8 +3158,14 @@ select {
   white-space: nowrap;
 }
 
+.hidden-field-item span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .hidden-field-item small {
   color: var(--color-text-muted);
+  flex: 0 0 auto;
 }
 
 .main-content {

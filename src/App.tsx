@@ -2400,6 +2400,10 @@ export function App() {
     void loadMaintenanceInfo();
   }, [selectedPath, collectionPath, selectedRowId, selectedSourceRowIndex, selectedRow, viewConfig.relations, tableRevision]);
   const hiddenFields = useMemo(() => allFields.filter((field) => tableFieldConfig.hidden.has(field)), [allFields, tableFieldConfig.hidden]);
+  const hiddenFieldLabels = useMemo(
+    () => Object.fromEntries(hiddenFields.map((field) => [field, fieldViewConfigs[field]?.presentation?.label ?? field])),
+    [fieldViewConfigs, hiddenFields],
+  );
   const configuredTitleField = useMemo(
     () => selectedPath ? (viewConfig.titleFields[buildCollectionKey(selectedPath, collectionPath)] ?? null) : null,
     [selectedPath, collectionPath, viewConfig.titleFields],
@@ -2832,6 +2836,7 @@ export function App() {
     restarting,
     status: statusText,
     hiddenFields,
+    hiddenFieldLabels,
     sharedViewPublishVisible: !isPersonalSharedViewMode && Boolean(
       activeCollectionKey
       && activeSharedView
@@ -2869,6 +2874,7 @@ export function App() {
     restarting,
     statusText,
     hiddenFields,
+    hiddenFieldLabels,
     activeCollectionKey,
     activeSharedView,
     isPersonalSharedViewMode,

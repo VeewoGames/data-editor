@@ -43,6 +43,7 @@ export type ToolbarSnapshot = {
   restarting: boolean;
   status: string;
   hiddenFields: string[];
+  hiddenFieldLabels: Record<string, string>;
   sharedViewPublishVisible: boolean;
   sharedViewPublishEnabled: boolean;
   sharedViewPublishTooltip: string;
@@ -181,7 +182,7 @@ export function Toolbar(props: ToolbarProps) {
             <div className="hidden-fields-list">
               {snapshot.hiddenFields.map((fieldName) => (
                 <button className="hidden-field-item" key={fieldName} onClick={() => props.onUnhideField(fieldName)} type="button">
-                  <span>{fieldName}</span>
+                  <span>{snapshot.hiddenFieldLabels[fieldName] ?? fieldName}</span>
                   <small>Restore</small>
                 </button>
               ))}

@@ -9,6 +9,7 @@ import { forwardOptionFieldSurfaceClick, type OptionFieldDraftCommit } from "./O
 import { RelationCellEditor } from "./RelationCellEditor";
 import { SelectCellEditor } from "./SelectCellEditor";
 import { TextCellSurface } from "./TextCellSurface";
+import { TextCellTruncationHint } from "./TextCellTruncationHint";
 import type { MultiSelectFieldOptionConfig, SelectFieldOptionConfig } from "./DataTable";
 import type { RelationMode } from "../model/viewConfig";
 import type { ActiveTextEditorRegistrar } from "../editing";
@@ -38,6 +39,7 @@ type CellRendererProps = {
   onOpenRelationTarget?: (value: string | number) => void;
   onCommitMultiSelectDraft?: (patch: OptionFieldDraftCommit) => void;
   onCommitSelectDraft?: (patch: OptionFieldDraftCommit) => void;
+  truncationHintSuppressed?: boolean;
 };
 
 function CellRendererComponent({
@@ -64,6 +66,7 @@ function CellRendererComponent({
   onOpenRelationTarget,
   onCommitMultiSelectDraft,
   onCommitSelectDraft,
+  truncationHintSuppressed = false,
 }: CellRendererProps) {
   const shouldShowIssue = issue != null && !shouldSuppressRelationIssue(displayType, value);
   const issueNode = shouldShowIssue ? <Issue issue={issue} /> : null;
@@ -72,7 +75,7 @@ function CellRendererComponent({
     return (
       <div className="table-cell-content-main">
         <div className={`cell-display cell-text-content ${wrapped ? "cell-text-wrap" : ""}`} data-cell-readonly="true">
-          <span>{displayValue}</span>
+          <TextCellTruncationHint enabled={!wrapped} suppressed={truncationHintSuppressed} text={displayValue} />
         </div>
       </div>
     );
@@ -195,6 +198,7 @@ function CellRendererComponent({
             onDeactivate={onDeactivateTextCell ?? (() => {})}
             onChangeValue={(next) => onEdit(next)}
             onRegisterActiveEditor={onRegisterActiveEditor}
+            truncationHintSuppressed={truncationHintSuppressed}
           />
         </div>
         {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
@@ -222,6 +226,7 @@ function CellRendererComponent({
             onDeactivate={onDeactivateTextCell ?? (() => {})}
             onChangeValue={(next) => onEdit(parseNumberDraft(next))}
             onRegisterActiveEditor={onRegisterActiveEditor}
+            truncationHintSuppressed={truncationHintSuppressed}
           />
         </div>
         {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
@@ -267,7 +272,8 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.onEdit === next.onEdit &&
   previous.onOpenRelationTarget === next.onOpenRelationTarget &&
   previous.onCommitMultiSelectDraft === next.onCommitMultiSelectDraft &&
-  previous.onCommitSelectDraft === next.onCommitSelectDraft,
+  previous.onCommitSelectDraft === next.onCommitSelectDraft &&
+  previous.truncationHintSuppressed === next.truncationHintSuppressed,
 );
 
 function shouldSuppressRelationIssue(displayType: FieldDisplayType, value: unknown) {
