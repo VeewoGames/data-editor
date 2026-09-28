@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { buildDocumentModel, getRows, addRow } from "./document-model.mjs";
 import { ensurePersistentEntryId, persistentEntryIdField } from "./model/persistent-entry-id.mjs";
 import { serializeJson } from "./json-codec.mjs";
-import { assertCandidateRowSchema } from "./entry-action-candidate-row-schema.mjs";
+import { assertCandidateRowSchema, validateCandidateRowSchema } from "./entry-action-candidate-row-schema.mjs";
 import { deriveTextArtifactPath } from "./entry-action-text-artifact-path.mjs";
 
 const DIGEST = /^[0-9a-f]{64}$/;
@@ -121,7 +121,10 @@ function assertCreateContract(value, binding) {
 }
 function assertRowSchema(row, schema, { requireAll = true } = {}) {
   if (requireAll) return assertCandidateRowSchema(schema, row);
-  const partial = { ...structuredClone(schema), required: [] };
+  const partial = { ...validateCandidateRowSchema(schema), required: [] };
+  // Conditions may read or require fields allocated by the server. Evaluate
+  // those root-row requirements only after the complete row has been assembled.
+  delete partial.allOf;
   assertCandidateRowSchema(partial, row);
 }
 function assertUniqueKeys(rows, row, keys, allowMissing = false) {
