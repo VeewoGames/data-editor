@@ -84,6 +84,7 @@ import { createNestedSchemaCapabilityResolver } from "./detail/nested-schema-cap
 import { EntryActionResultWaitCancelledError, waitForEntryActionResult as waitForEntryActionResultWithBackground, type WaitForEntryActionResultOutcome } from "./entry-action-result-wait";
 import { shouldPreserveEntryActionFeedback, type EntryActionFeedbackSelection } from "./entry-action-feedback-context";
 import { rowDigestBrowser } from "./row-digest-browser.mjs";
+import { resolveEntryActionTargetSnapshot } from "./entry-action-target-snapshot.mjs";
 import { defaultAutomationRuntime } from "./automation-runtime.mjs";
 import { readSidebarCollapsed, writeSidebarCollapsed } from "./shell-preferences.mjs";
 import {
@@ -4208,9 +4209,17 @@ export function App() {
         });
         return;
       }
-      // Every proposal result, including project-skill proposals, needs a stable row snapshot.
-      const expectedRowDigest = action?.execution.resultPolicy === "proposal" && selectedRow
-        ? await rowDigestBrowser(selectedRow)
+      if (flushResult.outcome !== "saved" && flushResult.outcome !== "idle") {
+        throw new Error("当前改动尚未完成保存，请稍后再执行自动化。");
+      }
+      if (activeProjectIdRef.current !== activeProjectId || selectedPathRef.current !== selectedPath
+        || collectionPathRef.current !== collectionPath) {
+        throw new Error("当前文档已切换，请在目标条目中重新执行自动化。");
+      }
+      // Detail rows are copies. Resolve the live source after flushing editor drafts.
+      const target = resolveEntryActionTargetSnapshot(modelRef.current, collectionPath, selectedRowId);
+      const expectedRowDigest = action?.execution.resultPolicy === "proposal"
+        ? await rowDigestBrowser(target.row)
         : undefined;
       const result = await runEntryAction({
         projectId: activeProjectId,
@@ -4218,7 +4227,7 @@ export function App() {
         sourcePath: selectedPath,
         collectionPath,
         rowId: selectedRowId,
-        sourceRowIndex: selectedSourceRowIndex,
+        sourceRowIndex: target.sourceRowIndex,
         expectedRowDigest,
         idempotencyKey: crypto.randomUUID(),
       });
