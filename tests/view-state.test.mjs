@@ -61,7 +61,7 @@ test("App wires shared view filter bar draft changes through active view drafts"
   assert.match(filterBarSource, /add-filter-field-option/);
   assert.match(filterBarSource, /onChangeFilters: \(filters: FilterGroup\) => void;/);
   assert.match(filterBarSource, /createDefaultFilterRule/);
-  assert.match(filterBarSource, /import \{ optionsForField, resolveFieldType \} from "\.\/filters\/filter-rule-ui";/);
+  assert.match(filterBarSource, /import \{[^}]*\boptionsForField\b[^}]*\bresolveFieldType\b[^}]*\} from "\.\/filters\/filter-rule-ui";/);
   assert.match(filterBarSource, /const fieldType = resolveFieldType\(field, displayTypes, fieldViewConfigs, fieldTypes\);/);
   assert.match(filterBarSource, /optionsForField\(rule\.field, fieldType, fieldViewConfigs, relationFilterOptions\)/);
   assert.match(appSource, /viewConfig\.relations\[buildRelationKey\(\{ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: \[field\] \}\)\]/);

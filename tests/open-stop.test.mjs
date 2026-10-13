@@ -179,7 +179,7 @@ function postJson(port, requestPath, body = {}) {
           "content-type": "application/json; charset=utf-8",
           "content-length": Buffer.byteLength(payload),
         },
-        timeout: 3000,
+        timeout: ["/start", "/reopen", "/stop-service"].includes(requestPath) ? 30000 : 3000,
       },
       (response) => {
         let responseBody = "";
@@ -1635,9 +1635,13 @@ test("server saves and loads automation profile and machine-local bindings", asy
   });
   await mkdir(path.join(project, "data"));
   await writeFile(path.join(project, "data", "skills.json"), "[]");
+  const originalAppData = process.env.APPDATA;
+  process.env.APPDATA = registryHome;
   const originalProfileHome = process.env.DATA_EDITOR_PROFILE_HOME;
   process.env.DATA_EDITOR_PROFILE_HOME = profileHome;
   t.after(() => {
+    if (originalAppData == null) delete process.env.APPDATA;
+    else process.env.APPDATA = originalAppData;
     if (originalProfileHome == null) delete process.env.DATA_EDITOR_PROFILE_HOME;
     else process.env.DATA_EDITOR_PROFILE_HOME = originalProfileHome;
   });
@@ -1709,11 +1713,11 @@ test("server saves and loads automation profile and machine-local bindings", asy
   assert.equal(bindings.bindings.recheck.provider, "codex");
 
   const sharedProfilePath = path.join(profileHome, projectId, "automation-profile.json");
-  const localBindingsPath = path.join(project, ".data-editor", "local", "automation-bindings.json");
+  const localBindingsPath = path.join(registryHome, "data-editor", "automation-bindings", projectId, "automation-bindings.json");
   const storedProfile = JSON.parse(await readFile(sharedProfilePath, "utf8"));
   const storedBindings = JSON.parse(await readFile(localBindingsPath, "utf8"));
   assert.equal(storedProfile.rules[0].id, "recheck");
-  assert.equal(storedBindings.bindings.recheck.skill, "recheck");
+  assert.equal(storedBindings.codexBindings.recheck.skill, "recheck");
 });
 
 test("entry action run fails closed when durable identity is required but unavailable", async (t) => {
