@@ -31,7 +31,7 @@ export function assertAuthorityCurrent({ snapshot, profile, changes, textArtifac
     assertEntryActionPredicate(contract.predicate, row);
     assertEntryActionChanges(contract, changes, row);
   }
-  if (!Array.isArray(changes) || changes.length === 0) authorityStale();
+  if (!Array.isArray(changes) || (changes.length === 0 && textArtifact == null)) authorityStale();
   for (const change of changes) {
     if (!snapshot.writableFields.includes(change.field) || !Object.hasOwn(row, change.field) || change.after === undefined) authorityStale();
   }

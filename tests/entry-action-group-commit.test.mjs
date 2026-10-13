@@ -77,11 +77,11 @@ const sourceIdentity = { canonicalFileKey: lease.canonicalFileKey };
 const artifactIdentity = { canonicalFileKey: "c".repeat(64) };
 const probeLease = () => ({ status: "owned", lease });
 
-async function makeFixture(t) {
+async function makeFixture(t, fieldChanges = proposal.changes) {
   const root = await mkdtemp(path.join(os.tmpdir(), "entry-group-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const prepared = await prepareEntryActionProposalCommit({
-    proposal,
+    proposal: { ...proposal, changes: fieldChanges },
     lease,
     authoritySnapshot: snapshot,
     profile,
@@ -159,6 +159,28 @@ test("group commit writes and verifies both targets before publishing once", asy
   assert.equal(artifact, afterArtifact);
   assert.equal(published, 1);
 
+  await commitEntryActionGroup(options);
+  assert.equal(published, 1);
+});
+
+test("document-only group preserves exact source bytes and recovers the artifact", async (t) => {
+  const fixture = await makeFixture(t, []);
+  let source = documentText;
+  let artifact = null;
+  let crash = true;
+  let published = 0;
+  const options = { ...fixture,
+    readSource: async () => source,
+    writeSource: async (value) => { source = value; },
+    readArtifact: async () => artifact,
+    writeArtifact: async (value) => { if (crash) { crash = false; throw new Error("artifact crash"); } artifact = value; },
+    publishResultIdempotently: async () => { published += 1; },
+  };
+  await assert.rejects(() => commitEntryActionGroup(options), /artifact crash/);
+  assert.equal(source, documentText);
+  assert.equal((await commitEntryActionGroup(options)).stage, "result_published");
+  assert.equal(source, documentText);
+  assert.equal(artifact, afterArtifact);
   await commitEntryActionGroup(options);
   assert.equal(published, 1);
 });

@@ -124,10 +124,14 @@ test("proposal preparation enforces section-only update against the current byte
   const contract = { contractId: "fixture.section.v1", digest: "section-contract", resultPolicy: "proposal", predicate: { all: [] }, writableFields: ["name", "notes"], legalTransitions: [], textArtifactPolicy: { required: true, allowedExtensions: [".md"], sectionOnly: { heading: "Design", level: 2, allowCreate: false, allowUpdate: true } }, evidencePolicy: {} };
   const sectionSnapshot = createAuthoritySnapshot({ profile: sectionProfile, actionId: "rename", file: "data/items.json", collection: "$", row, documentTarget: artifactDocumentTarget, contract });
   const artifactProposal = { ...proposal, ruleDigest: sectionSnapshot.ruleDigest, textArtifact: { id: "item-doc", path: "docs/items/item_alpha.md", beforeExists: true, beforeDigest: digest(beforeContent), afterContent, afterDigest: digest(afterContent) } };
-  const prepared = await prepareEntryActionProposalCommit({ proposal: artifactProposal, lease, authoritySnapshot: sectionSnapshot, contract, profile: sectionProfile, documentTarget: artifactDocumentTarget, documentText: text, textArtifactCurrentText: beforeContent, probeLease });
-  assert.equal(prepared.textArtifact.beforeContent, beforeContent);
-  const tampered = afterContent.replace("keep", "changed");
-  await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...artifactProposal, textArtifact: { ...artifactProposal.textArtifact, afterContent: tampered, afterDigest: digest(tampered) } }, lease, authoritySnapshot: sectionSnapshot, contract, profile: sectionProfile, documentTarget: artifactDocumentTarget, documentText: text, textArtifactCurrentText: beforeContent, probeLease }), { code: "ENTRY_ACTION_TEXT_ARTIFACT_SECTION_POLICY_FAILED" });
+  for (const fieldChanges of [changes, []]) {
+    const candidate = { ...artifactProposal, changes: fieldChanges };
+    const prepared = await prepareEntryActionProposalCommit({ proposal: candidate, lease, authoritySnapshot: sectionSnapshot, contract, profile: sectionProfile, documentTarget: artifactDocumentTarget, documentText: text, textArtifactCurrentText: beforeContent, probeLease });
+    assert.equal(prepared.textArtifact.beforeContent, beforeContent);
+    if (fieldChanges.length === 0) assert.deepEqual(prepared.root, JSON.parse(text));
+    const tampered = afterContent.replace("keep", "changed");
+    await assert.rejects(() => prepareEntryActionProposalCommit({ proposal: { ...candidate, textArtifact: { ...candidate.textArtifact, afterContent: tampered, afterDigest: digest(tampered) } }, lease, authoritySnapshot: sectionSnapshot, contract, profile: sectionProfile, documentTarget: artifactDocumentTarget, documentText: text, textArtifactCurrentText: beforeContent, probeLease }), { code: "ENTRY_ACTION_TEXT_ARTIFACT_SECTION_POLICY_FAILED" });
+  }
 });
 
 test("proposal preparation fails closed on stale ownership, document, row or artifact", async () => {

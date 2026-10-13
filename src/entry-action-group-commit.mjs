@@ -11,7 +11,7 @@ export function createEntryActionGroupJournalEntry({ prepared, lease, documentTe
     fail("ENTRY_ACTION_GROUP_IDENTITY_INVALID");
   }
   assertLease(lease, sourceIdentity.canonicalFileKey, prepared.proposal.runId);
-  const sourceAfterContent = serializePrepared(prepared);
+  const sourceAfterContent = prepared.proposal.changes.length === 0 ? documentText : serializePrepared(prepared);
   const sourceChild = createProposalCommitJournalEntry({
     proposal: prepared.proposal,
     lease,

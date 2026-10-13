@@ -82,7 +82,8 @@ function normalize(value, expectedStage = null) {
   }
   if (value.saveType === "proposal_commit" && (!validId(value.runId) || !validId(value.ownerToken)
     || !Number.isInteger(value.fencingToken) || value.fencingToken < 0 || !validId(value.rowId)
-    || !digest(value.proposalDigest) || !validProposalChanges(value.changes))) {
+    || !digest(value.proposalDigest) || !validProposalChanges(value.changes,
+      value.beforeDigest === value.afterDigest && value.baseEtag === value.newEtag))) {
     throw journalError("COMMIT_JOURNAL_INVALID");
   }
   if (value.saveType === "candidate_create_commit" && (!validId(value.runId) || !validId(value.ownerToken)
@@ -107,8 +108,8 @@ function file(directory, id) { if (!validId(id)) throw journalError("COMMIT_JOUR
 function validId(value) { return typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value); }
 function nonEmptyString(value) { return typeof value === "string" && value.length > 0; }
 function digest(value) { return typeof value === "string" && /^[0-9a-f]{64}$/.test(value); }
-function validProposalChanges(value) {
-  return Array.isArray(value) && value.length > 0 && value.every((change) => (
+function validProposalChanges(value, allowEmpty = false) {
+  return Array.isArray(value) && (value.length > 0 || allowEmpty) && value.every((change) => (
     change && typeof change === "object" && !Array.isArray(change)
     && typeof change.field === "string" && change.field.length > 0
     && typeof change.beforeExists === "boolean" && typeof change.afterExists === "boolean"

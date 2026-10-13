@@ -45,6 +45,20 @@ test("proposal accepts one normalized Markdown artifact with bound digests", () 
   assert.deepEqual(validateEntryActionProposal(withArtifact), withArtifact);
 });
 
+test("document-only proposal requires a real Markdown change", () => {
+  const beforeContent = "# Review\nold\n";
+  const afterContent = "# Review\nnew\n";
+  const documentOnly = { ...proposal, changes: [], textArtifact: {
+    id: "review-doc", path: "docs/entry.md", beforeExists: true,
+    beforeDigest: digest(beforeContent), afterContent, afterDigest: digest(afterContent),
+  } };
+  assert.deepEqual(validateEntryActionProposal(documentOnly), documentOnly);
+  assert.throws(() => validateEntryActionProposal({ ...documentOnly, textArtifact: null }), { code: "ENTRY_ACTION_PROPOSAL_INVALID" });
+  assert.throws(() => validateEntryActionProposal({ ...documentOnly, textArtifact: {
+    ...documentOnly.textArtifact, afterContent: beforeContent, afterDigest: digest(beforeContent),
+  } }), { code: "ENTRY_ACTION_PROPOSAL_INVALID" });
+});
+
 test("required document evidence is derived from the committed artifact instead of the model reply", () => {
   const evidence = completeEntryActionEvidence({
     contract: {

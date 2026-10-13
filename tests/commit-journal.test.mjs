@@ -7,6 +7,16 @@ import { setTimeout as delay } from "node:timers/promises";
 import { createCommitJournal } from "../src/commit-journal.mjs";
 
 const entry = { idempotencyKey: "save_12345", saveType: "document_save", canonicalFileKey: "a".repeat(64), baseEtag: '"old"', newEtag: '"new"', beforeDigest: "b".repeat(64), afterDigest: "c".repeat(64), requestDigest: "d".repeat(64), stage: "commit_intent" };
+test("empty proposal child is valid only when its source bytes and etag are unchanged", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "journal-empty-proposal-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const journal = createCommitJournal({ directory: root });
+  const snapshot = { ...entry, saveType: "proposal_commit", runId: "run_1", ownerToken: "owner_1", fencingToken: 1,
+    rowId: "row_1", proposalDigest: "e".repeat(64), changes: [], afterDigest: entry.beforeDigest, newEtag: entry.baseEtag };
+  assert.equal((await journal.begin(snapshot)).changes.length, 0);
+  await assert.rejects(() => journal.begin({ ...snapshot, idempotencyKey: "changed_bytes", afterDigest: "f".repeat(64) }), { code: "COMMIT_JOURNAL_INVALID" });
+  await assert.rejects(() => journal.begin({ ...snapshot, idempotencyKey: "changed_etag", newEtag: '"different"' }), { code: "COMMIT_JOURNAL_INVALID" });
+});
 test("journal persists every ordered durable stage and rejects skips", async () => { const root = await mkdtemp(path.join(os.tmpdir(), "journal-")); try { const journal = createCommitJournal({ directory: root }); await journal.begin(entry); await assert.rejects(() => journal.advance(entry, "verified"), { code: "COMMIT_JOURNAL_STAGE_INVALID" }); await journal.advance(entry, "source_replaced"); await journal.advance(entry, "verified"); const done = await journal.advance(entry, "result_published"); assert.equal(done.stage, "result_published"); assert.equal((await journal.read(entry.idempotencyKey)).stage, "result_published"); } finally { await rm(root, { recursive: true, force: true }); } });
 test("journal never overwrites a logical save when an idempotency key collides", async () => { const root = await mkdtemp(path.join(os.tmpdir(), "journal-")); try { const journal = createCommitJournal({ directory: root }); await journal.begin(entry); await assert.rejects(() => journal.begin({ ...entry, requestDigest: "e".repeat(64) }), { code: "COMMIT_JOURNAL_IDEMPOTENCY_CONFLICT" }); assert.equal((await journal.read(entry.idempotencyKey)).requestDigest, entry.requestDigest); } finally { await rm(root, { recursive: true, force: true }); } });
 test("different document lanes cannot race the same idempotency key into two intents", async () => { const root = await mkdtemp(path.join(os.tmpdir(), "journal-")); try { const a = createCommitJournal({ directory: root }); const b = createCommitJournal({ directory: root }); const results = await Promise.allSettled([a.begin(entry), b.begin({ ...entry, canonicalFileKey: "f".repeat(64) })]); assert.equal(results.filter((result) => result.status === "fulfilled").length, 1); assert.equal(results.find((result) => result.status === "rejected")?.reason.code, "COMMIT_JOURNAL_IDEMPOTENCY_CONFLICT"); } finally { await rm(root, { recursive: true, force: true }); } });

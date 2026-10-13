@@ -14,7 +14,7 @@ export function validateEntryActionProposal(value) {
   exact(value, REQUIRED, "proposal");
   for (const field of ["runId", "actionId", "sourcePath", "collectionPath", "rowId", "baseDocumentEtag", "ruleDigest", "summary"]) required(value[field], field);
   if (value.version !== 3 || !UUID.test(value.runId) || !KEY.test(value.canonicalFileKey) || !KEY.test(value.ruleDigest) || !Number.isSafeInteger(value.fencingToken) || value.fencingToken < 1) invalid("proposal identity is invalid");
-  if (!Array.isArray(value.changes) || value.changes.length === 0 || value.changes.length > MAX_CHANGES) invalid(`proposal changes must contain 1-${MAX_CHANGES} items`);
+  if (!Array.isArray(value.changes) || value.changes.length > MAX_CHANGES) invalid(`proposal changes must contain 0-${MAX_CHANGES} items`);
   const fields = new Set();
   for (const [index, change] of value.changes.entries()) {
     exact(change, CHANGE, `proposal changes[${index}]`);
@@ -29,6 +29,10 @@ export function validateEntryActionProposal(value) {
     if (stableJson(change.before) === stableJson(change.after)) invalid("proposal changes may not be no-ops");
   }
   validateTextArtifact(value.textArtifact);
+  if (value.changes.length === 0 && (value.textArtifact === null
+    || (value.textArtifact.beforeExists && value.textArtifact.beforeDigest === value.textArtifact.afterDigest))) {
+    invalid("proposal must contain a field change or a text artifact change");
+  }
   try { validateEntryActionEvidence(value.evidence); }
   catch { invalid("proposal evidence is invalid"); }
   return structuredClone(value);
