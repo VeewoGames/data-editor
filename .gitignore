@@ -15,6 +15,7 @@ docs/records/.grilling-temp/
 *.log
 .tmp-*
 *.import
+native/job-helper/bin/.job-helper-build-*/
 
 # claw-kit
 .claw/*

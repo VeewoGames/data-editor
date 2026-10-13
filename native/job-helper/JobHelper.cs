@@ -32,6 +32,9 @@ public static class JobHelper
 
     public static int Main(string[] args)
     {
+        // The Node supervisor sends and receives UTF-8 JSON over redirected pipes.
+        Console.InputEncoding = new UTF8Encoding(false);
+        Console.OutputEncoding = new UTF8Encoding(false);
         if (args.Length == 1 && args[0] == "--protocol-version=2")
         {
             Console.Out.WriteLine("2");

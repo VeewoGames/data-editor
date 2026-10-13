@@ -2,7 +2,7 @@
     "protocolVersion":  2,
     "platform":  "win32",
     "arch":  "x64",
-    "sourceSha256":  "50a4793b8c35336d6500098fff991f9d768f2a12f3c908d295dff4ebcaceff6b",
-    "executableSha256":  "1830c327bdf6b0ad05e7c81dede8be3a4493c089cbdfd589dd078beb443c2899",
+    "sourceSha256":  "4ddef9964c35c82a50baba56e62e4627905dd10016a5b72a21b61a1468f3327d",
+    "executableSha256":  "ccb1643d598aab41fab95e43734d91707dbc05474503ef5d420a447ed21a5880",
     "testFaults":  false
 }

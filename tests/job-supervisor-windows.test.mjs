@@ -69,6 +69,17 @@ test("real helper owns a normal process before it runs and reports completion", 
   await assertPidsGone(await readPids(pidFile));
 });
 
+test("real helper preserves UTF-8 arguments and Chinese filesystem paths", async (t) => {
+  const root = await makeRoot(t);
+  const output = path.join(root, "中文参数.json");
+  const value = JSON.stringify(["项目文档/标准&指南/辅助符文设计指南（AI 专用）.md"]);
+  const supervisor = createJobSupervisor({ toolRoot });
+  t.after(() => supervisor.shutdown());
+  const handle = await supervisor.start({ command: process.execPath, args: ["-e", "require('node:fs').writeFileSync(process.argv[1],process.argv[2])", output, value], timeoutMs: 3000 });
+  assert.equal((await handle.completion).exitCode, 0);
+  assert.equal(await readFile(output, "utf8"), value);
+});
+
 test("timeout closes the Job and removes the whole process tree", async (t) => {
   const root = await makeRoot(t);
   const pidFile = path.join(root, "timeout.pids");
