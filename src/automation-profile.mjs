@@ -28,6 +28,7 @@ export function ruleAuthorityDigest(rule) {
     contractId: rule.contractId,
     ...(rule.createAuthority ? { createAuthority: rule.createAuthority } : {}),
     ...(rule.runtime ? { runtime: rule.runtime } : {}),
+    ...(rule.followup ? { followup: rule.followup } : {}),
   };
   return crypto.createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
 }
@@ -117,14 +118,20 @@ function readAutomationProfileDocument(value) {
 function normalizeRules(value) {
   if (!Array.isArray(value)) return [];
   const seenIds = new Set();
-  return value.map((item) => normalizeRule(item, seenIds));
+  const rules = value.map((item) => normalizeRule(item, seenIds));
+  for (const rule of rules.filter(rule => rule.followup)) {
+    const child = rules.find(child => child.id === rule.followup.actionId);
+    if (!child || child.enabled === false || child.execution.kind !== 'project-skill') throw new Error('Followup must reference an enabled existing project-skill');
+    if (child.followup) throw new Error('Followup cannot reference another followup');
+  }
+  return rules;
 }
 
 function normalizeRule(value, seenIds) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Entry action rule must be an object");
   }
-  const allowedKeys = new Set(["id", "label", "icon", "enabled", "targets", "payload", "execution", "contractId", "createAuthority", "runtime"]);
+  const allowedKeys = new Set(["id", "label", "icon", "enabled", "targets", "payload", "execution", "contractId", "createAuthority", "runtime", "followup"]);
   for (const key of Object.keys(value)) if (!allowedKeys.has(key)) throw new Error(`Unsupported entry action rule field: ${key}`);
   const id = normalizeRequiredString(value.id, "Entry action rule id");
   validateRuleId(id);
@@ -139,7 +146,9 @@ function normalizeRule(value, seenIds) {
   const contractId = normalizeRequiredString(value.contractId, `Entry action rule "${id}" contractId`);
   const createAuthority = normalizeCreateAuthority(value.createAuthority, id, contractId);
   const runtime = normalizeRuntime(value.runtime, id);
-  return { id, label, icon, enabled, targets, payload, execution, contractId, ...(createAuthority ? { createAuthority } : {}), ...(runtime ? { runtime } : {}) };
+  const followup = value.followup;
+  if (followup !== undefined && (!followup || Object.keys(followup).sort().join(',') !== 'actionId,on' || typeof followup.actionId !== 'string' || followup.actionId === id || !Array.isArray(followup.on) || !followup.on.length || new Set(followup.on).size !== followup.on.length || followup.on.some(on => !['no_changes','completed_with_writeback'].includes(on)) || execution.kind !== 'project-skill')) throw new Error('Invalid followup');
+  return { id, label, icon, enabled, targets, payload, execution, contractId, ...(createAuthority ? { createAuthority } : {}), ...(runtime ? { runtime } : {}), ...(followup ? {followup:structuredClone(followup)} : {}) };
 }
 
 function normalizeExecution(value, ruleId) {

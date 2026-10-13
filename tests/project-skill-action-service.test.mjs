@@ -227,6 +227,19 @@ test("project-skill proposal fails closed when server admission is unavailable",
   await assert.rejects(started.completion, { code: "PROJECT_SKILL_PROPOSAL_ADMISSION_UNAVAILABLE" });
 });
 
+for (const [code, outcome] of [["PROJECT_SKILL_PREPARATION_FAILED", "failed"], ["PROJECT_SKILL_PREPARATION_TIMED_OUT", "timed_out"]]) {
+  test(`snapshot preparation ${code} persists a terminal result`, async (t) => {
+    const { root } = await fixture(t);
+    const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+    const profile = JSON.parse(await readFile(profilePath, "utf8"));
+    profile.rules[0].execution.advancedExecution = { projectInput: { paths: ["SKILL.md"] } };
+    await writeFile(profilePath, JSON.stringify(profile));
+    const started = await startProjectSkillEntryAction({ projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" }, request: { actionId: "verify", sourcePath: "data/a.json", collectionPath: "items" }, toolRoot: process.cwd(), jobSupervisor: { start: async () => { throw new Error("must not launch model"); } }, dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }), prepareInputRoot: async () => { throw Object.assign(new Error(code), { code }); } } });
+    await assert.rejects(started.completion, { code });
+    assert.equal((await readEntryActionResult({ projectRoot: root }, started.runId)).outcome, outcome);
+  });
+}
+
 test("project snapshot rejects symbolic-link or junction input escape", async (t) => {
   const { root } = await fixture(t);
   const target = path.join(root, "linked-target"); const link = path.join(root, "linked-input"); await mkdir(target);
@@ -316,4 +329,18 @@ test("project-skill rejects a changed local preflight script before Codex starts
     dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }), prepareInputRoot: async () => {} },
   });
   await assert.rejects(started.completion, { code: "PROJECT_SKILL_PREFLIGHT_BINDING_INVALID" });
+});
+
+
+test("proposal invocation permits the contract-owned text artifact", async (t) => {
+  const { root, supervisor } = await fixture(t, { kind: "project-skill-result", resultOnly: true, status: "no_changes" });
+  const profilePath = path.join(root, ".data-editor", "automation-profile.json");
+  const profile = JSON.parse(await readFile(profilePath, "utf8"));
+  profile.rules[0].execution.resultPolicy = "proposal";
+  await writeFile(profilePath, JSON.stringify(profile));
+  let prompt;
+  const started = await startProjectSkillEntryAction({ projectContext: { projectRoot: root, automationProfilePath: profilePath, localAutomationBindingsPath: path.join(root, ".data-editor", "local-automation-bindings.json") }, project: { id: "fixture" }, request: { actionId: "verify" }, toolRoot: process.cwd(), jobSupervisor: { start: async (spec) => { if (!isPreparationSpec(spec)) prompt = await readFile(spec.args[spec.args.indexOf("--prompt") + 1], "utf8"); return supervisor.start(spec); } }, dependencies: { resolveBindingStatus: async () => ({ status: "ready", skillPath: path.join(root, "SKILL.md"), codexCliPath: process.execPath }) } });
+  await started.completion;
+  assert.match(prompt, /textArtifact may be null or the authorized text artifact/);
+  assert.match(prompt, /project contract/);
 });

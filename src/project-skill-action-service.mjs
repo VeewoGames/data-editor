@@ -25,6 +25,12 @@ import {
 import { normalizeEntryActionPath, validateEntryActionTarget } from "./entry-actions.mjs";
 import { atomicWrite } from "./atomic-file.mjs";
 import { validateEntryActionEvidence } from "./entry-action-evidence.mjs";
+import {projectSkillConfigDigest, assertProjectSkillRunCurrent} from './project-skill-run-guard.mjs';
+import {trackProjectSkillRun, resumeProjectSkillFollowup} from './project-skill-followup.mjs';
+import {rowDigest} from './row-digest.mjs';
+import {loadViewConfig} from './view-config.mjs';
+import {resolveEntryActionDocumentTarget} from './entry-action-document-target.mjs';
+import {canonicalProjectArtifactIdentity} from './canonical-project-artifact-identity.mjs';
 
 export async function startProjectSkillEntryAction({ projectContext, project, request, toolRoot, jobSupervisor, dependencies = {} }) {
   const [profile, bindings] = await Promise.all([loadAutomationProfile(projectContext), loadAutomationBindings(projectContext)]);
@@ -47,7 +53,7 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
   const skill = await readFile(status.skillPath, "utf8");
   const skillDigest = crypto.createHash("sha256").update(skill).digest("hex");
   const runtime = resolveAutomationExecutionConfig({ rule: action, binding, defaults: bindings.defaults }).runtime;
-  const runId = crypto.randomUUID();
+  const runId = dependencies.followupRunId ?? crypto.randomUUID();
   const scratch = path.join(os.tmpdir(), `data-editor-project-skill-${runId}`);
   const snapshotRoot = path.join(scratch, "input");
   // Codex workspace-write permits output only below its current workspace.
@@ -85,6 +91,14 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
     rowCount: rowContext?.rowCount ?? null,
   });
   handoff.skillArtifact = { logicalName: binding.skill, sourcePath: status.skillPath, sha256: skillDigest };
+  handoff.projectSkillLifecycle = {parentRunId: dependencies.parentRunId ?? null, configDigest: dependencies.followupConfigDigest ?? projectSkillConfigDigest(profile, bindings), followup: action.followup ?? null};
+  if (rowContext?.row && action.targets.some(target=>target.file===sourcePath && target.collection===collectionPath && target.textArtifact)) {
+    const documentTarget=resolveEntryActionDocumentTarget({viewConfig:await loadViewConfig(projectContext),file:sourcePath,collection:collectionPath,row:rowContext.row});
+    const identity=await canonicalProjectArtifactIdentity(projectContext,documentTarget.path);
+    const text=await readFile(identity.resolvedPath,'utf8').catch(error=>{if(error.code==='ENOENT')return null;throw error;});
+    handoff.projectSkillLifecycle.documentSnapshot={path:documentTarget.path,digest:text===null?null:crypto.createHash('sha256').update(text).digest('hex')};
+  }
+  if (rowContext?.row) request = {...request, expectedRowDigest: rowDigest(rowContext.row)};
   if (action.execution.resultPolicy === "proposal") {
     handoff.projectSkillProposal = {
       envelope: "entry-action-proposal.v1",
@@ -92,7 +106,6 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
       writableFields: null,
     };
   }
-  await writeEntryActionHandoff(projectContext, runId, handoff);
   const acceptedAt = new Date().toISOString();
   await writeEntryActionStarted(projectContext, runId, {
     version: 3,
@@ -101,15 +114,25 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
     phase: "queued",
     outcome: null,
     startedAt: acceptedAt,
+    ownerPid: process.pid,
     phaseStartedAt: acceptedAt,
     phaseHistory: [{ phase: "queued", startedAt: acceptedAt }],
   });
+  // Claim before publishing frozen input: a losing deterministic child must
+  // never replace the accepted owner's row/document/config snapshot.
+  try { await writeEntryActionHandoff(projectContext, runId, handoff); }
+  catch (error) {
+    await publishProjectSkillTerminal(projectContext,runId,action.id,'failed',error.message);
+    throw error;
+  }
 
   const completion = continueProjectSkillEntryAction({
     projectContext, project, request, toolRoot, jobSupervisor, dependencies,
     action, profile, bindings, workspaceMode, projectInput, preflightId, sourcePath, collectionPath,
     binding, status, skill, skillDigest, runtime, runId, scratch, snapshotRoot, outputRoot, rowId, sourceRowIndex, artifactPublication, handoff,
   });
+  trackProjectSkillRun(projectContext, runId, completion);
+  void completion.then(() => resumeProjectSkillFollowup({projectContext,parentRunId:runId,startChild:({request:childRequest,childRunId,parentRunId,configDigest})=>startProjectSkillEntryAction({projectContext,project,request:childRequest,toolRoot,jobSupervisor,dependencies:{...dependencies,followupRunId:childRunId,parentRunId,followupConfigDigest:configDigest}})})).catch(()=>{});
   return { runId, acceptedAt, phase: "queued", completion };
 }
 
@@ -150,26 +173,28 @@ async function continueProjectSkillEntryAction(context) {
       ? `Project workspace is the real project root at ${JSON.stringify(workspaceRoot)}. Follow the project's own instructions and only change files owned by this project skill. Data Editor diagnostics and the required JSON reply belong under ${JSON.stringify(outputRoot)}. ${shellInstruction}`
       : `Project workspace is a disposable read-only snapshot at ${JSON.stringify(workspaceRoot)}. Do not treat changes there as project output. Write task-owned output only under ${JSON.stringify(outputRoot)}. ${shellInstruction}`;
     const proposalInstruction = resultPolicy === "proposal"
-      ? "For a write proposal, return exactly {\\\"kind\\\":\\\"entry-action-proposal\\\",\\\"changes\\\":[...],\\\"textArtifact\\\":null,\\\"summary\\\":\\\"...\\\",\\\"evidence\\\":[]}. Each change must contain field, beforeExists, before, afterExists, after. Do not include authority tokens or humanNotes: Data Editor binds them from the canonical target after execution. If no safe change is possible, return exactly {\\\"kind\\\":\\\"project-skill-result\\\",\\\"resultOnly\\\":true,\\\"status\\\":\\\"no_changes\\\",\\\"summary\\\":\\\"...\\\"}."
+      ? 'For a write proposal, return the exact entry-action-proposal envelope produced by the project skill adapter under the current project contract. textArtifact may be null or the authorized text artifact required by that contract; never invent an artifact path or bypass its document policy. Each change must contain field, beforeExists, before, afterExists, after. Do not include authority tokens or humanNotes: Data Editor binds them from the canonical target after execution. If no safe change is possible, return exactly {"kind":"project-skill-result","resultOnly":true,"status":"no_changes","summary":"..."}.'
       : "Return exactly one JSON object allowed by the configured result policy.";
     await writeFile(promptPath, `${skill}\n\n## Explicit invocation\n${workspaceInstructions}\n${proposalInstruction}\n${JSON.stringify({ actionId: action.id, projectId: project.id, execution: action.execution, resultPolicy, workspaceMode, request, skillArtifact: { logicalName: binding.skill, sha256: skillDigest }, artifactPublication }, null, 2)}\n\n## Data Editor handoff\n${JSON.stringify(handoff, null, 2)}\n`, "utf8");
     const hostArgs = [path.resolve(toolRoot, "scripts/run-project-skill-action-host.mjs"), "--codex", status.codexCliPath, "--workspace-root", workspaceRoot, "--output-root", outputRoot, "--prompt", promptPath, "--reply", replyPath, "--events", eventsPath, "--diagnostics", diagnosticsPath, "--model", runtime.model, "--reasoning", runtime.reasoning, "--verbosity", runtime.verbosity];
     if (workspaceMode === "snapshot") hostArgs.push("--ignore-rules");
     handle = await jobSupervisor.start({ id: runId, command: process.execPath, args: hostArgs, cwd: workspaceRoot, timeoutMs: runtime.timeoutMs });
+    trackProjectSkillRun(projectContext, runId, null, handle.terminate);
     await advanceEntryActionPhase(projectContext, runId, "running");
   } catch (error) {
-    const outcome = error?.code === "PROJECT_SKILL_PREPARATION_TIMED_OUT" ? "preparation_timed_out"
-      : error?.code === "PROJECT_SKILL_PREPARATION_FAILED" ? "preparation_failed"
+    const outcome = error?.code === "PROJECT_SKILL_PREPARATION_TIMED_OUT" ? "timed_out"
+      : error?.code === "PROJECT_SKILL_PREPARATION_FAILED" ? "failed"
       : error?.code === "PROJECT_SKILL_PREFLIGHT_TIMED_OUT" ? "preflight_timed_out"
       : error?.code === "PROJECT_SKILL_PREFLIGHT_FAILED" ? "preflight_failed"
         : "failed";
-    await publishProjectSkillTerminal(projectContext, runId, action.id, outcome, error.message ?? String(error));
+    await publishProjectSkillTerminal(projectContext, runId, action.id, outcome, error.message ?? String(error), { errorCode: error.code ?? null });
     await rm(scratch, { recursive: true, force: true }).catch(() => {});
     if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
     throw error;
   }
   try {
       const terminal = await handle.completion;
+      await assertProjectSkillRunCurrent(projectContext, runId);
       if (terminal.timedOut) {
         await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId));
         await publishProjectSkillTerminal(projectContext, runId, action.id, "timed_out", "Codex execution timed out.");
@@ -191,13 +216,14 @@ async function continueProjectSkillEntryAction(context) {
             projectContext,
             runId,
             action.id,
-            "completed_without_changes",
+            resolveProjectSkillResultStatus(result) === 'failed' ? 'failed' : "completed_without_changes",
             resolveProjectSkillResultMessage(result),
             { outputPath, resultOnly: true, resultStatus: resolveProjectSkillResultStatus(result) },
           );
           return result;
         }
         if (typeof dependencies.submitProposalResult !== "function") throw protocolError("PROJECT_SKILL_PROPOSAL_ADMISSION_UNAVAILABLE", "Project-skill proposal admission is unavailable.");
+        await assertProjectSkillRunCurrent(projectContext, runId);
         await advanceEntryActionPhase(projectContext, runId, "proposal_ready");
         const admitted = await dependencies.submitProposalResult({ projectContext, project, request, action, profile, runId, result });
         // Same-run admission publishes the terminal receipt as part of its

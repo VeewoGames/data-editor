@@ -35,6 +35,7 @@ import {
   advanceEntryActionPhase,
   createEntryActionRunId,
   entryActionDiagnosticsPath,
+  entryActionHandoffPath,
   entryActionOutputPath,
   entryActionProposalPath,
   findAutomationEntryAction,
@@ -55,6 +56,7 @@ import { parseJson } from "./json-codec.mjs";
 import { resolveInsideRoot } from "./project-context.mjs";
 import { rowDigest } from "./row-digest.mjs";
 import { loadViewConfig } from "./view-config.mjs";
+import {assertProjectSkillRunCurrent} from './project-skill-run-guard.mjs';
 
 export async function startProposalOnlyEntryAction({
   projectContext,
@@ -250,6 +252,7 @@ export async function submitFreshEntryActionProposal({
   documentCommitCoordinator = createDocumentCommitCoordinator(),
   dependencies = {},
 }) {
+  if (dependencies.runId) await assertProjectSkillRunCurrent(projectContext, dependencies.runId);
   const actionId = String(request?.actionId ?? "").trim();
   const sourcePath = normalizeEntryActionPath(request?.sourcePath, "sourcePath");
   const collectionPath = normalizeEntryActionPath(request?.collectionPath, "collectionPath");
@@ -298,7 +301,8 @@ export async function submitFreshEntryActionProposal({
   const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary, evidence: submittedEvidence }, handoff);
   const evidence = completeEntryActionEvidence({ contract, evidence: proposal.evidence, textArtifact: proposal.textArtifact });
   proposal.evidence = evidence;
-  await writeEntryActionHandoff(projectContext, runId, { ...handoff, authority: authoritySnapshot });
+  const acceptedHandoff=dependencies.runId ? await readFile(entryActionHandoffPath(projectContext,runId),'utf8').then(JSON.parse,error=>{if(error.code==='ENOENT')return null;throw error;}) : null;
+  await writeEntryActionHandoff(projectContext, runId, { ...handoff, ...(acceptedHandoff?.projectSkillLifecycle ? {projectSkillLifecycle:acceptedHandoff.projectSkillLifecycle} : {}), authority: authoritySnapshot });
   if (dependencies.runId) {
     // Keep the original acceptedAt/startedAt as the lifecycle's only clock.
     try {
@@ -316,6 +320,7 @@ export async function submitFreshEntryActionProposal({
   let keepLease = false;
   try {
     assertEntryActionResultPolicies(contract, { textArtifact: proposal.textArtifact, evidence });
+    if (dependencies.runId) await assertProjectSkillRunCurrent(projectContext,runId);
     await commitProposal({ projectContext, action, authoritySnapshot, contract, evidence, lease, allocator, documentCommitCoordinator, sourceIdentity }, proposal);
     return { kind: "entry-action-proposal", runId, outcome: "completed_with_writeback" };
   } catch (error) {
