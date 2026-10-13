@@ -4,9 +4,20 @@ import { constants as fsConstants } from "node:fs";
 
 const defaultCodexModel = "gpt-5.6-terra";
 
-export async function resolveCodexCli() {
-  for (const candidate of await codexCliCandidates()) {
+export async function resolveCodexCli({ env = process.env, cwd = process.cwd() } = {}) {
+  const override = env.DATA_EDITOR_CODEX_CLI;
+  let incomplete = null;
+  for (const candidate of await codexCliCandidates(env, cwd)) {
     if (await pathExists(candidate)) {
+      // The official Windows executable needs its sibling code-mode host.
+      // Explicit proxy executables keep the existing override contract.
+      if (path.basename(candidate).toLowerCase() === "codex.exe"
+        && !await pathExists(path.join(path.dirname(candidate), "codex-code-mode-host.exe"))) {
+        incomplete = { available: false, path: candidate, model: defaultCodexModel,
+          reason: "codex_helper_missing", message: "Codex 安装缺少 codex-code-mode-host.exe，请修复完整安装。" };
+        if (override) return incomplete;
+        continue;
+      }
       return {
         available: true,
         path: candidate,
@@ -14,6 +25,7 @@ export async function resolveCodexCli() {
       };
     }
   }
+  if (incomplete) return incomplete;
   return {
     available: false,
     path: null,
@@ -147,12 +159,13 @@ export async function resolveCodexBindingStatus(binding, options = {}) {
   };
 }
 
-async function codexCliCandidates() {
+async function codexCliCandidates(env, cwd) {
   const candidates = [];
-  if (process.env.DATA_EDITOR_CODEX_CLI) {
-    candidates.push(process.env.DATA_EDITOR_CODEX_CLI);
+  if (env.DATA_EDITOR_CODEX_CLI) {
+    candidates.push(env.DATA_EDITOR_CODEX_CLI);
+    return uniquePaths(candidates);
   }
-  const localAppData = process.env.LOCALAPPDATA;
+  const localAppData = env.LOCALAPPDATA;
   if (localAppData) {
     const binRoot = path.join(localAppData, "OpenAI", "Codex", "bin");
     // The stable shim can lag behind the desktop app. Prefer the newest installed
@@ -160,7 +173,7 @@ async function codexCliCandidates() {
     candidates.push(...await installedCodexCliCandidates(binRoot));
     candidates.push(path.join(binRoot, "codex.exe"));
   }
-  candidates.push(path.join(process.cwd(), "codex.exe"));
+  candidates.push(path.join(cwd, "codex.exe"));
   return uniquePaths(candidates);
 }
 
