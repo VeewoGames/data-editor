@@ -758,6 +758,7 @@ function DataTableComponent(props: DataTableProps) {
     snapshot.titleField,
     snapshot.primaryKeyField,
     snapshot.textEditable,
+    activeTextCellId,
     selectionPointerActive,
     rowDragVisual,
     columnDragSession,

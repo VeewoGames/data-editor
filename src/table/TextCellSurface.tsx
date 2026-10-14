@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { TableTextCellEditor, type ActiveTextEditorRegistrar } from "../editing";
 import { TextCellTruncationHint } from "./TextCellTruncationHint";
 
@@ -49,22 +49,10 @@ function TextCellSurfaceComponent({
   const textValue = stringifyValue(value);
   const mode = !editable ? "readonly" : active ? "editable-active" : "editable-idle";
   const isZeroValue = displayType === "Number" && isZeroNumberValue(value);
-  const pendingActivationTimeoutRef = useRef<number | null>(null);
-
-  function clearPendingActivation() {
-    if (pendingActivationTimeoutRef.current == null) return;
-    window.clearTimeout(pendingActivationTimeoutRef.current);
-    pendingActivationTimeoutRef.current = null;
-  }
-
   function handleActivate(event: ReactMouseEvent<HTMLDivElement>) {
     event.stopPropagation();
     if (!editable || active) return;
-    clearPendingActivation();
-    pendingActivationTimeoutRef.current = window.setTimeout(() => {
-      pendingActivationTimeoutRef.current = null;
-      onActivate(cellId);
-    }, 220);
+    onActivate(cellId);
   }
 
   function handleActivateByKeyboard(event: ReactKeyboardEvent<HTMLDivElement>) {
@@ -77,14 +65,9 @@ function TextCellSurfaceComponent({
 
   function handleRequestEnableEditing(event: ReactMouseEvent<HTMLDivElement>) {
     event.stopPropagation();
-    clearPendingActivation();
     if (editable) return;
     onEnableEditing?.();
   }
-
-  useEffect(() => () => {
-    clearPendingActivation();
-  }, []);
 
   return (
     <div
