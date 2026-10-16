@@ -128,6 +128,7 @@ export type SaveDocumentsResult = {
 };
 export type ProjectCapabilityStatus = "generic_absent" | "active" | "manifest_invalid" | "binding_degraded" | "contract_invalid";
 export type ProjectCapabilityBindings = {
+  projectProcesses: Array<{ id: string; engine: "project-process-v1"; displayName: string; entry: string; instanceResource: string }>;
   nestedSchemas: Array<{ id: string; engine: "nested-schema-v1"; match: Record<string, unknown>; manifest: string }>;
   documentContracts: Array<{ id: string; engine: "document-contract-v1"; match: Record<string, unknown>; contract: string; contractSchema: string }>;
   identityPolicies: Array<{ id: string; engine: "identity-policy-v1"; match: Record<string, unknown>; provider: { kind: "embedded-v1" | "declared-key-v1"; field?: string }; protectedIdentityFields: string[] }>;
@@ -193,7 +194,7 @@ export type EntryActionRunResult = {
   resultStatus?: string | null;
   reason?: string | null;
   message?: string | null;
-  artifacts?: Record<"proposal" | "reply" | "diagnostics", { path: string; available: boolean }>;
+  artifacts?: Record<"proposal" | "reply" | "diagnostics" | "events", { path: string; available: boolean }>;
   writebackCheck?: {
     available: boolean;
     fileChanged: boolean;
@@ -233,6 +234,10 @@ export type ViewConfig = {
     presentation?: {
       label?: string;
       description?: string;
+      checkbox?: {
+        checkedColor?: string;
+        checkedOpacity?: number;
+      };
     };
     selectOptions: Record<string, {
       label: string;
@@ -583,6 +588,26 @@ export async function loadDocument(path: string, projectId?: string | null): Pro
 
 export async function loadProjectCapabilities(projectId?: string | null): Promise<ProjectCapabilities> {
   return fetchJson(withProjectId("/api/project-capabilities", projectId));
+}
+
+export type ProjectProcessRequest = {
+  projectId: string; processId: string; action: "start" | "stop";
+  expectedGeneration: number; declarationDigest: string; expectedIntentVersion: number;
+};
+export type ProjectProcessStatus = {
+  projectId: string; processId: string; displayName: string; root: string; entry: string;
+  state: "running" | "stopped" | "starting" | "stopping" | "unknown" | "failed";
+  desiredEnabled: boolean; intentVersion: number; authorized: boolean;
+  generation: number; declarationDigest: string; error: string | null; canStart: boolean; canStop: boolean;
+  code?: string; authorizationRequest?: ProjectProcessRequest;
+};
+export async function loadProjectProcesses(projectId: string): Promise<{ projectId: string; generation: number; processes: ProjectProcessStatus[] }> {
+  return fetchJson(withProjectId("/api/project-processes", projectId));
+}
+export async function controlProjectProcess(request: ProjectProcessRequest, authorize = false): Promise<ProjectProcessStatus> {
+  return fetchJson(`/api/project-processes/${authorize ? "authorize" : "control"}`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(request),
+  });
 }
 
 export async function loadNestedSchemaCapabilities(projectId?: string | null): Promise<LoadedNestedSchemaCapabilities> {

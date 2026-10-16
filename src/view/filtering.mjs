@@ -1,6 +1,7 @@
+import { generatedFieldState, copyGeneratedMetadata } from "./derived-field-projection.mjs";
 export function attachRowIndexes(rows) {
   return rows.map((row, index) => {
-    const copy = { ...row };
+    const copy = copyGeneratedMetadata(row, { ...row });
     copyHiddenRuntimeProperty(row, copy, "__viewRowId");
     Object.defineProperty(copy, "__rowIndex", {
       value: typeof row?.__rowIndex === "number" ? row.__rowIndex : index,
@@ -57,6 +58,8 @@ function matchGroupNode(row, group, fieldTypes = {}) {
 export function matchesFilterRule(row, rule, fieldTypes = {}) {
   if (!rule || typeof rule !== "object") return true;
   const value = row?.[rule.field];
+  const generated = generatedFieldState(row, rule.field);
+  if (generated && (!generated.ready || typeof value !== "boolean")) return false;
   const fieldType = fieldTypes?.[rule.field];
   switch (rule.operator) {
     case "contains":

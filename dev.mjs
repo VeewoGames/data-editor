@@ -39,6 +39,8 @@ const api = spawn(
     projectRoot,
     "--port",
     String(apiPort),
+    "--frontend-port",
+    String(vitePort),
     "--tool-root",
     runtimeToolRoot,
     "--bridge-port",

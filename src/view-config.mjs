@@ -9,6 +9,7 @@ import {
   defaultTitleFields,
 } from "./relation-defaults.mjs";
 import { syncBacklinksWithRelations } from "./model/field-role.mjs";
+import { isValidCheckboxPresentation, normalizeCheckboxPresentation } from "./model/checkbox-presentation.mjs";
 
 export { defaultRelationConfigs };
 
@@ -118,8 +119,11 @@ export function assertValidFieldPresentations(value) {
       throw invalidFieldPresentation(fieldKey, "必须是对象。");
     }
     const keys = Object.keys(presentation);
-    if (!keys.length || keys.some((key) => key !== "label" && key !== "description")) {
-      throw invalidFieldPresentation(fieldKey, "只能包含 label 或 description。");
+    if (!keys.length || keys.some((key) => key !== "label" && key !== "description" && key !== "checkbox")) {
+      throw invalidFieldPresentation(fieldKey, "只能包含 label、description 或 checkbox。");
+    }
+    if ("checkbox" in presentation && !isValidCheckboxPresentation(presentation.checkbox)) {
+      throw invalidFieldPresentation(fieldKey, "checkbox 只能包含合法十六进制 checkedColor 或 [0,1] 内有限数 checkedOpacity。");
     }
     for (const [key, limit] of [["label", 120], ["description", 2000]]) {
       if (!(key in presentation)) continue;
@@ -143,8 +147,9 @@ function normalizeFieldPresentation(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const label = normalizeFieldPresentationText(value.label, 120);
   const description = normalizeFieldPresentationText(value.description, 2000);
-  if (!label && !description) return undefined;
-  return { ...(label ? { label } : {}), ...(description ? { description } : {}) };
+  const checkbox = normalizeCheckboxPresentation(value.checkbox);
+  if (!label && !description && !checkbox) return undefined;
+  return { ...(label ? { label } : {}), ...(description ? { description } : {}), ...(checkbox ? { checkbox } : {}) };
 }
 
 function normalizeFieldPresentationText(value, maxLength) {

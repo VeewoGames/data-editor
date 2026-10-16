@@ -1,3 +1,4 @@
+import { copyGeneratedMetadata, generatedFieldState } from "../view/derived-field-projection.mjs";
 /**
  * @typedef {import("../model/document-store").TableRowView} TableRowView
  */
@@ -20,15 +21,15 @@ export function buildVisibleTableRenderContract({ rowViews, windowStart, previou
       previousRow &&
       previousRow.__rowId === rowView.rowId &&
       previousRow.__rowIndex === rowIndex &&
-      sameShallowRowValue(previousRow, rowView.row)
+      sameShallowRowValue(previousRow, rowView.row) && Object.keys(rowView.row).every((field) => generatedFieldState(previousRow, field) === generatedFieldState(rowView.row, field))
     ) {
       return previousRow;
     }
-    return {
+    return copyGeneratedMetadata(rowView.row, {
       ...rowView.row,
       __rowIndex: rowIndex,
       __rowId: rowView.rowId,
-    };
+    });
   });
 
   return {

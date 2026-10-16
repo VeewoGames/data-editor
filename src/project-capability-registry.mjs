@@ -37,10 +37,7 @@ export function createProjectCapabilityRegistry(options = {}) {
     async resolve(project) {
       const projectId = String(project?.id ?? "").trim();
       if (!projectId) throw new Error("Capability registry requires registry project.id.");
-      const context = { projectRoot: project.root, projectId, dataSources: project.dataSources, filePolicy: project.filePolicy };
-      const loaded = await loadProjectCapabilityManifest(context);
-      const lkg = await loadCapabilityLkg(projectId, options);
-      const next = await compileCapabilityState(loaded, project, lkg, options);
+      const next = await resolveProjectCapabilityState(project, options);
       states.set(projectId, next);
       return next;
     },
@@ -57,6 +54,21 @@ export function createProjectCapabilityRegistry(options = {}) {
   };
 }
 
+/** Shared capability owner for reads and canonical writes, including enrolled LKG protection. */
+export async function resolveProjectCapabilityState(project, options = {}) {
+  const projectId = String(project?.id ?? "").trim();
+  if (!projectId) throw new Error("Capability owner requires registry project.id.");
+  const context = { projectRoot: project.root, projectId, dataSources: project.dataSources, filePolicy: project.filePolicy };
+  const loaded = await loadProjectCapabilityManifest(context);
+  // Legacy file-service utilities may receive an unregistered generic root.
+  // Their derived display id is never used as a registry/LKG identity.
+  if (loaded.status === "generic_absent" && !/^[a-z0-9_-]+$/.test(projectId)) {
+    return { status: "generic_absent", projectId, generation: 0, bindings: emptyBindings(), manifestDigest: null };
+  }
+  const lkg = await loadCapabilityLkg(projectId, options);
+  return compileCapabilityState(loaded, project, lkg, options);
+}
+
 export function findCapabilityBinding(state, { engine, dataSourceId, path: innerPath, collection, rootField = null, nestedPath = null }) {
   const matches = findCapabilityBindings(state, { engine, dataSourceId, path: innerPath, collection, rootField, nestedPath });
   if (matches.length > 1) throw new Error(`Ambiguous ${engine} capability binding for ${dataSourceId}/${innerPath}.`);
@@ -70,6 +82,8 @@ export function findCapabilityBindings(state, { engine, dataSourceId, path: inne
     ? state.bindings.nestedSchemas
     : engine === "document-contract-v1"
       ? state.bindings.documentContracts
+      : engine === "generated-fields-v1"
+        ? state.bindings.generatedFields ?? []
       : engine === "identity-policy-v1"
         ? state.bindings.identityPolicies
         : [];
@@ -157,7 +171,7 @@ function validateBindingTransition(previous, manifest, manifestDigest) {
 }
 
 function allBindings(bindings) {
-  return [...(bindings?.nestedSchemas ?? []), ...(bindings?.documentContracts ?? []), ...(bindings?.identityPolicies ?? [])];
+  return [...(bindings?.nestedSchemas ?? []), ...(bindings?.documentContracts ?? []), ...(bindings?.identityPolicies ?? []), ...(bindings?.generatedFields ?? []), ...(bindings?.projectProcesses ?? [])];
 }
 
 async function validateDeclaredResources(projectRoot, bindings) {
@@ -179,7 +193,7 @@ async function validateDeclaredResources(projectRoot, bindings) {
 }
 
 function emptyBindings() {
-  return { nestedSchemas: [], documentContracts: [], identityPolicies: [] };
+  return { nestedSchemas: [], documentContracts: [], identityPolicies: [], generatedFields: [], projectProcesses: [] };
 }
 
 function sameNestedPath(a, b) {

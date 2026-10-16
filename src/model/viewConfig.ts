@@ -62,9 +62,15 @@ export type RealFieldType = "Text" | "Checkbox" | "Select" | "Document";
 export type RelationMode = "single" | "multi";
 export type BacklinkDisplayMode = "list";
 
+export type CheckboxPresentation = {
+  checkedColor?: string;
+  checkedOpacity?: number;
+};
+
 export type FieldPresentation = {
   label?: string;
   description?: string;
+  checkbox?: CheckboxPresentation;
 };
 
 export type FieldViewConfig = {

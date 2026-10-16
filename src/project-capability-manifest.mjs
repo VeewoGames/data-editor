@@ -8,7 +8,7 @@ export const capabilityApiVersion = 1;
 export const enrollmentRelativePath = ".data-editor/enrollment.json";
 export const capabilityManifestRelativePath = ".data-editor/project.json";
 
-const supportedEngines = new Set(["nested-schema-v1", "document-contract-v1", "identity-policy-v1"]);
+const supportedEngines = new Set(["nested-schema-v1", "document-contract-v1", "identity-policy-v1", "generated-fields-v1", "project-process-v1"]);
 
 export class ProjectCapabilityManifestError extends Error {
   constructor(code, message, details = null) {
@@ -79,8 +79,16 @@ export function normalizeManifest(value, projectContextOrRoot) {
   const capabilities = {
     nestedSchemas: normalizeBindings(value.capabilities.nestedSchemas ?? [], context, "nested-schema-v1", normalizeNestedSchema),
     documentContracts: normalizeBindings(value.capabilities.documentContracts ?? [], context, "document-contract-v1", normalizeDocumentContract),
+    generatedFields: normalizeBindings(value.capabilities.generatedFields ?? [], context, "generated-fields-v1", normalizeGeneratedFields),
     identityPolicies: normalizeBindings(value.capabilities.identityPolicies ?? [], context, "identity-policy-v1", normalizeIdentityPolicy),
+    projectProcesses: normalizeBindings(value.capabilities.projectProcesses ?? [], context, "project-process-v1", normalizeProjectProcess),
   };
+  for (const binding of capabilities.generatedFields) {
+    const identity = capabilities.identityPolicies.find((candidate) => candidate.id === binding.identityPolicyId);
+    if (!identity || identity.provider.kind !== "embedded-v1" || JSON.stringify(identity.match) !== JSON.stringify(binding.match)) {
+      throw new ProjectCapabilityManifestError("CAPABILITY_GENERATED_IDENTITY_INVALID", "Generated fields require a matching embedded identity policy.");
+    }
+  }
   const ids = Object.values(capabilities).flat().map((binding) => binding.id);
   if (new Set(ids).size !== ids.length) {
     throw new ProjectCapabilityManifestError("CAPABILITY_BINDING_DUPLICATE", "Capability binding ids must be unique across engines.");
@@ -117,6 +125,18 @@ function normalizeBindings(bindings, context, engine, normalize) {
     ids.add(binding.id);
     return normalize(binding, context);
   });
+}
+
+function normalizeProjectProcess(binding, context) {
+  return { id: binding.id, engine: binding.engine, displayName: binding.displayName,
+    entry: normalizeResourcePath(binding.entry, context), instanceResource: normalizeResourcePath(binding.instanceResource, context) };
+}
+
+function normalizeGeneratedFields(binding, context) {
+  if (binding.match.rootField || binding.match.nestedPath || new Set(binding.fields.map((field) => field.name)).size !== binding.fields.length) {
+    throw new ProjectCapabilityManifestError("CAPABILITY_GENERATED_FIELDS_INVALID", "Generated fields require a top-level collection and unique field names.");
+  }
+  return { id: binding.id, engine: binding.engine, match: normalizeMatch(binding.match, context), resource: normalizeResourcePath(binding.resource, context), identityPolicyId: binding.identityPolicyId, fields: binding.fields.map((field) => ({ ...field })) };
 }
 
 function normalizeNestedSchema(binding, context) {
@@ -263,6 +283,17 @@ const manifestSchema = {
     capabilities: {
       type: "object",
       properties: {
+        projectProcesses: {
+          type: "array", maxItems: 1,
+          items: {
+            type: "object", required: ["id", "engine", "displayName", "entry", "instanceResource"],
+            properties: {
+              id: { type: "string", pattern: "^[a-z0-9_-]+$" }, engine: { const: "project-process-v1" },
+              displayName: { type: "string", minLength: 1, maxLength: 80 },
+              entry: { type: "string", minLength: 1 }, instanceResource: { type: "string", minLength: 1 },
+            }, additionalProperties: false,
+          },
+        },
         nestedSchemas: {
           type: "array",
           items: {
@@ -277,6 +308,16 @@ const manifestSchema = {
             type: "object",
             allOf: [bindingSchema, { type: "object", required: ["contract", "contractSchema"], properties: { contract: { type: "string", minLength: 1 }, contractSchema: { type: "string", minLength: 1 } } }],
             unevaluatedProperties: false,
+          },
+        },
+        generatedFields: {
+          type: "array",
+          items: {
+            type: "object",
+            allOf: [bindingSchema, { type: "object", required: ["resource", "identityPolicyId", "fields"], properties: {
+              resource: { type: "string", minLength: 1 }, identityPolicyId: { type: "string", minLength: 1 },
+              fields: { type: "array", minItems: 1, maxItems: 64, items: { type: "object", required: ["name", "type"], properties: { name: { type: "string", minLength: 1, pattern: "^(?!__proto__$|prototype$|constructor$).+$" }, type: { const: "Boolean" } }, additionalProperties: false } }
+            } }], unevaluatedProperties: false,
           },
         },
         identityPolicies: {

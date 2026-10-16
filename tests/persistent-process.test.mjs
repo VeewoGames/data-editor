@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import {
   buildWindowsCommandLine,
   quoteWindowsCommandLineArgument,
@@ -61,6 +62,7 @@ test("Windows persistent processes use the hidden WMI broker", async () => {
   assert.equal(file, "D:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe");
   assert.deepEqual(args.slice(0, 4), ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand"]);
   assert.equal(options.windowsHide, true);
+  assert.equal(Object.hasOwn(options, "timeout"), false, "existing callers keep their default behavior");
   assert.equal(options.env.TEST_VALUE, "yes");
 
   const script = Buffer.from(args[4], "base64").toString("utf16le");
@@ -98,4 +100,20 @@ test("Windows broker failures surface the WMI return value", async () => {
     ),
     /return value 9/u,
   );
+});
+
+test("optional Windows broker timeout kills a hung child before its delayed action", async () => {
+  let child, spawnedOptions;
+  const result = spawnPersistentProcess("unused-node", ["unused-entry"], { cwd: process.cwd(), timeoutMs: 100 }, {
+    platform: "win32",
+    execFileImpl: (_file, _args, options, callback) => {
+      spawnedOptions = options;
+      child = execFile(process.execPath, ["-e", "setTimeout(()=>console.log('late-broker-action'),2000)"], options, callback);
+      return child;
+    },
+  });
+  await assert.rejects(result, error => error.code === "PERSISTENT_PROCESS_BROKER_TIMEOUT" && error.cause.killed === true);
+  assert.equal(spawnedOptions.timeout, 100);
+  assert.equal(child.killed, true);
+  assert.ok(child.exitCode !== null || child.signalCode !== null, "broker has exited before the promise rejects");
 });

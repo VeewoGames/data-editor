@@ -11,6 +11,7 @@ import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import { runtimeHome } from "./src/project-registry.mjs";
 import { spawnPersistentProcess } from "./src/persistent-process.mjs";
 import { inspectProcess, matchesRecoveryBridgeIdentity } from "./stop.mjs";
+import { createProjectProcessService } from "./src/project-process-service.mjs";
 
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -20,6 +21,14 @@ if (isMainModule) {
     const options = parseArgs(process.argv.slice(2));
     const result = await openService(options);
     process.stdout.write(`${result.message}\n`);
+    // Shared Editor startup does not grant permission or change the switch.
+    // This also covers callers that do not use a project-specific open script.
+    try {
+      const owner = createProjectProcessService({ home: normalizeOptions(options).registryHome });
+      const projectId = await owner.projectIdForRoot(normalizeOptions(options).projectRoot);
+      const processes = await owner.open(projectId);
+      for (const item of processes.processes) if (item.error) process.stderr.write(`后台计算：${item.error}\n`);
+    } catch (error) { process.stderr.write(`后台计算未自动恢复：${error.message}\n`); }
     process.exitCode = 0;
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

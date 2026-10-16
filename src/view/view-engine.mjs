@@ -1,7 +1,8 @@
+import { generatedFieldState, copyGeneratedMetadata } from "./derived-field-projection.mjs";
 import { applyViewFilters } from "./filtering.mjs";
 import { applyViewSorts } from "./sorting.mjs";
 import { runSearch } from "./search-engine.mjs";
-import { projectViewEngineRows } from "./derived-field-projection.mjs";
+import { projectViewEngineRows, projectPendingGeneratedComparisons } from "./derived-field-projection.mjs";
 
 const emptyFilters = { topLevelRules: [], advancedRoot: null };
 const emptySorts = [];
@@ -16,7 +17,8 @@ export function runView({
   optionOrdersByField = {},
   derivedFieldProjection = null,
 }) {
-  const projectedRows = derivedFieldProjection ? projectViewEngineRows(rows, derivedFieldProjection) : rows;
+  let projectedRows = derivedFieldProjection ? projectViewEngineRows(rows, derivedFieldProjection) : rows;
+  if (derivedFieldProjection?.declarationPending) projectedRows = projectPendingGeneratedComparisons(projectedRows, filters);
   const searchResult = runSearch({ rows: projectedRows, query, candidateRowIds });
   const filteredRows = materializeRows(
     applyViewFilters(searchResult.searchRows.map(createRuntimeRow), "", filters, fieldTypes),
@@ -42,7 +44,7 @@ export function runView({
 }
 
 function createRuntimeRow(entry) {
-  const runtimeRow = { ...(entry?.row ?? {}) };
+  const runtimeRow = copyGeneratedMetadata(entry?.row, { ...(entry?.row ?? {}) });
   Object.defineProperty(runtimeRow, "__viewRowId", {
     value: entry?.rowId ?? null,
     enumerable: false,

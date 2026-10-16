@@ -22,6 +22,9 @@ export async function spawnPersistentProcess(command, args = [], options = {}, d
 }
 
 export async function spawnWindowsPersistentProcess(command, args = [], options = {}, deps = {}) {
+  if (options.timeoutMs !== undefined && (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs < 1)) {
+    throw new TypeError("Persistent process broker timeoutMs must be a positive integer.");
+  }
   const payload = Buffer.from(
     JSON.stringify({
       commandLine: buildWindowsCommandLine(command, args),
@@ -39,6 +42,7 @@ export async function spawnWindowsPersistentProcess(command, args = [], options 
       env: options.env,
       maxBuffer: 1024 * 1024,
       windowsHide: true,
+      ...(options.timeoutMs === undefined ? {} : { timeout: options.timeoutMs }),
     },
   );
 
@@ -107,7 +111,10 @@ function execFileText(execFileImpl, file, args, options) {
     execFileImpl(file, args, options, (error, stdout, stderr) => {
       if (error) {
         const detail = String(stderr ?? stdout ?? "").trim();
-        reject(new Error(`Windows process broker could not start${detail ? `: ${detail}` : "."}`, { cause: error }));
+        const timedOut = options.timeout > 0 && error.killed && error.signal === "SIGTERM";
+        reject(Object.assign(new Error(timedOut ? `Windows process broker timed out after ${options.timeout}ms.`
+          : `Windows process broker could not start${detail ? `: ${detail}` : "."}`, { cause: error }),
+          timedOut ? { code: "PERSISTENT_PROCESS_BROKER_TIMEOUT" } : {}));
         return;
       }
       resolve({ stdout: String(stdout ?? ""), stderr: String(stderr ?? "") });

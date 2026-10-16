@@ -1,10 +1,10 @@
 import { resolveCompatibleDisplayType } from "../model/fieldTypes.mjs";
 import { computeFieldMenuCapabilities } from "./field-capabilities.mjs";
-import { isDerivedField } from "../view/derived-field-projection.mjs";
 
 /**
  * @param {{
  *   visibleFields: string[];
+ *   readonlyFields?: string[];
  *   rows: import("../model/documentModel").DataRecord[];
  *   nestedFieldSet: Set<string>;
  *   displayTypes: Record<string, import("../model/fieldTypes").FieldDisplayType>;
@@ -25,6 +25,7 @@ import { isDerivedField } from "../view/derived-field-projection.mjs";
  */
 export function buildTableColumnModelsSignature({
   visibleFields,
+  readonlyFields = [],
   rows,
   nestedFieldSet,
   displayTypes,
@@ -47,9 +48,9 @@ export function buildTableColumnModelsSignature({
     const relationConfig = relationConfigByField[fieldName] ?? null;
     const isNested = nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
-    const isReadonly = isDerivedField(fieldName);
+    const isReadonly = readonlyFields.includes(fieldName);
     const relationConfigured = Boolean(relationConfig);
-    const baseDisplayType = inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
+    const baseDisplayType = isReadonly ? "Checkbox" : inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
     const effectiveDisplayType = isBacklink
       ? "Backlink"
       : relationConfigured

@@ -112,6 +112,7 @@ function sameTableCellCoord(left: TableCellCoord | null, right: TableCellCoord |
 
 export type TableSnapshot = {
   schemaModel: DocumentModel;
+  readonlyFields?: string[];
   sourcePath: string | null;
   collectionPath: string;
   rowViews: TableRowView[];
@@ -340,8 +341,9 @@ function DataTableComponent(props: DataTableProps) {
   const allColumns = useMemo(() => orderColumns([
     ...getMainColumns(schemaModel, snapshot.collectionPath),
     ...nestedFieldSet,
+    ...(snapshot.readonlyFields ?? []),
     ...snapshot.backlinkColumns.map((column) => column.fieldName),
-  ], snapshot.fieldConfig.order), [schemaModel, snapshot.collectionPath, snapshot.fieldConfig.order, nestedFieldSet, snapshot.backlinkColumns]);
+  ], snapshot.fieldConfig.order), [schemaModel, snapshot.collectionPath, snapshot.fieldConfig.order, nestedFieldSet, snapshot.backlinkColumns, snapshot.readonlyFields]);
 
   const detectedTitleField = snapshot.titleField ?? findTitleField(allColumns, rows);
   const visibleBaseFields = useMemo(() => allColumns.filter((field) => !snapshot.fieldConfig.hidden.has(field)), [allColumns, snapshot.fieldConfig.hidden]);
@@ -386,6 +388,7 @@ function DataTableComponent(props: DataTableProps) {
     snapshot.collectionPath,
     snapshot.primaryKeyField,
     snapshot.fieldConfig.displayTypes,
+    snapshot.readonlyFields,
     snapshot.fieldViewConfigs,
     snapshot.relationConfigs,
     snapshot.relationOptions,
@@ -477,6 +480,7 @@ function DataTableComponent(props: DataTableProps) {
   const tableData = tableRenderContract.rows;
   const columnModelSignature = useMemo(() => buildTableColumnModelsSignature({
     visibleFields,
+    readonlyFields: snapshot.readonlyFields,
     rows,
     nestedFieldSet,
     displayTypes: snapshot.fieldConfig.displayTypes,
@@ -498,6 +502,7 @@ function DataTableComponent(props: DataTableProps) {
     rows,
     nestedFieldSet,
     snapshot.fieldConfig.displayTypes,
+    snapshot.readonlyFields,
     snapshot.fieldViewConfigs,
     snapshot.fieldConfig.wrapped,
     detectedTitleField,
@@ -513,6 +518,7 @@ function DataTableComponent(props: DataTableProps) {
   ]);
   const columnModels = useMemo(() => buildTableColumnModels({
     visibleFields,
+    readonlyFields: snapshot.readonlyFields,
     rows,
     nestedFieldSet,
     displayTypes: snapshot.fieldConfig.displayTypes,

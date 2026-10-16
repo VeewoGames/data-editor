@@ -1,3 +1,6 @@
+import { readGeneratedFields, assertNoGeneratedFieldInjection } from "./src/generated-fields-service.mjs";
+import { createProjectProcessService } from "./src/project-process-service.mjs";
+import { assertProjectProcessHttpSource } from "./src/project-process-http.mjs";
 import http from "node:http";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -88,8 +91,10 @@ const documentCommitCoordinator = createDocumentCommitCoordinator();
 const createAdapterRegistry = createEntryActionCreateAdapterRegistry();
 const submitCandidateCreate = createCandidateCreateAdmission({ adapterRegistry: createAdapterRegistry });
 const projectCapabilityRegistry = createProjectCapabilityRegistry(registryOptions);
+const projectProcessService = createProjectProcessService(registryOptions);
 const activeEntryActionCompletions = new Map();
 const runEntryAction = createEntryActionRunRoute({
+  capabilityRegistryOptions: registryOptions,
   loadRegistry: async () => {
     await ensureInitialProject();
     return loadProjectRegistry(registryOptions);
@@ -161,12 +166,20 @@ const server = http.createServer(async (req, res) => {
     await ensureInitialProject();
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
     if (url.pathname === "/api/project-capabilities" && req.method === "GET") return await handleProjectCapabilities(url, res);
+    if (url.pathname === "/api/project-processes" && req.method === "GET") return sendJson(res, await projectProcessService.list(url.searchParams.get("projectId")), 200, { "cache-control": "no-store" });
+    if (["/api/project-processes/control", "/api/project-processes/authorize"].includes(url.pathname) && req.method === "POST") {
+      assertProjectProcessHttpSource(req, Number(args.frontendPort ?? port));
+      const body = await readJsonBody(req);
+      const result = await projectProcessService[url.pathname.endsWith("/authorize") ? "authorize" : "control"](body);
+      return sendJson(res, result, 200, { "cache-control": "no-store" });
+    }
     if (url.pathname === "/api/nested-schema-capabilities" && req.method === "GET") return await handleNestedSchemaCapabilities(url, res);
     if (url.pathname === "/api/projects" && req.method === "POST") return await handleCreateProject(req, res);
     if (url.pathname === "/api/project-update" && req.method === "POST") return await handleUpdateProject(req, res);
     if (url.pathname === "/api/project-delete" && req.method === "POST") return await handleDeleteProject(req, res);
     if (url.pathname === "/api/project-activate" && req.method === "POST") return await handleActivateProject(req, res);
     if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(await projectContextForUrl(url)));
+    if (url.pathname === "/api/generated-fields" && req.method === "GET") return await handleGeneratedFields(url, res);
     if (url.pathname === "/api/document") return await handleDocument(url, res);
     if (url.pathname === "/api/document-index") return await handleDocumentIndex(url, res);
     if (url.pathname === "/api/document-content") return await handleDocumentContent(url, res);
@@ -259,7 +272,7 @@ async function ensureInitialProject() {
   const registry = await loadProjectRegistry(registryOptions);
   const project = registry.projects.find((candidate) => candidate.id === registry.activeProjectId);
   if (project) {
-    const context = createProjectContext({ projectRoot: project.root, projectId: project.id, dataSources: project.dataSources, filePolicy: project.filePolicy });
+    const context = createProjectContext({ projectRoot: project.root, projectId: project.id, capabilityRegistryOptions: registryOptions, dataSources: project.dataSources, filePolicy: project.filePolicy });
     if (!recoveredIdentityPromotionProjects.has(project.id)) {
     const capabilityState = await projectCapabilityRegistry.resolve(project);
     await recoverPendingEmbeddedIdentityPromotions({
@@ -281,6 +294,16 @@ async function ensureInitialProject() {
     }
   }
   return registry;
+}
+
+async function handleGeneratedFields(url, res) {
+  const context = await projectContextForUrl(url);
+  const registry = await loadProjectRegistry(registryOptions);
+  const project = registry.projects.find((item) => item.id === context.projectId);
+  const sourcePath = url.searchParams.get("path"); const collection = url.searchParams.get("collection");
+  if (!sourcePath || !collection || !url.searchParams.get("projectId")) throw Object.assign(new Error("Missing generated field scope"), { status: 400 });
+  const state = await projectCapabilityRegistry.resolve(project);
+  sendJson(res, await readGeneratedFields({ project, context, state, sourcePath, collection }), 200, { "cache-control": "no-store" });
 }
 
 async function handleDocument(url, res) {
@@ -399,6 +422,7 @@ async function handleSave(req, res) {
       const documentContracts = await resolveApplicableDocumentContracts(projectContext, body.path, body.root, ext.slice(1));
       if (documentContracts.error) throw documentContracts.error;
       validateDocumentContractSave(body, documentContracts);
+      assertNoGeneratedFieldInjection({ context: projectContext, state: documentContracts.state, sourcePath: body.path, root: body.root });
       validateDocumentContractCandidateSave(documentContracts, body.root);
       await assertDocumentContractsUnchanged(projectContext, body.path, body.root, ext.slice(1), documentContracts);
       // An existing intent owns the snapshot captured by its original request.
@@ -1042,6 +1066,7 @@ function parseArgs(argv) {
     else if (argv[i] === "--project") result.project = argv[++i];
     else if (argv[i] === "--adapter") throw new Error("--adapter is no longer supported. Project capabilities are declared in .data-editor/project.json.");
     else if (argv[i] === "--port") result.port = argv[++i];
+    else if (argv[i] === "--frontend-port") result.frontendPort = argv[++i];
     else if (argv[i] === "--static") result.static = argv[++i];
     else if (argv[i] === "--tool-root") result.toolRoot = argv[++i];
     else if (argv[i] === "--bridge-port") result.bridgePort = argv[++i];
@@ -1091,6 +1116,7 @@ async function projectContextForId(projectId) {
   const projectContext = createProjectContext({
     projectRoot: project.root,
     projectId: project.id,
+    capabilityRegistryOptions: registryOptions,
     dataSources: project.dataSources,
     filePolicy: project.filePolicy,
   });

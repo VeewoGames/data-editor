@@ -76,6 +76,10 @@ export async function writeTextFile(projectContextOrRoot, relativePath, text) {
     }
     throw error;
   }
+  // All canonical writers (save, proposal, candidate-create) converge here.
+  // Generated resources are deliberately never read on this write path.
+  const { assertNoGeneratedTextInjection } = await import("./generated-fields-service.mjs");
+  await assertNoGeneratedTextInjection(context, relativePath, text);
   await atomicWrite(target, text);
   return { ok: true };
 }

@@ -1,3 +1,4 @@
+import { generatedFieldState, copyGeneratedMetadata } from "./derived-field-projection.mjs";
 import { applyViewFilters } from "./filtering.mjs";
 
 const emptyFilters = { op: "and", rules: [] };
@@ -32,7 +33,7 @@ function resolveCandidateRows(sourceRows, candidateRowIds) {
 }
 
 function createRuntimeRow(entry) {
-  const runtimeRow = { ...(entry?.row ?? {}) };
+  const runtimeRow = copyGeneratedMetadata(entry?.row, { ...(entry?.row ?? {}) });
   Object.defineProperty(runtimeRow, "__viewRowId", {
     value: entry?.rowId ?? null,
     enumerable: false,

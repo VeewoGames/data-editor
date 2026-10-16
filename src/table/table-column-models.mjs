@@ -1,6 +1,5 @@
 import { resolveCompatibleDisplayType } from "../model/fieldTypes.mjs";
 import { computeFieldMenuCapabilities } from "./field-capabilities.mjs";
-import { isDerivedField } from "../view/derived-field-projection.mjs";
 
 const emptyRelationOptions = [];
 
@@ -34,6 +33,7 @@ const emptyRelationOptions = [];
 /**
  * @param {{
  *   visibleFields: string[];
+ *   readonlyFields?: string[];
  *   rows: import("../model/documentModel").DataRecord[];
  *   nestedFieldSet: Set<string>;
  *   displayTypes: Record<string, import("../model/fieldTypes").FieldDisplayType>;
@@ -55,6 +55,7 @@ const emptyRelationOptions = [];
  */
 export function buildTableColumnModels({
   visibleFields,
+  readonlyFields = [],
   rows,
   nestedFieldSet,
   displayTypes,
@@ -78,10 +79,10 @@ export function buildTableColumnModels({
     const relationOptions = relationOptionsByField[fieldName] ?? emptyRelationOptions;
     const isNested = nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
-    const isReadonly = isDerivedField(fieldName);
+    const isReadonly = readonlyFields.includes(fieldName);
     const relationConfigured = Boolean(relationConfig);
     const documentConfigured = documentConfiguredFields.has(fieldName);
-    const baseDisplayType = inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
+    const baseDisplayType = isReadonly ? "Checkbox" : inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
     const effectiveDisplayType = isBacklink
       ? "Backlink"
       : relationConfigured

@@ -27,9 +27,10 @@ export function FieldPresentationDialog({ open, fieldName, presentation, onOpenC
   const save = () => {
     const nextLabel = normalizeDraft(label);
     const nextDescription = normalizeDraft(description);
-    onConfirm(nextLabel || nextDescription ? {
+    onConfirm(nextLabel || nextDescription || presentation?.checkbox ? {
       ...(nextLabel ? { label: nextLabel } : {}),
       ...(nextDescription ? { description: nextDescription } : {}),
+      ...(presentation?.checkbox ? { checkbox: presentation.checkbox } : {}),
     } : null);
   };
 
@@ -50,7 +51,7 @@ export function FieldPresentationDialog({ open, fieldName, presentation, onOpenC
           </label>
           <div className="dialog-actions">
             <Dialog.Close className="ghost-button">取消</Dialog.Close>
-            <button className="ghost-button" onClick={() => onConfirm(null)} type="button">清除</button>
+            <button className="ghost-button" onClick={() => onConfirm(presentation?.checkbox ? { checkbox: presentation.checkbox } : null)} type="button">清除</button>
             <button className="primary-button" onClick={save} type="button">保存</button>
           </div>
         </Dialog.Content>

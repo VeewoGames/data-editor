@@ -1,3 +1,4 @@
+import { useGeneratedFields } from "./view/useGeneratedFields";
 import { Profiler, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -200,7 +201,6 @@ import { deriveNewRowSeedValues } from "./view/new-row-seeding.mjs";
 import { updateHeaderSorts } from "./view/sorting.mjs";
 import { runView } from "./view/view-engine.mjs";
 import {
-  derivedFieldTypes,
   discoverProjectedFields,
   isDerivedField,
   projectDerivedFields,
@@ -2206,16 +2206,19 @@ export function App() {
     }
     return { type: "row-field" as const, rowId, rowIndex, fieldName };
   }
+  const generatedFields = useGeneratedFields(activeProjectId, selectedPath, collectionPath, model?.documentEtag, dataDirty);
+  const projectionContext = useMemo(() => ({ sourcePath: selectedPath, collectionPath, generated: generatedFields, dirty: dataDirty, declarationPending: Boolean(activeProjectId && selectedPath && !generatedFields) }), [activeProjectId, selectedPath, collectionPath, generatedFields, dataDirty]);
+  const generatedDisplayTypes = useMemo(() => Object.fromEntries((generatedFields?.fields ?? []).map((field) => [field.name, "Checkbox"])) as Record<string, FieldDisplayType>, [generatedFields]);
   const allFields = useMemo(
     () => model ? discoverProjectedFields(
-      getOrderedFields(model, collectionPath, tableFieldConfig.order, backlinkColumns.map((column) => column.fieldName)),
-      { sourcePath: selectedPath, collectionPath },
+      getOrderedFields(model, collectionPath, tableFieldConfig.order, [...backlinkColumns.map((column) => column.fieldName), ...(generatedFields?.fields ?? []).map((field) => field.name)]),
+      projectionContext,
     ) : [],
-    [model, selectedPath, collectionPath, tableFieldConfig.order, backlinkColumns],
+    [model, selectedPath, collectionPath, tableFieldConfig.order, backlinkColumns, projectionContext],
   );
   const projectedRows = useMemo(
-    () => rows.map((row) => projectDerivedFields(row, { sourcePath: selectedPath, collectionPath })),
-    [rows, selectedPath, collectionPath],
+    () => rows.map((row) => projectDerivedFields(row, projectionContext)),
+    [rows, selectedPath, collectionPath, projectionContext],
   );
   const fieldViewConfigs = useMemo(
     () => model ? buildFieldViewConfigs(selectedPath, collectionPath, model, viewConfig) : {},
@@ -2224,7 +2227,7 @@ export function App() {
   const viewFilterFieldTypes = useMemo(
     () => Object.fromEntries(allFields.map((field) => [
       field,
-      derivedFieldTypes[field as keyof typeof derivedFieldTypes] ?? (selectedPath && viewConfig.relations[buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [field] })]
+      generatedDisplayTypes[field] ?? (selectedPath && viewConfig.relations[buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [field] })]
         ? "Relation"
         : inferViewFilterFieldType(field, projectedRows, tableFieldConfig.displayTypes)),
     ])) as Record<string, FieldDisplayType>,
@@ -2278,7 +2281,7 @@ export function App() {
       sorts: activeViewRenderState.sorts,
       fieldTypes: viewFilterFieldTypes,
       optionOrdersByField: viewSortOptionOrders,
-      derivedFieldProjection: { sourcePath: selectedPath, collectionPath },
+      derivedFieldProjection: projectionContext,
     });
     if (perfState.active && perfState.awaitingViewRows) {
       markPerf("detail-reorder:after-view-rows");
@@ -2286,7 +2289,7 @@ export function App() {
       perfState.awaitingViewRows = false;
     }
     return stabilizeViewResult(previousViewResultRef.current, nextViewResult);
-  }, [viewEngineRows, activeViewRenderState, viewFilterFieldTypes, viewSortOptionOrders]);
+  }, [viewEngineRows, activeViewRenderState, viewFilterFieldTypes, viewSortOptionOrders, projectionContext]);
   useEffect(() => {
     previousViewResultRef.current = viewResult;
   }, [viewResult]);
@@ -2310,9 +2313,9 @@ export function App() {
   const projectedVisibleRowViews = useMemo(
     () => visibleRowViews.map((view) => ({
       ...view,
-      row: projectDerivedFields(view.row, { sourcePath: selectedPath, collectionPath }),
+      row: projectDerivedFields(view.row, projectionContext),
     })),
-    [visibleRowViews, selectedPath, collectionPath],
+    [visibleRowViews, selectedPath, collectionPath, projectionContext],
   );
   const selectedDocumentFields = useMemo(() => {
     return buildSelectedDocumentFields({
@@ -2618,11 +2621,12 @@ export function App() {
   }, [model, documentStore, selectedPath, collectionPath, activeValidationPrimaryKeyField]);
   const tableSnapshot = useMemo<TableSnapshot>(() => ({
     schemaModel: model!,
+    readonlyFields: generatedFields?.fields.map((field) => field.name) ?? [],
     sourcePath: selectedPath,
     collectionPath,
     rowViews: projectedVisibleRowViews,
     allRows: projectedRows,
-    fieldConfig: tableFieldConfig,
+    fieldConfig: { ...tableFieldConfig, order: allFields, displayTypes: { ...tableFieldConfig.displayTypes, ...generatedDisplayTypes } },
     fieldViewConfigs,
     backlinkColumns,
     backlinkValuesByRowId: backlinkValuesByRowIdState,
@@ -2641,7 +2645,7 @@ export function App() {
     canReorderRows,
     onEnableTextEditMode: enableTableTextEditMode,
     onRegisterActiveTextEditor: registerActiveTextEditor,
-  }), [
+  }), [projectionContext, generatedDisplayTypes, allFields,
     model,
     selectedPath,
     collectionPath,
@@ -2750,7 +2754,7 @@ export function App() {
       matches: documentContent?.status === "conflict" ? documentContent.matches : [],
       errorMessage: documentContentError ?? documentIndexError,
     },
-    row: selectedRow,
+    row: selectedRow ? projectDerivedFields(selectedRow, projectionContext) : null,
     allRows: rows,
     rowId: selectedRowId,
     sourceRowIndex: selectedSourceRowIndex,
@@ -2764,8 +2768,8 @@ export function App() {
     collectionPath,
     titleField,
     primaryKeyField: activeValidationPrimaryKeyField,
-    detailOrder: fieldConfig.detailOrder,
-    displayTypes: fieldConfig.displayTypes,
+    detailOrder: discoverProjectedFields(fieldConfig.detailOrder, projectionContext),
+    displayTypes: { ...fieldConfig.displayTypes, ...generatedDisplayTypes },
     fieldViewConfigs,
     validation: effectiveValidationSnapshot,
     relationOptions,
@@ -2779,7 +2783,7 @@ export function App() {
     entryActionRunningId,
     entryActionErrorMessage,
     entryActionStatus,
-  }), [
+  }), [projectionContext, generatedDisplayTypes, allFields,
     detailOpen,
     detailPanelWidth,
     detailDocumentPanelOpen,
@@ -3539,7 +3543,7 @@ export function App() {
   }
 
   function handleEditCell(rowIndex: number, fieldName: string, value: unknown) {
-    if (!model || isDerivedField(fieldName)) return;
+    if (!model || isDerivedField(fieldName, projectionContext)) return;
     const nextEdit = resolveCellEditWrite(rowIndex, null, fieldName, value);
     updateValidationIssueOverride(rowIndex, null, fieldName, nextEdit.issue);
     validationInvalidationRef.current = resolveValidationInvalidation(fieldName, null, rowIndex);
@@ -3547,7 +3551,7 @@ export function App() {
   }
 
   function handleEditCellByRowId(rowId: string, fieldName: string, value: unknown) {
-    if (!model || !documentStore || isDerivedField(fieldName)) return;
+    if (!model || !documentStore || isDerivedField(fieldName, projectionContext)) return;
     const nextEdit = resolveCellEditWrite(null, rowId, fieldName, value);
     updateValidationIssueOverride(null, rowId, fieldName, nextEdit.issue);
     validationInvalidationRef.current = resolveValidationInvalidation(fieldName, rowId, null);
@@ -3563,6 +3567,7 @@ export function App() {
   }
 
   function handleChangeFieldType(fieldName: string, displayType: FieldDisplayType) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!selectedPath || !model || (displayType !== "Text" && displayType !== "Select" && displayType !== "Document")) return;
     const rowsInCollection = getRows(model, collectionPath) as DataRecord[];
     const relationKey = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
@@ -3585,6 +3590,7 @@ export function App() {
   }
 
   function handleConfigureRelation(fieldName: string) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!selectedPath) return;
     if (!canConfigureRelationForField(fieldName)) {
       setStatus(`只有非标题、非主键且未启用关联文档的 Text、Select 或 Multi-select 字段可以设为关联字段`);
@@ -3594,6 +3600,7 @@ export function App() {
   }
 
   async function handleClearRelation(fieldName: string) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!selectedPath) return;
     const key = buildRelationKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
     mutateViewConfig((draft) => {
@@ -3603,6 +3610,7 @@ export function App() {
   }
 
   function handleConfigureDocument(fieldName: string) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!selectedPath) return;
     if (!canConfigureDocumentForField(fieldName)) {
       setStatus(`只有未配置关联的 Text 或 Document 字段可以设为关联文档字段`);
@@ -3612,6 +3620,7 @@ export function App() {
   }
 
   function handleClearDocument(fieldName: string) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!selectedPath) return;
     const key = buildDocumentFieldKey({ sourceFile: selectedPath, sourceCollection: collectionPath, fieldPath: [fieldName] });
     mutateViewConfig((draft) => {
@@ -3743,6 +3752,7 @@ export function App() {
   }
 
   function handleSetTitleField(fieldName: string) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!selectedPath) return;
     if (!canSetTitleField(fieldName)) {
       setStatus(`只有未配置关联的 Text 字段可以设为标题字段`);
@@ -3757,6 +3767,7 @@ export function App() {
   }
 
   function handleSetPrimaryKeyField(fieldName: string) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!selectedPath) return;
     if (!canSetPrimaryKeyField(fieldName)) {
       setStatus("只有未配置关联的 Text 字段可以设为主键ID");
@@ -3853,8 +3864,7 @@ export function App() {
 
   function handleMoveField(fieldName: string, direction: "left" | "right") {
     if (!selectedPath || !model) return;
-    const fields = getOrderedFields(model, collectionPath, fieldConfig.order, backlinkColumns.map((column) => column.fieldName));
-    const currentOrder = fieldConfig.order.length ? fieldConfig.order.filter((field) => fields.includes(field)) : fields;
+    const currentOrder = allFields;
     const index = currentOrder.indexOf(fieldName);
     const targetIndex = direction === "left" ? index - 1 : index + 1;
     if (index < 0 || targetIndex < 0 || targetIndex >= currentOrder.length) return;
@@ -3867,8 +3877,7 @@ export function App() {
 
   function handleReorderFields(nextOrder: string[]) {
     if (!selectedPath || !model) return;
-    const fields = getOrderedFields(model, collectionPath, fieldConfig.order, backlinkColumns.map((column) => column.fieldName));
-    const normalizedOrder = orderColumns(fields, nextOrder);
+    const normalizedOrder = orderColumns(allFields, nextOrder);
     updateActiveViewLayout((draft) => {
       draft.order = normalizedOrder;
     });
@@ -3942,6 +3951,7 @@ export function App() {
   }
 
   function handleCommitMultiSelectOptionFieldDraft(rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!model) return;
     const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
     const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
@@ -3976,6 +3986,7 @@ export function App() {
   }
 
   function handleCommitSelectOptionFieldDraft(rowIndex: number, fieldName: string, patch: OptionFieldDraftCommit) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!model) return;
     const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
     const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
@@ -4579,6 +4590,7 @@ export function App() {
   function confirmAddField() {
     if (!model || selectedSourceRowIndex == null || !newFieldName.trim()) return;
     const fieldName = newFieldName.trim();
+    if (isDerivedField(fieldName, projectionContext)) { setStatus("生成字段名称已被只读投影占用"); return; }
     const currentSelectedRowId = selectedRowId;
     mutate(() => {
       if (currentSelectedRowId && documentStore) {
@@ -4607,6 +4619,7 @@ export function App() {
   }
 
   function handleDeleteField(fieldName: string) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     setPendingDeleteField(fieldName);
   }
 
@@ -5182,6 +5195,7 @@ export function App() {
   }
 
   function handleCommitSelectOptionFieldDraftByRowId(rowId: string, fieldName: string, patch: OptionFieldDraftCommit) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!model || !documentStore) return;
     const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
     const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;
@@ -5216,6 +5230,7 @@ export function App() {
   }
 
   function handleCommitMultiSelectOptionFieldDraftByRowId(rowId: string, fieldName: string, patch: OptionFieldDraftCommit) {
+    if (isDerivedField(fieldName, projectionContext)) return;
     if (!model || !documentStore) return;
     const needsDataMutation = patch.valueChanged || patch.renamedOptions.length > 0 || patch.deletedOptionValues.length > 0;
     const needsViewConfigMutation = patch.optionsChanged || patch.orderChanged;

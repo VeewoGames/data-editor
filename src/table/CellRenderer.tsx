@@ -11,7 +11,8 @@ import { SelectCellEditor } from "./SelectCellEditor";
 import { TextCellSurface } from "./TextCellSurface";
 import { TextCellTruncationHint } from "./TextCellTruncationHint";
 import type { MultiSelectFieldOptionConfig, SelectFieldOptionConfig } from "./DataTable";
-import type { RelationMode } from "../model/viewConfig";
+import type { FieldPresentation, RelationMode } from "../model/viewConfig";
+import { checkboxCheckedStyle } from "../model/checkbox-presentation.mjs";
 import type { ActiveTextEditorRegistrar } from "../editing";
 import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
 
@@ -19,7 +20,10 @@ type CellRendererProps = {
   cellId?: string;
   value: unknown;
   readonly?: boolean;
+  readonlyReason?: string;
+  readonlyReady?: boolean;
   displayType: FieldDisplayType;
+  presentation?: FieldPresentation;
   issue?: ValidationIssue | null;
   wrapped?: boolean;
   multiSelectConfig?: MultiSelectFieldOptionConfig;
@@ -46,7 +50,10 @@ function CellRendererComponent({
   cellId = "",
   value,
   readonly = false,
+  readonlyReason,
+  readonlyReady,
   displayType,
+  presentation,
   issue,
   wrapped = false,
   multiSelectConfig,
@@ -70,6 +77,9 @@ function CellRendererComponent({
 }: CellRendererProps) {
   const shouldShowIssue = issue != null && !shouldSuppressRelationIssue(displayType, value);
   const issueNode = shouldShowIssue ? <Issue issue={issue} /> : null;
+  if (readonly && displayType === "Checkbox") {
+    return <div className="table-cell-content-main" data-cell-readonly="true">{readonlyReady !== false && typeof value === "boolean" ? <label className="checkbox-cell"><input className="generated-checkbox" type="checkbox" readOnly tabIndex={-1} checked={value} aria-readonly="true" aria-label="只读生成值" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} /></label> : <span className="generated-checkbox-unknown" title={readonlyReason ?? "尚未计算"}>?</span>}</div>;
+  }
   if (readonly) {
     const displayValue = Array.isArray(value) ? value.join(", ") : value == null ? "" : String(value);
     return (
@@ -96,7 +106,7 @@ function CellRendererComponent({
       <>
         <div className="table-cell-content-main">
           <label className="checkbox-cell" onClick={(event) => event.stopPropagation()}>
-            <input type="checkbox" checked={Boolean(value)} onChange={(event) => onEdit(event.target.checked)} />
+            <input type="checkbox" checked={Boolean(value)} style={checkboxCheckedStyle(Boolean(value), presentation)} onChange={(event) => onEdit(event.target.checked)} />
           </label>
         </div>
         {issueNode ? <span className="table-cell-issue-slot">{issueNode}</span> : null}
@@ -253,6 +263,8 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.cellId === next.cellId &&
   previous.value === next.value &&
   previous.readonly === next.readonly &&
+  previous.readonlyReason === next.readonlyReason &&
+  previous.readonlyReady === next.readonlyReady &&
   previous.displayType === next.displayType &&
   previous.issue === next.issue &&
   previous.wrapped === next.wrapped &&

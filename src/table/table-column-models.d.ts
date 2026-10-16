@@ -37,6 +37,7 @@ export type TableColumnModel = {
 
 export function buildTableColumnModels(input: {
   visibleFields: string[];
+  readonlyFields?: string[];
   rows: DataRecord[];
   nestedFieldSet: Set<string>;
   displayTypes: Record<string, FieldDisplayType>;

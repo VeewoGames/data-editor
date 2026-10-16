@@ -469,7 +469,7 @@ export function ColumnHeader(props: ColumnHeaderProps) {
           <button className="menu-item" onClick={() => runAfterMenuClose(() => commitColumnWidth(180))} type="button">
             <icons.reset size={15} /> 重置列宽
           </button>
-          {props.roleKind === "backlink" ? null : (
+          {props.roleKind === "backlink" || props.isReadonly ? null : (
             <button className="menu-item danger" onClick={() => runAfterMenuClose(props.onDeleteField)} type="button">
               <icons.delete size={15} /> 删除字段
             </button>

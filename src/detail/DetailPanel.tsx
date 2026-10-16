@@ -1,3 +1,4 @@
+import { generatedFieldState } from "../view/derived-field-projection.mjs";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { icons, readSharedViewIconComponent, sharedViewFallbackIcon } from "../components/icons";
 import { RelationBacklinksPanel } from "../components/RelationBacklinksPanel";
@@ -15,6 +16,7 @@ import { RelationCellEditor } from "../table/RelationCellEditor";
 import { SelectCellEditor } from "../table/SelectCellEditor";
 import { chipStyleForValue } from "../table/chipColors";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
+import { checkboxCheckedStyle } from "../model/checkbox-presentation.mjs";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
 import { buildMultiSelectFieldConfigFromRows } from "../multiselect-config.mjs";
 import { FieldTypeIcon } from "../components/FieldTypeIcon";
@@ -629,12 +631,13 @@ export function DetailPanel({
                   ) : (
                     <section className="property-block" onClick={forwardOptionFieldSurfaceClick}>
                       <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} presentation={fieldViewConfigs[key]?.presentation} />
-                      {renderValueEditor({
+                      {generatedFieldState(row, key) ? (generatedFieldState(row, key)?.ready && typeof value === "boolean" ? <input className="generated-checkbox" type="checkbox" readOnly tabIndex={-1} checked={value} aria-readonly="true" aria-label="只读生成值" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} /> : <span className="generated-checkbox-unknown" title={generatedFieldState(row, key)?.reason}>?</span>) : renderValueEditor({
                         cellId: `detail:${rowId ?? sourceRowIndex ?? "detail"}:${key}`,
                         pathParts: [key],
                         fieldName: key,
                         primaryKeyField,
                         displayType: displayTypes[key] ?? defaultTypeFor(value),
+                        presentation: fieldViewConfigs[key]?.presentation,
                         value,
                         multiSelectOptions: multiSelectOptionsByField[key]?.options ?? [],
                         selectOptions: selectOptionsByField[key] ?? [],
@@ -1152,6 +1155,7 @@ function renderValueEditor(props: {
   fieldName: string;
   primaryKeyField: string | null;
   displayType: FieldDisplayType;
+  presentation?: FieldViewConfig["presentation"];
   value: unknown;
   multiSelectOptions: MultiSelectOptionView[];
   selectOptions: MultiSelectOptionView[];
@@ -1190,6 +1194,7 @@ function renderValueEditor(props: {
         <input
           type="checkbox"
           checked={Boolean(props.value)}
+          style={checkboxCheckedStyle(Boolean(props.value), props.presentation)}
           onChange={(event) => props.onEditField(props.fieldName, event.target.checked)}
         />
       </label>

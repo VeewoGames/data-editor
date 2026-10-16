@@ -1,3 +1,4 @@
+import { generatedFieldState } from "../view/derived-field-projection.mjs";
 import { createContext, memo, useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { BacklinkCellViewer } from "./BacklinkCellViewer";
@@ -264,7 +265,10 @@ function TableColumnCellView(
         cellId={cellId}
         value={value}
         readonly={columnModel.isReadonly}
+        readonlyReason={generatedFieldState(row, columnModel.fieldName)?.reason}
+        readonlyReady={generatedFieldState(row, columnModel.fieldName)?.ready}
         displayType={displayType}
+        presentation={columnModel.presentation}
         wrapped={columnModel.wrapped}
         multiSelectConfig={columnModel.multiSelectConfig}
         selectConfig={columnModel.selectConfig}

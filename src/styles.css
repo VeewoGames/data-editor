@@ -4494,6 +4494,19 @@ th:hover .column-resize-handle,
   min-width: 0;
 }
 
+.generated-checkbox {
+  accent-color: #16a34a;
+}
+
+.generated-checkbox:checked {
+  opacity: 0.6;
+}
+
+.generated-checkbox-unknown {
+  color: var(--muted, #888);
+  font-weight: 600;
+}
+
 .cell-display span {
   overflow: hidden;
   text-overflow: ellipsis;

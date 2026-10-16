@@ -1,3 +1,5 @@
+import { normalizeCheckboxPresentation } from "./model/checkbox-presentation.mjs";
+
 export default function normalizeFetchedViewConfig(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return emptyViewConfig();
   const source = value;
@@ -48,8 +50,9 @@ function normalizeFieldPresentation(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const label = normalizePresentationText(value.label, 120);
   const description = normalizePresentationText(value.description, 2000);
-  if (!label && !description) return undefined;
-  return { ...(label ? { label } : {}), ...(description ? { description } : {}) };
+  const checkbox = normalizeCheckboxPresentation(value.checkbox);
+  if (!label && !description && !checkbox) return undefined;
+  return { ...(label ? { label } : {}), ...(description ? { description } : {}), ...(checkbox ? { checkbox } : {}) };
 }
 
 function normalizePresentationText(value, maxLength) {

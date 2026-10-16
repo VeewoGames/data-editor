@@ -5,6 +5,7 @@ import type { ProjectDefinition } from "../api/client";
 import type { CollectionInfo } from "../model/documentModel";
 import { applySidebarTreePreferences, buildSidebarTree } from "../sidebar-tree.mjs";
 import { useSidebarTreeDragReorder } from "./useSidebarTreeDragReorder";
+import { ProjectProcessButton } from "./ProjectProcessButton";
 
 type SidebarProps = {
   projects?: ProjectDefinition[];
@@ -175,6 +176,7 @@ export function Sidebar(props: SidebarProps) {
             >
               <icons.wand aria-hidden="true" size={16} />
             </button>
+            {props.activeProjectId ? <ProjectProcessButton key={props.activeProjectId} projectId={props.activeProjectId} /> : null}
             </div>
           </div>
         ) : "Data Editor"}
