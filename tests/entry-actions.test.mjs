@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile, stat } from "node:fs/promises";
 import { buildDocumentModel } from "../src/document-model.mjs";
-import { entryActionHandoffPath, findActiveEntryActionRuns, matchesEntryActionIdentity, resolveEntryActionRow, validateEntryActionTarget } from "../src/entry-actions.mjs";
+import { entryActionHandoffPath, entryActionStartedPath, entryActionResultPath, findLatestEntryActionRun, findActiveEntryActionRuns, matchesEntryActionIdentity, resolveEntryActionRow, validateEntryActionTarget } from "../src/entry-actions.mjs";
 import { canonicalFileIdentity } from "../src/canonical-file-identity.mjs";
 import { ensurePersistentEntryIds } from "../src/model/persistent-entry-id.mjs";
 
@@ -73,4 +73,49 @@ test("validateEntryActionTarget requires an exact file and collection pair", () 
     () => validateEntryActionTarget(action, "data/traits.json", "skills"),
     /does not allow target/i,
   );
+});
+
+
+test("latest history uses the immutable started clock when newer blocked handoff lacks createdAt without rewriting records", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "latest-history-clock-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const context = { projectRoot: root, runtimeDir: ".data-editor/runtime" };
+  const identity = { actionId: "design-item", sourcePath: "data/items.json", collectionPath: "items", rowId: "row-1" };
+  const older = "10000000-0000-4000-8000-000000000071", newer = "10000000-0000-4000-8000-000000000078";
+  const oldTime = "2026-10-14T02:45:44.586Z", acceptedAt = "2026-10-14T02:46:00.000Z";
+  const action = { id: identity.actionId }, entry = { ...identity };
+  await mkdir(path.dirname(entryActionHandoffPath(context, older)), { recursive: true });
+  const records = [
+    [entryActionHandoffPath(context, older), { version: 1, runId: older, createdAt: oldTime, action, entry }],
+    [entryActionStartedPath(context, older), { version: 3, runId: older, actionId: identity.actionId, phase: "running", outcome: null, startedAt: oldTime }],
+    [entryActionResultPath(context, older), { version: 3, runId: older, phase: "terminal", outcome: "failed", message: "ENOENT" }],
+    [entryActionHandoffPath(context, newer), { version: 1, runId: newer, action, entry }],
+    [entryActionStartedPath(context, newer), { version: 3, runId: newer, actionId: identity.actionId, phase: "committing", outcome: null, startedAt: acceptedAt }],
+    [entryActionResultPath(context, newer), { version: 3, runId: newer, phase: "terminal", outcome: "completed_with_writeback", resultStatus: "blocked", message: "Partial modifications saved" }],
+  ];
+  const snapshots = [];
+  for (const [file, value] of records) { await writeFile(file, JSON.stringify(value)); snapshots.push({ file, bytes: await readFile(file), mtime: (await stat(file)).mtimeMs }); }
+  const latest = await findLatestEntryActionRun(context, identity);
+  assert.equal(latest.runId, newer); assert.equal(latest.createdAt, acceptedAt);
+  assert.equal(latest.outcome, "completed_with_writeback"); assert.equal(latest.resultStatus, "blocked");
+  for (const snapshot of snapshots) { assert.deepEqual(await readFile(snapshot.file), snapshot.bytes); assert.equal((await stat(snapshot.file)).mtimeMs, snapshot.mtime); }
+});
+
+
+test("legacy history with neither createdAt nor started never invents a sorting clock or writes one", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "legacy-no-clock-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const context = { projectRoot: root, runtimeDir: ".data-editor/runtime" };
+  const identity = { actionId: "design-item", sourcePath: "data/items.json", collectionPath: "items", rowId: "row-1" };
+  const unknownRun = "10000000-0000-4000-8000-000000000078", knownRun = "10000000-0000-4000-8000-000000000071";
+  await mkdir(path.dirname(entryActionHandoffPath(context, unknownRun)), { recursive: true });
+  const legacy = { runId: unknownRun, action: { id: identity.actionId }, entry: identity };
+  await writeFile(entryActionHandoffPath(context, unknownRun), JSON.stringify(legacy));
+  await writeFile(entryActionResultPath(context, unknownRun), JSON.stringify({ runId: unknownRun, phase: "terminal", outcome: "completed_with_writeback", resultStatus: "blocked" }));
+  const bytes = await readFile(entryActionHandoffPath(context, unknownRun)), mtime = (await stat(entryActionHandoffPath(context, unknownRun))).mtimeMs;
+  const onlyLegacy = await findLatestEntryActionRun(context, identity);
+  assert.equal(onlyLegacy.runId, unknownRun); assert.equal(onlyLegacy.createdAt, null);
+  await writeFile(entryActionHandoffPath(context, knownRun), JSON.stringify({ runId: knownRun, createdAt: "2026-10-14T02:45:44.586Z", action: { id: identity.actionId }, entry: identity }));
+  await writeFile(entryActionResultPath(context, knownRun), JSON.stringify({ runId: knownRun, phase: "terminal", outcome: "failed" }));
+  assert.equal((await findLatestEntryActionRun(context, identity)).runId, knownRun);
+  assert.deepEqual(await readFile(entryActionHandoffPath(context, unknownRun)), bytes); assert.equal((await stat(entryActionHandoffPath(context, unknownRun))).mtimeMs, mtime);
+  await assert.rejects(readFile(entryActionStartedPath(context, unknownRun)), { code: "ENOENT" });
 });

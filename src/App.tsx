@@ -1,4 +1,5 @@
 import { useGeneratedFields } from "./view/useGeneratedFields";
+import { presentEntryActionResult } from "./entry-action-result-presentation.mjs";
 import { Profiler, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { flushSync } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -4340,6 +4341,8 @@ export function App() {
     result: EntryActionRunResult,
     output: string | null = null,
   ): DetailEntryActionStatus {
+    const presentation = presentEntryActionResult(result, actionLabel);
+    if (presentation) return { actionId, runId: result.runId, ...presentation, output };
     if (result.outcome === "completed_with_writeback") {
       const changedFields = result.writebackCheck?.changedFields?.length
         ? `已观察到字段变更：${result.writebackCheck.changedFields.join("、")}`

@@ -1,3 +1,5 @@
+import { validateEntryActionProposal } from "./entry-action-proposal.mjs";
+import { proposalResultStatusDetails, resolveProposalResultStatusDetails } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
@@ -43,6 +45,7 @@ import {
   normalizeEntryActionRowId,
   normalizeEntryActionSourceRowIndex,
   publishEntryActionResultIdempotently,
+  readEntryActionStarted,
   resolveAutomationEntryActionBinding,
   resolveEntryActionRow,
   validateEntryActionTarget,
@@ -276,14 +279,31 @@ export async function submitFreshEntryActionProposal({
     documentTarget: resolveAuthorityDocumentTarget({ action, viewConfig, sourcePath, collectionPath, row: rowContext.row }), contract,
   });
   const handoffArtifactState = await readArtifactState(projectContext, authoritySnapshot.textArtifact);
+  const proposalStatus = resolveProposalResultStatusDetails(result);
   const runId = dependencies.runId ?? createEntryActionRunId();
+  const acceptedHandoff = dependencies.runId
+    ? await readFile(entryActionHandoffPath(projectContext, runId), "utf8").then(JSON.parse, (error) => { if (error.code === "ENOENT") return null; throw error; })
+    : null;
+  const acceptedState = dependencies.runId
+    ? await readEntryActionStarted(projectContext, runId).catch((error) => { if (error.code === "ENOENT") return null; throw error; })
+    : null;
+  if (acceptedState && (acceptedState.runId !== runId
+    || (Object.hasOwn(acceptedState, "actionId") && acceptedState.actionId !== actionId))) {
+    protocolError("ENTRY_ACTION_STARTED_IDENTITY_INVALID", "Accepted lifecycle identity differs from fresh admission.", 409);
+  }
+  if (acceptedHandoff && (acceptedHandoff.runId !== runId || acceptedHandoff.action?.id !== actionId
+    || acceptedHandoff.entry?.sourcePath !== sourcePath || acceptedHandoff.entry?.collectionPath !== collectionPath
+    || acceptedHandoff.entry?.rowId !== rowId)) protocolError("ENTRY_ACTION_HANDOFF_IDENTITY_INVALID", "Accepted run target differs from fresh admission.", 409);
+  const createdAt = acceptedHandoff?.createdAt ?? acceptedState?.startedAt ?? new Date().toISOString();
   const jobInstanceId = dependencies.jobInstanceId ?? crypto.randomUUID();
   const allocator = (dependencies.createFencingAllocator ?? createFencingAllocator)({ stateRoot: fencingRoot(projectContext) });
   const lease = await allocator.allocate({ canonicalFileKey: sourceIdentity.canonicalFileKey, runId, jobInstanceId });
   const submittedEvidence = validateEntryActionEvidence(result?.evidence);
   const rawProposal = result?.proposal ?? result;
   const handoff = {
+    version: acceptedHandoff?.version ?? 2,
     runId,
+    createdAt,
     action: { id: action.id },
     entry: { sourcePath, canonicalFileKey: sourceIdentity.canonicalFileKey, collectionPath, rowId },
     proposalContract: {
@@ -298,11 +318,17 @@ export async function submitFreshEntryActionProposal({
       } : null,
     },
   };
-  const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary, evidence: submittedEvidence }, handoff);
+  const proposal = bindProposalToHandoff({ changes: rawProposal.changes, textArtifact: rawProposal.textArtifact ?? null, summary: rawProposal.summary, evidence: submittedEvidence, ...proposalStatus }, handoff);
   const evidence = completeEntryActionEvidence({ contract, evidence: proposal.evidence, textArtifact: proposal.textArtifact });
   proposal.evidence = evidence;
-  const acceptedHandoff=dependencies.runId ? await readFile(entryActionHandoffPath(projectContext,runId),'utf8').then(JSON.parse,error=>{if(error.code==='ENOENT')return null;throw error;}) : null;
-  await writeEntryActionHandoff(projectContext, runId, { ...handoff, ...(acceptedHandoff?.projectSkillLifecycle ? {projectSkillLifecycle:acceptedHandoff.projectSkillLifecycle} : {}), authority: authoritySnapshot });
+  await writeEntryActionHandoff(projectContext, runId, {
+    ...acceptedHandoff,
+    ...handoff,
+    action: { ...acceptedHandoff?.action, ...handoff.action },
+    entry: { ...acceptedHandoff?.entry, ...handoff.entry },
+    // Preserve accepted-run provenance and clock, but bind only fresh authority.
+    authority: authoritySnapshot,
+  });
   if (dependencies.runId) {
     // Keep the original acceptedAt/startedAt as the lifecycle's only clock.
     try {
@@ -312,17 +338,18 @@ export async function submitFreshEntryActionProposal({
       // receipt exists. Preserve that established admission path while a
       // project-skill run always takes the branch above.
       if (error?.code !== "ENOENT") throw error;
-      await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
+      await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: createdAt });
     }
   } else {
-    await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: new Date().toISOString() });
+    await writeEntryActionStarted(projectContext, runId, { version: 2, runId, actionId, operation: "proposal", phase: "committing", outcome: null, startedAt: createdAt });
   }
   let keepLease = false;
   try {
     assertEntryActionResultPolicies(contract, { textArtifact: proposal.textArtifact, evidence });
     if (dependencies.runId) await assertProjectSkillRunCurrent(projectContext,runId);
+    await publishEntryActionProposal({ directory: path.dirname(entryActionProposalPath(projectContext, runId)), runId, exitCode: 0, proposal });
     await commitProposal({ projectContext, action, authoritySnapshot, contract, evidence, lease, allocator, documentCommitCoordinator, sourceIdentity }, proposal);
-    return { kind: "entry-action-proposal", runId, outcome: "completed_with_writeback" };
+    return { kind: "entry-action-proposal", runId, outcome: "completed_with_writeback", ...proposalResultStatusDetails(proposal) };
   } catch (error) {
     keepLease = recoveryError(error);
     if (!keepLease) {
@@ -353,6 +380,9 @@ export async function recoverProposalOnlyEntryActionGroup({
     protocolError("ENTRY_ACTION_RECOVERY_OWNERSHIP_CHANGED", "Recovery ownership does not match the group journal.", 503);
   }
   const proposal = JSON.parse(await readFile(entryActionProposalPath(projectContext, runId), "utf8"));
+  validateEntryActionProposal(proposal);
+  if (digest(JSON.stringify(proposal)) !== group.proposalDigest) protocolError("ENTRY_ACTION_RECOVERY_PROPOSAL_INVALID", "Proposal digest differs from the recovery journal.", 409);
+  if ((proposal.resultStatus ?? null) !== (group.resultStatus ?? null)) protocolError("ENTRY_ACTION_RECOVERY_RESULT_STATUS_INVALID", "Proposal and journal result statuses differ.", 409);
   const [sourceIdentity, artifactIdentity] = await Promise.all([
     canonicalFileIdentity(projectContext, group.source.path),
     canonicalProjectArtifactIdentity(projectContext, group.artifact.path),
@@ -364,6 +394,7 @@ export async function recoverProposalOnlyEntryActionGroup({
     phase: "terminal",
     outcome: "completed_with_writeback",
     message: proposal.summary,
+    ...proposalResultStatusDetails(proposal),
   };
   await commitEntryActionGroup({
     coordinator: documentCommitCoordinator,
@@ -553,6 +584,7 @@ async function commitProposal(context, proposal) {
     phase: "terminal",
     outcome: "completed_with_writeback",
     message: proposal.summary,
+    ...proposalResultStatusDetails(proposal),
   };
   const childJournal = createCommitJournal({ directory: childJournalRoot(projectContext) });
   if (!prepared.textArtifact) {

@@ -3,11 +3,16 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile, readdir } from "node:fs/promises";
 import { createDocumentCommitCoordinator } from "../src/document-commit-coordinator.mjs";
-import { bindProposalToHandoff, startProposalOnlyEntryAction, submitFreshEntryActionProposal } from "../src/entry-action-service.mjs";
+import { bindProposalToHandoff, startProposalOnlyEntryAction, submitFreshEntryActionProposal, recoverProposalOnlyEntryActionGroup } from "../src/entry-action-service.mjs";
 import {
   entryActionHandoffPath,
+  findLatestEntryActionRun,
+  writeEntryActionHandoff,
+  publishEntryActionResultIdempotently,
+  entryActionResultPath,
+  entryActionProposalPath,
   readEntryActionResult,
   readEntryActionStarted,
   writeEntryActionStarted,
@@ -219,6 +224,7 @@ test("project-skill proposal commits into its accepted run without resetting dur
   assert.equal(JSON.parse(await readFile(fixture.sourcePath, "utf8")).items[0].name, "New");
   assert.equal((await readEntryActionResult(context, runId)).outcome, "completed_with_writeback");
   const activeState = await readEntryActionStarted(context, runId);
+  assert.equal(JSON.parse(await readFile(entryActionHandoffPath(context, runId), "utf8")).createdAt, acceptedAt);
   assert.equal(activeState.startedAt, acceptedAt);
   assert.equal(activeState.phase, "committing");
 });
@@ -356,4 +362,85 @@ function parseArgs(argv) {
 
 function fixtureRowDigest() {
   return rowDigest({ __entry_id: "01JTESTENTRY00000000000001", name: "Old" });
+}
+
+
+for (const sameRun of [false, true]) {
+  test(`fresh blocked proposal preserves status through ${sameRun ? "same" : "new"} run and service recovery publication`, async (t) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "proposal-status-recovery-")); t.after(() => rm(root, { recursive: true, force: true }));
+    const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" }); const fixture = await writeTextArtifactFixture(context);
+    const runId = "10000000-0000-4000-8000-000000000088";
+    if (sameRun) await writeEntryActionStarted(context, runId, { runId, actionId: fixture.request.actionId, phase: "proposal_ready", outcome: null, startedAt: "2026-10-14T00:00:00Z" });
+    const admitted = await submitFreshEntryActionProposal({ projectContext: context, project: { id: "fixture-project" }, request: fixture.request, result: { ...fixture.result, resultStatus: "blocked" }, dependencies: sameRun ? { runId } : {} });
+    assert.equal(admitted.resultStatus, "blocked"); assert.equal((await readEntryActionResult(context, admitted.runId)).resultStatus, "blocked");
+    const persisted = JSON.parse(await readFile(entryActionProposalPath(context, admitted.runId), "utf8")); assert.equal(persisted.resultStatus, "blocked");
+    const groupDirectory = path.join(root, context.runtimeDir, "entry-action-group-journal");
+    const groupFile = path.join(groupDirectory, (await readdir(groupDirectory))[0]); const group = JSON.parse(await readFile(groupFile, "utf8"));
+    assert.equal(group.resultStatus, "blocked"); assert.equal(group.source.childEntry.resultStatus, "blocked");
+    // Isolated crash image: source/artifact committed, result publication absent.
+    group.stage = "verified"; await writeFile(groupFile, JSON.stringify(group)); await rm(entryActionResultPath(context, admitted.runId));
+    await recoverProposalOnlyEntryActionGroup({ projectContext: context, runId: admitted.runId, recoveryLease: group.ownership });
+    assert.equal((await readEntryActionResult(context, admitted.runId)).resultStatus, "blocked");
+    assert.equal((await readEntryActionResult(context, admitted.runId)).outcome, "completed_with_writeback");
+    assert.equal(JSON.parse(await readFile(fixture.sourcePath, "utf8")).items[0].name, "New");
+  });
+}
+
+test("fresh write admission rejects failed/no_changes/unknown status with zero write", async (t) => {
+  for (const resultStatus of ["failed", "no_changes", "invented"]) {
+    const root = await mkdtemp(path.join(os.tmpdir(), "proposal-status-reject-")); t.after(() => rm(root, { recursive: true, force: true }));
+    const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" }); const fixture = await writeTextArtifactFixture(context);
+    const before = await readFile(fixture.sourcePath, "utf8"), artifactBefore = await readFile(fixture.artifactPath, "utf8");
+    await assert.rejects(submitFreshEntryActionProposal({ projectContext: context, project: { id: "fixture-project" }, request: fixture.request, result: { ...fixture.result, proposal: { ...fixture.result.proposal, resultStatus } } }), { code: "ENTRY_ACTION_PROPOSAL_INVALID" });
+    assert.equal(await readFile(fixture.sourcePath, "utf8"), before); assert.equal(await readFile(fixture.artifactPath, "utf8"), artifactBefore);
+  }
+});
+
+
+test("same-run fresh blocked write remains newer than a prior failed run and preserves accepted provenance", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "latest-blocked-admission-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" }); const fixture = await writeTextArtifactFixture(context);
+  const failedId = "10000000-0000-4000-8000-000000000071", runId = "10000000-0000-4000-8000-000000000078";
+  const action = { id: fixture.request.actionId, label: "Design", binding: { skill: "fixture" } };
+  const entry = { sourcePath: fixture.request.sourcePath, collectionPath: fixture.request.collectionPath, rowId: fixture.request.rowId, row: { name: "Old" } };
+  await writeEntryActionHandoff(context, failedId, { version: 1, runId: failedId, createdAt: "2026-10-14T02:45:44.586Z", action, entry });
+  await publishEntryActionResultIdempotently(context, failedId, { runId: failedId, actionId: action.id, phase: "terminal", outcome: "failed", message: "ENOENT" });
+  const acceptedAt = "2026-10-14T02:46:00.000Z";
+  const skillArtifact = { logicalName: "fixture", sha256: "a".repeat(64) }, project = { id: "fixture-project", name: "Fixture", root };
+  await writeEntryActionHandoff(context, runId, { version: 1, runId, createdAt: acceptedAt, action, entry, project, skillArtifact, proposalContract: { baseDocumentEtag: "stale" }, authority: { ruleDigest: "stale" } });
+  await writeEntryActionStarted(context, runId, { runId, actionId: action.id, phase: "proposal_ready", outcome: null, startedAt: acceptedAt, phaseHistory: [{ phase: "queued", startedAt: acceptedAt }] });
+  await submitFreshEntryActionProposal({ projectContext: context, project, request: fixture.request, result: { ...fixture.result, resultStatus: "blocked" }, dependencies: { runId } });
+  const latest = await findLatestEntryActionRun(context, fixture.request);
+  assert.equal(latest.runId, runId); assert.equal(latest.outcome, "completed_with_writeback"); assert.equal(latest.resultStatus, "blocked"); assert.equal(latest.createdAt, acceptedAt);
+  const handoff = JSON.parse(await readFile(entryActionHandoffPath(context, runId), "utf8"));
+  assert.equal(handoff.version, 1); assert.equal(handoff.createdAt, acceptedAt); assert.deepEqual(handoff.skillArtifact, skillArtifact); assert.deepEqual(handoff.project, project);
+  assert.equal(handoff.action.label, "Design"); assert.notEqual(handoff.authority.ruleDigest, "stale"); assert.notEqual(handoff.proposalContract.baseDocumentEtag, "stale");
+  assert.equal((await readEntryActionStarted(context, runId)).startedAt, acceptedAt);
+});
+
+test("fresh new-run handoff and lifecycle share one nonempty accepted clock", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "new-fresh-clock-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" }); const fixture = await writeTextArtifactFixture(context);
+  const admitted = await submitFreshEntryActionProposal({ projectContext: context, project: { id: "fixture-project" }, request: fixture.request, result: fixture.result });
+  const handoff = JSON.parse(await readFile(entryActionHandoffPath(context, admitted.runId), "utf8"));
+  assert.ok(handoff.createdAt); assert.equal(handoff.createdAt, (await readEntryActionStarted(context, admitted.runId)).startedAt);
+  assert.equal((await findLatestEntryActionRun(context, fixture.request)).runId, admitted.runId);
+});
+
+
+for (const mismatch of ["runId", "actionId"]) {
+  test(`fresh same-run admission rejects mismatched accepted ${mismatch} before lease or writes`, async (t) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "accepted-state-mismatch-")); t.after(() => rm(root, { recursive: true, force: true }));
+    const context = createProjectContext({ projectRoot: root, projectId: "fixture-project" }); const fixture = await writeTextArtifactFixture(context);
+    const runId = "10000000-0000-4000-8000-000000000088", createdAt = "2026-10-14T02:46:00.000Z";
+    const handoff = { runId, createdAt, action: { id: fixture.request.actionId }, entry: { sourcePath: fixture.request.sourcePath, collectionPath: fixture.request.collectionPath, rowId: fixture.request.rowId } };
+    await writeEntryActionHandoff(context, runId, handoff);
+    await writeEntryActionStarted(context, runId, { runId, actionId: fixture.request.actionId, [mismatch]: mismatch === "runId" ? "10000000-0000-4000-8000-000000000099" : "another-action", phase: "proposal_ready", outcome: null, startedAt: createdAt });
+    const sourceBefore = await readFile(fixture.sourcePath), artifactBefore = await readFile(fixture.artifactPath), handoffBefore = await readFile(entryActionHandoffPath(context, runId));
+    const stateBefore = await readEntryActionStarted(context, runId);
+    await assert.rejects(submitFreshEntryActionProposal({ projectContext: context, project: { id: "fixture-project" }, request: fixture.request, result: { ...fixture.result, resultStatus: "blocked" }, dependencies: { runId, createFencingAllocator: () => assert.fail("identity mismatch must precede lease allocation") } }), { code: "ENTRY_ACTION_STARTED_IDENTITY_INVALID" });
+    assert.deepEqual(await readFile(fixture.sourcePath), sourceBefore); assert.deepEqual(await readFile(fixture.artifactPath), artifactBefore);
+    assert.deepEqual(await readFile(entryActionHandoffPath(context, runId)), handoffBefore); assert.deepEqual(await readEntryActionStarted(context, runId), stateBefore);
+    await assert.rejects(readFile(entryActionResultPath(context, runId)), { code: "ENOENT" });
+  });
 }

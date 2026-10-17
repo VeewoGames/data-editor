@@ -1,3 +1,4 @@
+import { resolveResultOnlyStatus, resolveProposalResultStatusDetails, resultOnlyStatuses, proposalResultStatuses } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
@@ -15,6 +16,7 @@ import {
   advanceEntryActionPhase,
   buildEntryActionHandoff,
   entryActionDiagnosticsPath,
+  entryActionEventsPath,
   entryActionOutputPath,
   findAutomationEntryAction,
   resolveEntryActionRow,
@@ -104,6 +106,8 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
       envelope: "entry-action-proposal.v1",
       requiredKeys: ["kind", "changes", "textArtifact", "summary", "evidence"],
       writableFields: null,
+      optionalKeys: ["resultStatus"],
+      resultStatuses: proposalResultStatuses,
     };
   }
   const acceptedAt = new Date().toISOString();
@@ -173,9 +177,10 @@ async function continueProjectSkillEntryAction(context) {
       ? `Project workspace is the real project root at ${JSON.stringify(workspaceRoot)}. Follow the project's own instructions and only change files owned by this project skill. Data Editor diagnostics and the required JSON reply belong under ${JSON.stringify(outputRoot)}. ${shellInstruction}`
       : `Project workspace is a disposable read-only snapshot at ${JSON.stringify(workspaceRoot)}. Do not treat changes there as project output. Write task-owned output only under ${JSON.stringify(outputRoot)}. ${shellInstruction}`;
     const proposalInstruction = resultPolicy === "proposal"
-      ? 'For a write proposal, return the exact entry-action-proposal envelope produced by the project skill adapter under the current project contract. textArtifact may be null or the authorized text artifact required by that contract; never invent an artifact path or bypass its document policy. Each change must contain field, beforeExists, before, afterExists, after. Do not include authority tokens or humanNotes: Data Editor binds them from the canonical target after execution. If no safe change is possible, return exactly {"kind":"project-skill-result","resultOnly":true,"status":"no_changes","summary":"..."}.'
+      ? 'For a write proposal, return the exact entry-action-proposal envelope produced by the project skill adapter under the current project contract. textArtifact may be null or the authorized text artifact required by that contract; never invent an artifact path or bypass its document policy. Each change must contain field, beforeExists, before, afterExists, after. Do not include authority tokens or humanNotes: Data Editor binds them from the canonical target after execution. Only use no_changes after all required reading and analysis completed and no change is needed. Tool, policy, permission, contract-reading or adapter failures must return status failed; insufficient design evidence must return status blocked. A partial write proposal may include resultStatus blocked. For a completed no-change analysis, return exactly {"kind":"project-skill-result","resultOnly":true,"status":"no_changes","summary":"..."}.'
       : "Return exactly one JSON object allowed by the configured result policy.";
     await writeFile(promptPath, `${skill}\n\n## Explicit invocation\n${workspaceInstructions}\n${proposalInstruction}\n${JSON.stringify({ actionId: action.id, projectId: project.id, execution: action.execution, resultPolicy, workspaceMode, request, skillArtifact: { logicalName: binding.skill, sha256: skillDigest }, artifactPublication }, null, 2)}\n\n## Data Editor handoff\n${JSON.stringify(handoff, null, 2)}\n`, "utf8");
+    await writeFile(promptPath, `\n\nIf an execution or tool failure prevents completion, return status failed.\nResult-only output must include one structured status from ${resultOnlyStatuses.join(", ")}. Never report tool or permission refusal as no_changes or completed. Use failed for execution failure and blocked for analysis with unresolved evidence. Do not infer success from the summary.\n`, { flag: "a", encoding: "utf8" });
     const hostArgs = [path.resolve(toolRoot, "scripts/run-project-skill-action-host.mjs"), "--codex", status.codexCliPath, "--workspace-root", workspaceRoot, "--output-root", outputRoot, "--prompt", promptPath, "--reply", replyPath, "--events", eventsPath, "--diagnostics", diagnosticsPath, "--model", runtime.model, "--reasoning", runtime.reasoning, "--verbosity", runtime.verbosity];
     if (workspaceMode === "snapshot") hostArgs.push("--ignore-rules");
     handle = await jobSupervisor.start({ id: runId, command: process.execPath, args: hostArgs, cwd: workspaceRoot, timeoutMs: runtime.timeoutMs });
@@ -188,6 +193,8 @@ async function continueProjectSkillEntryAction(context) {
       : error?.code === "PROJECT_SKILL_PREFLIGHT_FAILED" ? "preflight_failed"
         : "failed";
     await publishProjectSkillTerminal(projectContext, runId, action.id, outcome, error.message ?? String(error), { errorCode: error.code ?? null });
+    await copyDiagnostics(eventsPath, entryActionEventsPath(projectContext, runId)).catch(() => {});
+    await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId)).catch(() => {});
     await rm(scratch, { recursive: true, force: true }).catch(() => {});
     if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
     throw error;
@@ -210,18 +217,19 @@ async function continueProjectSkillEntryAction(context) {
       await atomicWrite(outputPath, reply);
       const result = JSON.parse(reply);
       assertProjectSkillResultPolicy(result, action.execution.resultPolicy);
+      if (isProjectSkillResultOnly(result)) {
+        const resultStatus = resolveProjectSkillResultStatus(result);
+        await publishProjectSkillTerminal(
+          projectContext,
+          runId,
+          action.id,
+          resultStatus === "failed" ? "failed" : "completed_without_changes",
+          resolveProjectSkillResultMessage(result),
+          { outputPath, resultOnly: true, resultStatus },
+        );
+        return result;
+      }
       if (action.execution.resultPolicy === "proposal") {
-        if (isProjectSkillNoChangeResult(result)) {
-          await publishProjectSkillTerminal(
-            projectContext,
-            runId,
-            action.id,
-            resolveProjectSkillResultStatus(result) === 'failed' ? 'failed' : "completed_without_changes",
-            resolveProjectSkillResultMessage(result),
-            { outputPath, resultOnly: true, resultStatus: resolveProjectSkillResultStatus(result) },
-          );
-          return result;
-        }
         if (typeof dependencies.submitProposalResult !== "function") throw protocolError("PROJECT_SKILL_PROPOSAL_ADMISSION_UNAVAILABLE", "Project-skill proposal admission is unavailable.");
         await assertProjectSkillRunCurrent(projectContext, runId);
         await advanceEntryActionPhase(projectContext, runId, "proposal_ready");
@@ -229,28 +237,17 @@ async function continueProjectSkillEntryAction(context) {
         // Same-run admission publishes the terminal receipt as part of its
         // commit. A second publication would violate idempotency.
         if (admitted.runId !== runId) {
-          await publishProjectSkillTerminal(projectContext, runId, action.id, "completed_with_writeback", resolveProjectSkillResultMessage(result), { admittedRunId: admitted.runId, admittedKind: admitted.kind });
+          await publishProjectSkillTerminal(projectContext, runId, action.id, "completed_with_writeback", resolveProjectSkillResultMessage(result), { admittedRunId: admitted.runId, admittedKind: admitted.kind, ...resolveProposalResultStatusDetails(result) });
         }
         return admitted;
       }
-      await publishProjectSkillTerminal(
-        projectContext,
-        runId,
-        action.id,
-        "completed_without_changes",
-        resolveProjectSkillResultMessage(result),
-        {
-          outputPath,
-          resultOnly: action.execution.resultPolicy === "result-only",
-          resultStatus: resolveProjectSkillResultStatus(result),
-        },
-      );
-      return result;
   } catch (error) {
       await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId)).catch(() => {});
       await publishProjectSkillTerminal(projectContext, runId, action.id, "failed", error.message ?? String(error)).catch(() => {});
     throw error;
   } finally {
+      await copyDiagnostics(eventsPath, entryActionEventsPath(projectContext, runId)).catch(() => {});
+      await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId)).catch(() => {});
       await rm(scratch, { recursive: true, force: true }).catch(() => {});
       if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
   }
@@ -282,11 +279,13 @@ async function readProjectSkillRowContext(projectContext, sourcePath, collection
 export function assertProjectSkillResultPolicy(result, resultPolicy) {
   if (resultPolicy === "result-only") {
     if (result?.kind !== "project-skill-result" || result?.resultOnly !== true) throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project skill must return a result-only object.");
+    resolveResultOnlyStatus(result);
     return;
   }
   if (resultPolicy === "proposal") {
-    if (isProjectSkillNoChangeResult(result)) return;
+    if (isProjectSkillResultOnly(result)) { resolveResultOnlyStatus(result); return; }
     if (!result || result.resultOnly === true || Object.hasOwn(result, "humanNotes") || !["entry-action-proposal", "candidate-create"].includes(result.kind)) throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project skill must return an admitted proposal result without humanNotes.");
+    if (result.kind === "entry-action-proposal") resolveProposalResultStatusDetails(result);
     try { validateEntryActionEvidence(result.evidence); }
     catch { throw protocolError("PROJECT_SKILL_RESULT_INVALID", "Project-skill proposal evidence is invalid."); }
     return;
@@ -295,8 +294,8 @@ export function assertProjectSkillResultPolicy(result, resultPolicy) {
 }
 
 // A proposal-capable skill may legitimately conclude that no canonical write is allowed.
-// Treat that as a completed report, not as an incomplete proposal submission.
-function isProjectSkillNoChangeResult(result) {
+// Its structured execution status determines completion; it is not a write proposal.
+function isProjectSkillResultOnly(result) {
   return result?.kind === "project-skill-result" && result?.resultOnly === true;
 }
 
@@ -327,19 +326,7 @@ async function runPreflightProcess({ command, args, cwd, timeoutMs, stdoutPath, 
   });
 }
 
-function resolveProjectSkillResultStatus(result) {
-  for (const value of [
-    result?.status,
-    result?.designVerdict,
-    result?.verdict,
-    result?.result?.status,
-    result?.result?.designVerdict,
-    result?.result?.verdict,
-  ]) {
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-  return null;
-}
+function resolveProjectSkillResultStatus(result) { return resolveResultOnlyStatus(result); }
 
 function resolveProjectSkillResultMessage(result) {
   for (const value of [result?.summary, result?.message, result?.result?.summary, result?.result?.message]) {

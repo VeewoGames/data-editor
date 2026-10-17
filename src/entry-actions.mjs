@@ -113,12 +113,14 @@ export function entryActionOutputPath(projectContextOrRoot, runId) {
 }
 
 export function entryActionProposalPath(projectContextOrRoot, runId) { return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.proposal.json`); }
+export function entryActionEventsPath(projectContextOrRoot, runId) { return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.events.jsonl`); }
 export function entryActionDiagnosticsPath(projectContextOrRoot, runId) { return path.join(entryActionsRuntimeDir(projectContextOrRoot), `${runId}.diagnostics.json`); }
 
 export async function describeEntryActionArtifacts(projectContextOrRoot, runId) {
   return {
     proposal: await describeArtifact(entryActionProposalPath(projectContextOrRoot, runId)),
     reply: await describeArtifact(entryActionOutputPath(projectContextOrRoot, runId)),
+    events: await describeArtifact(entryActionEventsPath(projectContextOrRoot, runId)),
     diagnostics: await describeArtifact(entryActionDiagnosticsPath(projectContextOrRoot, runId)),
   };
 }
@@ -237,7 +239,16 @@ export async function findLatestEntryActionRun(projectContextOrRoot, identity) {
     try {
       const handoff = JSON.parse(await readFile(path.join(runtimeDir, fileName), "utf8"));
       if (!matchesEntryActionIdentity(handoff, identity)) continue;
-      matches.push(handoff);
+      let createdAt = handoff.createdAt;
+      if (typeof createdAt !== "string" || !createdAt.trim()) {
+        // Earlier same-run admission omitted this handoff clock. Recover it
+        // only from the accepted lifecycle; never infer it from mtime or now.
+        const accepted = await readEntryActionStarted(projectContextOrRoot, handoff.runId).catch(() => null);
+        createdAt = accepted?.runId === handoff.runId
+          && (accepted.actionId == null || accepted.actionId === handoff.action?.id)
+          && typeof accepted.startedAt === "string" ? accepted.startedAt : null;
+      }
+      matches.push({ ...handoff, createdAt });
     } catch {
       // Ignore partial or unrelated runtime files.
     }

@@ -12,6 +12,7 @@ import { resolveEntryActionExecution } from "./entry-action-execution.mjs";
 
 export function createEntryActionRunRoute({
   loadRegistry,
+  capabilityRegistryOptions = {},
   toolRoot,
   jobSupervisor,
   documentCommitCoordinator,
@@ -39,6 +40,7 @@ export function createEntryActionRunRoute({
     const projectContext = createProjectContext({
       projectRoot: project.root,
       projectId: project.id,
+      capabilityRegistryOptions,
       dataSources: project.dataSources,
       filePolicy: project.filePolicy,
     });

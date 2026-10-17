@@ -1,3 +1,4 @@
+import { proposalResultStatusDetails } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import { assertAuthorityCurrent } from "./entry-action-authority.mjs";
 import { validateEntryActionProposal } from "./entry-action-proposal.mjs";
@@ -87,7 +88,7 @@ export async function commitEntryActionProposal({ journal, prepared, lease, docu
       const persisted = await readText();
       if (etag(persisted) !== entry.newEtag || digest(persisted) !== entry.afterDigest) fail("ENTRY_ACTION_PROPOSAL_COMMIT_VERIFY_FAILED");
     },
-    publishResult,
+    publishResult: () => publishResult({ runId: entry.runId, ...proposalResultStatusDetails(entry) }),
   });
   return { entry, documentEtag: entry.newEtag };
 }
@@ -98,6 +99,7 @@ export function createProposalCommitJournalEntry({ proposal, lease, documentText
   return {
     idempotencyKey: `proposal_${digest(`${value.runId}:${proposalDigest}`)}`,
     saveType: "proposal_commit",
+    ...proposalResultStatusDetails(value),
     canonicalFileKey: value.canonicalFileKey,
     baseEtag: value.baseDocumentEtag,
     newEtag: etag(afterText),

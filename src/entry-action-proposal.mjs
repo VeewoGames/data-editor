@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
+import { assertProposalResultStatus } from "./entry-action-result-status.mjs";
 import { validateEntryActionEvidence } from "./entry-action-evidence.mjs";
 
 const REQUIRED = ["version", "runId", "actionId", "sourcePath", "canonicalFileKey", "collectionPath", "rowId", "baseDocumentEtag", "ruleDigest", "fencingToken", "changes", "textArtifact", "summary", "evidence"];
@@ -11,7 +12,8 @@ const MAX_CHANGES = 64;
 const MAX_TEXT_ARTIFACT_BYTES = 1024 * 1024;
 
 export function validateEntryActionProposal(value) {
-  exact(value, REQUIRED, "proposal");
+  exact(value, value && Object.hasOwn(value, "resultStatus") ? [...REQUIRED, "resultStatus"] : REQUIRED, "proposal");
+  assertProposalResultStatus(value);
   for (const field of ["runId", "actionId", "sourcePath", "collectionPath", "rowId", "baseDocumentEtag", "ruleDigest", "summary"]) required(value[field], field);
   if (value.version !== 3 || !UUID.test(value.runId) || !KEY.test(value.canonicalFileKey) || !KEY.test(value.ruleDigest) || !Number.isSafeInteger(value.fencingToken) || value.fencingToken < 1) invalid("proposal identity is invalid");
   if (!Array.isArray(value.changes) || value.changes.length > MAX_CHANGES) invalid(`proposal changes must contain 0-${MAX_CHANGES} items`);

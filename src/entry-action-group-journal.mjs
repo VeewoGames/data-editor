@@ -1,3 +1,4 @@
+import { assertProposalResultStatus } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import path from "node:path";
 import { mkdir, readFile, readdir } from "node:fs/promises";
@@ -72,6 +73,7 @@ async function readStage(directory, idempotencyKey) {
 }
 
 function normalize(value, expectedStage = null) {
+  try { if (value) assertProposalResultStatus(value); } catch { fail("ENTRY_ACTION_GROUP_JOURNAL_INVALID"); }
   if (!value || typeof value !== "object" || Array.isArray(value)
     || !ENTRY_ACTION_GROUP_STAGES.includes(value.stage) || (expectedStage && value.stage !== expectedStage)
     || !validId(value.idempotencyKey) || !validId(value.runId) || !digest(value.proposalDigest)
@@ -106,6 +108,7 @@ function validSourceChild(child, group) {
     && child.canonicalFileKey === group.source.canonicalFileKey
     && child.runId === group.runId
     && child.proposalDigest === group.proposalDigest
+    && (child.resultStatus ?? null) === (group.resultStatus ?? null)
     && child.requestDigest === group.proposalDigest
     && child.beforeDigest === group.source.beforeDigest
     && child.afterDigest === group.source.afterDigest;

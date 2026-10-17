@@ -205,3 +205,14 @@ test("proposal commit writes the compound row through the existing child journal
     await rm(root, { recursive: true, force: true });
   }
 });
+
+
+test("blocked result status is durable in a row-only child journal and its publication", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "blocked-child-journal-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const statusProposal = { ...proposal, resultStatus: "blocked", textArtifact: null };
+  const prepared = await prepareEntryActionProposalCommit({ proposal: statusProposal, lease, authoritySnapshot: snapshot, profile, documentText: text, probeLease });
+  let persisted = text, receipt;
+  const journal = createCommitJournal({ directory: root });
+  const committed = await commitEntryActionProposal({ journal, prepared, lease, documentText: text, readText: async () => persisted, writeText: async (value) => { persisted = value; }, publishResult: async (value) => { receipt = value; } });
+  assert.equal((await journal.read(committed.entry.idempotencyKey)).resultStatus, "blocked"); assert.equal(receipt.resultStatus, "blocked");
+});

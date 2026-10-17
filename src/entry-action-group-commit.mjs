@@ -1,3 +1,4 @@
+import { proposalResultStatusDetails } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import { serializeCsv } from "./csv-codec.mjs";
 import { serializeJson } from "./json-codec.mjs";
@@ -35,6 +36,7 @@ export function createEntryActionGroupJournalEntry({ prepared, lease, documentTe
   };
   return {
     operation: "proposal",
+    ...proposalResultStatusDetails(prepared.proposal),
     idempotencyKey: `group_${digest(prepared.proposal.runId)}`,
     runId: prepared.proposal.runId,
     proposalDigest,
@@ -191,12 +193,14 @@ export async function commitEntryActionGroup({
       }
       group = await groupJournal.begin(groupEntry);
     } else {
-      group = await groupJournal.begin(groupEntry);
+      // Recovery passes the persisted advanced entry; begin compares immutable
+      // intent fields and returns the durable stage instead of resetting it.
+      group = await groupJournal.begin({ ...groupEntry, stage: "group_intent" });
     }
 
     if (group.stage === "result_published") return group;
     if (group.stage === "verified") {
-      await publishResultIdempotently({ idempotencyKey: groupEntry.idempotencyKey, runId: groupEntry.runId });
+      await publishResultIdempotently({ idempotencyKey: groupEntry.idempotencyKey, runId: groupEntry.runId, ...proposalResultStatusDetails(group) });
       return groupJournal.advance(groupEntry, "result_published");
     }
 
@@ -271,7 +275,7 @@ export async function commitEntryActionGroup({
       group = await groupJournal.advance(groupEntry, "verified");
     }
     if (group.stage === "verified") {
-      await publishResultIdempotently({ idempotencyKey: groupEntry.idempotencyKey, runId: groupEntry.runId });
+      await publishResultIdempotently({ idempotencyKey: groupEntry.idempotencyKey, runId: groupEntry.runId, ...proposalResultStatusDetails(group) });
       group = await groupJournal.advance(groupEntry, "result_published");
     }
     return group;

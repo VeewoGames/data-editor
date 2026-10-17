@@ -8,7 +8,7 @@ export function buildEntryActionProposalPrompt({ skillPath, skillContent, handof
     "只返回一个符合 handoff.proposalContract 的 JSON 对象；由 data-editor 校验并提交。",
     "若无法形成合法 proposal，应明确失败，不得伪造写回。",
     "proposal 顶层必须且只能包含这些键：version, runId, actionId, sourcePath, canonicalFileKey, collectionPath, rowId, baseDocumentEtag, ruleDigest, fencingToken, changes, textArtifact, summary, evidence。",
-    "禁止返回 status、action、target、error 等额外顶层键。",
+    "可选顶层 resultStatus 用于结构化结果；blocked 表示合法部分修改后仍未完成。禁止 failed/no_changes 的写提案；无此字段仍合法。禁止返回 status、action、target、error 等其他额外顶层键。",
     "version 必须为 3；runId、actionId、sourcePath、canonicalFileKey、collectionPath、rowId、baseDocumentEtag、ruleDigest、fencingToken 必须从 handoff 对应字段原样复制。",
     "changes 必须至少包含一项；每项必须且只能包含 field, beforeExists, before, afterExists, after。field 必须来自 proposalContract.writableFields，before 必须与 entry.row 当前值一致，after 必须是实际变化后的值。",
     "若 proposalContract.textArtifact 为 null，textArtifact 必须为 null；若 proposalContract.textArtifact 非 null，textArtifact 必须返回完整文档，且只能包含 id, path, beforeExists, beforeDigest, afterContent, afterDigest，并从 proposalContract.textArtifact 原样复制 id、path、beforeExists、beforeDigest。不得省略该文档。",

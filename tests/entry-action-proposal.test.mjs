@@ -113,3 +113,11 @@ test("proposal rejects ambiguous, duplicate, no-op, escaping and unbound content
     textArtifact: { ...artifact, path: "docs/skill.md", afterDigest: "c".repeat(64) },
   }), invalid);
 });
+
+
+test("proposal optional structured status preserves legacy output and rejects non-write statuses", () => {
+  assert.equal(validateEntryActionProposal(proposal).resultStatus, undefined);
+  for (const resultStatus of ["blocked", "completed", "stopped", "evidence_insufficient", "changes_required", "approved"]) assert.equal(validateEntryActionProposal({ ...proposal, resultStatus }).resultStatus, resultStatus);
+  for (const resultStatus of ["failed", "no_changes", "unknown", "", null]) assert.throws(() => validateEntryActionProposal({ ...proposal, resultStatus }), { code: "ENTRY_ACTION_PROPOSAL_INVALID" });
+  assert.throws(() => validateEntryActionProposal({ ...proposal, resultStatus: "blocked", extra: true }), { code: "ENTRY_ACTION_PROPOSAL_INVALID" });
+});

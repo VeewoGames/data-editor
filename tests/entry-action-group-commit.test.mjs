@@ -463,3 +463,16 @@ test("new group detects stale before-state without creating recovery intent", as
   assert.equal(await fixture.groupJournal.readOptional(fixture.groupEntry.idempotencyKey), null);
   assert.equal(artifact, null);
 });
+
+
+test("blocked status survives group crash, journal reload and idempotent publication", async (t) => {
+  const fixture = await makeFixture(t);
+  const prepared = await prepareEntryActionProposalCommit({ proposal: { ...proposal, resultStatus: "blocked" }, lease, authoritySnapshot: snapshot, profile, documentTarget, documentText, textArtifactCurrentText: null, probeLease });
+  const groupEntry = createEntryActionGroupJournalEntry({ prepared, lease, documentText, sourceIdentity, artifactIdentity });
+  let source = documentText, artifact = null, crash = true, receipt;
+  const options = { ...fixture, groupEntry, readSource: async () => source, writeSource: async (text) => { source = text; }, readArtifact: async () => artifact, writeArtifact: async (text) => { artifact = text; if (crash) { crash = false; throw new Error("crash"); } }, publishResultIdempotently: async (value) => { receipt = value; } };
+  await assert.rejects(commitEntryActionGroup(options), /crash/);
+  const resumed = JSON.parse(JSON.stringify(await fixture.groupJournal.read(groupEntry.idempotencyKey)));
+  await commitEntryActionGroup({ ...options, groupEntry: resumed });
+  assert.equal(receipt.resultStatus, "blocked"); assert.equal((await fixture.groupJournal.read(groupEntry.idempotencyKey)).resultStatus, "blocked");
+});

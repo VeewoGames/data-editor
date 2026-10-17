@@ -1,3 +1,4 @@
+import { assertProposalResultStatus } from "./entry-action-result-status.mjs";
 import path from "node:path";
 import { mkdir, readFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
@@ -72,6 +73,7 @@ async function readStage(directory, idempotencyKey) {
 }
 
 function normalize(value, expectedStage = null) {
+  try { if (value) assertProposalResultStatus(value); } catch { throw journalError("COMMIT_JOURNAL_INVALID"); }
   if (!value || typeof value !== "object" || Array.isArray(value)
     || !COMMIT_JOURNAL_STAGES.includes(value.stage) || (expectedStage && value.stage !== expectedStage)
     || !validId(value.idempotencyKey) || !["document_save", "proposal_commit", "candidate_create_commit", "text_artifact_commit"].includes(value.saveType)
@@ -99,7 +101,7 @@ function normalize(value, expectedStage = null) {
 }
 
 function assertSameLogicalSave(existing, requested) {
-  for (const key of ["idempotencyKey", "saveType", "canonicalFileKey", "baseEtag", "newEtag", "beforeDigest", "afterDigest", "requestDigest", "runId", "ownerToken", "fencingToken", "rowId", "proposalDigest", "artifactId", "artifactPath"]) {
+  for (const key of ["idempotencyKey", "saveType", "canonicalFileKey", "baseEtag", "newEtag", "beforeDigest", "afterDigest", "requestDigest", "runId", "ownerToken", "fencingToken", "rowId", "proposalDigest", "artifactId", "artifactPath", "resultStatus"]) {
     if (!Object.is(existing[key] ?? null, requested[key] ?? null)) throw journalError("COMMIT_JOURNAL_IDEMPOTENCY_CONFLICT");
   }
 }
