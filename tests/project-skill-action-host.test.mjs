@@ -1,3 +1,4 @@
+import { projectSkillPlatformSandboxArgs } from "../src/project-skill-host-config.mjs";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -26,7 +27,8 @@ test("project-skill host runs the cli from its disposable project snapshot", asy
   assert.ok(approvalConfigIndex > 0);
   assert.equal(result.argv[approvalConfigIndex - 1], "-c");
   assert.equal(result.argv.includes("--ignore-rules"), true);
-  assert.deepEqual(result.argv.slice(result.argv.indexOf("--sandbox"), result.argv.indexOf("--sandbox") + 2), ["--sandbox", "danger-full-access"]);
+  assert.equal(result.argv.includes('windows.sandbox="elevated"'), process.platform === "win32");
+  assert.deepEqual(result.argv.slice(result.argv.indexOf("--sandbox"), result.argv.indexOf("--sandbox") + 2), ["--sandbox", "workspace-write"]);
 });
 
 test("project-skill host rejects an output path escaping output-root", async (t) => {
@@ -40,4 +42,11 @@ test("project-skill host rejects an output path escaping output-root", async (t)
     child.once("error", reject); child.once("exit", resolve);
   });
   assert.notEqual(code, 0);
+});
+
+
+test("native sandbox configuration is explicit only on Windows and never widens workspace policy", () => {
+  assert.deepEqual(projectSkillPlatformSandboxArgs("win32"), ["-c", 'windows.sandbox="elevated"']);
+  assert.deepEqual(projectSkillPlatformSandboxArgs("linux"), []);
+  assert.deepEqual(projectSkillPlatformSandboxArgs("darwin"), []);
 });

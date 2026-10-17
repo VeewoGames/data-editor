@@ -1,3 +1,4 @@
+import { projectSkillPlatformSandboxArgs } from "../src/project-skill-host-config.mjs";
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir, readFile, realpath } from "node:fs/promises";
@@ -18,6 +19,7 @@ const diagnostics = createWriteStream(path.resolve(options.diagnostics), { flags
 const child = spawn(path.resolve(options.codex), [
   "exec", "--ignore-user-config", ...(options["ignore-rules"] ? ["--ignore-rules"] : []), "--ephemeral", "--json", "--skip-git-repo-check", "--sandbox", "workspace-write",
   "-c", 'approval_policy="never"',
+  ...projectSkillPlatformSandboxArgs(),
   "-m", options.model,
   "-c", `model_reasoning_effort=${JSON.stringify(options.reasoning)}`,
   "-c", `model_verbosity=${JSON.stringify(options.verbosity)}`,
