@@ -1,8 +1,10 @@
-import { memo, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { memo, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import { TableTextCellEditor, type ActiveTextEditorRegistrar } from "../editing";
 import { TextCellTruncationHint } from "./TextCellTruncationHint";
 
 type TextCellSurfaceProps = {
+  displayContent?: ReactNode;
+  editorContent?: ReactNode;
   cellId: string;
   displayType?: "Text" | "Number";
   value: unknown;
@@ -32,6 +34,7 @@ function isZeroNumberValue(value: unknown) {
 
 function TextCellSurfaceComponent({
   cellId,
+  displayContent,editorContent,
   displayType = "Text",
   value,
   wrapped = false,
@@ -86,16 +89,16 @@ function TextCellSurfaceComponent({
         onDoubleClick={handleRequestEnableEditing}
         onKeyDown={handleActivateByKeyboard}
       >
-        <TextCellTruncationHint
+        {displayContent ?? <TextCellTruncationHint
           ariaHidden={active}
           enabled={!wrapped && !active}
           suppressed={truncationHintSuppressed}
           text={textValue}
-        />
+        />}
       </div>
       {active ? (
         <div className="text-cell-editor-overlay" data-cell-role="text-editor-overlay">
-          <TableTextCellEditor
+          {editorContent ?? <TableTextCellEditor
             autoFocus
             cellId={cellId}
             value={value}
@@ -105,7 +108,7 @@ function TextCellSurfaceComponent({
             onChangeValue={onChangeValue}
             onDeactivate={() => onDeactivate(cellId)}
             onRegisterActiveEditor={onRegisterActiveEditor}
-          />
+          />}
         </div>
       ) : null}
     </div>
@@ -113,6 +116,7 @@ function TextCellSurfaceComponent({
 }
 
 export const TextCellSurface = memo(TextCellSurfaceComponent, (previous, next) =>
+  previous.displayContent === next.displayContent && previous.editorContent === next.editorContent &&
   previous.cellId === next.cellId &&
   previous.value === next.value &&
   previous.wrapped === next.wrapped &&

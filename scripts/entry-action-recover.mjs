@@ -9,11 +9,28 @@ import { loadAutomationProfile, ruleAuthorityDigest } from "../src/automation-pr
 import { assertEntryActionResultPolicies, loadEntryActionContracts, resolveEntryActionContract } from "../src/entry-action-contracts.mjs";
 import { findAutomationEntryAction } from "../src/entry-actions.mjs";
 import { recoverDurableEntryActionOperation } from "../src/entry-action-durable-recovery.mjs";
+import { recoverProjectCommandRun } from "../src/project-command-recovery.mjs";
+import { readFile } from "node:fs/promises";
+import { entryActionHandoffPath } from "../src/entry-actions.mjs";
+import { serviceProcessIsAlive } from "../src/service-process-identity.mjs";
 const args = process.argv.slice(2); const [command] = args;
 const value = (name) => { const i=args.indexOf(name); return i < 0 ? null : args[i+1] ?? null; };
 const project = value("--project"), runId = value("--run-id");
 if (!project || !runId || !["inspect", "recover"].includes(command)) fail(2, "RECOVERY_ARGUMENT_INVALID");
 const projectContext = createProjectContext(path.resolve(project));
+const commandHandoff = await readFile(entryActionHandoffPath(projectContext, runId), "utf8").then(JSON.parse).catch(error => { if (error.code === "ENOENT") return null; throw error; });
+if (commandHandoff?.action?.execution?.kind === "project-command") {
+  try {
+    if (command === "inspect") {
+      const alive = await serviceProcessIsAlive(commandHandoff.projectCommand?.writer);
+      process.stdout.write(`${JSON.stringify({ decision: alive === false ? "releasable" : alive ? "active" : "insufficient", released: false })}\n`);
+    } else {
+      const value = await recoverProjectCommandRun(projectContext, runId);
+      process.stdout.write(`${JSON.stringify({ decision: value.recovered ? "completed" : "insufficient", ...value })}\n`);
+      if (!value.recovered) process.exitCode = 3;
+    }
+  } catch (error) { process.stdout.write(`${JSON.stringify({ decision: "error", reasonCode: error.code ?? error.message, released: false })}\n`); process.exitCode = 2; }
+} else {
 // Keep recovery on the same durable fencing root used by the HTTP route.
 const stateRoot = path.join(projectContext.projectRoot, projectContext.runtimeDir, "entry-action-fencing");
 const inspection = await inspectFencingRecovery({ stateRoot, runId, processIdentity }).catch(() => ({ decision: "error", reasonCode: "RECOVERY_STATE_UNREADABLE", released: false }));
@@ -48,6 +65,7 @@ else {
   }
 }
 process.stdout.write(`${JSON.stringify(result)}\n`); process.exitCode = result.exitCode;
+}
 function fail(code, reasonCode) { process.stdout.write(`${JSON.stringify({ exitCode: code, decision: "error", reasonCode, released: false })}\n`); process.exit(code); }
 function inspectResult(value) {
   if (value.decision === "error") return { exitCode: 2, ...value };

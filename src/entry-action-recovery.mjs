@@ -93,10 +93,20 @@ export async function releaseClaimedAdmission({ claimDirectory, claimedPath }) {
   await rmdir(claimedPath).catch((error) => { if (error?.code !== "ENOENT") throw error; });
 }
 export async function finalizeClaimedRecovery({ claimDirectory }) {
-  await unlink(path.join(claimDirectory, "claim.json")).catch((error) => { if (error?.code !== "ENOENT") throw error; });
-  await rmdir(claimDirectory);
+  // Remove the entire completed claim from the admission barrier atomically.
+  // A crash while deleting its metadata must not leave an unreadable quarantine
+  // entry that permanently prevents the next admission.
+  const cleanupRoot = path.join(path.dirname(path.dirname(claimDirectory)), "recovery-cleanup");
+  const cleanupDirectory = path.join(cleanupRoot, path.basename(claimDirectory));
+  await mkdir(cleanupRoot, { recursive: true });
+  await rename(claimDirectory, cleanupDirectory).catch(async error => {
+    if (error.code !== "ENOENT") throw error;
+    if (!await stat(cleanupDirectory).catch(() => null)) throw error;
+  });
+  await unlink(path.join(cleanupDirectory, "claim.json")).catch((error) => { if (error?.code !== "ENOENT") throw error; });
+  await rmdir(cleanupDirectory);
 }
-async function findExistingRecoveryClaim(stateRoot, lease) {
+export async function findExistingRecoveryClaim(stateRoot, lease) {
   const layout = fencingLayoutForRecovery(stateRoot, lease.canonicalFileKey);
   const entries = await (await import("node:fs/promises")).readdir(layout.quarantineDirectory, { withFileTypes: true }).catch((error) => error?.code === "ENOENT" ? [] : Promise.reject(error));
   for (const entry of entries) {

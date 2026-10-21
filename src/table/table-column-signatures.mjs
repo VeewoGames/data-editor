@@ -5,6 +5,7 @@ import { computeFieldMenuCapabilities } from "./field-capabilities.mjs";
  * @param {{
  *   visibleFields: string[];
  *   readonlyFields?: string[];
+ *   textTemplateFields?: string[];
  *   rows: import("../model/documentModel").DataRecord[];
  *   nestedFieldSet: Set<string>;
  *   displayTypes: Record<string, import("../model/fieldTypes").FieldDisplayType>;
@@ -26,6 +27,7 @@ import { computeFieldMenuCapabilities } from "./field-capabilities.mjs";
 export function buildTableColumnModelsSignature({
   visibleFields,
   readonlyFields = [],
+  textTemplateFields = [],
   rows,
   nestedFieldSet,
   displayTypes,
@@ -46,11 +48,12 @@ export function buildTableColumnModelsSignature({
   return visibleFields.map((fieldName) => {
     const backlinkColumn = backlinkColumns.find((column) => column.fieldName === fieldName);
     const relationConfig = relationConfigByField[fieldName] ?? null;
-    const isNested = nestedFieldSet.has(fieldName);
+    const isTextTemplate = textTemplateFields.includes(fieldName);
+    const isNested = !isTextTemplate && nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
     const isReadonly = readonlyFields.includes(fieldName);
     const relationConfigured = Boolean(relationConfig);
-    const baseDisplayType = isReadonly ? "Checkbox" : inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
+    const baseDisplayType = isTextTemplate ? "Text" : isReadonly ? "Checkbox" : inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
     const effectiveDisplayType = isBacklink
       ? "Backlink"
       : relationConfigured
@@ -60,7 +63,7 @@ export function buildTableColumnModelsSignature({
     const capabilities = computeFieldMenuCapabilities({
       baseDisplayType,
       roleKind,
-      isNested,
+      isNested: isNested || isTextTemplate,
       isBacklink,
       relationConfigured,
       documentConfigured: documentConfiguredFields.has(fieldName),
@@ -75,7 +78,7 @@ export function buildTableColumnModelsSignature({
       baseDisplayType,
       effectiveDisplayType,
       roleKind,
-      isNested ? "nested" : "plain",
+      isTextTemplate ? "template" : isNested ? "nested" : "plain",
       isReadonly ? "readonly" : "writable",
       fieldName === detectedTitleField ? "title" : "body",
       fieldName === primaryKeyField ? "primary-key" : "not-primary-key",

@@ -1,3 +1,6 @@
+import { projectTemplateSearchRow, isTemplateProtectedField } from './detail/inline-template-text.mjs';
+import { useInlineTemplateDefinitions } from './detail/useInlineTemplateDefinitions';
+import { refreshCommandDocument } from "./editing/command-result-refresh.mjs";
 import { useGeneratedFields } from "./view/useGeneratedFields";
 import { presentEntryActionResult } from "./entry-action-result-presentation.mjs";
 import { Profiler, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
@@ -1860,6 +1863,7 @@ export function App() {
     }
     return nextRows;
   }, [model, collectionPath, dataRevision]);
+  const inlineTemplates = useInlineTemplateDefinitions(activeProjectId, selectedPath, collectionPath);
   const primaryKeyCandidateAnalyses = useMemo<Record<string, PrimaryKeyCandidateAnalysis>>(() => {
     if (!model || !selectedPath) return {};
     return Object.fromEntries(model.collections.map((collection) => {
@@ -2275,7 +2279,7 @@ export function App() {
       markPerf("detail-reorder:before-view-rows");
     }
     const nextViewResult = runViewTyped({
-      rows: viewEngineRows,
+      rows: viewEngineRows.map(entry=>({...entry,row:projectTemplateSearchRow(entry.row,inlineTemplates)})),
       query: activeViewRenderState.query,
       candidateRowIds: null,
       filters: activeViewRenderState.filters,
@@ -2290,7 +2294,7 @@ export function App() {
       perfState.awaitingViewRows = false;
     }
     return stabilizeViewResult(previousViewResultRef.current, nextViewResult);
-  }, [viewEngineRows, activeViewRenderState, viewFilterFieldTypes, viewSortOptionOrders, projectionContext]);
+  }, [viewEngineRows, activeViewRenderState, viewFilterFieldTypes, viewSortOptionOrders, projectionContext,inlineTemplates]);
   useEffect(() => {
     previousViewResultRef.current = viewResult;
   }, [viewResult]);
@@ -2621,6 +2625,9 @@ export function App() {
     });
   }, [model, documentStore, selectedPath, collectionPath, activeValidationPrimaryKeyField]);
   const tableSnapshot = useMemo<TableSnapshot>(() => ({
+    inlineTemplates,
+    projectId: activeProjectId,
+    documentEtag: model?.documentEtag,
     schemaModel: model!,
     readonlyFields: generatedFields?.fields.map((field) => field.name) ?? [],
     sourcePath: selectedPath,
@@ -2651,6 +2658,9 @@ export function App() {
     selectedPath,
     collectionPath,
     projectedVisibleRowViews,
+    inlineTemplates,
+    activeProjectId,
+    model?.documentEtag,
     projectedRows,
     tableFieldConfig,
     fieldViewConfigs,
@@ -3553,6 +3563,14 @@ export function App() {
 
   function handleEditCellByRowId(rowId: string, fieldName: string, value: unknown) {
     if (!model || !documentStore || isDerivedField(fieldName, projectionContext)) return;
+    const liveRow=collectionStore?.rowViews.find(item=>item.rowId===rowId)?.row;
+    if(liveRow&&isTemplateProtectedField(liveRow,fieldName,inlineTemplates))return;
+    const mapping=inlineTemplates.find(item=>item.field===fieldName);
+    if(mapping&&typeof value==='string'){
+      const row=collectionStore?.rowViews.find(item=>item.rowId===rowId)?.row;const original=row?.[fieldName];
+      if(!original||typeof original!=='object'||Array.isArray(original)||!mapping.tableLanguage)return;
+      value={...original,[mapping.tableLanguage]:value};
+    }
     const nextEdit = resolveCellEditWrite(null, rowId, fieldName, value);
     updateValidationIssueOverride(null, rowId, fieldName, nextEdit.issue);
     validationInvalidationRef.current = resolveValidationInvalidation(fieldName, rowId, null);
@@ -4290,6 +4308,32 @@ export function App() {
       setEntryActionStatus(finalStatus);
       if (finalResult.message) setEntryActionErrorMessage(finalResult.message);
       if (finalResult.outcome === "completed_with_writeback" || finalResult.outcome === "completed_without_changes") {
+        if (action?.execution.kind === "project-command") {
+          if (activeProjectIdRef.current !== activeProjectId || selectedPathRef.current !== selectedPath || !modelRef.current) return;
+          flushActiveTextEditorDraft();
+          for (let refreshAttempt = 0; refreshAttempt < 3; refreshAttempt++) {
+          const savedBaseline = savedDocumentRootRef.current;
+          const persisted = await loadDocument(selectedPath, activeProjectId);
+          const policyResponse = await fetch(`/api/field-write-policy?projectId=${encodeURIComponent(activeProjectId)}`);
+          if (!policyResponse.ok) throw new Error("无法同步生成字段保护；当前草稿已保留。");
+          const policies = await policyResponse.json();
+          if (activeProjectIdRef.current !== activeProjectId || selectedPathRef.current !== selectedPath || !modelRef.current) return;
+          if (savedDocumentRootRef.current !== savedBaseline) continue;
+          const applicablePolicies = policies.policies.filter((p: {file:string}) => p.file === selectedPath);
+          const result = refreshCommandDocument(savedBaseline, modelRef.current.root, persisted.root, applicablePolicies);
+          const next = {...persisted, ...buildDocumentModel(result.root, persisted.format, selectedPath), documentEtag:persisted.documentEtag} as DocumentModel;
+          savedDocumentRootRef.current = cloneDataRoot(persisted.root);
+          modelRef.current = next;
+          setModel(next);
+          dataDirtyRef.current = result.keptDraft;
+          setDataDirty(result.keptDraft);
+          window.dispatchEvent(new Event("inline-template-generation-adopted"));
+          if (result.keptDraft) setEntryActionStatus({...finalStatus,detail:"生成已保存；期间新增的源文草稿已保留，请为新内容重新生成。"});
+          return;
+          }
+          setEntryActionErrorMessage("生成已保存；连续自动保存期间未回载旧快照，当前输入已保留。请稍后重新打开以同步生成产物。");
+          return;
+        }
         await openDocumentAt(
           selectedPathRef.current ?? selectedPath,
           collectionPathRef.current,
@@ -5932,6 +5976,8 @@ export function App() {
               </Profiler>
               <Profiler id="detail-panel" onRender={handleDetailReorderProfilerRender}>
                 <DetailPanel
+                  projectId={activeProjectId}
+                  inlineTemplates={inlineTemplates}
                   snapshot={detailSnapshot}
                   nestedSchemaResolver={nestedSchemaResolver}
                   initialNestedTarget={initialNestedTarget}
@@ -6046,6 +6092,8 @@ export function App() {
               onDeleteField={handleDeleteField}
             />
             <DetailPanel
+                  projectId={activeProjectId}
+              inlineTemplates={inlineTemplates}
               snapshot={detailSnapshot}
               nestedSchemaResolver={nestedSchemaResolver}
               initialNestedTarget={initialNestedTarget}
@@ -6564,7 +6612,8 @@ function AutomationSettingsDialog(props: {
     [bindingDefaults.model],
   );
   const activeRules = rules.filter((rule) => rule.enabled);
-  const bindingCounts = activeRules.reduce((summary, rule) => {
+  const commandCount = activeRules.filter((rule) => rule.execution.kind === "project-command").length;
+  const bindingCounts = activeRules.filter((rule) => rule.execution.kind !== "project-command").reduce((summary, rule) => {
     const binding = bindings.bindings[rule.id];
     const bindingStatus = bindings.bindingStatuses?.[rule.id];
     if (!binding) {
@@ -7036,7 +7085,8 @@ function AutomationSettingsDialog(props: {
                     </div>
                     <div className="automation-settings-summary__stats" aria-label="自动化配置摘要">
                       <span className="automation-stat-chip">{rules.length} 条规则</span>
-                      <span className="automation-stat-chip ok">{bindingCounts.ready} 条绑定就绪</span>
+                      <span className="automation-stat-chip ok">{commandCount} 条项目程序</span>
+                      <span className="automation-stat-chip ok">{bindingCounts.ready} 条 AI 绑定就绪</span>
                       <span className="automation-stat-chip">{bindingCounts.missing} 条缺失</span>
                       <span className="automation-stat-chip warn">{bindingCounts.invalid} 条无效</span>
                     </div>
@@ -7235,10 +7285,10 @@ function AutomationSettingsDialog(props: {
                               </span>
                               <span className="automation-rule-nav-item__body">
                                 <strong>{rule.label || rule.id || `动作 ${ruleIndex + 1}`}</strong>
-                                <small>{binding.skill.trim() || "未选择技能"}</small>
+                                <small>{rule.execution.kind === "project-command" ? "项目程序执行" : binding.skill.trim() || "未选择技能"}</small>
                               </span>
                               <span className="automation-rule-nav-item__meta">
-                                <span className={`automation-rule-nav-item__status automation-rule-nav-item__status--${resolveAutomationSkillTone(skillUiState.kind)}`}>
+                                <span className={`automation-rule-nav-item__status automation-rule-nav-item__status--${resolveAutomationSkillTone(rule.execution.kind === "project-command" ? "ready" : skillUiState.kind)}`}>
                                   {describeAutomationRuleStatus(rule, binding, issueCount)}
                                 </span>
                                 {issueCount > 0 ? <span className="automation-rule-nav-item__issue-count">{issueCount}</span> : null}
@@ -7264,6 +7314,7 @@ function AutomationSettingsDialog(props: {
                           </div>
                         );
                       }
+                      const isProjectCommand = selectedRule.execution.kind === "project-command";
                       const binding = bindings.bindings[selectedRule.id] ?? {
                         provider: "codex" as const,
                         skill: "",
@@ -7281,7 +7332,7 @@ function AutomationSettingsDialog(props: {
                           <div className="automation-rule-card__header">
                             <div className="automation-rule-card__title-group">
                               <strong>{selectedRule.label || selectedRule.id || `动作 ${selectedIndex + 1}`}</strong>
-                              <small>{selectedRule.enabled ? "规则已启用" : "规则未启用"} · {binding.enabled ? "本机绑定已启用" : "本机绑定未启用"}</small>
+                              <small>{selectedRule.enabled ? "规则已启用" : "规则未启用"} · {isProjectCommand ? "项目程序执行，无需本机技能绑定" : !bindings.bindings[selectedRule.id] ? "未配置本机技能绑定" : binding.enabled ? "AI 技能执行 · 本机绑定已启用" : "AI 技能执行 · 本机绑定未启用"}</small>
                             </div>
                             <button className="ghost-button danger-button" disabled={controlsDisabled} onClick={() => removeRule(selectedIndex)} type="button">删除</button>
                           </div>
@@ -7328,6 +7379,7 @@ function AutomationSettingsDialog(props: {
                                   )}
                                 />
                               </label>
+                              {!isProjectCommand ? (
                               <label className="dialog-field">
                                 <span>技能</span>
                                 <div className="automation-skill-field-row">
@@ -7404,8 +7456,19 @@ function AutomationSettingsDialog(props: {
                                   </button>
                                 </div>
                               </label>
+                              ) : null}
                             </div>
                           </div>
+                          {selectedRule.execution.kind === "project-command" ? (
+                            <div className="automation-rule-section">
+                              <div className="automation-rule-section__label">项目程序执行</div>
+                              <small>直接运行项目声明的程序，无需 AI 技能、模型或本机技能绑定。程序配置由项目维护。</small>
+                              <label className="dialog-field"><span>程序路径</span><input value={selectedRule.execution.command!.path} readOnly /></label>
+                              <label className="dialog-field"><span>参数</span><input value={JSON.stringify(selectedRule.execution.command!.args)} readOnly /></label>
+                              <small>超时：{selectedRule.execution.command!.timeoutMs} ms；结果经验证后以提案采用。</small>
+                              <label className="dialog-check"><input type="checkbox" checked={selectedRule.enabled} onChange={(event) => updateRuleField(selectedIndex, "enabled", event.target.checked)} /><span>启用规则</span></label>
+                            </div>
+                          ) : (
                           <div className="automation-rule-section">
                               <div className="automation-rule-grid">
                                 <label className="dialog-field">
@@ -7482,6 +7545,7 @@ function AutomationSettingsDialog(props: {
                                 ) : null}
                               </> : null}
                             </div>
+                          )}
                           <div className="automation-rule-section">
                             <div className="automation-rule-section__label">目标范围</div>
                             <div className="automation-target-editor">
@@ -7645,6 +7709,7 @@ function AutomationSettingsDialog(props: {
                               </div>
                             </div>
                           </div>
+                          {!isProjectCommand ? (
                           <div className="automation-rule-section">
                             <div className="automation-rule-section__label">执行选项</div>
                             <div className="automation-rule-grid">
@@ -7785,6 +7850,7 @@ function AutomationSettingsDialog(props: {
                               </label>
                             </div>
                           </div>
+                          ) : null}
                         </section>
                       );
                     })()}
@@ -7922,11 +7988,13 @@ function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile,
       ruleIssues.push("规则超时时间必须为正整数。");
     }
     const binding = bindings.bindings[rule.id];
-    if (binding) {
-      if (binding.provider !== "codex") ruleIssues.push("当前仅支持 codex provider。");
-      if (!binding.skill.trim()) ruleIssues.push("Skill 不能为空。");
-    } else {
-      ruleIssues.push("缺少本机绑定。");
+    if (rule.execution.kind !== "project-command") {
+      if (binding) {
+        if (binding.provider !== "codex") ruleIssues.push("当前仅支持 codex provider。");
+        if (!binding.skill.trim()) ruleIssues.push("Skill 不能为空。");
+      } else {
+        ruleIssues.push("缺少本机绑定。");
+      }
     }
     if (rule.execution.advancedExecution) {
       const projectInput = rule.execution.advancedExecution.projectInput;
@@ -7939,7 +8007,7 @@ function buildAutomationValidationIssuesByRuleId(profile: UserAutomationProfile,
       }
     }
     const bindingStatus = bindings.bindingStatuses?.[rule.id];
-    if (bindingStatus?.status === "invalid" && bindingStatus.message) {
+    if (rule.execution.kind !== "project-command" && bindingStatus?.status === "invalid" && bindingStatus.message) {
       ruleIssues.push(bindingStatus.message);
     }
     issuesByRuleId[rule.id] = ruleIssues;
@@ -8003,7 +8071,7 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
     }
 
     const binding = bindings.bindings[ruleId];
-    if (!rule.enabled) continue;
+    if (!rule.enabled || rule.execution.kind === "project-command") continue;
     if (!binding) {
       issues.push(`${prefix}: 当前设备缺少 binding。`);
       continue;
@@ -8031,6 +8099,7 @@ function validateAutomationSettings(profile: UserAutomationProfile, bindings: De
 function describeAutomationRuleStatus(rule: EntryActionRule, binding: EntryActionBinding, issueCount: number) {
   if (issueCount > 0) return `${issueCount} 个问题`;
   if (!rule.enabled) return "未启用";
+  if (rule.execution.kind === "project-command") return "正常";
   if (!binding.enabled) return "绑定关闭";
   return "正常";
 }
@@ -8046,6 +8115,7 @@ function resolveVisibleEntryActions(input: {
     .filter((rule) => rule.enabled !== false)
     .filter((rule) => rule.targets.some((target) => target.file === input.selectedPath && target.collection === input.collectionPath))
     .filter((rule) => {
+      if (rule.execution.kind === "project-command") return true;
       const binding = input.bindings.bindings[rule.id];
       const bindingStatus = input.bindings.bindingStatuses?.[rule.id];
       return Boolean(binding && binding.enabled !== false && binding.skill.trim() && bindingStatus?.status !== "invalid");

@@ -1,4 +1,7 @@
 import { readGeneratedFields, assertNoGeneratedFieldInjection } from "./src/generated-fields-service.mjs";
+import { loadFieldWritePolicy, assertOrdinarySaveFieldPolicy, ordinarySaveBlockingRuns } from "./src/field-write-policy.mjs";
+import { readInlineTemplateDefinitions } from "./src/inline-template-context.mjs";
+import { recoverProjectCommandRun } from "./src/project-command-recovery.mjs";
 import { createProjectProcessService } from "./src/project-process-service.mjs";
 import { assertProjectProcessHttpSource } from "./src/project-process-http.mjs";
 import http from "node:http";
@@ -165,6 +168,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/entry-actions/publish-exact-artifact" && req.method === "POST") return await handlePublishExactArtifact(req, res);
     await ensureInitialProject();
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
+    if (url.pathname === "/api/field-write-policy" && req.method === "GET") return sendJson(res, await loadFieldWritePolicy(await projectContextForUrl(url)), 200, { "cache-control": "no-store" });
+    if (url.pathname === "/api/inline-template-definitions" && req.method === "GET") return sendJson(res, await readInlineTemplateDefinitions(await projectContextForUrl(url)), 200, { "cache-control": "no-store" });
     if (url.pathname === "/api/project-capabilities" && req.method === "GET") return await handleProjectCapabilities(url, res);
     if (url.pathname === "/api/project-processes" && req.method === "GET") return sendJson(res, await projectProcessService.list(url.searchParams.get("projectId")), 200, { "cache-control": "no-store" });
     if (["/api/project-processes/control", "/api/project-processes/authorize"].includes(url.pathname) && req.method === "POST") {
@@ -394,7 +399,8 @@ async function handleSave(req, res) {
     const idempotencyKey = resolveDocumentSaveIdempotencyKey(body.idempotencyKey, requestDigest);
     await documentCommitCoordinator.withCommit({ projectContext, sourcePath: body.path }, async (identity) => {
       const active = await findActiveEntryActionRuns(projectContext, body.path);
-      if (active.runs.length > 0) {
+      const blockingRuns = await ordinarySaveBlockingRuns(projectContext, active.runs);
+      if (blockingRuns.length > 0) {
         throw new DocumentSaveError(
           "DOCUMENT_SAVE_ENTRY_ACTION_ACTIVE",
           "当前文件存在正在执行的条目自动化，已暂缓普通保存。",
@@ -419,6 +425,7 @@ async function handleSave(req, res) {
         }
       }
       const currentText = await readTextFile(projectContext, body.path);
+      await assertOrdinarySaveFieldPolicy({ context: projectContext, sourcePath: body.path, beforeRoot: ext === ".csv" ? parseCsv(currentText) : parseJson(currentText).data, afterRoot: body.root });
       const documentContracts = await resolveApplicableDocumentContracts(projectContext, body.path, body.root, ext.slice(1));
       if (documentContracts.error) throw documentContracts.error;
       validateDocumentContractSave(body, documentContracts);
@@ -452,7 +459,7 @@ async function handleSave(req, res) {
       sendJson(res, { ok: true, documentEtag: documentEtag(text) });
     });
   } catch (error) {
-    if (!(error instanceof DocumentSaveError) && !(error instanceof DocumentContractError)) throw error;
+    if (!(error instanceof DocumentSaveError) && !(error instanceof DocumentContractError) && !error?.code?.startsWith("FIELD_WRITE_POLICY_")) throw error;
     sendJson(res, {
       error: error.message,
       code: error.code,
@@ -797,6 +804,7 @@ async function handleLoadEntryActionResult(url, res) {
   const runId = String(url.searchParams.get("runId") ?? "").trim();
   if (!runId) throw new Error("Missing runId");
   const projectContext = await projectContextForUrl(url);
+  await recoverProjectCommandRun(projectContext, runId, documentCommitCoordinator);
   try {
     const result = await readEntryActionResult(projectContext, runId);
     sendJson(res, { ...result, artifacts: await describeEntryActionArtifacts(projectContext, runId) });
@@ -862,19 +870,25 @@ async function handleLoadLatestEntryActionResult(url, res) {
   if (!actionId) throw new Error("Missing actionId");
   if (rowId == null && sourceRowIndex == null) throw new Error("Entry action requires rowId or sourceRowIndex");
   const projectContext = await projectContextForUrl(url);
-  const run = await findLatestEntryActionRun(projectContext, {
+  let run = await findLatestEntryActionRun(projectContext, {
     actionId,
     sourcePath,
     collectionPath,
     rowId,
     sourceRowIndex,
   });
+  if (run?.runId) {
+    await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator);
+    run = await findLatestEntryActionRun(projectContext, { actionId, sourcePath, collectionPath, rowId, sourceRowIndex });
+  }
   sendJson(res, { run });
 }
 
 async function handleLoadActiveEntryActionRuns(url, res) {
   const sourcePath = normalizeEntryActionPath(url.searchParams.get("sourcePath"), "sourcePath");
   const projectContext = await projectContextForUrl(url);
+  const active = await findActiveEntryActionRuns(projectContext, sourcePath);
+  for (const run of active.runs) await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator);
   sendJson(res, await findActiveEntryActionRuns(projectContext, sourcePath));
 }
 

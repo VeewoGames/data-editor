@@ -1,3 +1,5 @@
+import type { InlineTemplateDefinition } from './useInlineTemplateDefinitions';
+import { InlineTemplateField } from "./InlineTemplateField";
 import { generatedFieldState } from "../view/derived-field-projection.mjs";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { icons, readSharedViewIconComponent, sharedViewFallbackIcon } from "../components/icons";
@@ -80,6 +82,8 @@ export type DetailSnapshot = {
 export type DetailEntryActionStatus = NonNullable<DetailSnapshot["entryActionStatus"]>;
 
 type DetailPanelProps = {
+  projectId?: string | null;
+  inlineTemplates?: InlineTemplateDefinition[];
   snapshot: DetailSnapshot;
   nestedSchemaResolver?: NestedSchemaCapabilityResolver | null;
   initialNestedTarget: {
@@ -118,6 +122,8 @@ type NestedPanelState = {
 };
 
 export function DetailPanel({
+  projectId,
+  inlineTemplates = [],
   snapshot,
   nestedSchemaResolver = null,
   initialNestedTarget,
@@ -187,6 +193,13 @@ export function DetailPanel({
         contextValue: context.contextValue,
       }) ?? { kind: "unsupported", lookupKey: "nested-schema-capability:missing", reason: "No nested schema capability is available for this value." } as ResolveNestedNodeSchemaResult
   );
+  const [writePolicies, setWritePolicies] = useState<Array<{file:string;collection:string;requiresFields:string[];fields:string[]}>>([]);
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/field-write-policy${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`).then(r => r.ok ? r.json() : null).then(d => {if (active) setWritePolicies(d?.policies ?? []);}).catch(() => {if (active) setWritePolicies([]);});
+    return () => {active = false;};
+  }, [projectId]);
+  const protectedFields = new Set(writePolicies.filter(p => p.file === sourcePath && p.collection === collectionPath && p.requiresFields.every(f => row && Object.hasOwn(row, f))).flatMap(p => p.fields));
   const panelRef = useRef<HTMLElement | null>(null);
   const documentPanelRef = useRef<HTMLElement | null>(null);
   const nestedPanelRef = useRef<HTMLElement | null>(null);
@@ -345,7 +358,8 @@ export function DetailPanel({
     () => row ? mergeDetailFieldOrder(row, Object.keys(fieldViewConfigs), displayTypes) : [],
     [displayTypes, fieldViewConfigs, row],
   );
-  const orderedFields = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
+  const baseFieldOrder = dragState?.startOrder ?? orderDetailFields(naturalFieldOrder, detailOrder);
+  const orderedFields = dragState ? baseFieldOrder : [...baseFieldOrder.filter(key=>inlineTemplates.some(item=>item.field===key)&&row?.[key]&&typeof row[key]==='object'),...baseFieldOrder.filter(key=>!inlineTemplates.some(item=>item.field===key)||!row?.[key]||typeof row[key]!=='object')];
   const selectOptionsByField = useMemo<SelectOptionsByField>(() => {
     if (!row) return {};
     const result: SelectOptionsByField = {};
@@ -630,8 +644,8 @@ export function DetailPanel({
                     />
                   ) : (
                     <section className="property-block" onClick={forwardOptionFieldSurfaceClick}>
-                      <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} presentation={fieldViewConfigs[key]?.presentation} />
-                      {generatedFieldState(row, key) ? (generatedFieldState(row, key)?.ready && typeof value === "boolean" ? <input className="generated-checkbox" type="checkbox" readOnly tabIndex={-1} checked={value} aria-readonly="true" aria-label="只读生成值" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} /> : <span className="generated-checkbox-unknown" title={generatedFieldState(row, key)?.reason}>?</span>) : renderValueEditor({
+                      <PropertyHeading fieldName={key} fieldType={displayTypes[key] ?? defaultTypeFor(value)} issue={issue} presentation={inlineTemplates.some(item=>item.field===key)?{...fieldViewConfigs[key]?.presentation,label:inlineTemplates.find(item=>item.field===key)!.label}:fieldViewConfigs[key]?.presentation} />
+                      {protectedFields.has(key) ? <details><summary>生成产物（只读）</summary><pre style={{whiteSpace:"pre-wrap"}}>{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre></details> : value && typeof value === "object" && !Array.isArray(value) && inlineTemplates.some(item=>item.field===key) ? <InlineTemplateField definition={inlineTemplates.find(item=>item.field===key)} projectId={projectId} sourcePath={sourcePath} collectionPath={collectionPath} rowId={rowId} field={key} value={value as Record<string,unknown>} register={onRegisterActiveTextEditor} onChange={next => onEditField(key, next)} fallback={<button className="nested-entry-button" onClick={() => openNestedField(key, value as Record<string,unknown>, [], key)}>{key} - {Object.keys(value).length} 字段</button>} /> : generatedFieldState(row, key) ? (generatedFieldState(row, key)?.ready && typeof value === "boolean" ? <input className="generated-checkbox" type="checkbox" readOnly tabIndex={-1} checked={value} aria-readonly="true" aria-label="只读生成值" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }} /> : <span className="generated-checkbox-unknown" title={generatedFieldState(row, key)?.reason}>?</span>) : renderValueEditor({
                         cellId: `detail:${rowId ?? sourceRowIndex ?? "detail"}:${key}`,
                         pathParts: [key],
                         fieldName: key,

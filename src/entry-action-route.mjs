@@ -9,6 +9,7 @@ import { startProposalOnlyEntryAction } from "./entry-action-service.mjs";
 import { preflightEntryActionAdmission } from "./entry-action-admission.mjs";
 import { createPendingEntryActionStore } from "./pending-entry-action.mjs";
 import { resolveEntryActionExecution } from "./entry-action-execution.mjs";
+import { startProjectCommandEntryAction } from "./project-command-action-service.mjs";
 
 export function createEntryActionRunRoute({
   loadRegistry,
@@ -71,6 +72,11 @@ export function createEntryActionRunRoute({
     async run(body) {
       const { project, projectContext } = await resolveProject(body);
       const execution = await resolveExecution(projectContext, body.actionId);
+      if (execution.kind === "project-command") {
+        const started = await startProjectCommandEntryAction({ projectContext, project, request: body, documentCommitCoordinator });
+        onCompletion(started);
+        return { ok: true, status: "queued", runId: started.runId, acceptedAt: started.acceptedAt, phase: "running", resultOnly: false, resultPolicy: "proposal" };
+      }
       if (execution.kind === "project-skill") {
         if (typeof startProjectSkill !== "function") routeError("PROJECT_SKILL_HOST_UNAVAILABLE", "Project-skill execution host is unavailable.", 503);
         const started = await startProjectSkill({ projectContext, project, request: body, toolRoot, jobSupervisor, documentCommitCoordinator, dependencies: {

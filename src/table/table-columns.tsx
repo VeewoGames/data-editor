@@ -1,3 +1,6 @@
+import { isTemplateProtectedField } from '../detail/inline-template-text.mjs';
+import { InlineTemplateField } from '../detail/InlineTemplateField';
+import type { InlineTemplateDefinition } from '../detail/useInlineTemplateDefinitions';
 import { generatedFieldState } from "../view/derived-field-projection.mjs";
 import { createContext, memo, useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -16,6 +19,7 @@ import type { ValidationSnapshot } from "../validation/issue-map";
 import type { ActiveTextEditorRegistrar } from "../editing";
 
 type TableColumnsRuntime = {
+  inlineContext?:{projectId?:string|null;sourcePath:string|null;collectionPath:string;documentEtag?:string;templates:InlineTemplateDefinition[]};
   backlinkValuesByRowId: Record<number | string, Record<string, RelationBacklink[]>>;
   tableLayoutMode: "center" | "top";
   validation: ValidationSnapshot | null;
@@ -215,6 +219,13 @@ function TableColumnCellView(
   const primaryKeyValue = runtime.primaryKeyField ? row[runtime.primaryKeyField] : null;
   const frameMeta = resolveCellFrameMeta(columnModel, displayType, value, runtime.tableLayoutMode, runtime.textEditable, textEditingActive);
 
+  const protectedField=isTemplateProtectedField(row,columnModel.fieldName,runtime.inlineContext?.templates??[]);
+  if(protectedField)return <TableCellFrame kind="text" layout="top"><pre aria-label="只读生成字段" style={{whiteSpace:'pre-wrap',fontSize:12}}>{typeof value==='string'?value:JSON.stringify(value)}</pre></TableCellFrame>;
+  if(columnModel.isTextTemplate){
+    const context=runtime.inlineContext;const definition=context?.templates.find(item=>item.field===columnModel.fieldName);
+    if(!context||!definition||!value||typeof value!=='object'||Array.isArray(value))return <TableCellFrame kind="text" layout="top"><span style={{opacity:0.5}}>未接入</span></TableCellFrame>;
+    return <TableCellFrame kind={runtime.textEditable?"editor":"text"} layout={runtime.tableLayoutMode}><div className="table-cell-content-main"><InlineTemplateField table interaction={{cellId,wrapped:columnModel.wrapped,editable:runtime.textEditable,active:textEditingActive,onEnableEditing:runtime.onEnableTextEditMode,onActivate:runtime.onActivateTextCell,onDeactivate:runtime.onDeactivateTextCell}} definition={definition} projectId={context.projectId} sourcePath={context.sourcePath} collectionPath={context.collectionPath} rowId={rowId} field={columnModel.fieldName} value={value as Record<string,unknown>} register={runtime.onRegisterActiveTextEditor} onChange={next=>runtime.onEditCell(originalRowIndex,rowId,columnModel.fieldName,next)} fallback={null}/></div></TableCellFrame>;
+  }
   if (columnModel.backlinkColumn) {
     return (
       <TableCellFrame kind={frameMeta.kind} layout={frameMeta.layout}>

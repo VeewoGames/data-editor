@@ -1,3 +1,4 @@
+import type { InlineTemplateDefinition } from '../detail/useInlineTemplateDefinitions';
 import { flexRender, getCoreRowModel, useReactTable, type HeaderGroup } from "@tanstack/react-table";
 import * as Popover from "@radix-ui/react-popover";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
@@ -111,6 +112,9 @@ function sameTableCellCoord(left: TableCellCoord | null, right: TableCellCoord |
 }
 
 export type TableSnapshot = {
+  projectId?: string | null;
+  documentEtag?: string;
+  inlineTemplates?: InlineTemplateDefinition[];
   schemaModel: DocumentModel;
   readonlyFields?: string[];
   sourcePath: string | null;
@@ -174,6 +178,7 @@ type DataTableProps = {
 
 function DataTableComponent(props: DataTableProps) {
   const { snapshot } = props;
+  const [showAdvanced,setShowAdvanced]=useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(720);
   const [pressedField, setPressedField] = useState<string | null>(null);
@@ -249,6 +254,8 @@ function DataTableComponent(props: DataTableProps) {
   const rowIds = useMemo(() => rowViews.map((view) => view.rowId), [rowViews]);
   const rows = useMemo(() => rowViews.map((view) => view.row), [rowViews]);
   const optionRows = snapshot.allRows ?? rows;
+  const textTemplateFields=useMemo(()=>(snapshot.inlineTemplates??[]).map(item=>item.field),[snapshot.inlineTemplates]);
+  const advancedFields=useMemo(()=>new Set((snapshot.inlineTemplates??[]).flatMap(item=>item.advancedFields)),[snapshot.inlineTemplates]);
   const schemaModel = snapshot.schemaModel;
   const nestedFieldSet = useMemo<Set<string>>(
     () => new Set<string>(getNestedFields(schemaModel, snapshot.collectionPath)),
@@ -346,11 +353,12 @@ function DataTableComponent(props: DataTableProps) {
   ], snapshot.fieldConfig.order), [schemaModel, snapshot.collectionPath, snapshot.fieldConfig.order, nestedFieldSet, snapshot.backlinkColumns, snapshot.readonlyFields]);
 
   const detectedTitleField = snapshot.titleField ?? findTitleField(allColumns, rows);
-  const visibleBaseFields = useMemo(() => allColumns.filter((field) => !snapshot.fieldConfig.hidden.has(field)), [allColumns, snapshot.fieldConfig.hidden]);
-  const baseVisibleFields = useMemo(
+  const visibleBaseFields = useMemo(() => allColumns.filter((field) => !snapshot.fieldConfig.hidden.has(field) && (showAdvanced || !advancedFields.has(field))), [allColumns, snapshot.fieldConfig.hidden,showAdvanced,advancedFields]);
+  const unprioritizedVisibleFields = useMemo(
     () => snapshot.fieldConfig.order.length ? visibleBaseFields : moveTitleFirst(visibleBaseFields, detectedTitleField),
     [visibleBaseFields, detectedTitleField, snapshot.fieldConfig.order.length],
   );
+  const baseVisibleFields = useMemo(()=>{const primary=unprioritizedVisibleFields.filter(field=>textTemplateFields.includes(field));const other=unprioritizedVisibleFields.filter(field=>!textTemplateFields.includes(field));const at=other.includes(detectedTitleField??'')?other.indexOf(detectedTitleField!)+1:0;return [...other.slice(0,at),...primary,...other.slice(at)];},[unprioritizedVisibleFields,textTemplateFields,detectedTitleField]);
   const visibleFields = baseVisibleFields;
   const hasWrappedField = useMemo(() => visibleFields.some((field) => snapshot.fieldConfig.wrapped.has(field)), [visibleFields, snapshot.fieldConfig.wrapped]);
   const variableRowWindow = useMemo(() => hasWrappedField
@@ -389,6 +397,8 @@ function DataTableComponent(props: DataTableProps) {
     snapshot.primaryKeyField,
     snapshot.fieldConfig.displayTypes,
     snapshot.readonlyFields,
+    textTemplateFields,
+    snapshot.inlineTemplates,
     snapshot.fieldViewConfigs,
     snapshot.relationConfigs,
     snapshot.relationOptions,
@@ -481,10 +491,11 @@ function DataTableComponent(props: DataTableProps) {
   const columnModelSignature = useMemo(() => buildTableColumnModelsSignature({
     visibleFields,
     readonlyFields: snapshot.readonlyFields,
+    textTemplateFields,
     rows,
     nestedFieldSet,
     displayTypes: snapshot.fieldConfig.displayTypes,
-    fieldPresentations: Object.fromEntries(Object.entries(snapshot.fieldViewConfigs).map(([fieldName, config]) => [fieldName, config.presentation])),
+    fieldPresentations: Object.fromEntries([...Object.entries(snapshot.fieldViewConfigs).map(([fieldName, config]) => [fieldName, config.presentation]),...(snapshot.inlineTemplates??[]).map(item=>[item.field,{label:`${item.label}（${item.languages.find(x=>x.key===item.tableLanguage)?.label??item.tableLanguage??""}）`}])]),
     wrappedFields: snapshot.fieldConfig.wrapped,
     detectedTitleField,
     primaryKeyField: snapshot.primaryKeyField,
@@ -503,6 +514,8 @@ function DataTableComponent(props: DataTableProps) {
     nestedFieldSet,
     snapshot.fieldConfig.displayTypes,
     snapshot.readonlyFields,
+    textTemplateFields,
+    snapshot.inlineTemplates,
     snapshot.fieldViewConfigs,
     snapshot.fieldConfig.wrapped,
     detectedTitleField,
@@ -519,10 +532,11 @@ function DataTableComponent(props: DataTableProps) {
   const columnModels = useMemo(() => buildTableColumnModels({
     visibleFields,
     readonlyFields: snapshot.readonlyFields,
+    textTemplateFields,
     rows,
     nestedFieldSet,
     displayTypes: snapshot.fieldConfig.displayTypes,
-    fieldPresentations: Object.fromEntries(Object.entries(snapshot.fieldViewConfigs).map(([fieldName, config]) => [fieldName, config.presentation])),
+    fieldPresentations: Object.fromEntries([...Object.entries(snapshot.fieldViewConfigs).map(([fieldName, config]) => [fieldName, config.presentation]),...(snapshot.inlineTemplates??[]).map(item=>[item.field,{label:`${item.label}（${item.languages.find(x=>x.key===item.tableLanguage)?.label??item.tableLanguage??""}）`}])]),
     wrappedFields: snapshot.fieldConfig.wrapped,
     detectedTitleField,
     primaryKeyField: snapshot.primaryKeyField,
@@ -651,7 +665,7 @@ function DataTableComponent(props: DataTableProps) {
   }, []);
 
   function getColumnWidth(fieldName: string) {
-    return localWidthsRef.current[fieldName] ?? 180;
+    return localWidthsRef.current[fieldName] ?? (textTemplateFields.includes(fieldName)?360:180);
   }
 
   const handlePressChange = useCallback((fieldName: string, pressed: boolean) => {
@@ -716,6 +730,7 @@ function DataTableComponent(props: DataTableProps) {
   const tableLayoutMode: "center" | "top" = hasWrappedField ? "top" : "center";
 
   const tableColumnsRuntime = useMemo(() => ({
+    inlineContext:{projectId:snapshot.projectId,sourcePath:snapshot.sourcePath,collectionPath:snapshot.collectionPath,documentEtag:snapshot.documentEtag,templates:snapshot.inlineTemplates??[]},
     backlinkValuesByRowId: snapshot.backlinkValuesByRowId,
     tableLayoutMode,
     validation: snapshot.validation,
@@ -758,6 +773,7 @@ function DataTableComponent(props: DataTableProps) {
     onCommitMultiSelectDraft: handleCommitMultiSelectDraft,
     onCommitSelectDraft: handleCommitSelectDraft,
   }), [
+    snapshot.projectId,snapshot.sourcePath,snapshot.collectionPath,snapshot.documentEtag,snapshot.inlineTemplates,
     snapshot.backlinkValuesByRowId,
     tableLayoutMode,
     snapshot.validation,
@@ -889,7 +905,7 @@ function DataTableComponent(props: DataTableProps) {
     function onWindowKeyDown(event: KeyboardEvent) {
       const activeElement = document.activeElement;
       if (event.key !== "Delete") return;
-      if (activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA") return;
+      if (activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA" || (activeElement instanceof HTMLElement && activeElement.isContentEditable)) return;
       clearSelectedCells();
     }
     window.addEventListener("keydown", onWindowKeyDown);
@@ -1285,7 +1301,8 @@ function DataTableComponent(props: DataTableProps) {
   }
 
   return (
-    <section className="table-shell" data-row-dragging={rowDragVisual ? "true" : undefined}>
+    <section className="table-shell" style={advancedFields.size?{gridTemplateRows:"auto minmax(0,1fr)"}:undefined} data-row-dragging={rowDragVisual ? "true" : undefined}>
+      {advancedFields.size?<div style={{display:"flex",justifyContent:"flex-end",padding:"4px 12px"}}><button type="button" onClick={()=>setShowAdvanced(value=>!value)} aria-pressed={showAdvanced} style={{fontSize:12,border:"none",background:"#f3f3f1",padding:"4px 10px",borderRadius:4}}>{showAdvanced?"隐藏高级字段":"显示高级字段"}</button></div>:null}
       <TableColumnsRuntimeProvider value={tableColumnsRuntime} headerState={tableColumnsHeaderState}>
         <div
           className="table-scroll"
@@ -1525,7 +1542,7 @@ export const DataTable = memo(DataTableComponent, (previous, next) => {
 });
 
 function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
-  return previous.schemaModel === next.schemaModel &&
+  return previous.inlineTemplates === next.inlineTemplates && previous.projectId===next.projectId && previous.documentEtag===next.documentEtag && previous.schemaModel === next.schemaModel &&
     previous.revision === next.revision &&
     previous.sourcePath === next.sourcePath &&
     previous.collectionPath === next.collectionPath &&

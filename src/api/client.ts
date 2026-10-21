@@ -39,13 +39,16 @@ export type EntryActionRule = {
     includeNeighbors: boolean;
   };
   execution: {
-    kind: "proposal" | "project-skill";
+    kind: "proposal" | "project-skill" | "project-command";
+    command?: {path:string;args:string[];readDependencies:string[];timeoutMs:number};
+    allowConcurrentSave?: boolean;
     resultPolicy: "proposal" | "result-only";
     workspaceMode?: "snapshot" | "project-write";
     advancedExecution?: { projectInput?: { paths: string[] }; preflightId?: string };
   };
   contractId: string;
   createAuthority?: { enabled: true; contractId: string };
+  followup?: { actionId: string; on: ("no_changes" | "completed_with_writeback")[] };
   runtime?: {
     model?: string;
     reasoning?: "none" | "low" | "medium" | "high" | "xhigh";
@@ -916,12 +919,16 @@ function normalizeFetchedEntryActionRule(value: unknown): EntryActionRule | null
         : true,
     },
     execution: {
-      kind: (rule.execution as { kind?: unknown } | null)?.kind === "proposal" ? "proposal" : "project-skill",
+      kind: (rule.execution as { kind?: unknown } | null)?.kind === "project-command" ? "project-command" : (rule.execution as { kind?: unknown } | null)?.kind === "proposal" ? "proposal" : "project-skill",
+      ...((rule.execution as {kind?:unknown})?.kind === "project-command" ? {command:(rule.execution as EntryActionRule["execution"]).command,allowConcurrentSave:(rule.execution as EntryActionRule["execution"]).allowConcurrentSave} : {}),
       resultPolicy: normalizeEntryActionResultPolicy((rule.execution as { resultPolicy?: unknown } | null)?.resultPolicy),
+      ...((rule.execution as EntryActionRule["execution"])?.workspaceMode != null
+        ? { workspaceMode: (rule.execution as EntryActionRule["execution"]).workspaceMode } : {}),
       ...normalizeFetchedAdvancedExecution((rule.execution as { advancedExecution?: unknown } | null)?.advancedExecution),
     },
     contractId: typeof rule.contractId === "string" ? rule.contractId.trim() : "",
     createAuthority: normalizeFetchedCreateAuthority(rule.createAuthority),
+    ...(rule.followup ? { followup: structuredClone(rule.followup) as EntryActionRule["followup"] } : {}),
     runtime: normalizeFetchedEntryActionRuntime(rule.runtime),
   };
 }
@@ -961,10 +968,14 @@ function normalizeFetchedEntryActionTargets(value: unknown): EntryActionTarget[]
   return [];
 }
 
-function normalizeFetchedAdvancedExecution(value: unknown): { advancedExecution?: { projectInput: { paths: string[]; preflightId?: string } } } {
+function normalizeFetchedAdvancedExecution(value: unknown): Pick<EntryActionRule["execution"], "advancedExecution"> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const projectInput = normalizeFetchedProjectInput((value as { projectInput?: unknown }).projectInput);
-  return projectInput.projectInput ? { advancedExecution: { projectInput: projectInput.projectInput } } : {};
+  const projectInput = normalizeFetchedProjectInput((value as { projectInput?: unknown }).projectInput).projectInput;
+  const preflight = (value as { preflightId?: unknown }).preflightId;
+  const preflightId = typeof preflight === "string" ? preflight.trim() : "";
+  return projectInput || preflightId
+    ? { advancedExecution: { ...(projectInput ? { projectInput: { paths: projectInput.paths } } : {}), ...(preflightId ? { preflightId } : {}) } }
+    : {};
 }
 
 function normalizeFetchedProjectInput(value: unknown): { projectInput?: { paths: string[]; preflightId?: string } } {

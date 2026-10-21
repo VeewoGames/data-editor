@@ -288,3 +288,25 @@ test("loadAutomationSkillCatalog reads the catalog endpoint with projectId", asy
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, "/api/automation-skill-catalog?projectId=project-1");
 });
+
+test("saving automation settings preserves command declarations and AI execution policy", async () => {
+  const originalFetch = globalThis.fetch;
+  let saved;
+  globalThis.fetch = async (_url, options) => {
+    saved = JSON.parse(options.body).profile;
+    return new Response(JSON.stringify({ok:true}), {status:200, headers:{'content-type':'application/json'}});
+  };
+  const common = {label:'Action',icon:'refresh',enabled:true,targets:[{file:'data/a.json',collection:'items'}],payload:{includeRow:true,includeNeighbors:false},contractId:'fixture.v1'};
+  const rules = [
+    {...common,id:'command',execution:{kind:'project-command',resultPolicy:'proposal',allowConcurrentSave:true,command:{path:'tools/generate.mjs',args:['--zh'],readDependencies:['data/stats.json'],timeoutMs:1000}}},
+    {...common,id:'ai',execution:{kind:'project-skill',resultPolicy:'proposal',workspaceMode:'project-write',advancedExecution:{preflightId:'check'}},followup:{actionId:'review',on:['no_changes','completed_with_writeback']}},
+    {...common,id:'review',execution:{kind:'project-skill',resultPolicy:'proposal',workspaceMode:'snapshot',advancedExecution:{projectInput:{paths:['data/a.json']},preflightId:'check'}}},
+  ];
+  try {
+    await saveAutomationProfile({rules}, 'project-a');
+    assert.deepEqual(saved.rules[0].execution, rules[0].execution);
+    assert.deepEqual(saved.rules[1].execution, rules[1].execution);
+    assert.deepEqual(saved.rules[1].followup, rules[1].followup);
+    assert.deepEqual(saved.rules[2].execution, rules[2].execution);
+  } finally {globalThis.fetch = originalFetch;}
+});

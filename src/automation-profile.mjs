@@ -153,6 +153,14 @@ function normalizeRule(value, seenIds) {
 
 function normalizeExecution(value, ruleId) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Entry action rule "${ruleId}" execution is required`);
+  if (value.kind === "project-command") {
+    if (Object.keys(value).some(key => !["kind", "resultPolicy", "command", "allowConcurrentSave"].includes(key)) || value.resultPolicy !== "proposal" || typeof value.allowConcurrentSave !== "boolean") throw new Error("Invalid project-command execution");
+    const command = value.command;
+    if (!command || Object.keys(command).some(key => !["path", "args", "readDependencies", "timeoutMs"].includes(key)) || !Array.isArray(command.args) || command.args.some(arg => typeof arg !== "string") || !Array.isArray(command.readDependencies) || !Number.isSafeInteger(command.timeoutMs) || command.timeoutMs < 1 || command.timeoutMs > 600000) throw new Error("Invalid project-command declaration");
+    const commandPath = normalizeProjectInputPath(normalizeRequiredString(command.path, "command.path"), ruleId);
+    if (!commandPath.endsWith(".mjs")) throw new Error("Project command must be a project .mjs file");
+    return { kind: value.kind, resultPolicy: "proposal", allowConcurrentSave: value.allowConcurrentSave, command: { path: commandPath, args: [...command.args], readDependencies: [...new Set(command.readDependencies.map(item => normalizeProjectInputPath(normalizeRequiredString(item, "readDependencies"), ruleId)))], timeoutMs: command.timeoutMs } };
+  }
   const keys = Object.keys(value).sort();
   const expectedKeys = ["advancedExecution", "kind", "resultPolicy"];
   const workspaceKeys = ["advancedExecution", "kind", "resultPolicy", "workspaceMode"];

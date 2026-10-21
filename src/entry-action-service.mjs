@@ -60,6 +60,7 @@ import { resolveInsideRoot } from "./project-context.mjs";
 import { rowDigest } from "./row-digest.mjs";
 import { loadViewConfig } from "./view-config.mjs";
 import {assertProjectSkillRunCurrent} from './project-skill-run-guard.mjs';
+import { assertProjectCommandSnapshot, projectCommandCommitIdentities, commandError } from "./project-command-snapshot.mjs";
 
 export async function startProposalOnlyEntryAction({
   projectContext,
@@ -266,9 +267,11 @@ export async function submitFreshEntryActionProposal({
   ]);
   const action = findAutomationEntryAction(profile, actionId);
   validateEntryActionTarget(action, sourcePath, collectionPath);
+  if (action.execution.kind === "project-command" && !dependencies.projectCommandBaseline) throw commandError("PROJECT_COMMAND_ADMISSION_REQUIRED");
   const contract = resolveEntryActionContract(contractRegistry, action.contractId);
   if (action.execution?.resultPolicy !== "proposal" || contract.resultPolicy !== "proposal") protocolError("ENTRY_ACTION_RESULT_POLICY_INVALID", "Fresh proposal admission requires proposal result policy.", 409);
   const documentText = await readTextFile(projectContext, sourcePath);
+  if (dependencies.projectCommandBaseline) await assertProjectCommandSnapshot(projectContext, dependencies.projectCommandBaseline, documentText);
   const sourceIdentity = await canonicalFileIdentity(projectContext, sourcePath);
   const parsed = parseDocument(sourcePath, documentText);
   const model = buildDocumentModel(parsed.data, parsed.format, sourcePath);
@@ -348,7 +351,7 @@ export async function submitFreshEntryActionProposal({
     assertEntryActionResultPolicies(contract, { textArtifact: proposal.textArtifact, evidence });
     if (dependencies.runId) await assertProjectSkillRunCurrent(projectContext,runId);
     await publishEntryActionProposal({ directory: path.dirname(entryActionProposalPath(projectContext, runId)), runId, exitCode: 0, proposal });
-    await commitProposal({ projectContext, action, authoritySnapshot, contract, evidence, lease, allocator, documentCommitCoordinator, sourceIdentity }, proposal);
+    await commitProposal({ projectContext, action, authoritySnapshot, contract, evidence, lease, allocator, documentCommitCoordinator, sourceIdentity, projectCommandBaseline: dependencies.projectCommandBaseline }, proposal);
     return { kind: "entry-action-proposal", runId, outcome: "completed_with_writeback", ...proposalResultStatusDetails(proposal) };
   } catch (error) {
     keepLease = recoveryError(error);
@@ -588,8 +591,12 @@ async function commitProposal(context, proposal) {
   };
   const childJournal = createCommitJournal({ directory: childJournalRoot(projectContext) });
   if (!prepared.textArtifact) {
-    await documentCommitCoordinator.withCommit({ projectContext, sourcePath: proposal.sourcePath }, async () => {
+    const commitUnderLocks = context.projectCommandBaseline
+      ? async operation => documentCommitCoordinator.withIdentities(await projectCommandCommitIdentities(projectContext, context.projectCommandBaseline), operation)
+      : async operation => documentCommitCoordinator.withCommit({ projectContext, sourcePath: proposal.sourcePath }, operation);
+    await commitUnderLocks(async () => {
       const latestText = await readTextFile(projectContext, proposal.sourcePath);
+      if (context.projectCommandBaseline) await assertProjectCommandSnapshot(projectContext, context.projectCommandBaseline, latestText);
       const [latestProfile, latestViewConfig, latestContractRegistry] = await Promise.all([
         loadAutomationProfile(projectContext),
         loadViewConfig(projectContext),
@@ -616,6 +623,9 @@ async function commitProposal(context, proposal) {
         documentText: latestText,
         writeText: (text) => writeTextFile(projectContext, proposal.sourcePath, text),
         readText: () => readTextFile(projectContext, proposal.sourcePath),
+        admit: async () => {
+          if (context.projectCommandBaseline) await assertProjectCommandSnapshot(projectContext, context.projectCommandBaseline, await readTextFile(projectContext, proposal.sourcePath));
+        },
         publishResult: () => publishEntryActionResultIdempotently(projectContext, proposal.runId, terminal),
       });
     });

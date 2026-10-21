@@ -76,13 +76,14 @@ export async function prepareEntryActionProposalCommit({
 }
 
 /** Executes the already-authorized JSON proposal through the same durable journal as document saves. */
-export async function commitEntryActionProposal({ journal, prepared, lease, documentText, writeText, readText, publishResult }) {
+export async function commitEntryActionProposal({ journal, prepared, lease, documentText, writeText, readText, publishResult, admit = async () => {} }) {
   if (prepared.textArtifact !== null) fail("ENTRY_ACTION_GROUP_COMMIT_REQUIRED");
   const afterText = prepared.format === "csv" ? serializeCsv(prepared.root) : serializeJson(prepared.root);
   const entry = createProposalCommitJournalEntry({ proposal: prepared.proposal, lease, documentText, afterText });
   await executeJournaledDocumentCommit({
     journal,
     entry,
+    admit,
     replace: () => writeText(afterText),
     verify: async () => {
       const persisted = await readText();

@@ -25,6 +25,7 @@ export type TableColumnModel = {
   wrapped: boolean;
   width: number;
   isNested: boolean;
+  isTextTemplate?: boolean;
   isTitle: boolean;
   isPrimaryKey: boolean;
   isBacklink: boolean;
@@ -38,6 +39,7 @@ export type TableColumnModel = {
 export function buildTableColumnModels(input: {
   visibleFields: string[];
   readonlyFields?: string[];
+  textTemplateFields?: string[];
   rows: DataRecord[];
   nestedFieldSet: Set<string>;
   displayTypes: Record<string, FieldDisplayType>;

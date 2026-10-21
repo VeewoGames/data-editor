@@ -19,6 +19,7 @@ const emptyRelationOptions = [];
  *   wrapped: boolean;
  *   width: number;
  *   isNested: boolean;
+ *   isTextTemplate: boolean;
  *   isTitle: boolean;
  *   isPrimaryKey: boolean;
  *   isBacklink: boolean;
@@ -34,6 +35,7 @@ const emptyRelationOptions = [];
  * @param {{
  *   visibleFields: string[];
  *   readonlyFields?: string[];
+ *   textTemplateFields?: string[];
  *   rows: import("../model/documentModel").DataRecord[];
  *   nestedFieldSet: Set<string>;
  *   displayTypes: Record<string, import("../model/fieldTypes").FieldDisplayType>;
@@ -56,6 +58,7 @@ const emptyRelationOptions = [];
 export function buildTableColumnModels({
   visibleFields,
   readonlyFields = [],
+  textTemplateFields = [],
   rows,
   nestedFieldSet,
   displayTypes,
@@ -77,12 +80,13 @@ export function buildTableColumnModels({
     const backlinkColumn = backlinkColumns.find((column) => column.fieldName === fieldName);
     const relationConfig = relationConfigByField[fieldName] ?? null;
     const relationOptions = relationOptionsByField[fieldName] ?? emptyRelationOptions;
-    const isNested = nestedFieldSet.has(fieldName);
+    const isTextTemplate = textTemplateFields.includes(fieldName);
+    const isNested = !isTextTemplate && nestedFieldSet.has(fieldName);
     const isBacklink = Boolean(backlinkColumn);
     const isReadonly = readonlyFields.includes(fieldName);
     const relationConfigured = Boolean(relationConfig);
     const documentConfigured = documentConfiguredFields.has(fieldName);
-    const baseDisplayType = isReadonly ? "Checkbox" : inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
+    const baseDisplayType = isTextTemplate ? "Text" : isReadonly ? "Checkbox" : inferColumnDisplayType(fieldName, rows, nestedFieldSet, displayTypes);
     const effectiveDisplayType = isBacklink
       ? "Backlink"
       : relationConfigured
@@ -94,7 +98,7 @@ export function buildTableColumnModels({
     const capabilities = computeFieldMenuCapabilities({
       baseDisplayType,
       roleKind,
-      isNested,
+      isNested: isNested || isTextTemplate,
       isBacklink,
       relationConfigured,
       documentConfigured,
@@ -104,6 +108,7 @@ export function buildTableColumnModels({
     });
     const nextModel = {
       fieldName,
+      isTextTemplate,
       presentation: fieldPresentations[fieldName],
       baseDisplayType,
       effectiveDisplayType,
@@ -162,6 +167,7 @@ function sameColumnModel(previous, next) {
     previous.relationOptions === next.relationOptions &&
     previous.wrapped === next.wrapped &&
     previous.width === next.width &&
+    previous.isTextTemplate === next.isTextTemplate &&
     previous.isNested === next.isNested &&
     previous.isTitle === next.isTitle &&
     previous.isPrimaryKey === next.isPrimaryKey &&

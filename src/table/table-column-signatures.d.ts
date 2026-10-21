@@ -12,6 +12,7 @@ type OptionConfig = {
 export function buildTableColumnModelsSignature(input: {
   visibleFields: string[];
   readonlyFields?: string[];
+  textTemplateFields?: string[];
   rows: DataRecord[];
   nestedFieldSet: Set<string>;
   displayTypes: Record<string, FieldDisplayType>;

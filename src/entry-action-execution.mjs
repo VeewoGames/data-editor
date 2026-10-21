@@ -5,7 +5,7 @@ export async function resolveEntryActionExecution(projectContext, actionId, { lo
   const profile = await loadProfile(projectContext);
   const action = findAutomationEntryAction(profile, actionId);
   const kind = action?.execution?.kind;
-  if (kind !== "proposal" && kind !== "project-skill") {
+  if (kind !== "proposal" && kind !== "project-skill" && kind !== "project-command") {
     throw Object.assign(new Error("Entry action execution kind is unavailable."), { code: "ENTRY_ACTION_EXECUTION_KIND_INVALID", status: 409 });
   }
   const resultPolicy = action?.execution?.resultPolicy;
