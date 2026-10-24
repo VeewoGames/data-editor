@@ -12,6 +12,9 @@ import {
   checkEditorHealth,
   checkRecoveryBridgeHealth,
   createProject,
+  deleteProject,
+  reorderProjects,
+  type ProjectRegistry,
   listFiles,
   listProjects,
   loadAutomationBindings,
@@ -70,6 +73,7 @@ import {
   type ViewConfig,
 } from "./api/client";
 import { Sidebar } from "./components/Sidebar";
+import { ProjectManagerDialog } from "./components/ProjectManagerDialog";
 import { SharedViewIconPicker } from "./components/SharedViewIconPicker";
 import { Toolbar, type ToolbarSnapshot } from "./components/Toolbar";
 import { ViewTabs, type ViewTabsSnapshot, type ViewTabReorderOperation } from "./components/ViewTabs";
@@ -651,6 +655,12 @@ export function App() {
   const [projects, setProjects] = useState<ProjectDefinition[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
+  const [projectManagerOpen, setProjectManagerOpen] = useState(false);
+  const [projectManagementBusy, setProjectManagementBusy] = useState(false);
+  const [projectManagementError, setProjectManagementError] = useState<string | null>(null);
+  const [projectRegistryUncertain, setProjectRegistryUncertain] = useState(false);
+  const projectManagementBusyRef = useRef(false);
+  const missingCurrentProjectRef = useRef(false);
   const [automationSettingsOpen, setAutomationSettingsOpen] = useState(false);
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -1104,7 +1114,8 @@ export function App() {
     const previousFiles = loadedProjectIdRef.current === projectId ? filesRef.current : [];
     try {
       flushActiveTextEditorDraft();
-      await saveCoordinator.flush("flush");
+      const flushResult = await saveCoordinator.flush("flush");
+      if (!isCurrentRequest() || (flushResult.outcome !== "saved" && flushResult.outcome !== "idle")) return;
       resetWorkspaceState();
       const profileNameForInitialOrder = selectedViewProfileNameRef.current;
       const [nextFiles, nextConfig, nextSharedViewsConfig, nextProfiles, nextProfile] = await Promise.all([
@@ -1299,19 +1310,101 @@ export function App() {
   }
 
   async function selectProject(projectId: string) {
+    if (projectManagementBusyRef.current) return;
     if (projectId === activeProjectId) return;
-    if (globalDirty && !window.confirm("当前项目有未保存改动。放弃改动并切换项目？")) return;
     try {
-      flushActiveTextEditorDraft();
-      await saveCoordinator.flush("flush");
-      const url = writeProjectUrlLocation(window.location, projectId);
-      window.history.pushState(null, "", url.toString());
-      pendingSharedViewUrlLocationRef.current = null;
-      sharedViewUrlResolutionRef.current = emptySharedViewUrlResolutionResult();
-      setActiveProjectId(projectId);
+      if (!(await flushBeforeDocumentTransition())) return;
+      switchProjectAfterGuard(projectId);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
+  }
+
+  function switchProjectAfterGuard(projectId: string) {
+    workspaceLoadRequestRef.current += 1;
+    openRequestRef.current += 1;
+    const url = writeProjectUrlLocation(window.location, projectId);
+    window.history.pushState(null, "", url.toString());
+    pendingSharedViewUrlLocationRef.current = null;
+    sharedViewUrlResolutionRef.current = emptySharedViewUrlResolutionResult();
+    activeProjectIdRef.current = projectId;
+    missingCurrentProjectRef.current = false;
+    setActiveProjectId(projectId);
+  }
+
+  function applyProjectRegistry(registry: ProjectRegistry) {
+    const current = activeProjectIdRef.current;
+    missingCurrentProjectRef.current = !!current && !registry.projects.some(project => project.id === current);
+    setProjects(registry.projects);
+    setProjectRegistryUncertain(false);
+    if (missingCurrentProjectRef.current) {
+      workspaceLoadRequestRef.current += 1;
+      openRequestRef.current += 1;
+      setProjectManagementError("当前项目已从列表移除，编辑草稿已保留。请重新添加原目录后保存，再切换项目。");
+    }
+  }
+
+  async function refreshProjectRegistry() {
+    if (projectManagementBusyRef.current) return;
+    projectManagementBusyRef.current = true; setProjectManagementBusy(true);
+    try { setProjectManagementError(null); applyProjectRegistry(await listProjects()); }
+    catch (error) {
+      setProjectRegistryUncertain(true);
+      setProjectManagementError(`无法确认项目列表，请刷新重试：${error instanceof Error ? error.message : String(error)}`);
+    } finally { projectManagementBusyRef.current = false; setProjectManagementBusy(false); }
+  }
+
+  function openProjectManager() {
+    setProjectManagerOpen(true);
+    void refreshProjectRegistry();
+  }
+
+  useEffect(() => {
+    const onFocus = () => { void refreshProjectRegistry(); };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  async function runProjectManagement(operation: () => Promise<void>, reconcile?: (registry: ProjectRegistry) => boolean) {
+    if (projectManagementBusyRef.current || projectRegistryUncertain) return;
+    projectManagementBusyRef.current = true; setProjectManagementBusy(true); setProjectManagementError(null);
+    try { await operation(); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      try {
+        const registry = await listProjects();
+        const confirmed = reconcile?.(registry) ?? false;
+        applyProjectRegistry(registry);
+        setProjectManagementError(confirmed ? null : message);
+        if (confirmed) { setStatus("已重新读取并确认项目操作结果。"); return; }
+      }
+      catch { setProjectRegistryUncertain(true); setProjectManagementError(`${message}；保存结果待确认，请刷新列表后继续。`); }
+      setStatus(message);
+    } finally { projectManagementBusyRef.current = false; setProjectManagementBusy(false); }
+  }
+
+  async function reorderProjectList(projectIds: string[]) {
+    await runProjectManagement(async () => {
+      const result = await reorderProjects(projectIds) as { registry: ProjectRegistry };
+      applyProjectRegistry(result.registry);
+    });
+  }
+
+  async function removeProjectFromList(project: ProjectDefinition) {
+    if (!window.confirm(`从列表移除“${project.name}”？\n${project.root}\n\n不会删除项目文件、数据或配置。`)) return;
+    const removingCurrent = project.id === activeProjectIdRef.current;
+    await runProjectManagement(async () => {
+      if (removingCurrent && !(await flushBeforeDocumentTransition())) {
+        setProjectManagementError("当前编辑尚未保存，请完成保存后再移除。"); return;
+      }
+      const result = await deleteProject(project.id) as { registry: ProjectRegistry };
+      if (removingCurrent) switchProjectAfterGuard(result.registry.projects[0].id);
+      applyProjectRegistry(result.registry);
+    }, registry => {
+      if (registry.projects.some(candidate => candidate.id === project.id)) return false;
+      if (removingCurrent && registry.projects.length) switchProjectAfterGuard(registry.projects[0].id);
+      return true;
+    });
   }
 
   async function saveProjectSettings(project: ProjectDefinition) {
@@ -1330,15 +1423,17 @@ export function App() {
   }
 
   async function createProjectFromSettings(input: { name: string; root: string }) {
-    try {
-      const created = await createProject({ name: input.name, root: input.root }) as { project: ProjectDefinition };
-      const registry = await listProjects();
-      setProjects(registry.projects);
-      await selectProject(created.project.id);
+    await runProjectManagement(async () => {
+      // A removed project's draft can be saved only after its root is registered again.
+      const restoringMissing = missingCurrentProjectRef.current;
+      if (!restoringMissing && !(await flushBeforeDocumentTransition())) {
+        setProjectManagementError("当前编辑尚未保存，请完成保存后再添加。"); return;
+      }
+      const created = await createProject({ name: input.name, root: input.root }) as { project: ProjectDefinition; registry: ProjectRegistry };
+      applyProjectRegistry(created.registry);
+      if (!restoringMissing) switchProjectAfterGuard(created.project.id);
       setAddProjectOpen(false);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-    }
+    });
   }
 
   useEffect(() => {
@@ -1441,6 +1536,9 @@ export function App() {
   }, [serviceLifecycleState]);
 
   async function flushBeforeDocumentTransition() {
+    if (missingCurrentProjectRef.current) {
+      setStatus("当前项目已从列表移除，请重新添加原目录后保存草稿。"); return false;
+    }
     flushActiveTextEditorDraft();
     const result = await saveCoordinator.flush("flush");
     return result.outcome === "saved" || result.outcome === "idle";
@@ -1605,6 +1703,7 @@ export function App() {
     targetRowId?: string | null,
     preserveEntryActionFeedback = false,
   ): Promise<{ path: string; collectionPath: string; rowId: string | null } | null> {
+    if (missingCurrentProjectRef.current) return null;
     const requestId = openRequestRef.current + 1;
     openRequestRef.current = requestId;
     selectedPathRef.current = path;
@@ -5443,6 +5542,7 @@ export function App() {
   }
 
   async function flushAutosaveTargets(_reason: string, dirtyDomains: AutosaveDomain[]) {
+    if (missingCurrentProjectRef.current) return { outcome: "deferred" } as const;
     const currentModel = modelRef.current;
     const currentSelectedPath = selectedPathRef.current;
     const currentDataDirty = dataDirtyRef.current;
@@ -5753,6 +5853,14 @@ export function App() {
     );
   }
 
+  const projectManagerDialog = <ProjectManagerDialog
+    open={projectManagerOpen} projects={projects} activeProjectId={activeProjectId}
+    busy={projectManagementBusy} error={projectManagementError} uncertain={projectRegistryUncertain}
+    onOpenChange={open => { if (!projectManagementBusyRef.current) setProjectManagerOpen(open); }} onRefresh={() => { void refreshProjectRegistry(); }}
+    onAdd={() => { setProjectManagerOpen(false); setAddProjectOpen(true); }}
+    onReorder={reorderProjectList} onRemove={removeProjectFromList}
+  />;
+
   if (!model) {
     return (
       <main className={`app-frame${isSidebarCollapsed ? " is-sidebar-collapsed" : ""}`} style={appFrameStyle}>
@@ -5777,6 +5885,7 @@ export function App() {
           onSelectProject={selectProject}
           onOpenAddProject={() => setAddProjectOpen(true)}
           onOpenProjectSettings={() => setProjectSettingsOpen(true)}
+          onOpenProjectManager={openProjectManager}
           onOpenAutomationSettings={() => setAutomationSettingsOpen(true)}
           onCollapse={() => setSidebarCollapsed(true, "expand")}
           collapseButtonRef={collapseSidebarButtonRef}
@@ -5798,6 +5907,7 @@ export function App() {
           </header>
           <section className="empty-state">{status || "Loading..."}</section>
         </section>
+        {projectManagerDialog}
         <ProjectSettingsDialog
           open={projectSettingsOpen}
           projects={projects}
@@ -5822,8 +5932,11 @@ export function App() {
         />
         <AddProjectDialog
           open={addProjectOpen}
-          onOpenChange={setAddProjectOpen}
+          onOpenChange={open => { if (!projectManagementBusyRef.current) setAddProjectOpen(open); }}
           onCreateProject={createProjectFromSettings}
+          busy={projectManagementBusy || projectRegistryUncertain}
+          error={projectManagementError}
+          onRefresh={() => { void refreshProjectRegistry(); }}
         />
       </main>
     );
@@ -5854,6 +5967,7 @@ export function App() {
         onSelectProject={selectProject}
         onOpenAddProject={() => setAddProjectOpen(true)}
         onOpenProjectSettings={() => setProjectSettingsOpen(true)}
+          onOpenProjectManager={openProjectManager}
         onOpenAutomationSettings={() => setAutomationSettingsOpen(true)}
         onCollapse={() => setSidebarCollapsed(true, "expand")}
         collapseButtonRef={collapseSidebarButtonRef}
@@ -6202,6 +6316,7 @@ export function App() {
         onOpenChange={setPrimaryKeySyncDialogOpen}
         onConfirm={confirmPrimaryKeySyncSave}
       />
+      {projectManagerDialog}
       <ProjectSettingsDialog
         open={projectSettingsOpen}
         projects={projects}
@@ -6226,8 +6341,11 @@ export function App() {
       />
       <AddProjectDialog
         open={addProjectOpen}
-        onOpenChange={setAddProjectOpen}
+        onOpenChange={open => { if (!projectManagementBusyRef.current) setAddProjectOpen(open); }}
         onCreateProject={createProjectFromSettings}
+          busy={projectManagementBusy || projectRegistryUncertain}
+          error={projectManagementError}
+          onRefresh={() => { void refreshProjectRegistry(); }}
       />
     </main>
   );
@@ -7894,6 +8012,9 @@ function AddProjectDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreateProject: (input: { name: string; root: string }) => void;
+  busy: boolean;
+  error: string | null;
+  onRefresh: () => void;
 }) {
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectRoot, setNewProjectRoot] = useState("");
@@ -7916,7 +8037,9 @@ function AddProjectDialog(props: {
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog-content">
-          <Dialog.Title>Add Project</Dialog.Title>
+          <Dialog.Title>添加项目</Dialog.Title>
+          <Dialog.Description>添加已有项目目录，项目数据会保留在原目录。</Dialog.Description>
+          {props.error ? <p role="alert">{props.error} <button type="button" className="ghost-button" onClick={props.onRefresh}>刷新列表</button></p> : null}
           <div className="project-settings-create">
             <label className="dialog-field">
               <span>New Project Name</span>
@@ -7929,7 +8052,7 @@ function AddProjectDialog(props: {
           </div>
           <div className="dialog-actions">
             <Dialog.Close className="ghost-button">Close</Dialog.Close>
-            <button className="primary-button" disabled={!newProjectRoot.trim()} onClick={createNextProject} type="button">Add Project</button>
+            <button className="primary-button" disabled={props.busy || !newProjectRoot.trim()} onClick={createNextProject} type="button">Add Project</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

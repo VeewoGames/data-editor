@@ -78,3 +78,12 @@ validator程序、读取依赖、动作profile、动作合同和普通保存策�
 正常写回在fresh绑定后验证，并在源/依赖共同锁内的latestPrepared及replace前admit再次验证，随后复核输入未变；不得在验证和写入之间释放锁。no_changes同样持锁验证需求已满足后才发布完成。固定项目动作不能借native proposal、project-skill或group入口绕过验证。项目领域规则由项目程序拥有，Editor不内置业务词法或另一份机制事实。
 
 写后丢回执时，原run恢复必须核对原请求与proposal摘要绑定、原程序/依赖、journal和已写后像，再运行同一validator；不再运行生成器或replace。依赖变化/缺上下文/验证失败保留待恢复，不能宣称源文件未写入。文件提交成功与运行系统发布是两个阶段。
+## 工具部署与历史证明承接（2026-10-24）
+
+历史 non-replay receipt 的 `evidence.deploymentDigest` 绑定原部署 policy。工具安全代码升级不能直接改旧 receipt，也不能仅刷新部署文件摘要。正式升级由固定工具交付配置选择一份 `managed-deployment-successor-v1` 承接证书；证书及原部署配置快照保存在 `config/historical-deployment-upgrades/`，按内容摘要命名并不可覆盖创建。
+
+承接证书绑定物理项目根、runtime、anchor、原账本字节、全部原 receipt/evidence、原 policy 与目标 policy。配置的证书引用放在 policy 外部，避免摘要自引用。公共 `readLedger()` 对升级后的项目无条件核验原账本与指定 receipt，清空 records 或仅改变空白字节均拒绝；后续仍校验完整当前代码、原证据及关系闭包。旧任务永久拒绝执行/恢复，未知业务结果不被改写为成功。后续合法人工编辑不要求永远等于旧业务基线。
+
+离线管理入口 `scripts/historical-deployment-upgrade.mjs` 提供显式绝对项目路径的 `prepare/apply`。prepare 输出候选；apply 在共享交付配置锁和项目锁内重验候选、业务维护基线、OPEN/无活动发布状态及无新增未覆盖义务，先写入不可覆盖材料，再原子切换配置。代码、材料或原状态未知时拒绝，没有自动升级、请求传入 verified 或跳过校验模式。升级后须用全新进程验证，主服务与 recovery bridge 都须加载新版解析器。
+
+配置是本机工具交付 authority；内容摘要不是数字签名，不承诺抵抗同账号同时替换代码和配置、或强行恢复整套旧包。备份和原始证明应保留，回滚必须是已验证的完整部署组合。维护操作不写原项目 ledger、receipt、历史文件或业务数据。

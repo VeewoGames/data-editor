@@ -2,6 +2,21 @@
 
 status: accepted
 
+## 2026-10-24 项目列表管理合同
+
+用户主动通过管理界面确认“从列表移除”允许取消有效项目注册，至少保留一个，不删除项目目录、业务数据、配置或运行记录。下文关于证明无效/误注册的三重校验只适用于代理主动治理历史坏项。当前项目移除及添加后切换必须先通过 `saved/idle` 编辑过渡门槛；未完成自动化依赖注册表时拒绝移除。
+
+列表顺序的唯一真值为 `projects.json` 中 `projects` 数组。排序接口 `POST /api/projects/reorder` 接受完整 `projectIds` 排列；集合已变化时拒绝旧排序，纯排序最后成功写入生效，不改变当前项目和项目配置。增删改、激活、启动注册与排序均通过注册表模块的完整读改写边界；Windows 复用已有命名管道互斥。显式以目录启动仍可重新注册被移除项目。
+
+<!-- dated: 2026-10-24 -->
+### 实施与正式验收快照
+
+`src/components/ProjectManagerDialog.tsx` 已提供独立管理弹层，支持添加、鼠标拖动、上下移和确认移除；`src/App.tsx` 复用编辑保存守卫并消费服务端返回的统一 registry。后端 `mutateProjectRegistry()` 保护完整读改写，自动化启动入口与移除检查共用注册表互斥。
+
+本次完成定向单测与真实 HTTP 验证，覆盖重复目录、旧排序集合冲突、最后一项、未完成自动化与移除不删文件；正式页面完成添加、拖动、上下移、刷新持久化和移除当前临时项。联合回归 79 项、类型检查与构建通过。真实 registry 恢复验证前原字节，临时资源已清理，8787/8791 健康。这些仅为本次快照，不能替代后续实时检查。[正式验收记录](../../docs/records/2026-10-24-发布证明承接升级与正式验收记录.md)。
+
+初次正式恢复遇到历史部署摘要漂移，后经明确扩展授权完成 [保留原证据的部署承接](./historical-deployment-successor-and-verification-boundary.md)，未直接刷新旧证明摘要规避校验。
+
 ## 结论
 
 1. 项目选择器的正式注册源是 `%APPDATA%\data-editor\projects.json`；代码入口为 `src/project-registry.mjs` 的 `dataEditorHome()`、`projectRegistryPath()`、`loadProjectRegistry()` 与 `saveProjectRegistry()`。

@@ -42,7 +42,7 @@ import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
 import {withHistoricalAuthorSave,projectHistoricalRunActivity} from './src/historical-disposition.mjs';
-import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
+import { addOrActivateProject, loadProjectRegistry, updateProjectDefinition, removeProject, activateProject, reorderProjects, withProjectRegistryLock } from "./src/project-registry.mjs";
 import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import { createProjectCapabilityRegistry, findCapabilityBindings } from "./src/project-capability-registry.mjs";
 import { loadDocumentContract, DocumentContractError } from "./src/document-contract-service.mjs";
@@ -184,6 +184,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === "/api/nested-schema-capabilities" && req.method === "GET") return await handleNestedSchemaCapabilities(url, res);
     if (url.pathname === "/api/projects" && req.method === "POST") return await handleCreateProject(req, res);
+    if (url.pathname === "/api/projects/reorder" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      return sendJson(res, { ok: true, registry: await reorderProjects(body.projectIds, registryOptions) });
+    }
     if (url.pathname === "/api/project-update" && req.method === "POST") return await handleUpdateProject(req, res);
     if (url.pathname === "/api/project-delete" && req.method === "POST") return await handleDeleteProject(req, res);
     if (url.pathname === "/api/project-activate" && req.method === "POST") return await handleActivateProject(req, res);
@@ -715,35 +719,24 @@ async function handleSaveAutomationBindings(req, res) {
 async function handleCreateProject(req, res) {
   const body = await readJsonBody(req);
   const result = await addOrActivateProject(body, registryOptions);
-  sendJson(res, { ok: true, activeProjectId: result.registry.activeProjectId, project: result.project });
+  sendJson(res, { ok: true, activeProjectId: result.registry.activeProjectId, project: result.project, registry: result.registry });
 }
 
 async function handleUpdateProject(req, res) {
   const body = await readJsonBody(req);
-  if (!body.id) throw new Error("Missing project id");
-  const registry = await loadProjectRegistry(registryOptions);
-  const index = registry.projects.findIndex((project) => project.id === body.id);
-  if (index < 0) throw new Error(`Unknown project: ${body.id}`);
-  registry.projects[index] = {
-    ...registry.projects[index],
-    ...body,
-    root: body.root ?? registry.projects[index].root,
-    dataSources: body.dataSources ?? registry.projects[index].dataSources,
-    filePolicy: body.filePolicy ?? registry.projects[index].filePolicy,
-  };
-  const saved = await saveProjectRegistry(registry, registryOptions);
+  const saved = await updateProjectDefinition(body, registryOptions);
   sendJson(res, { ok: true, registry: saved });
 }
 
 async function handleDeleteProject(req, res) {
   const body = await readJsonBody(req);
   if (!body.projectId) throw new Error("Missing project id");
-  const registry = await loadProjectRegistry(registryOptions);
-  const projects = registry.projects.filter((project) => project.id !== body.projectId);
-  if (projects.length === registry.projects.length) throw new Error(`Unknown project: ${body.projectId}`);
-  if (projects.length === 0) throw new Error("Cannot delete the last project.");
-  const activeProjectId = registry.activeProjectId === body.projectId ? projects[0].id : registry.activeProjectId;
-  const saved = await saveProjectRegistry({ ...registry, activeProjectId, projects }, registryOptions);
+  const saved = await removeProject(body.projectId, { ...registryOptions, beforeRemove: async project => {
+    const context = createProjectContext({ projectRoot: project.root, projectId: project.id,
+      capabilityRegistryOptions: registryOptions, dataSources: project.dataSources, filePolicy: project.filePolicy });
+    const active = await findActiveEntryActionRuns(context);
+    if (active.runs.length) throw Object.assign(new Error("项目有未完成的自动化任务，请完成任务后再移除。"), { status: 409 });
+  } });
   sendJson(res, { ok: true, registry: saved });
 }
 
@@ -751,20 +744,20 @@ async function handleActivateProject(req, res) {
   const body = await readJsonBody(req);
   const projectId = body.projectId;
   if (!projectId) throw new Error("Missing project id");
-  const registry = await loadProjectRegistry(registryOptions);
-  if (!registry.projects.some((project) => project.id === projectId)) throw new Error(`Unknown project: ${projectId}`);
-  const saved = await saveProjectRegistry({ ...registry, activeProjectId: projectId }, registryOptions);
-  sendJson(res, { ok: true, activeProjectId: saved.activeProjectId });
+  const saved = await activateProject(projectId, registryOptions);
+  sendJson(res, { ok: true, activeProjectId: saved.activeProjectId, registry: saved });
 }
 
 async function handleRunEntryAction(req, res) {
   const body = await readJsonBody(req);
-  sendJson(res, await runEntryAction.run(body));
+  await ensureInitialProject();
+  sendJson(res, await withProjectRegistryLock(() => runEntryAction.run(body), registryOptions));
 }
 
 async function handleAckStartEntryAction(req, res) {
   const body = await readJsonBody(req);
-  sendJson(res, await runEntryAction.ackStart(body));
+  await ensureInitialProject();
+  sendJson(res, await withProjectRegistryLock(() => runEntryAction.ackStart(body), registryOptions));
 }
 
 async function handleSubmitExactArtifact(req, res) {

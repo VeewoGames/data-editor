@@ -272,25 +272,28 @@ export async function findLatestEntryActionRun(projectContextOrRoot, identity) {
   return { runId, actionId, createdAt: latest.createdAt ?? null, phase: "running", outcome: null };
 }
 
-/** Returns every non-terminal run for one canonical physical source file. */
+/** Returns non-terminal runs for a source file, or the whole project when omitted. */
 export async function findActiveEntryActionRuns(projectContextOrRoot, sourcePath) {
   const context = createProjectContext(projectContextOrRoot);
-  const identity = await canonicalFileIdentity(context, sourcePath);
+  const identity = sourcePath == null ? null : await canonicalFileIdentity(context, sourcePath);
   let fileNames = [];
-  try { fileNames = await readdir(entryActionsRuntimeDir(context)); } catch { return { canonicalFileKey: identity.canonicalFileKey, runs: [] }; }
+  try { fileNames = await readdir(entryActionsRuntimeDir(context)); } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return { canonicalFileKey: identity?.canonicalFileKey ?? null, runs: [] };
+  }
   const runs = [];
   for (const fileName of fileNames) {
     if (!fileName.endsWith(".json") || fileName.endsWith(".started.json") || fileName.endsWith(".result.json")) continue;
     try {
       const handoff = JSON.parse(await readFile(path.join(entryActionsRuntimeDir(context), fileName), "utf8"));
-      if (handoff?.entry?.canonicalFileKey !== identity.canonicalFileKey || typeof handoff.runId !== "string") continue;
+      if ((identity && handoff?.entry?.canonicalFileKey !== identity.canonicalFileKey) || typeof handoff.runId !== "string") continue;
       let state = { runId: handoff.runId, phase: "running", outcome: null };
       try { state = await readEntryActionResult(context, handoff.runId); }
       catch { try { state = await readEntryActionStarted(context, handoff.runId); } catch {} }
-      if (!isTerminalEntryActionState(state)) runs.push({ runId: handoff.runId, actionId: handoff?.action?.id ?? null, sourcePath: handoff?.entry?.sourcePath ?? identity.sourcePath, phase: state.phase });
+      if (!isTerminalEntryActionState(state)) runs.push({ runId: handoff.runId, actionId: handoff?.action?.id ?? null, sourcePath: handoff?.entry?.sourcePath ?? identity?.sourcePath, phase: state.phase });
     } catch {}
   }
-  return { canonicalFileKey: identity.canonicalFileKey, ...await projectHistoricalRunActivity(context,runs) };
+  return { canonicalFileKey: identity?.canonicalFileKey ?? null, ...await projectHistoricalRunActivity(context,runs) };
 }
 
 export function matchesEntryActionIdentity(handoff, identity) {

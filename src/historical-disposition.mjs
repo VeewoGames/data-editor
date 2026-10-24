@@ -5,6 +5,7 @@ import {AsyncLocalStorage} from 'node:async_hooks';
 import {readFile,realpath,stat,mkdir,writeFile,readdir,rm,rename,open} from 'node:fs/promises';
 import {withProjectProcessLock} from './project-process-lock.mjs';
 import {readHistoryDeployment,historyDeploymentFile} from './historical-deployment.mjs';
+import {validateSuccessorLedger,sourceEntryFor,artifactReference,successorContract} from './historical-deployment-successor.mjs';
 
 const scope=new AsyncLocalStorage(),lockScope=new AsyncLocalStorage();
 const ID=/^[A-Za-z0-9:_-]{1,160}$/;
@@ -21,7 +22,7 @@ export async function historyBinding(context){
  const entries=await readHistoryDeployment(),entry=entries.find(e=>e.projectRoot===root);
  if(!entry&&entries.some(e=>root.startsWith(e.projectRoot+'/')))bad('HISTORY_BINDING_INVALID');
  if(entry&&(entry.runtime!==runtime||context.historicalDispositionAnchorId&&context.historicalDispositionAnchorId!==entry.anchorId))bad('HISTORY_BINDING_INVALID');
- return {root,runtime,key:sha(root),deployed:!!entry,expectedAnchorId:entry?.anchorId,policy:entry?.managedNonReplay,registration:path.join(root,'.data-editor/historical-disposition-registration.json'),directory:path.join(runtime,'entry-action-dispositions')};
+ return {root,runtime,key:sha(root),deployed:!!entry,expectedAnchorId:entry?.anchorId,policy:entry?.managedNonReplay,deploymentSuccessor:entry?.deploymentSuccessor,registration:path.join(root,'.data-editor/historical-disposition-registration.json'),directory:path.join(runtime,'entry-action-dispositions')};
 }
 // Same short lock as publication; stale ALS inherited by completion is not a permit.
 export async function withHistoryProjectLock(binding,operation){
@@ -44,6 +45,7 @@ async function readLedger(binding){
  for(const [id,record]of Object.entries(state.records)){
   if(!valid(id)||record.runId!==id||!['intent','receipt'].includes(record.phase)||!Array.isArray(record.relatedRunIds)||!record.relatedRunIds.includes(id)||!record.relatedRunIds.every(valid)||typeof record.evidenceDigest!=='string'||!/^[a-f0-9]{64}$/.test(record.evidenceDigest))bad('HISTORY_STATE_UNVERIFIABLE');
  }
+ if(binding.deploymentSuccessor)await validateSuccessorLedger(binding,state,await readFile(path.join(binding.directory,'state.json')));
  return state;
 }
 async function ancestors(binding,ids){
@@ -207,6 +209,7 @@ export async function withHistoricalFileEffect(file,payload,operation){
 // The delivery configuration fixes the guarantee. This is not a request-selected trust mode.
 export const managedHistoryContract='managed-entry-non-replay-v1';
 export const managedHistoryRequiredDeploymentFiles=Object.freeze([
+ 'src/historical-deployment-successor.mjs','scripts/historical-deployment-upgrade.mjs',
  'src/historical-disposition.mjs','src/historical-deployment.mjs','src/atomic-file.mjs','src/field-write-policy.mjs','server.mjs',
  'src/automation-profile.mjs','src/automation-bindings.mjs','src/durable-identity-coordinator.mjs',
  'src/entry-action-exact-artifact-store.mjs','src/entry-action-group-commit.mjs',
@@ -218,7 +221,9 @@ export const managedHistoryRequiredDeploymentFiles=Object.freeze([
 ]);
 const stable=value=>JSON.stringify(value);
 async function managedPolicy(binding){
- const policy=binding.policy;
+ return verifyDeploymentPolicy(binding.policy);
+}
+async function verifyDeploymentPolicy(policy){
  if(!policy||policy.contract!==managedHistoryContract)bad('HISTORY_MANAGED_POLICY_REQUIRED');
  if(managedHistoryRequiredDeploymentFiles.some(file=>!policy.deploymentFiles.some(x=>x.path===file)))bad('HISTORY_DEPLOYMENT_INCOMPLETE');
  const tool=normalize(await physical(path.resolve(import.meta.dirname,'..')));
@@ -343,7 +348,18 @@ export async function prepareHistoricalDisposition(context){
 async function validateManagedReceipt(binding,record,{baseline=false,fullInventory=false,snapshot=null}={}){
  if(record.contract!==managedHistoryContract||!record.evidence||record.evidenceDigest!==sha(stable(record.evidence)))bad('HISTORY_PROOF_UNSUPPORTED');
  const evidence=record.evidence,{policy,digest:deploymentDigest}=await managedPolicy(binding);
- if(evidence.contract!==managedHistoryContract||evidence.root!==binding.root||evidence.runtime!==binding.runtime||evidence.anchorId!==binding.expectedAnchorId||evidence.deploymentDigest!==deploymentDigest||stable(record.relatedRunIds)!==stable(evidence.snapshot.runIds))bad('HISTORY_BINDING_INVALID');
+ if(evidence.deploymentDigest!==deploymentDigest){
+  if(!binding.deploymentSuccessor)bad('HISTORY_BINDING_INVALID');
+  const bytes=await readFile(path.join(binding.directory,'state.json'));
+  const certificate=await validateSuccessorLedger(binding,JSON.parse(bytes),bytes);
+  if(certificate.sourcePolicyDigest!==evidence.deploymentDigest)bad('HISTORY_BINDING_INVALID');
+ }
+ return validateReceiptEvidence(binding,record,{baseline,fullInventory,snapshot,policy});
+}
+async function validateReceiptEvidence(binding,record,{baseline=false,fullInventory=false,snapshot=null,policy}={}){
+ if(record.contract!==managedHistoryContract||!record.evidence||record.evidenceDigest!==sha(stable(record.evidence)))bad('HISTORY_PROOF_UNSUPPORTED');
+ const evidence=record.evidence;
+ if(evidence.contract!==managedHistoryContract||evidence.root!==binding.root||evidence.runtime!==binding.runtime||evidence.anchorId!==binding.expectedAnchorId||stable(record.relatedRunIds)!==stable(evidence.snapshot.runIds))bad('HISTORY_BINDING_INVALID');
  const original=evidence.snapshot;
  if(fullInventory){
   const current=snapshot??await historySnapshot(binding),byFile=new Map(current.files.map(file=>[file.file,file])),originalFiles=new Set(original.files.map(file=>file.file)),runs=new Set(record.relatedRunIds),groups=new Set(original.groupIds);
@@ -359,6 +375,36 @@ async function validateManagedReceipt(binding,record,{baseline=false,fullInvento
  }
  if(baseline&&stable(await businessSnapshot(binding,policy))!==stable(evidence.businessBaseline))bad('HISTORY_BUSINESS_BASELINE_DRIFT');
  return evidence;
+}
+
+// Administrative preview only: returns a proof bound to unchanged originals.
+// The caller must hold the project lock through final config CAS when applying.
+export async function prepareHistoricalDeploymentUpgrade(context,sourceSnapshotBytes){
+ const binding=await historyBinding(context);
+ return withHistoryProjectLock(binding,async()=>{
+  const source=sourceEntryFor(sourceSnapshotBytes,binding),sourcePolicy=source.managedNonReplay;
+  const origin=sha(stable(sourcePolicy)),state=await readLedger(binding);
+  if(!state||!Object.keys(state.records).length||Object.values(state.records).some(r=>r.phase!=='receipt'||r.evidence?.deploymentDigest!==origin))bad('HISTORY_UPGRADE_SOURCE_INVALID');
+  const publication=await optional(path.join(binding.root,'.data-editor/publication-admission/state.json'));
+  const map=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+  if(!publication||publication.state!=='OPEN'||publication.windowId!==null||!map(publication.accepted)||!map(publication.continuations)
+   ||Object.values(publication.accepted).some(x=>!map(x)||x.settled!==true)||Object.keys(publication.continuations).length)bad('HISTORY_UPGRADE_NOT_QUIESCENT');
+  const {publicationBinding,readPublicationState}=await import('./publication-window-state.mjs');
+  await readPublicationState(await publicationBinding(context));
+  const snapshot=await historySnapshot(binding);
+  for(const record of Object.values(state.records))await validateReceiptEvidence(binding,record,{fullInventory:true,snapshot,policy:sourcePolicy});
+  const {inventoryPublicationObligations}=await import('./publication-window-obligations.mjs');
+  const covered=new Set(Object.values(state.records).flatMap(record=>record.evidence.obligations.map(stable)));
+  if((await inventoryPublicationObligations(binding)).some(item=>!covered.has(stable(item))))bad('HISTORY_UPGRADE_NEW_OBLIGATIONS');
+  const files=[...new Set([...binding.policy.deploymentFiles.map(file=>file.path),...managedHistoryRequiredDeploymentFiles])];
+  const targetPolicy={...binding.policy,deploymentFiles:await Promise.all(files.map(async file=>({path:file,digest:sha(await readFile(path.join(path.dirname(historyDeploymentFile),'..',file)))})))};
+  const {digest:targetPolicyDigest}=await verifyDeploymentPolicy(targetPolicy);
+  const ledgerBytes=await readFile(path.join(binding.directory,'state.json'));
+  const certificate={version:1,contract:successorContract,root:binding.root,runtime:binding.runtime,anchorId:binding.expectedAnchorId,
+   ledgerDigest:sha(ledgerBytes),receipts:Object.values(state.records).map(record=>({runId:record.runId,recordDigest:sha(stable(record)),evidenceDigest:record.evidenceDigest})),
+   sourceSnapshot:artifactReference(sourceSnapshotBytes,'snapshot'),sourcePolicyDigest:origin,targetPolicyDigest};
+  return {certificate,targetPolicy,businessBaseline:await businessSnapshot(binding,targetPolicy)};
+ });
 }
 export async function commitHistoricalDisposition(context,request){
  if(!request||Object.keys(request).join(',')!=='dispositionId'||!valid(request.dispositionId))bad('HISTORY_DISPOSITION_REQUEST_INVALID');

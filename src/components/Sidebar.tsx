@@ -26,6 +26,7 @@ type SidebarProps = {
   onOpenProjectSettings?: () => void;
   onOpenAutomationSettings?: () => void;
   onOpenAddProject?: () => void;
+  onOpenProjectManager?: () => void;
   onCollapse?: () => void;
   collapseButtonRef?: RefObject<HTMLButtonElement>;
 };
@@ -145,6 +146,10 @@ export function Sidebar(props: SidebarProps) {
                       {project.name}
                     </button>
                   ))}
+                  <button className="project-switcher-option project-manage-entry" role="menuitem" type="button" onClick={() => {
+                    setProjectMenuOpen(false);
+                    props.onOpenProjectManager?.();
+                  }}>管理项目</button>
                 </div>
               ) : null}
             </div>

@@ -1,5 +1,7 @@
 ﻿# data-editor Truth Summary
 
+- [历史闭锁的部署承接协议与正式验收边界](./historical-deployment-successor-and-verification-boundary.md)
+- [部署升级保留原证明并追加精确承接证书](./adr/historical-deployment-successor-evidence-preservation.md)
 - [npm 依赖安全基线：同主版本修复、锁文件状态与验证边界](./npm-dependency-security-baseline.md)
 - [npm 依赖漏洞治理：同主版本优先与分层验证策略](./adr/npm-dependency-vulnerability-remediation-policy.md)
 - [正式产品文档集与历史材料收口：`docs/README.md` 加 `01` 至 `09`，验证事实归档后清理方案、规格与原型](./formal-documentation-corpus-boundary.md)

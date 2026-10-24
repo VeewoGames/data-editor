@@ -11,7 +11,7 @@ async function fixture(t){
  const base=path.join(app,'tests/managed-history-fixtures');await mkdir(base,{recursive:true});
  const directory=await mkdtemp(path.join(base,'case-')),tool=path.join(directory,'editor'),root=path.join(directory,'project');
  t.after(async()=>{assert.equal(path.dirname(directory),base);await rm(directory,{recursive:true,force:true,maxRetries:5,retryDelay:30});});
- await cp(path.join(app,'src'),path.join(tool,'src'),{recursive:true});await cp(path.join(app,'server.mjs'),path.join(tool,'server.mjs'));await mkdir(path.join(tool,'config'));await mkdir(path.join(root,'data'),{recursive:true});
+ await cp(path.join(app,'src'),path.join(tool,'src'),{recursive:true});await cp(path.join(app,'server.mjs'),path.join(tool,'server.mjs'));await mkdir(path.join(tool,'scripts'));await cp(path.join(app,'scripts/historical-deployment-upgrade.mjs'),path.join(tool,'scripts/historical-deployment-upgrade.mjs'));await mkdir(path.join(tool,'config'));await mkdir(path.join(root,'data'),{recursive:true});
  const mod=await import(pathToFileURL(path.join(tool,'src/historical-disposition.mjs'))),pub=await import(pathToFileURL(path.join(tool,'src/publication-window-state.mjs'))),runtime=await import(pathToFileURL(path.join(tool,'src/publication-window-runtime.mjs'))),scan=await import(pathToFileURL(path.join(tool,'src/publication-window-obligations.mjs'))),atomic=await import(pathToFileURL(path.join(tool,'src/atomic-file.mjs')));
  const context={projectRoot:root,runtimeDir:'.data-editor/runtime'},runtimeRoot=path.join(root,context.runtimeDir),actions=path.join(runtimeRoot,'entry-actions');await mkdir(actions,{recursive:true});
  const sourceFile=path.join(root,'data/items.json');await writeFile(sourceFile,'[{"draft":"original", "count":1}]');
@@ -28,7 +28,92 @@ async function fixture(t){
 }
 const closed={code:'HISTORY_RUN_CLOSED'};
 
+async function upgradeFixture(t){
+ const f=await fixture(t);await f.commit((await f.prepare()).dispositionId);await f.pub.initializePublicationWindow(f.context);
+ const source=await readFile(f.config),ledgerFile=path.join(f.binding.directory,'state.json'),ledger=await readFile(ledgerFile);
+ const upgrade=await import(pathToFileURL(path.join(f.tool,'scripts/historical-deployment-upgrade.mjs')));
+ await writeFile(path.join(f.tool,'server.mjs'),Buffer.concat([await readFile(path.join(f.tool,'server.mjs')),Buffer.from('\n// isolated successor release\n')]));
+ const bundle=await upgrade.prepareDeploymentUpgrade(f.context,source);
+ return {...f,upgrade,bundle,source,ledger,ledgerFile};
+}
 
+test('deployment successor preserves original proof, closes old runs and permits later author edits',async t=>{
+ const f=await upgradeFixture(t);
+ await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,['fresh']),{code:'HISTORY_DEPLOYMENT_DRIFT'});
+ assert.equal((await f.upgrade.applyDeploymentUpgrade(f.context,f.bundle)).status,'applied');
+ assert.deepEqual(await readFile(f.ledgerFile),f.ledger);
+ await f.mod.assertHistoricalRunAllowed(f.context,['fresh'],{fullInventory:true});
+ for(const id of [f.old,f.child])await assert.rejects(()=>f.runtime.publicationRecovery(async()=>{throw Error('REPLAY');})({projectContext:f.context,runId:id}),closed);
+ assert.ok((await f.inventory()).every(item=>item.blocking===false));
+ const journalFile=path.join(f.runtimeRoot,'commit-journal/author.json');await mkdir(path.dirname(journalFile));
+ await f.mod.withHistoricalAuthorSave(f.context,{sourceFile:f.sourceFile,journalFile},()=>f.atomic.atomicWrite(f.sourceFile,'[{"draft":"later author input"}]'));
+ await f.mod.assertHistoricalRunAllowed(f.context,['another-new'],{fullInventory:true});
+ assert.deepEqual(await readFile(f.ledgerFile),f.ledger);
+ assert.equal((await f.upgrade.applyDeploymentUpgrade(f.context,f.bundle)).status,'already_applied');
+});
+
+test('successor ledger pin is unconditional for empty records, removed receipt and whitespace drift',async t=>{
+ const f=await upgradeFixture(t);await f.upgrade.applyDeploymentUpgrade(f.context,f.bundle);
+ const state=JSON.parse(f.ledger);
+ for(const bytes of [Buffer.from(JSON.stringify({...state,records:{}})),Buffer.concat([f.ledger,Buffer.from('\n')])]){
+  await writeFile(f.ledgerFile,bytes);
+  await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,['fresh']),{code:'HISTORY_SUCCESSOR_INVALID'});
+  await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,[f.old]));
+  await assert.rejects(()=>f.inventory(),{code:'HISTORY_SUCCESSOR_INVALID'});
+ }
+ await writeFile(f.ledgerFile,f.ledger);await f.mod.assertHistoricalRunAllowed(f.context,['fresh']);
+});
+
+test('missing or altered successor materials, target selection and target code are fail closed',async t=>{
+ const f=await upgradeFixture(t);await f.upgrade.applyDeploymentUpgrade(f.context,f.bundle);
+ const configBytes=await readFile(f.config),config=JSON.parse(configBytes),ref=config.entries[0].deploymentSuccessor;
+ const certFile=path.join(path.dirname(f.config),ref.path),certBytes=await readFile(certFile);
+ await rm(certFile);await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,['fresh']),{code:'HISTORY_SUCCESSOR_INVALID'});
+ await writeFile(certFile,Buffer.concat([certBytes,Buffer.from(' ')]));await assert.rejects(()=>f.inventory(),{code:'HISTORY_SUCCESSOR_INVALID'});
+ await writeFile(certFile,certBytes);
+ delete config.entries[0].deploymentSuccessor;await writeFile(f.config,JSON.stringify(config));
+ await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,['fresh']),{code:'HISTORY_BINDING_INVALID'});
+ await writeFile(f.config,configBytes);
+ const cert=JSON.parse(certBytes),snapshot=path.join(path.dirname(f.config),cert.sourceSnapshot.path),original=await readFile(snapshot);
+ await writeFile(snapshot,Buffer.concat([original,Buffer.from('\n')]));await assert.rejects(()=>f.inventory(),{code:'HISTORY_SUCCESSOR_INVALID'});await writeFile(snapshot,original);
+ await writeFile(path.join(f.tool,'server.mjs'),'drift');
+ await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,['fresh']),{code:'HISTORY_DEPLOYMENT_DRIFT'});
+ await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,[f.old]),closed);
+});
+
+test('successor preparation rejects wrong origin, new obligations, live reservations and changed evidence',async t=>{
+ const f=await upgradeFixture(t);
+ const wrong=JSON.parse(f.source);wrong.entries[0].managedNonReplay.deploymentFiles.reverse();
+ await assert.rejects(()=>f.upgrade.prepareDeploymentUpgrade(f.context,Buffer.from(JSON.stringify(wrong))),{code:'HISTORY_UPGRADE_SOURCE_INVALID'});
+ const fresh=path.join(f.actions,'fresh.started.json');await writeFile(fresh,JSON.stringify({runId:'fresh'}));
+ await assert.rejects(()=>f.upgrade.prepareDeploymentUpgrade(f.context,f.source),{code:'HISTORY_UPGRADE_NEW_OBLIGATIONS'});await rm(fresh);
+ const publicationFile=path.join(f.root,'.data-editor/publication-admission/state.json'),publicationBytes=await readFile(publicationFile),publication=JSON.parse(publicationBytes);
+ for(const patch of [{accepted:{fresh:{settled:false}}},{accepted:[]},{continuations:[]},{accepted:{fresh:{settled:'false'}}},{accepted:{fresh:null}}]){
+  await writeFile(publicationFile,JSON.stringify({...publication,...patch}));
+  await assert.rejects(()=>f.upgrade.prepareDeploymentUpgrade(f.context,f.source),{code:'HISTORY_UPGRADE_NOT_QUIESCENT'});
+ }
+ await writeFile(publicationFile,publicationBytes);
+ await writeFile(path.join(f.actions,f.old+'.started.json'),'changed');
+ await assert.rejects(()=>f.upgrade.prepareDeploymentUpgrade(f.context,f.source),{code:'HISTORY_EVIDENCE_DRIFT'});
+ assert.deepEqual(await readFile(f.config),f.source);assert.deepEqual(await readFile(f.ledgerFile),f.ledger);
+});
+
+test('successor apply rejects stale inputs; inert proof files and exact retries are safe',async t=>{
+ const f=await upgradeFixture(t),server=path.join(f.tool,'server.mjs'),before=await readFile(server);
+ await writeFile(server,Buffer.concat([before,Buffer.from('// later change')]));
+ await assert.rejects(()=>f.upgrade.applyDeploymentUpgrade(f.context,f.bundle),{code:'HISTORY_UPGRADE_INPUT_DRIFT'});await writeFile(server,before);
+ const changedConfig=Buffer.concat([f.source,Buffer.from('\n')]);await writeFile(f.config,changedConfig);
+ await assert.rejects(()=>f.upgrade.applyDeploymentUpgrade(f.context,f.bundle),{code:'HISTORY_UPGRADE_CONFIG_STALE'});await writeFile(f.config,f.source);
+ const cert=f.bundle.certificate,certRef=f.bundle.targetConfig.entries[0].deploymentSuccessor,directory=path.dirname(f.config);
+ await mkdir(path.join(directory,'historical-deployment-upgrades'));
+ // Crash before config selection: both immutable artifacts exist but authorize nothing.
+ await writeFile(path.join(directory,cert.sourceSnapshot.path),f.source,{flag:'wx'});
+ await writeFile(path.join(directory,certRef.path),`${JSON.stringify(cert,null,2)}\n`,{flag:'wx'});
+ await assert.rejects(()=>f.mod.assertHistoricalRunAllowed(f.context,['fresh']),{code:'HISTORY_DEPLOYMENT_DRIFT'});
+ assert.equal((await f.upgrade.applyDeploymentUpgrade(f.context,f.bundle)).status,'applied');
+ assert.equal((await f.upgrade.applyDeploymentUpgrade(f.context,f.bundle)).status,'already_applied');
+ assert.deepEqual(await readFile(f.ledgerFile),f.ledger);
+});
 test('intent crash resumes original decision, preserves bytes and blocks first initialization',async t=>{
  const f=await fixture(t),before=await readFile(path.join(f.actions,f.old+'.started.json'));
  const intent=await f.prepare();assert.equal(intent.phase,'intent');

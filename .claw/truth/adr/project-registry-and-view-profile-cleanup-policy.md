@@ -12,7 +12,11 @@ Data Editor 的项目注册表与 view profile 都是用户可见配置，但二
 
 ## decision
 
-### 1. 项目注册项删除前必须完成三重有效性校验
+### 1. 区分用户主动取消注册与历史坏项治理
+
+用户明确通过项目管理界面确认“从列表移除”时，允许取消有效项目的注册；必须显示名称与根目录、至少保留一个项目，且不删除磁盘文件或配置。当前项目先完成编辑保存过渡，未完成自动化任务仍依赖注册项时拒绝移除。
+
+以下三重校验适用于代理主动判断并清理历史坏项，不限制用户明确发起的常用列表维护。
 
 删除候选注册项前，必须交叉核对：
 
@@ -62,7 +66,7 @@ Data Editor 的项目注册表与 view profile 都是用户可见配置，但二
 
 - 所有项目创建/激活调用方共享 `addOrActivateProject(...)` 的 root 目录校验，错误路径不能再成为持久项目。
 - 写入防线与历史清理保持分工：校验不隐式修改旧 registry，旧坏项仍需经过证据链和正式 API 清理。
-- 项目清理流程必须先形成 `root`、`dataSources`、`activeProjectId` 的证据链，再调用正式 API。
+- 代理主动清理历史坏项必须先形成 `root`、`dataSources`、`activeProjectId` 的证据链；用户明确取消注册则以确认目标和保留磁盘数据为边界，两者均调用正式 API。
 - registry 清理与磁盘业务数据删除保持职责分离；验证 registry 收口时，还应确认业务文件集合未发生非预期变化。
 - profile 清理需要逐文件确认，批量清理的便利性让位于正式用户配置的安全性。
 - `DATA_EDITOR_PROFILE_HOME` 会改变 profile 的实际位置，清理前必须先确认当前 profile home，不能只检查项目内默认目录。
@@ -71,3 +75,10 @@ Data Editor 的项目注册表与 view profile 都是用户可见配置，但二
 ## search terms
 
 `projects.json`、`projectRegistryPath`、`addOrActivateProject`、`assertProjectRootDirectory`、`Project root does not exist`、`Project root is not a directory`、`activeProjectId`、`dataSources`、`filePolicy.includeExtensions`、`POST /api/project-delete`、`handleDeleteProject`、`view-configs`、`DATA_EDITOR_PROFILE_HOME`、`Lans.json`、`测试 profile`、`精确文件删除`
+
+<!-- dated: 2026-10-24 -->
+## 项目排序与共享写入边界
+
+项目顺序只使用 `projects` 数组，不增加独立顺序状态。排序提交完整 ID 集合，集合变化时拒绝旧请求，纯排序最后成功写入生效。所有 registry mutation 通过完整读改写互斥保护；自动化启动与移除检查也在同一注册表锁边界协调。界面提供拖动及上下移，复用既有编辑保存过渡门槛，不另建项目生命周期框架。
+
+本决定已实施并完成正式页面验收，快照由 [项目列表 Truth](../project-registry-and-view-profile-cleanup-boundary.md) 维护。

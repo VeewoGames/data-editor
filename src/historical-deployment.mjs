@@ -14,7 +14,11 @@ export async function readHistoryDeployment(){
   if(value?.version!==1||!Array.isArray(value.entries)||Object.keys(value).sort().join(',')!=='entries,version')invalid();
   const entries=[];
   for(const entry of value.entries){
-   if(!entry||!['anchorId,projectRoot,runtime','anchorId,managedNonReplay,projectRoot,runtime'].includes(Object.keys(entry).sort().join(','))||typeof entry.projectRoot!=='string'||typeof entry.runtime!=='string'||!path.isAbsolute(entry.projectRoot)||!path.isAbsolute(entry.runtime)||typeof entry.anchorId!=='string'||!/^[A-Za-z0-9_-]{1,160}$/.test(entry.anchorId))invalid();
+   if(!entry||!['anchorId,projectRoot,runtime','anchorId,managedNonReplay,projectRoot,runtime','anchorId,deploymentSuccessor,managedNonReplay,projectRoot,runtime'].includes(Object.keys(entry).sort().join(','))||typeof entry.projectRoot!=='string'||typeof entry.runtime!=='string'||!path.isAbsolute(entry.projectRoot)||!path.isAbsolute(entry.runtime)||typeof entry.anchorId!=='string'||!/^[A-Za-z0-9_-]{1,160}$/.test(entry.anchorId))invalid();
+   if(entry.deploymentSuccessor){
+    const ref=entry.deploymentSuccessor;
+    if(Object.keys(ref).sort().join(',')!=='digest,path'||!/^[a-f0-9]{64}$/.test(ref.digest)||ref.path!==`historical-deployment-upgrades/${ref.digest}.certificate.json`)invalid();
+   }
    const root=historyPhysicalKey(await historyPhysicalPath(path.resolve(entry.projectRoot))),runtime=historyPhysicalKey(await historyPhysicalPath(path.resolve(entry.runtime)));
    if(entry.projectRoot!==root||entry.runtime!==runtime||!runtime.startsWith(root+'/'))invalid();
    if(entries.some(e=>e.projectRoot===root||e.projectRoot.startsWith(root+'/')||root.startsWith(e.projectRoot+'/')))invalid();

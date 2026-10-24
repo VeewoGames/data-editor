@@ -574,6 +574,14 @@ export async function deleteProject(projectId: string) {
   });
 }
 
+export function reorderProjects(projectIds: string[]) {
+  return fetchJson("/api/projects/reorder", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectIds }),
+  });
+}
+
 export async function activateProject(projectId: string) {
   return fetchJson("/api/project-activate", {
     method: "POST",

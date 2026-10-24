@@ -13,11 +13,11 @@
         "deploymentFiles": [
           {
             "path": "src/historical-disposition.mjs",
-            "digest": "69a401f8c90ccbb3565f221caaed4b350e68bc2f72466930612b86ebbaa138bd"
+            "digest": "a8bf8642a5e0bbc7263341753b5d3ec1d544728a4918813f172975b1a3b173c2"
           },
           {
             "path": "src/historical-deployment.mjs",
-            "digest": "42410cf4277d09e56b3118f72b73e23e069dab90624b92eed6b6768f1448af6b"
+            "digest": "ec4b77c8991085648ebb19661c7b009d48fafd6f9211fe400a045f23b106a4af"
           },
           {
             "path": "src/atomic-file.mjs",
@@ -29,7 +29,7 @@
           },
           {
             "path": "server.mjs",
-            "digest": "b1c4215604e3e94e63c86b1766a519724e6cde54c1bc909e0324761dda2a0a1a"
+            "digest": "604dcaf2cf55620487c672741d477d48f0d6a8d8717b5908be7ba64a933a73ad"
           },
           {
             "path": "src/automation-profile.mjs",
@@ -65,7 +65,7 @@
           },
           {
             "path": "src/entry-actions.mjs",
-            "digest": "a65a22691d4127e059938b2867d4ac93229477f862ddfb1deb6475a3e0770bc9"
+            "digest": "9fb924ea941c7fba42adcf0d41f8a5d602d8be52fd355dc1f0c85e4d7f85f990"
           },
           {
             "path": "src/fencing-lock.mjs",
@@ -106,8 +106,20 @@
           {
             "path": "src/publication-window-state.mjs",
             "digest": "66c175d0f24aa054b78d0a8b418904e13d0fcd1c382194125bc2bb09110e52d4"
+          },
+          {
+            "path": "src/historical-deployment-successor.mjs",
+            "digest": "f69a802cb330a446150100b4b58b92d7cee85f0aecc4eb24d7ce5ef47a1bff95"
+          },
+          {
+            "path": "scripts/historical-deployment-upgrade.mjs",
+            "digest": "fb447a73efdea234fdc6ff90f8fb730009e4104d882d5037b7544b88d9e52ba0"
           }
         ]
+      },
+      "deploymentSuccessor": {
+        "path": "historical-deployment-upgrades/b77f4e7081d88a9bdc335328fc4daaf4be229e6e704c7748937f129fe1d6c432.certificate.json",
+        "digest": "b77f4e7081d88a9bdc335328fc4daaf4be229e6e704c7748937f129fe1d6c432"
       }
     }
   ]

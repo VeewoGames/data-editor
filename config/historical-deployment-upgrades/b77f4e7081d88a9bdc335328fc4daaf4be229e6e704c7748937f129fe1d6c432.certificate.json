@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "contract": "managed-deployment-successor-v1",
+  "root": "c:/code/nocturnel",
+  "runtime": "c:/code/nocturnel/.data-editor/runtime",
+  "anchorId": "managed-history-e697ab89-159b-4666-9734-3e17cdc5885f",
+  "ledgerDigest": "1530c8207aa046e55697e7fe11ded269cd0aaf3f240d55af68cfb547ffcab809",
+  "receipts": [
+    {
+      "runId": "26dcf5f2-5272-49f2-b620-246143823b56",
+      "recordDigest": "854c8cc8242c085b917116bea5d223cdab5394e7f5993069e54061e7df43bdd2",
+      "evidenceDigest": "8ce3a8401d4e565c63d2280ce4fe0d93d78275ac3002d9d347fd834796402c67"
+    }
+  ],
+  "sourceSnapshot": {
+    "path": "historical-deployment-upgrades/9f1ab3556c23bb5a7c4d50c430727474cb0740011b77fa4d7c0c5486e9939dc2.snapshot.json",
+    "digest": "9f1ab3556c23bb5a7c4d50c430727474cb0740011b77fa4d7c0c5486e9939dc2"
+  },
+  "sourcePolicyDigest": "3eb0190c40202fd233ae3cb8e824c63efda42a91cbffa43c4550bb9739e4d4a7",
+  "targetPolicyDigest": "5412af1d8b84c8695e242bdc5a18c8ec91633b69b267aa8399c462e01561a6b2"
+}

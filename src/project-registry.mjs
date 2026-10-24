@@ -3,9 +3,80 @@ import os from "node:os";
 import path from "node:path";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { atomicWrite } from "./atomic-file.mjs";
+import { withProjectProcessLock } from "./project-process-lock.mjs";
 
 export const registryVersion = 2;
 const validIdPattern = /^[a-z0-9_-]+$/;
+const registryWrites = new Map();
+
+// Serialize the entire read/modify/write, including independent Windows servers.
+export async function withProjectRegistryLock(operation, options = {}) {
+  const target = projectRegistryPath(options);
+  const key = process.platform === "win32" ? target.toLowerCase() : target;
+  const previous = registryWrites.get(key) ?? Promise.resolve();
+  let release;
+  const current = new Promise(resolve => { release = resolve; });
+  registryWrites.set(key, current);
+  await previous;
+  try {
+    return process.platform === "win32"
+      ? await withProjectProcessLock(`registry:${key}`, operation)
+      : await operation();
+  } finally {
+    release();
+    if (registryWrites.get(key) === current) registryWrites.delete(key);
+  }
+}
+
+export async function mutateProjectRegistry(mutate, options = {}) {
+  return withProjectRegistryLock(async () => {
+    const registry = await loadProjectRegistry(options);
+    await mutate(registry);
+    return saveProjectRegistry(registry, options);
+  }, options);
+}
+
+const registryError = (message, status = 400) => Object.assign(new Error(message), { status });
+
+export function reorderProjects(projectIds, options = {}) {
+  return mutateProjectRegistry(registry => {
+    if (!Array.isArray(projectIds) || projectIds.some(id => typeof id !== "string") || new Set(projectIds).size !== projectIds.length) {
+      throw registryError("项目排序必须包含不重复的项目 ID。");
+    }
+    const byId = new Map(registry.projects.map(project => [project.id, project]));
+    if (projectIds.length !== byId.size || projectIds.some(id => !byId.has(id))) {
+      throw registryError("项目列表已变化，请刷新后重新排序。", 409);
+    }
+    registry.projects = projectIds.map(id => byId.get(id));
+  }, options);
+}
+
+export function updateProjectDefinition(input, options = {}) {
+  return mutateProjectRegistry(registry => {
+    if (!input?.id) throw registryError("Missing project id");
+    const index = registry.projects.findIndex(project => project.id === input.id);
+    if (index < 0) throw registryError(`Unknown project: ${input.id}`, 404);
+    registry.projects[index] = { ...registry.projects[index], ...input };
+  }, options);
+}
+
+export function removeProject(projectId, options = {}) {
+  return mutateProjectRegistry(async registry => {
+    const project = registry.projects.find(project => project.id === projectId);
+    if (!project) throw registryError(`Unknown project: ${projectId}`, 404);
+    if (registry.projects.length === 1) throw registryError("至少保留一个项目。", 409);
+    await options.beforeRemove?.(project);
+    registry.projects = registry.projects.filter(project => project.id !== projectId);
+    if (registry.activeProjectId === projectId) registry.activeProjectId = registry.projects[0].id;
+  }, options);
+}
+
+export function activateProject(projectId, options = {}) {
+  return mutateProjectRegistry(registry => {
+    if (!registry.projects.some(project => project.id === projectId)) throw registryError(`Unknown project: ${projectId}`, 404);
+    registry.activeProjectId = projectId;
+  }, options);
+}
 
 export function dataEditorHome(env = process.env) {
   if (env.DATA_EDITOR_HOME) return path.resolve(env.DATA_EDITOR_HOME);
@@ -46,17 +117,19 @@ export async function saveProjectRegistry(registry, options = {}) {
 }
 
 export async function addOrActivateProject(input, options = {}) {
-  const registry = await loadProjectRegistry(options);
+  let project;
+  const registry = await mutateProjectRegistry(async registry => {
   const root = path.resolve(input.root ?? input.projectRoot ?? process.cwd());
   if (isFilesystemRoot(root)) throw new Error(`Project root cannot be a filesystem root: ${root}`);
   await assertProjectRootDirectory(root);
   const existing = registry.projects.find((project) => samePath(project.root, root));
   if (existing) {
     registry.activeProjectId = existing.id;
-    return { registry: await saveProjectRegistry(registry, options), project: existing };
+    project = existing;
+    return;
   }
 
-  const project = normalizeProjectDefinition({
+  project = normalizeProjectDefinition({
     id: input.id ?? defaultProjectId(root, registry.projects),
     name: input.name ?? (path.basename(root) || "Project"),
     root,
@@ -70,7 +143,8 @@ export async function addOrActivateProject(input, options = {}) {
   });
   registry.projects.push(project);
   registry.activeProjectId = project.id;
-  return { registry: await saveProjectRegistry(registry, options), project };
+  }, options);
+  return { registry, project };
 }
 
 export function emptyProjectRegistry() {
