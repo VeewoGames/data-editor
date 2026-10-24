@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { icons } from "../components/icons";
 import { SearchablePicker } from "../components/SearchablePicker";
 import { FieldTypeIcon } from "../components/FieldTypeIcon";
@@ -31,6 +31,7 @@ type NodeEditorHostProps = {
   schemaContextValue?: Record<string, unknown> | null;
   nestedSchemaResolver?: NestedSchemaCapabilityResolver | null;
   embedded?: boolean;
+  editable?: boolean;
   onBack: () => void;
   onCloseAll: () => void;
   onEditValue: (path: NodePathSegment[], nextValue: unknown) => void;
@@ -54,7 +55,12 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
     });
     return resolvedCapability ?? { kind: "unsupported" as const, lookupKey: "nested-schema-capability:missing", reason: "No nested schema capability is available for this value." };
   }, [props.basePath, props.collectionPath, props.dataSourceId, props.dataSourcePath, props.rootField, props.schemaContextValue, props.sourcePath, props.value]);
-  const canEdit = true;
+  const canEdit = props.editable !== false;
+  const editableRef = useRef(canEdit);
+  editableRef.current = canEdit;
+  const editValue: NodeEditorHostProps["onEditValue"] = (path, value) => {
+    if (editableRef.current) props.onEditValue(path, value);
+  };
 
   const resetDefaultValue = resolved.kind === "supported"
     ? ensureDiscriminatorValue(
@@ -65,10 +71,10 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
     : null;
 
   const handleSwitchDiscriminator = (nextDiscriminator: string) => {
-    if (resolved.kind !== "supported" || !resolved.discriminatorField || !resolved.variantDefaults) return;
+    if (!editableRef.current || resolved.kind !== "supported" || !resolved.discriminatorField || !resolved.variantDefaults) return;
     const nextDefault = resolved.variantDefaults[nextDiscriminator];
     if (!nextDefault) return;
-    props.onEditValue([], ensureDiscriminatorValue(cloneValue(nextDefault), resolved.discriminatorField, nextDiscriminator));
+    editValue([], ensureDiscriminatorValue(cloneValue(nextDefault), resolved.discriminatorField, nextDiscriminator));
   };
 
   return (
@@ -88,7 +94,7 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
             {canEdit && resolved.kind === "supported" && resetDefaultValue ? (
               <button
                 className="icon-button"
-                onClick={() => props.onEditValue([], cloneValue(resetDefaultValue))}
+                onClick={() => editValue([], cloneValue(resetDefaultValue))}
                 title="恢复默认值"
               >
                 <icons.reset size={16} />
@@ -119,7 +125,7 @@ export function NodeEditorHost(props: NodeEditorHostProps) {
           canSwitchDiscriminator={Boolean(resolved.canSwitchDiscriminator && resolved.discriminatorField && resolved.discriminatorOptions?.length)}
           canEdit={canEdit}
           onSwitchDiscriminator={handleSwitchDiscriminator}
-          onEditValue={props.onEditValue}
+          onEditValue={editValue}
           onOpenNested={props.onOpenNested}
         />
       ) : (
@@ -208,6 +214,7 @@ function ObjectNodeEditor(props: {
                 type="button"
                 className={`searchable-picker-option node-discriminator-option ${option === props.currentDiscriminator ? "is-selected" : ""}`}
                 onClick={() => {
+                  if (!props.canEdit) return;
                   props.onSwitchDiscriminator(option);
                   setDiscriminatorPickerOpen(false);
                   setDiscriminatorQuery("");
@@ -235,7 +242,7 @@ function ObjectNodeEditor(props: {
                     <PropertyHeading fieldName={field.fieldName} fieldType={field.displayType ?? "Text"} />
                     <NodeFieldEditor
                       fieldName={field.fieldName}
-                      fieldSchema={field}
+                      fieldSchema={{ ...field, disabled: field.disabled || !props.canEdit }}
                       value={value}
                       pathParts={[props.rootField, ...props.basePath, field.fieldName]}
                       relationOptions={props.relationOptions}

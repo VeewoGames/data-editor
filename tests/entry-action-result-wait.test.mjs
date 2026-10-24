@@ -72,3 +72,18 @@ test("waitForEntryActionResult aborts when shouldContinue turns false", async ()
     EntryActionResultWaitCancelledError,
   );
 });
+
+test("temporary disconnect resumes polling the same run rather than reporting failed write", async () => {
+  const ids=[]; let attempts=0;
+  const outcome=await waitForEntryActionResult({runId:'original-run',projectId:'project-1',foregroundPollLimit:3,backgroundPollLimit:1,foregroundIntervalMs:0,backgroundIntervalMs:0,loadResult:async(runId,projectId)=>{
+    ids.push([runId,projectId]); if(++attempts===1)throw new TypeError('Failed to fetch');
+    if(attempts===2)throw Object.assign(new Error('unavailable'),{status:503});
+    return {runId,phase:'terminal',outcome:'completed_with_writeback'};
+  }});
+  assert.equal(outcome.kind,'completed');assert.equal(outcome.result.outcome,'completed_with_writeback');assert.deepEqual(ids,Array(3).fill(['original-run','project-1']));
+});
+test("permanent polling errors still surface and prolonged offline remains unknown",async()=>{
+ const opts={runId:'run-1',projectId:'p',foregroundPollLimit:1,backgroundPollLimit:1,foregroundIntervalMs:0,backgroundIntervalMs:0};
+ await assert.rejects(waitForEntryActionResult({...opts,loadResult:async()=>{throw Object.assign(new Error('forbidden'),{status:403});}}),/forbidden/);
+ assert.deepEqual(await waitForEntryActionResult({...opts,loadResult:async()=>{throw new TypeError('offline');}}),{kind:'timed_out',delayed:true});
+});

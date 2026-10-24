@@ -41,11 +41,15 @@ export async function waitForEntryActionResult(options: WaitForEntryActionResult
 
   for (let attempt = 0; attempt < foregroundPollLimit; attempt += 1) {
     ensureShouldContinue(shouldContinue);
-    const result = await loadResult(runId, projectId);
-    if (isTerminalEntryActionState(result)) {
+    const result = await loadResult(runId, projectId).catch((error: unknown) => {
+      const status = (error as { status?: number } | null)?.status;
+      if (error instanceof TypeError || status === 502 || status === 503 || status === 504) return null;
+      throw error;
+    });
+    if (result && isTerminalEntryActionState(result)) {
       return { kind: "completed", delayed: false, result };
     }
-    await onPendingResult?.(result);
+    if (result) await onPendingResult?.(result);
     if (attempt + 1 < foregroundPollLimit) {
       await delay(foregroundIntervalMs, shouldContinue);
     }
@@ -55,11 +59,15 @@ export async function waitForEntryActionResult(options: WaitForEntryActionResult
 
   for (let attempt = 0; attempt < backgroundPollLimit; attempt += 1) {
     ensureShouldContinue(shouldContinue);
-    const result = await loadResult(runId, projectId);
-    if (isTerminalEntryActionState(result)) {
+    const result = await loadResult(runId, projectId).catch((error: unknown) => {
+      const status = (error as { status?: number } | null)?.status;
+      if (error instanceof TypeError || status === 502 || status === 503 || status === 504) return null;
+      throw error;
+    });
+    if (result && isTerminalEntryActionState(result)) {
       return { kind: "completed", delayed: true, result };
     }
-    await onPendingResult?.(result);
+    if (result) await onPendingResult?.(result);
     if (attempt + 1 < backgroundPollLimit) {
       await delay(backgroundIntervalMs, shouldContinue);
     }

@@ -220,7 +220,6 @@ function TableColumnCellView(
   const frameMeta = resolveCellFrameMeta(columnModel, displayType, value, runtime.tableLayoutMode, runtime.textEditable, textEditingActive);
 
   const protectedField=isTemplateProtectedField(row,columnModel.fieldName,runtime.inlineContext?.templates??[]);
-  if(protectedField)return <TableCellFrame kind="text" layout="top"><pre aria-label="只读生成字段" style={{whiteSpace:'pre-wrap',fontSize:12}}>{typeof value==='string'?value:JSON.stringify(value)}</pre></TableCellFrame>;
   if(columnModel.isTextTemplate){
     const context=runtime.inlineContext;const definition=context?.templates.find(item=>item.field===columnModel.fieldName);
     if(!context||!definition||!value||typeof value!=='object'||Array.isArray(value))return <TableCellFrame kind="text" layout="top"><span style={{opacity:0.5}}>未接入</span></TableCellFrame>;
@@ -275,7 +274,7 @@ function TableColumnCellView(
       <CellRenderer
         cellId={cellId}
         value={value}
-        readonly={columnModel.isReadonly}
+        readonly={columnModel.isReadonly || protectedField}
         readonlyReason={generatedFieldState(row, columnModel.fieldName)?.reason}
         readonlyReady={generatedFieldState(row, columnModel.fieldName)?.ready}
         displayType={displayType}
