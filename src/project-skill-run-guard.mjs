@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import {assertHistoricalRunAllowed} from './historical-disposition.mjs';
 import { readFile } from "node:fs/promises";
 import { loadAutomationProfile } from "./automation-profile.mjs";
 import { loadAutomationBindings } from "./automation-bindings.mjs";
@@ -14,6 +15,7 @@ export function projectSkillCancellationPath(context, runId) {
   return path.join(entryActionsRuntimeDir(context), `${runId}.cancel.json`);
 }
 export async function assertProjectSkillRunCurrent(context, runId) {
+  await assertHistoricalRunAllowed(context,[runId]);
   const handoff = await readFile(entryActionHandoffPath(context, runId), "utf8").then(JSON.parse, (error) => { if (error.code === "ENOENT") return null; throw error; });
   if (!handoff?.projectSkillLifecycle) return;
   const ids = [runId, handoff.projectSkillLifecycle.parentRunId].filter(Boolean);

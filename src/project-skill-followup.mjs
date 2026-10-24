@@ -1,4 +1,6 @@
+import { publicationIsOpen, publicationExistingOperation, publicationObserve } from './publication-window-runtime.mjs';
 import crypto from "node:crypto";
+import {withHistoricalRun,assertHistoricalRunAllowed} from './historical-disposition.mjs';
 import path from "node:path";
 import { mkdir, readFile, readdir } from "node:fs/promises";
 import { atomicWrite, exclusiveCreateLock } from "./atomic-file.mjs";
@@ -27,6 +29,7 @@ export function trackProjectSkillRun(context, runId, completion, terminate) {
 }
 
 export async function cancelProjectSkillEntryAction(context, runId) {
+  await assertHistoricalRunAllowed(context,[runId],{fullInventory:true});
   const handoff = await optionalJson(entryActionHandoffPath(context, runId));
   if (!handoff?.projectSkillLifecycle) throw new Error("Unknown project-skill run");
   await mkdir(entryActionsRuntimeDir(context), { recursive: true });
@@ -37,7 +40,8 @@ export async function cancelProjectSkillEntryAction(context, runId) {
   return { runId, cancelled: true, parentOutputRetained: true };
 }
 
-export async function resumeProjectSkillFollowup({ projectContext, parentRunId, startChild }) {
+async function resumeProjectSkillFollowupImplementation({ projectContext, parentRunId, startChild }) {
+  if (!await publicationIsOpen(projectContext)) return { state:'deferred', code:'PUBLICATION_WINDOW_CLOSED', parentRunId };
   const pathKey = intentPath(projectContext, parentRunId);
   if (ownerClaims.has(pathKey)) return ownerClaims.get(pathKey);
   const work = resume({ projectContext, parentRunId, startChild });
@@ -55,15 +59,21 @@ async function resume({ projectContext, parentRunId, startChild }) {
   if (!spec.on.includes(trigger)) return null;
   const identity = followupIdentity(parentRunId, spec.actionId, handoff.entry);
   const file = intentPath(projectContext, parentRunId);
+  let mutationAdmission;
+  const admitMutation=()=>mutationAdmission??=assertHistoricalRunAllowed(projectContext,[parentRunId],{fullInventory:true});
   let intent = await optionalJson(file);
   if (!intent) {
     intent = { version: 1, parentRunId, actionId: spec.actionId, ...identity, configDigest: handoff.projectSkillLifecycle.configDigest, target: { sourcePath: handoff.entry.sourcePath, collectionPath: handoff.entry.collectionPath, rowId: handoff.entry.rowId }, trigger, state: "pending" };
+    await admitMutation();
     try { await exclusiveCreateLock(file, JSON.stringify(intent)); } catch (error) { if (error.code !== "EEXIST") throw error; intent = await optionalJson(file); }
   }
   if (intent.key !== identity.key || intent.childRunId !== identity.childRunId || intent.configDigest !== handoff.projectSkillLifecycle.configDigest) throw new Error("Followup identity conflict");
-  const save = async (state, details = {}) => { intent = { ...intent, state, ...details }; await atomicWrite(file, JSON.stringify(intent)); return intent; };
+  const save = async (state, details = {}) => { await admitMutation();intent = { ...intent, state, ...details }; await atomicWrite(file, JSON.stringify(intent)); return intent; };
   let childResult = await optionalJson(path.join(entryActionsRuntimeDir(projectContext), `${intent.childRunId}.result.json`));
-  if (childResult) return save("completed", { childOutcome: childResult.outcome, childResultStatus: childResult.resultStatus ?? null });
+  if (childResult) {
+    if(intent.state==='completed'&&intent.childOutcome===childResult.outcome&&intent.childResultStatus===(childResult.resultStatus??null))return intent;
+    return save("completed", { childOutcome: childResult.outcome, childResultStatus: childResult.resultStatus ?? null });
+  }
   if (["completed", "stopped"].includes(intent.state)) return intent;
   try {
     await assertProjectSkillRunCurrent(projectContext, parentRunId);
@@ -78,6 +88,7 @@ async function resume({ projectContext, parentRunId, startChild }) {
       // A different service can own this accepted child. The durable receipt is
       // the cross-process CAS; never cancel or overwrite its live execution.
       if (Number.isSafeInteger(started.ownerPid) && isProcessAlive(started.ownerPid)) return intent;
+      await admitMutation();
       await atomicWrite(projectSkillCancellationPath(projectContext, intent.childRunId), JSON.stringify({ runId: intent.childRunId, reason: "interrupted recovery" }));
       return save("stopped", { code: "PROJECT_SKILL_FOLLOWUP_INTERRUPTED", message: "Child was accepted before restart and has no terminal receipt; explicit retry is required. Parent output is retained." });
     }
@@ -95,6 +106,7 @@ async function resume({ projectContext, parentRunId, startChild }) {
       // Another process won the started-receipt CAS. Its completion owns state.
       return await optionalJson(file);
     }
+    if (error.code === 'PUBLICATION_WINDOW_CLOSED') return save('pending', { code:error.code, deferred:true });
     return save("stopped", { code: error.code ?? "PROJECT_SKILL_FOLLOWUP_FAILED", message: error.message });
   }
 }
@@ -114,4 +126,8 @@ export async function readProjectSkillFollowup(context, runId) { return optional
 
 function isProcessAlive(pid) {
   try { process.kill(pid, 0); return true; } catch (error) { return error.code === "EPERM"; }
+}
+export async function resumeProjectSkillFollowup(input) {
+  const result = await withHistoricalRun(input.projectContext,[input.parentRunId],()=>publicationObserve(input.projectContext, `followup:${input.parentRunId}`, () => resumeProjectSkillFollowupImplementation(input)));
+  return result?.reason === 'publication_window_closed' ? {state:'deferred',code:'PUBLICATION_WINDOW_CLOSED',parentRunId:input.parentRunId} : result;
 }

@@ -313,3 +313,28 @@ test("project-write rejects a project snapshot but permits a standalone prefligh
   });
   assert.deepEqual(profile.rules[0].execution.advancedExecution, { preflightId: "fixture" });
 });
+
+
+test("project-command proposalValidator is versioned, authority-bound and restricted to JSON-only targets", () => {
+  const command={path:'tools/generate.mjs',args:[],readDependencies:[],timeoutMs:1000};
+  const validator={version:1,command:{...command,path:'tools/validate.mjs',readDependencies:['contracts/admission.json']}};
+  const base={id:'compile',label:'Compile',icon:'refresh',enabled:true,targets:[{file:'data/items.json',collection:'$'}],payload:{includeRow:true,includeNeighbors:false},execution:{kind:'project-command',resultPolicy:'proposal',allowConcurrentSave:true,command,proposalValidator:validator},contractId:'fixture.command.v1'};
+  const normalized=validateAutomationProfile({rules:[base]});
+  assert.deepEqual(normalized.rules[0].execution.proposalValidator,validator);
+  const digest=automationProfileRuleDigest(normalized.rules[0]);
+  const changed=structuredClone(base);changed.execution.proposalValidator.command.args=['--strict'];
+  assert.notEqual(automationProfileRuleDigest(validateAutomationProfile({rules:[changed]}).rules[0]),digest);
+  for(const mutate of [
+    v=>v.execution.proposalValidator=null,
+    v=>v.execution.proposalValidator.version=2,
+    v=>v.execution.proposalValidator.required=false,
+    v=>v.execution.proposalValidator.command.path='../escape.mjs',
+    v=>v.execution.proposalValidator.command.path='tools/validate.js',
+    v=>v.execution.proposalValidator.command.readDependencies=['../outside.json'],
+    v=>v.execution.proposalValidator.command.timeoutMs=0,
+    v=>v.execution.proposalValidator.command.shell=true,
+    v=>v.targets[0].file='data/items.csv',
+    v=>v.targets[0].textArtifact={},
+    v=>v.execution.kind='project-skill'
+  ]){const value=structuredClone(base);mutate(value);assert.throws(()=>validateAutomationProfile({rules:[value]}));}
+});

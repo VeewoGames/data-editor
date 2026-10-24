@@ -32,6 +32,7 @@ export function createProjectContext(input = {}) {
   return {
     projectRoot,
     projectId,
+    ...(input.historicalDispositionAnchorId ? {historicalDispositionAnchorId:input.historicalDispositionAnchorId} : {}),
     ...(input.capabilityRegistryOptions ? { capabilityRegistryOptions: { ...input.capabilityRegistryOptions } } : {}),
     dataRoot: input.dataRoot ?? "data",
     dataSources: normalizeDataSources(input.dataSources, input.dataRoot ?? "data"),

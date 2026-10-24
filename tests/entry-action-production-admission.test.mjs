@@ -1,3 +1,4 @@
+import {initializePublicationWindow} from '../src/publication-window-state.mjs';
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import os from "node:os";
@@ -15,7 +16,7 @@ const hash = (value) => crypto.createHash("sha256").update(value, "utf8").digest
 const canonical = (value) => Array.isArray(value) ? `[${value.map(canonical).join(",")}]` : value && typeof value === "object" ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}` : JSON.stringify(value);
 const execFileAsync = promisify(execFile);
 
-test("HTTP exact-artifact admission creates a candidate through the sole group commit service", { timeout: 60_000 }, async (t) => {
+for (const managed of [false,true]) test(`HTTP exact-artifact admission through group commit (managed=${managed})`, { timeout: 60_000 }, async (t) => {
   const project = await mkdtemp(path.join(os.tmpdir(), "data-editor-production-admission-"));
   const registryHome = await mkdtemp(path.join(os.tmpdir(), "data-editor-production-registry-"));
   t.after(() => Promise.all([rm(project, { recursive: true, force: true }), rm(registryHome, { recursive: true, force: true })]));
@@ -55,6 +56,7 @@ test("HTTP exact-artifact admission creates a candidate through the sole group c
   const manifest = { version: 1, kind: "candidate-create", candidateId: "alpha", designSubjectDigest: "d".repeat(64), row: { slug: "alpha", name: "Alpha" }, textArtifact: { afterContent: content, afterDigest: hash(content) }, summary: "Create Alpha" };
   const envelope = `${JSON.stringify({ version: 1, target: { sourcePath: "data/items.json", collectionPath: "items" }, result: manifest })}\n`;
   const projectContext = createProjectContext(project);
+  if (managed) await initializePublicationWindow(projectContext);
   const note = "Designer note, punctuation  原样。\nSecond line.";
   await publishExactArtifact({ projectContext, artifactId: "candidate-alpha", content: envelope, humanNotes: { field: "dev_note", text: note } });
   const skillContent = "# Design\nEpsilon\n";
@@ -108,7 +110,7 @@ test("HTTP exact-artifact admission creates a candidate through the sole group c
   const concurrentResponses = await Promise.all(concurrentRequests.map((item) => item.request()));
   for (let index = 0; index < concurrentResponses.length; index += 1) {
     if (concurrentResponses[index].status === 200) continue;
-    const busy = await concurrentResponses[index].json(); assert.equal(concurrentResponses[index].status, 409); assert.ok(["ENTRY_ACTION_ADMISSION_BUSY", "ENTRY_ACTION_FENCING_ALLOCATOR_BUSY"].includes(busy.code), JSON.stringify(busy));
+    const busy = await concurrentResponses[index].json(); assert.equal(concurrentResponses[index].status, 409, JSON.stringify(busy)); assert.ok(["ENTRY_ACTION_ADMISSION_BUSY", "ENTRY_ACTION_FENCING_ALLOCATOR_BUSY"].includes(busy.code), JSON.stringify(busy));
     const retry = await concurrentRequests[index].request(); const retried = await retry.json(); assert.equal(retry.status, 200, JSON.stringify(retried));
   }
   const afterConcurrent = JSON.parse(await readFile(path.join(project, "data", "items.json"), "utf8")).items;

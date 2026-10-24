@@ -1,8 +1,11 @@
+import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import { resolveResultOnlyStatus, resolveProposalResultStatusDetails, resultOnlyStatuses, proposalResultStatuses } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, writeFile as rawWriteFile } from "node:fs/promises";
+import {withHistoricalFileEffect,withHistoricalScopeEffect,cleanupHistoricalRun} from './historical-disposition.mjs';
+const writeFile=(file,data,options)=>withHistoricalFileEffect(file,null,()=>rawWriteFile(file,data,options));
 import { createWriteStream } from "node:fs";
 import { loadAutomationBindings } from "./automation-bindings.mjs";
 import { loadAutomationProfile } from "./automation-profile.mjs";
@@ -34,7 +37,7 @@ import {loadViewConfig} from './view-config.mjs';
 import {resolveEntryActionDocumentTarget} from './entry-action-document-target.mjs';
 import {canonicalProjectArtifactIdentity} from './canonical-project-artifact-identity.mjs';
 
-export async function startProjectSkillEntryAction({ projectContext, project, request, toolRoot, jobSupervisor, dependencies = {} }) {
+async function startProjectSkillEntryActionImplementation({ projectContext, project, request, toolRoot, jobSupervisor, dependencies = {} }) {
   const [profile, bindings] = await Promise.all([loadAutomationProfile(projectContext), loadAutomationBindings(projectContext)]);
   const action = findAutomationEntryAction(profile, String(request.actionId ?? "").trim());
   if (action.execution?.kind !== "project-skill") throw protocolError("PROJECT_SKILL_EXECUTION_REQUIRED", "Action is not a project-skill.");
@@ -55,7 +58,7 @@ export async function startProjectSkillEntryAction({ projectContext, project, re
   const skill = await readFile(status.skillPath, "utf8");
   const skillDigest = crypto.createHash("sha256").update(skill).digest("hex");
   const runtime = resolveAutomationExecutionConfig({ rule: action, binding, defaults: bindings.defaults }).runtime;
-  const runId = dependencies.followupRunId ?? crypto.randomUUID();
+  const runId = dependencies.followupRunId ?? dependencies.runId ?? crypto.randomUUID();
   const scratch = path.join(os.tmpdir(), `data-editor-project-skill-${runId}`);
   const snapshotRoot = path.join(scratch, "input");
   // Codex workspace-write permits output only below its current workspace.
@@ -195,8 +198,12 @@ async function continueProjectSkillEntryAction(context) {
     await publishProjectSkillTerminal(projectContext, runId, action.id, outcome, error.message ?? String(error), { errorCode: error.code ?? null });
     await copyDiagnostics(eventsPath, entryActionEventsPath(projectContext, runId)).catch(() => {});
     await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId)).catch(() => {});
-    await rm(scratch, { recursive: true, force: true }).catch(() => {});
-    if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
+    if(!String(error?.code).startsWith('HISTORY_')){
+      await cleanupHistoricalRun(async()=>{
+      await rm(scratch, { recursive: true, force: true }).catch(() => {});
+      if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
+      });
+    }
     throw error;
   }
   try {
@@ -248,8 +255,8 @@ async function continueProjectSkillEntryAction(context) {
   } finally {
       await copyDiagnostics(eventsPath, entryActionEventsPath(projectContext, runId)).catch(() => {});
       await copyDiagnostics(diagnosticsPath, entryActionDiagnosticsPath(projectContext, runId)).catch(() => {});
-      await rm(scratch, { recursive: true, force: true }).catch(() => {});
-      if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});
+      await cleanupHistoricalRun(async()=>{await rm(scratch, { recursive: true, force: true }).catch(() => {});
+      if (workspaceMode === "project-write") await rm(outputRoot, { recursive: true, force: true }).catch(() => {});});
   }
 }
 
@@ -315,7 +322,7 @@ async function runPreflight({ binding, workspaceRoot, outputRoot, sourcePath, co
 
 async function runPreflightProcess({ command, args, cwd, timeoutMs, stdoutPath, stderrPath }) {
   const { spawn } = await import("node:child_process");
-  return new Promise((resolve, reject) => {
+  const started=await withHistoricalScopeEffect(()=>({completion:new Promise((resolve, reject) => {
     const stdout = createWriteStream(stdoutPath);
     const stderr = createWriteStream(stderrPath);
     const child = spawn(command, args, { cwd, shell: false, windowsHide: true, stdio: ["ignore", stdout, stderr] });
@@ -323,7 +330,8 @@ async function runPreflightProcess({ command, args, cwd, timeoutMs, stdoutPath, 
     const timer = setTimeout(() => { timedOut = true; child.kill(); }, timeoutMs);
     child.once("error", reject);
     child.once("close", (exitCode) => { clearTimeout(timer); resolve({ exitCode, timedOut }); });
-  });
+  })}));
+  return started.completion;
 }
 
 function resolveProjectSkillResultStatus(result) { return resolveResultOnlyStatus(result); }
@@ -354,3 +362,5 @@ async function copyDiagnostics(sourcePath, targetPath) {
 }
 
 function protocolError(code, message) { return Object.assign(new Error(message), { code, status: 400 }); }
+
+export const startProjectSkillEntryAction = publicationStart(startProjectSkillEntryActionImplementation, input => input.dependencies?.followupRunId ?? input.dependencies?.runId);

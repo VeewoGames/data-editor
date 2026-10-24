@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "projectRoot": "c:/code/nocturnel",
+      "runtime": "c:/code/nocturnel/.data-editor/runtime",
+      "anchorId": "managed-history-e697ab89-159b-4666-9734-3e17cdc5885f",
+      "managedNonReplay": {
+        "contract": "managed-entry-non-replay-v1",
+        "businessFiles": [
+          "data/content/traits.json"
+        ],
+        "deploymentFiles": [
+          {
+            "path": "src/historical-disposition.mjs",
+            "digest": "69a401f8c90ccbb3565f221caaed4b350e68bc2f72466930612b86ebbaa138bd"
+          },
+          {
+            "path": "src/historical-deployment.mjs",
+            "digest": "42410cf4277d09e56b3118f72b73e23e069dab90624b92eed6b6768f1448af6b"
+          },
+          {
+            "path": "src/atomic-file.mjs",
+            "digest": "09fdbd1fdc7fa055e3fa065ab52af724a212cdcea8427ff130d2974dd29979cc"
+          },
+          {
+            "path": "src/field-write-policy.mjs",
+            "digest": "0af519da65b50c189d9f9cf9d353cb196586a58f9b8f735fc9b7a3545a5f10ab"
+          },
+          {
+            "path": "server.mjs",
+            "digest": "b1c4215604e3e94e63c86b1766a519724e6cde54c1bc909e0324761dda2a0a1a"
+          },
+          {
+            "path": "src/automation-profile.mjs",
+            "digest": "820b8b9d95ff97f5a6aeeb35000639cd737b3bfcc77c20765bf228282c582993"
+          },
+          {
+            "path": "src/automation-bindings.mjs",
+            "digest": "b05c7e1a258debd2882ebc63a5c8a13855a6211462eb37555d21a89ec5a0017b"
+          },
+          {
+            "path": "src/durable-identity-coordinator.mjs",
+            "digest": "43972cc05f4ef6b88dc34ae9a136390292b0f7a7cd4bf0131d355cbc30901572"
+          },
+          {
+            "path": "src/entry-action-exact-artifact-store.mjs",
+            "digest": "96eb19156c8c7c815cabc33ac265e4ddf223029b5255358cf4267121ad403dd9"
+          },
+          {
+            "path": "src/entry-action-group-commit.mjs",
+            "digest": "25e0d75ed921696aea5a1e0436a431ee84e2050c1cba6fb21a294494026d4498"
+          },
+          {
+            "path": "src/entry-action-policy-migration.mjs",
+            "digest": "b72d5d13366873e34bc668638824be92836e020ea0e2801f596a994e9060aa07"
+          },
+          {
+            "path": "src/entry-action-proposal-commit.mjs",
+            "digest": "b22ecd9e46dac7f2f939d4c4e389d584aebacc51628cd1d383de18f5b433650e"
+          },
+          {
+            "path": "src/entry-action-recovery.mjs",
+            "digest": "fc0d6ca6399e1a503b90e3f25327fcea1f83f29a799cbe0442cfcf14ccfa72a0"
+          },
+          {
+            "path": "src/entry-actions.mjs",
+            "digest": "a65a22691d4127e059938b2867d4ac93229477f862ddfb1deb6475a3e0770bc9"
+          },
+          {
+            "path": "src/fencing-lock.mjs",
+            "digest": "9b5026bd36ae8503ba790dbd823f88d2f117aee1b5df3ce6d363d803a4fbe5ce"
+          },
+          {
+            "path": "src/job-supervisor.mjs",
+            "digest": "ba19dd9c3358d484f7c0390829c1d1ce3c044fa850f9434dd3d0dcdfb9b4f748"
+          },
+          {
+            "path": "src/project-command-recovery.mjs",
+            "digest": "3a351eace6b1167db168cf5455c967d6e60145ee4c189874455071a65f212d30"
+          },
+          {
+            "path": "src/project-command-runner.mjs",
+            "digest": "6cd73458c6ca32566db31c74e2a54ecd084c96d89fe3000ea9598a6c56419503"
+          },
+          {
+            "path": "src/project-skill-action-service.mjs",
+            "digest": "74211bc0a1543f27a5670f487f940124387c74315732ef534dcf8991304f99eb"
+          },
+          {
+            "path": "src/project-skill-followup.mjs",
+            "digest": "faa5d290c8156c7d389d21d2e1ff9622dd036ea5c6bf337ad7880f6cb250e17c"
+          },
+          {
+            "path": "src/project-skill-run-guard.mjs",
+            "digest": "371f60826bfc3a3b6a8140986563f6273d22d25f18f0c3aab79aa3e132fc1174"
+          },
+          {
+            "path": "src/publication-window-obligations.mjs",
+            "digest": "1865acd1689104bf5be4f06dd0d9f7ecf1761a735e45f01b2939922db4cff670"
+          },
+          {
+            "path": "src/publication-window-runtime.mjs",
+            "digest": "c89eac1d2ec218adf6ee1b92671c15ecdb4a0767a21f7078de46c251d387b073"
+          },
+          {
+            "path": "src/publication-window-state.mjs",
+            "digest": "66c175d0f24aa054b78d0a8b418904e13d0fcd1c382194125bc2bb09110e52d4"
+          }
+        ]
+      }
+    }
+  ]
+}

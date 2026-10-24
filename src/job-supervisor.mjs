@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import {withHistoricalLaunch} from './historical-disposition.mjs';
 import path from "node:path";
 import { execFile, spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -142,7 +143,7 @@ export function createJobSupervisor(options = {}) {
       void stopGeneration(generation, error);
     }, ownershipAckTimeoutMs);
 
-    void writeCommand(generation, {
+    void withHistoricalLaunch(normalized.cwd,()=>writeCommand(generation, {
       type: "start",
       id,
       jobInstanceId,
@@ -151,11 +152,12 @@ export function createJobSupervisor(options = {}) {
       ...(normalized.cwd ? { cwd: normalized.cwd } : {}),
       ...(normalized.testFault ? { testFault: normalized.testFault } : {}),
       ...(normalized.testEvidencePath ? { testEvidencePath: normalized.testEvidencePath } : {}),
-    }).catch((cause) => {
+    })).catch((cause) => {
       if (record.state !== "starting") return;
-      const error = ownershipError("protocol", "Unable to send start command to Job helper.", { cause });
+      const historyRefusal=String(cause?.code).startsWith('HISTORY_');
+      const error = historyRefusal?cause:ownershipError("protocol", "Unable to send start command to Job helper.", { cause });
       failStart(record, error);
-      void stopGeneration(generation, error);
+      if(!historyRefusal)void stopGeneration(generation, error);
     });
 
     const owned = await record.startDeferred.promise;

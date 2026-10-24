@@ -7,6 +7,7 @@ import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
 import { isTerminalEntryActionState, migrateLegacyEntryActionStateRecord, normalizeEntryActionStateRecord } from "./entry-action-state.mjs";
 import { canonicalFileIdentity } from "./canonical-file-identity.mjs";
 import { atomicWrite, exclusiveCreateLock } from "./atomic-file.mjs";
+import {withHistoricalRun,projectHistoricalRunActivity,assertHistoricalRunAllowed} from './historical-disposition.mjs';
 
 export function normalizeEntryActionPath(value, label) {
   const normalized = String(value ?? "").trim().replaceAll("\\", "/");
@@ -130,14 +131,16 @@ async function describeArtifact(targetPath) {
   catch { return { path: targetPath, available: false }; }
 }
 
-export async function writeEntryActionHandoff(projectContextOrRoot, runId, payload) {
+export const writeEntryActionHandoff=(context,runId,payload)=>withHistoricalRun(context,[runId],()=>writeEntryActionHandoffImplementation(context,runId,payload));
+async function writeEntryActionHandoffImplementation(projectContextOrRoot, runId, payload) {
   const targetPath = entryActionHandoffPath(projectContextOrRoot, runId);
   await mkdir(path.dirname(targetPath), { recursive: true });
   await atomicWrite(targetPath, `${JSON.stringify(payload, null, 2)}\n`);
   return targetPath;
 }
 
-export async function writeEntryActionStarted(projectContextOrRoot, runId, payload) {
+export const writeEntryActionStarted=(context,runId,payload)=>withHistoricalRun(context,[runId],()=>writeEntryActionStartedImplementation(context,runId,payload));
+async function writeEntryActionStartedImplementation(projectContextOrRoot, runId, payload) {
   const targetPath = entryActionStartedPath(projectContextOrRoot, runId);
   await mkdir(path.dirname(targetPath), { recursive: true });
   await exclusiveCreateLock(targetPath, `${JSON.stringify(normalizeEntryActionStateRecord(payload), null, 2)}\n`);
@@ -165,7 +168,8 @@ export async function advanceEntryActionPhase(projectContextOrRoot, runId, phase
   return normalized;
 }
 
-export async function publishEntryActionResultIdempotently(projectContextOrRoot, runId, payload) {
+export const publishEntryActionResultIdempotently=(context,runId,payload)=>withHistoricalRun(context,[runId],()=>publishEntryActionResultIdempotentlyImplementation(context,runId,payload));
+async function publishEntryActionResultIdempotentlyImplementation(projectContextOrRoot, runId, payload) {
   const targetPath = entryActionResultPath(projectContextOrRoot, runId);
   const normalized = normalizeEntryActionStateRecord(payload);
   await mkdir(path.dirname(targetPath), { recursive: true });
@@ -215,7 +219,8 @@ export async function migrateLegacyEntryActionStateArtifacts(projectContextOrRoo
       const legacy = JSON.parse(await readFile(targetPath, "utf8"));
       const next = migrateLegacyEntryActionStateRecord(legacy, artifactKind);
       if (!next) continue;
-      await atomicWrite(targetPath, `${JSON.stringify(next, null, 2)}\n`);
+      await assertHistoricalRunAllowed(projectContextOrRoot,[fileName.split('.')[0]],{fullInventory:true});
+      await withHistoricalRun(projectContextOrRoot,[fileName.split('.')[0]],()=>atomicWrite(targetPath, `${JSON.stringify(next, null, 2)}\n`));
       migrated.push(targetPath);
     } catch {
       // Malformed or unknown artifacts remain untouched for manual diagnosis.
@@ -285,7 +290,7 @@ export async function findActiveEntryActionRuns(projectContextOrRoot, sourcePath
       if (!isTerminalEntryActionState(state)) runs.push({ runId: handoff.runId, actionId: handoff?.action?.id ?? null, sourcePath: handoff?.entry?.sourcePath ?? identity.sourcePath, phase: state.phase });
     } catch {}
   }
-  return { canonicalFileKey: identity.canonicalFileKey, runs };
+  return { canonicalFileKey: identity.canonicalFileKey, ...await projectHistoricalRunActivity(context,runs) };
 }
 
 export function matchesEntryActionIdentity(handoff, identity) {

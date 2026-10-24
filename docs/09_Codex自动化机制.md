@@ -63,3 +63,18 @@ Data Editor 的条目级 Codex 自动化仍在安全升级中。当前正式产�
 批次 E 已完成统一提交 coordinator、proposal commit 共用执行器、commit journal 与恢复判定；它没有
 把 proposal 服务接入新任务路由。正式入口仍须完成完整运行时接入、真实项目端到端验证并取得独立
 启用授权，才能解除禁用。
+
+
+## 固定项目命令的可信结果验证（2026-10-22）
+
+本节描述新增的通用 `project-command` 能力，不代表任何项目已启用机制写回。动作可在 `execution` 声明 `proposalValidator: { version: 1, command: { path, args, readDependencies, timeoutMs } }`。声明即必需，不支持 `required: false` 或失败降级。validator与生成命令共用固定 `.mjs` 路径、无shell、参数/超时/输出上限约束；仅支持JSON源且没有textArtifact，其他执行种类/组合写入不接受该声明。
+
+validator程序、读取依赖、动作profile、动作合同和普通保存策略一起纳入authority/accepted snapshot及提交协调锁。服务接受任务时持久捕获原run、action、文件/合集/条目与语言范围；原作者需求来自同一基线完整行。生成器返回的evidence不代替验证。
+
+服务构造stdin：`version:1, kind:"project-command-validation", mode, request, action, beforeRow, afterRow, changes, snapshot, inputDigest, changesDigest`。mode依次覆盖fresh、commit、admit、no_changes、recovery；后两者分别验证before=after满足原请求、原journal重建后像。inputDigest是附加两摘要之前整个输入JSON的SHA256；changesDigest是changes JSON的SHA256。action含合同/规则摘要，snapshot含原请求摘要及各读取输入摘要。服务端先检查动作predicate/字段权限，再由可信项目程序检查嵌套领域差量和语言要求。
+
+程序必须只输出 `version:1, kind:"project-command-validation-result", status:"pass"|"reject", diagnostics:string[], inputDigest, changesDigest`。额外patch、摘要不符、超时、异常或拒绝都不能提交。程序是经批准的可信纯验证程序；普通Node子进程没有只读文件系统沙箱，纯性/禁写须通过代码审查及定向文件不变测试证明，不能将输出校验冒充任意代码隔离。
+
+正常写回在fresh绑定后验证，并在源/依赖共同锁内的latestPrepared及replace前admit再次验证，随后复核输入未变；不得在验证和写入之间释放锁。no_changes同样持锁验证需求已满足后才发布完成。固定项目动作不能借native proposal、project-skill或group入口绕过验证。项目领域规则由项目程序拥有，Editor不内置业务词法或另一份机制事实。
+
+写后丢回执时，原run恢复必须核对原请求与proposal摘要绑定、原程序/依赖、journal和已写后像，再运行同一validator；不再运行生成器或replace。依赖变化/缺上下文/验证失败保留待恢复，不能宣称源文件未写入。文件提交成功与运行系统发布是两个阶段。

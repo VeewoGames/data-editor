@@ -1,0 +1,29 @@
+# Preserve the exact checkout bytes required by historical deployment proofs.
+scripts/historical-deployment-upgrade.mjs text eol=lf
+server.mjs text eol=crlf
+src/atomic-file.mjs text eol=lf
+src/automation-bindings.mjs text eol=lf
+src/automation-profile.mjs text eol=lf
+src/durable-identity-coordinator.mjs text eol=lf
+src/entry-action-exact-artifact-store.mjs text eol=lf
+src/entry-action-group-commit.mjs text eol=crlf
+src/entry-action-policy-migration.mjs text eol=lf
+src/entry-action-proposal-commit.mjs text eol=crlf
+src/entry-action-recovery.mjs text eol=lf
+src/entry-actions.mjs text eol=crlf
+src/fencing-lock.mjs text eol=lf
+src/field-write-policy.mjs text eol=crlf
+src/historical-deployment-successor.mjs text eol=lf
+src/historical-deployment.mjs text eol=crlf
+src/historical-disposition.mjs text eol=crlf
+src/job-supervisor.mjs text eol=lf
+src/project-command-recovery.mjs text eol=crlf
+src/project-command-runner.mjs text eol=crlf
+src/project-skill-action-service.mjs text eol=lf
+src/project-skill-followup.mjs text eol=crlf
+src/project-skill-run-guard.mjs text eol=crlf
+src/publication-window-obligations.mjs text eol=crlf
+src/publication-window-runtime.mjs text eol=crlf
+src/publication-window-state.mjs text eol=crlf
+config/historical-disposition-deployment.json text eol=lf
+config/historical-deployment-upgrades/*.json -text

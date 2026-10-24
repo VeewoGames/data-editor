@@ -1,3 +1,5 @@
+import {assertPublicationFileCommit} from './publication-window-runtime.mjs';
+import {withHistoricalFileRun} from './historical-disposition.mjs';
 import { proposalResultStatusDetails } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import { serializeCsv } from "./csv-codec.mjs";
@@ -170,7 +172,8 @@ export async function commitEntryActionGroup({
     readArtifact,
     writeArtifact,
   });
-  return coordinator.withIdentities([sourceIdentity, artifactIdentity], async () => {
+  return coordinator.withIdentities([sourceIdentity, artifactIdentity], () => withHistoricalFileRun(sourceIdentity.resolvedPath ?? sourceIdentity.canonicalPath,[groupEntry.runId],async () => {
+    await assertPublicationFileCommit(sourceIdentity.resolvedPath ?? sourceIdentity.canonicalPath,groupEntry.runId);
     const existing = await groupJournal.readOptional(groupEntry.idempotencyKey);
     let group;
     if (existing === null) {
@@ -279,7 +282,7 @@ export async function commitEntryActionGroup({
       group = await groupJournal.advance(groupEntry, "result_published");
     }
     return group;
-  });
+  }));
 }
 
 async function resumeChild({ journal, entry, expected, state, beforeWrite, write, read }) {

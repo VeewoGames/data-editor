@@ -1,3 +1,4 @@
+import { withPublicationOperation, publicationExistingOperation, settlePublicationPending } from './publication-window-runtime.mjs';
 import { createProjectContext } from "./project-context.mjs";
 import { resolveInsideRoot } from "./project-context.mjs";
 import crypto from "node:crypto";
@@ -89,13 +90,14 @@ export function createEntryActionRunRoute({
         return { ok: true, status: "queued", runId: started.runId, acceptedAt: started.acceptedAt, phase: started.phase, handoffPath: entryActionHandoffPath(projectContext, started.runId), resultOnly: execution.resultPolicy === "result-only", resultPolicy: execution.resultPolicy };
       }
       if (typeof promoteIdentity !== "function" || typeof resolveCapabilityState !== "function") return start(body);
+      return withPublicationOperation(projectContext, {mode:'new', actionId:body.actionId, pending:true}, async publicationRunId => {
       const capabilityState = await resolveCapabilityState(project);
       // Capability admission is checked before action authority; candidate contract
       // validation is then repeated inside the promotion commit mutex.
       if (capabilityState?.status !== "active") routeError("IDENTITY_PROMOTION_CAPABILITY_UNAVAILABLE", "Capability state is not active for durable identity promotion.", 409);
       await preflightEntryAction({ projectContext, request: body });
       const sourceIdentity = await canonicalFileIdentity(projectContext, body.sourcePath);
-      const runId = crypto.randomUUID();
+      const runId = publicationRunId;
       const jobInstanceId = crypto.randomUUID();
       const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(projectContext.projectRoot, path.join(projectContext.runtimeDir, "entry-action-fencing")) });
       const store = createPendingEntryActionStore({ projectContext });
@@ -130,6 +132,7 @@ export function createEntryActionRunRoute({
         idempotencyKey, receipt: promotion.receipt, runId, jobInstanceId, lease,
       });
       return { ok: true, status: "promotion_pending", pendingActionToken: pending.token, receipt: promotion.receipt, identityCreated: promotion.identityCreated === true, root: promotion.root, format: promotion.format, documentEtag: promotion.documentEtag };
+      });
     },
     async ackStart(body) {
       const token = String(body?.pendingActionToken ?? "").trim();
@@ -138,6 +141,7 @@ export function createEntryActionRunRoute({
       const store = createPendingEntryActionStore({ projectContext });
       const pending = await store.read(token);
       if (!pending || pending.projectId !== project.id) routeError("ENTRY_ACTION_PENDING_TOKEN_UNKNOWN", "Pending action token is unavailable.", 404);
+      return publicationExistingOperation(projectContext,pending.runId,async () => {
       if (pending.state === "started") return { ok: true, status: "started", runId: pending.runId, handoffPath: pending.handoffPath, replayed: true };
       const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(projectContext.projectRoot, path.join(projectContext.runtimeDir, "entry-action-fencing")) });
       if (pending.state !== "pending" || store.isExpired(pending)) {
@@ -161,7 +165,9 @@ export function createEntryActionRunRoute({
         throw error;
       }
       await store.write({ ...pending, state: "started", startedAt: new Date().toISOString(), runId: started.runId, handoffPath: started.handoffPath });
+      await settlePublicationPending(projectContext,pending.runId);
       return started;
+      });
     },
   };
 }

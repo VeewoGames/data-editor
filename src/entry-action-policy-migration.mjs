@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import {assertHistoricalRecoveredRun} from './historical-disposition.mjs';
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createProjectContext } from "./project-context.mjs";
@@ -8,6 +9,7 @@ import { validateAutomationProfile } from "./automation-profile.mjs";
 // This is intentionally a one-way, fail-closed migration. Runtime never reads policy.
 export async function migrateLegacyEntryActionPolicy(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
+  await assertHistoricalRecoveredRun(context,null);
   const policyText = await readFile(context.entryActionPolicyPath, "utf8").catch((error) => error?.code === "ENOENT" ? null : Promise.reject(error));
   if (policyText === null) return { status: "absent" };
   const profileText = await readFile(context.automationProfilePath, "utf8").catch((error) => error?.code === "ENOENT" ? "{\"rules\":[]}" : Promise.reject(error));

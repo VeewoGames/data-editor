@@ -1,4 +1,5 @@
 import path from "node:path";
+import {assertHistoricalRunAllowed} from '../src/historical-disposition.mjs';
 import { spawnSync } from "node:child_process";
 import { claimFencingAdmission, classifyRecoveryCommand, finalizeClaimedRecovery, inspectFencingRecovery, recoverClaim, releaseClaimedAdmission, writeCompletedRecoveryRecord } from "../src/entry-action-recovery.mjs";
 import { createProjectContext } from "../src/project-context.mjs";
@@ -18,6 +19,7 @@ const value = (name) => { const i=args.indexOf(name); return i < 0 ? null : args
 const project = value("--project"), runId = value("--run-id");
 if (!project || !runId || !["inspect", "recover"].includes(command)) fail(2, "RECOVERY_ARGUMENT_INVALID");
 const projectContext = createProjectContext(path.resolve(project));
+if(command==='recover')await assertHistoricalRunAllowed(projectContext,[runId]).catch(error=>fail(2,error.code??error.message));
 const commandHandoff = await readFile(entryActionHandoffPath(projectContext, runId), "utf8").then(JSON.parse).catch(error => { if (error.code === "ENOENT") return null; throw error; });
 if (commandHandoff?.action?.execution?.kind === "project-command") {
   try {

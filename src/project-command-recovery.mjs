@@ -1,3 +1,5 @@
+import {assertHistoricalRunAllowed} from './historical-disposition.mjs';
+import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { serviceProcessIsAlive } from "./service-process-identity.mjs";
@@ -17,12 +19,14 @@ import { serializeCsv } from "./csv-codec.mjs";
 import { readTextFile } from "./file-service.mjs";
 import { withProjectProcessLock } from "./project-process-lock.mjs";
 
+import { validateProjectCommandResult } from "./project-command-validator.mjs";
+
 const pending = new Map();
 const optional = async operation => { try { return await operation(); } catch (error) { if (error.code === "ENOENT") return null; throw error; } };
 
 // All observers of a run share one recovery operation; the durable fencing
 // claim and document coordinator also protect against another service process.
-export async function recoverProjectCommandRun(context, runId, coordinator = createDocumentCommitCoordinator()) {
+async function recoverProjectCommandRunImplementation(context, runId, coordinator = createDocumentCommitCoordinator()) {
   const key = entryActionHandoffPath(context, runId);
   if (pending.has(key)) return pending.get(key);
   const handoff = await optional(async () => JSON.parse(await readFile(key, "utf8")));
@@ -46,17 +50,18 @@ async function recover(context, runId, coordinator) {
   const stateRoot = path.join(context.projectRoot, context.runtimeDir, "entry-action-fencing");
   const lease = await findFencingLeaseByRunId(stateRoot, runId);
   if (!lease) {
-    if (!terminal) await interrupted(context, handoff);
+    if (!terminal) {await assertHistoricalRunAllowed(context,[runId],{fullInventory:true});await interrupted(context, handoff);}
     return { recovered: true };
   }
   if (await readCompletedRecoveryRecord({ stateRoot, lease })) {
     const completedClaim = await findExistingRecoveryClaim(stateRoot, lease);
-    if (completedClaim) { await releaseClaimedAdmission(completedClaim); await finalizeClaimedRecovery(completedClaim); }
+    if (completedClaim) { await assertHistoricalRunAllowed(context,[runId],{fullInventory:true});await releaseClaimedAdmission(completedClaim); await finalizeClaimedRecovery(completedClaim); }
     return { recovered: true };
   }
   const currentLease = await readCurrentFencingAdmission(stateRoot, lease.canonicalFileKey);
   const existingClaim = await findExistingRecoveryClaim(stateRoot, lease);
   if (terminal && !existingClaim && (!currentLease || currentLease.runId !== runId)) return { recovered: false, reason: "already_terminal" };
+  await assertHistoricalRunAllowed(context,[runId],{fullInventory:true});
   const claim = await claimFencingAdmission({ stateRoot, lease });
   const release = async () => {
     await releaseClaimedAdmission(claim);
@@ -81,6 +86,7 @@ async function recover(context, runId, coordinator) {
     const profile = await loadAutomationProfile(context);
     const action = findAutomationEntryAction(profile, handoff.action.id);
     const baseline = await restoreProjectCommandSnapshot(context, handoff.projectCommand.baseline, action);
+    if (action.execution.proposalValidator && (proposal.textArtifact || handoff.projectCommand.requestBinding?.requestContextDigest !== baseline.requestContextDigest || handoff.projectCommand.requestBinding?.proposalDigest !== commandDigest(JSON.stringify(proposal)))) throw commandError("PROJECT_COMMAND_RECOVERY_REQUEST_BINDING_INVALID");
     await coordinator.withIdentities(await projectCommandCommitIdentities(context, baseline), async () => {
       await verifyRecoveryClaim({ stateRoot, lease, ...claim });
       await assertProjectCommandDependencies(context, baseline);
@@ -98,6 +104,9 @@ async function recover(context, runId, coordinator) {
       });
       const expected = format === "csv" ? serializeCsv(prepared.root) : serializeJson(prepared.root);
       if (commandDigest(expected) !== entry.afterDigest || commandDigest(current) !== entry.afterDigest) throw commandError("PROJECT_COMMAND_RECOVERY_AFTER_MISMATCH");
+      await validateProjectCommandResult({ context, action, baseline, runId, mode: "recovery", proposal, changes: proposal.changes, afterRoot: prepared.root });
+      await assertProjectCommandDependencies(context, baseline);
+      if (commandDigest(await readTextFile(context, handoff.entry.sourcePath)) !== entry.afterDigest) throw commandError("PROJECT_COMMAND_RECOVERY_AFTER_MISMATCH");
       if (entry.stage === "commit_intent") entry = await journal.advance(entry, "source_replaced");
       if (entry.stage === "source_replaced") entry = await journal.advance(entry, "verified");
       await publishEntryActionResultIdempotently(context, runId, { version: 2, runId, actionId: proposal.actionId, phase: "terminal", outcome: "completed_with_writeback", message: proposal.summary, ...proposalResultStatusDetails(proposal) });
@@ -112,3 +121,5 @@ async function recover(context, runId, coordinator) {
 async function interrupted(context, handoff) {
   await publishEntryActionResultIdempotently(context, handoff.runId, { version: 2, runId: handoff.runId, actionId: handoff.action.id, phase: "terminal", outcome: "failed", message: "生成服务已中断，编辑内容已保留，请重新生成正式描述。" });
 }
+
+export const recoverProjectCommandRun = async (context, runId, coordinator, options = {}) => options.observer ? publicationObserve(context,runId,() => recoverProjectCommandRunImplementation(context,runId,coordinator)) : publicationRecovery(input => recoverProjectCommandRunImplementation(context,runId,input.documentCommitCoordinator))({projectContext:context,runId,documentCommitCoordinator:coordinator});

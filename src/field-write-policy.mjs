@@ -1,3 +1,4 @@
+import {projectHistoricalRunActivity} from './historical-disposition.mjs';
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { buildDocumentModel, getRows } from "./document-model.mjs";
@@ -11,7 +12,12 @@ export async function loadFieldWritePolicy(context) {
   const value = JSON.parse(text);
   if (value?.version !== 1 || Object.keys(value).sort().join(",") !== "policies,version" || !Array.isArray(value.policies)) throw invalid("Invalid field write policy");
   for (const policy of value.policies) {
-    if (!policy || Object.keys(policy).sort().join(",") !== "collection,fields,file,requiresFields" || typeof policy.file !== "string" || !policy.file || policy.file.includes("..") || typeof policy.collection !== "string" || !policy.collection || !Array.isArray(policy.fields) || !policy.fields.length || !Array.isArray(policy.requiresFields) || [...policy.fields, ...policy.requiresFields].some(field => typeof field !== "string" || !field || ["__proto__", "constructor", "prototype"].includes(field))) throw invalid("Invalid field write policy target");
+    if (!policy || Object.keys(policy).filter(key => key !== "rowSelector").sort().join(",") !== "collection,fields,file,requiresFields" || typeof policy.file !== "string" || !policy.file || policy.file.includes("..") || typeof policy.collection !== "string" || !policy.collection || !Array.isArray(policy.fields) || !policy.fields.length || !Array.isArray(policy.requiresFields) || [...policy.fields, ...policy.requiresFields].some(field => typeof field !== "string" || !field || ["__proto__", "constructor", "prototype"].includes(field))) throw invalid("Invalid field write policy target");
+    if (Object.hasOwn(policy, "rowSelector")) {
+      const selector = policy.rowSelector;
+      if (!selector || Object.keys(selector).sort().join(",") !== "primaryKeyField,values" || typeof selector.primaryKeyField !== "string" || !selector.primaryKeyField || ["__proto__", "constructor", "prototype"].includes(selector.primaryKeyField)
+        || !Array.isArray(selector.values) || !selector.values.length || selector.values.some(value => !(typeof value === "string" && value.length > 0) && !Number.isSafeInteger(value)) || new Set(selector.values).size !== selector.values.length) throw invalid("Invalid field write policy row selector");
+    }
   }
   return value;
 }
@@ -21,6 +27,10 @@ export async function assertOrdinarySaveFieldPolicy({ context, sourcePath, befor
   for (const item of policy.policies.filter(item => item.file === sourcePath)) {
     const before = getRows(buildDocumentModel(beforeRoot, "json", sourcePath), item.collection);
     const after = getRows(buildDocumentModel(afterRoot, "json", sourcePath), item.collection);
+    if (item.rowSelector) {
+      assertSelectedRows(item, before, after);
+      continue;
+    }
     const guarded = row => item.requiresFields.every(field => Object.hasOwn(row, field));
     const ids = new Map();
     for (const row of before) {
@@ -43,8 +53,37 @@ export async function assertOrdinarySaveFieldPolicy({ context, sourcePath, befor
   }
 }
 
+// Precise admission must survive both pre- and post-image checks. A protected
+// row cannot be removed/recreated under a new identity by an ordinary save.
+function assertSelectedRows(item, before, after) {
+  const { primaryKeyField, values } = item.rowSelector;
+  const selectedKeys = new Set(values);
+  const selected = row => selectedKeys.has(row[primaryKeyField]);
+  const forbidden = field => Object.assign(invalid(`字段 ${field} 或条目身份由条目动作维护，普通保存不可修改。`, field), { code: "FIELD_WRITE_POLICY_FORBIDDEN" });
+  for (const rows of [before, after]) {
+    const ids = new Set(), keys = new Set();
+    const counts = new Map();
+    for (const row of rows) counts.set(row.__entry_id, (counts.get(row.__entry_id) ?? 0) + 1);
+    for (const row of rows.filter(selected)) {
+      if (typeof row.__entry_id !== "string" || !row.__entry_id || ids.has(row.__entry_id) || keys.has(row[primaryKeyField]) || counts.get(row.__entry_id) !== 1) throw invalid("Selected rows require unique durable and primary identity");
+      ids.add(row.__entry_id); keys.add(row[primaryKeyField]);
+    }
+  }
+  const protectedIds = new Set([...before.filter(selected), ...after.filter(selected)].map(row => row.__entry_id));
+  const beforeById = new Map(before.map(row => [row.__entry_id, row]));
+  const afterById = new Map(after.map(row => [row.__entry_id, row]));
+  for (const id of protectedIds) {
+    const old = beforeById.get(id), row = afterById.get(id);
+    if (!old || !row || !equal(old[primaryKeyField], row[primaryKeyField])) throw forbidden(primaryKeyField);
+    for (const field of item.requiresFields) if (!Object.hasOwn(old, field) || !Object.hasOwn(row, field)) throw forbidden(field);
+    for (const field of item.fields) if (Object.hasOwn(old, field) !== Object.hasOwn(row, field) || !equal(old[field], row[field])) throw forbidden(field);
+  }
+}
+
 /** Both the accepted run and the current declaration must explicitly opt in. */
 export async function ordinarySaveBlockingRuns(context, runs) {
+  if (!runs.length) return [];
+  ({runs}=await projectHistoricalRunActivity(context,runs));
   if (!runs.length) return [];
   const profile = await loadAutomationProfile(context);
   const blocked = [];

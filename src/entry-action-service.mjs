@@ -1,3 +1,4 @@
+import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import { validateEntryActionProposal } from "./entry-action-proposal.mjs";
 import { proposalResultStatusDetails, resolveProposalResultStatusDetails } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
@@ -60,9 +61,10 @@ import { resolveInsideRoot } from "./project-context.mjs";
 import { rowDigest } from "./row-digest.mjs";
 import { loadViewConfig } from "./view-config.mjs";
 import {assertProjectSkillRunCurrent} from './project-skill-run-guard.mjs';
-import { assertProjectCommandSnapshot, projectCommandCommitIdentities, commandError } from "./project-command-snapshot.mjs";
+import { validateProjectCommandResult } from "./project-command-validator.mjs";
+import { assertProjectCommandSnapshot, projectCommandCommitIdentities, commandError, commandDigest } from "./project-command-snapshot.mjs";
 
-export async function startProposalOnlyEntryAction({
+async function startProposalOnlyEntryActionImplementation({
   projectContext,
   project,
   request,
@@ -82,6 +84,7 @@ export async function startProposalOnlyEntryAction({
     loadEntryActionContracts(projectContext),
   ]);
   const action = findAutomationEntryAction(profile, actionId);
+  if (action.execution.proposalValidator) throw commandError("PROJECT_COMMAND_VALIDATOR_ROUTE_UNSUPPORTED");
   const contract = resolveEntryActionContract(contractRegistry, action.contractId);
   if (action.execution?.resultPolicy !== "proposal" || contract.resultPolicy !== "proposal") protocolError("ENTRY_ACTION_RESULT_POLICY_INVALID", "Proposal entry action requires proposal result policy.", 409);
   const binding = resolveAutomationEntryActionBinding(bindings, action.id);
@@ -248,7 +251,7 @@ export async function startProposalOnlyEntryAction({
 }
 
 /** Fresh server-side admission for a proposal produced outside the proposal host. */
-export async function submitFreshEntryActionProposal({
+async function submitFreshEntryActionProposalImplementation({
   projectContext,
   project,
   request,
@@ -331,6 +334,7 @@ export async function submitFreshEntryActionProposal({
     entry: { ...acceptedHandoff?.entry, ...handoff.entry },
     // Preserve accepted-run provenance and clock, but bind only fresh authority.
     authority: authoritySnapshot,
+    ...(action.execution.proposalValidator ? { projectCommand: { ...acceptedHandoff.projectCommand, requestBinding: { requestContextDigest: dependencies.projectCommandBaseline.requestContextDigest, proposalDigest: commandDigest(JSON.stringify(proposal)) } } } : {}),
   });
   if (dependencies.runId) {
     // Keep the original acceptedAt/startedAt as the lifecycle's only clock.
@@ -348,6 +352,10 @@ export async function submitFreshEntryActionProposal({
   }
   let keepLease = false;
   try {
+    if (action.execution.proposalValidator) {
+      if (authoritySnapshot.textArtifact || proposal.textArtifact) throw commandError("PROJECT_COMMAND_VALIDATOR_ROUTE_UNSUPPORTED");
+      await validateProjectCommandResult({ context: projectContext, action, baseline: dependencies.projectCommandBaseline, runId, mode: "fresh", proposal, changes: proposal.changes });
+    }
     assertEntryActionResultPolicies(contract, { textArtifact: proposal.textArtifact, evidence });
     if (dependencies.runId) await assertProjectSkillRunCurrent(projectContext,runId);
     await publishEntryActionProposal({ directory: path.dirname(entryActionProposalPath(projectContext, runId)), runId, exitCode: 0, proposal });
@@ -370,7 +378,7 @@ export async function submitFreshEntryActionProposal({
   }
 }
 
-export async function recoverProposalOnlyEntryActionGroup({
+async function recoverProposalOnlyEntryActionGroupImplementation({
   projectContext,
   runId,
   recoveryLease,
@@ -383,6 +391,8 @@ export async function recoverProposalOnlyEntryActionGroup({
     protocolError("ENTRY_ACTION_RECOVERY_OWNERSHIP_CHANGED", "Recovery ownership does not match the group journal.", 503);
   }
   const proposal = JSON.parse(await readFile(entryActionProposalPath(projectContext, runId), "utf8"));
+  const recoveryAction = findAutomationEntryAction(await loadAutomationProfile(projectContext), proposal.actionId);
+  if (recoveryAction.execution.proposalValidator) throw commandError("PROJECT_COMMAND_VALIDATOR_ROUTE_UNSUPPORTED");
   validateEntryActionProposal(proposal);
   if (digest(JSON.stringify(proposal)) !== group.proposalDigest) protocolError("ENTRY_ACTION_RECOVERY_PROPOSAL_INVALID", "Proposal digest differs from the recovery journal.", 409);
   if ((proposal.resultStatus ?? null) !== (group.resultStatus ?? null)) protocolError("ENTRY_ACTION_RECOVERY_RESULT_STATUS_INVALID", "Proposal and journal result statuses differ.", 409);
@@ -557,6 +567,7 @@ async function commitProposal(context, proposal) {
     sourceIdentity,
     evidence = [],
   } = context;
+  if (action.execution.proposalValidator && (!context.projectCommandBaseline || proposal.textArtifact)) throw commandError("PROJECT_COMMAND_VALIDATOR_ROUTE_UNSUPPORTED");
   await advanceEntryActionPhase(projectContext, proposal.runId, "committing");
   const currentDocumentText = await readTextFile(projectContext, proposal.sourcePath);
   const artifactState = await readArtifactState(projectContext, proposal.textArtifact);
@@ -616,7 +627,9 @@ async function commitProposal(context, proposal) {
         probeLease: (value) => allocator.probe(value),
         evidence,
       });
+      await validateProjectCommandResult({ context: projectContext, action: latestAction, baseline: context.projectCommandBaseline, runId: proposal.runId, mode: "commit", proposal, changes: proposal.changes, afterRoot: latestPrepared.root });
       await commitEntryActionProposal({
+        projectContext,
         journal: childJournal,
         prepared: latestPrepared,
         lease,
@@ -624,6 +637,8 @@ async function commitProposal(context, proposal) {
         writeText: (text) => writeTextFile(projectContext, proposal.sourcePath, text),
         readText: () => readTextFile(projectContext, proposal.sourcePath),
         admit: async () => {
+          if (context.projectCommandBaseline) await assertProjectCommandSnapshot(projectContext, context.projectCommandBaseline, await readTextFile(projectContext, proposal.sourcePath));
+          await validateProjectCommandResult({ context: projectContext, action: latestAction, baseline: context.projectCommandBaseline, runId: proposal.runId, mode: "admit", proposal, changes: proposal.changes, afterRoot: latestPrepared.root });
           if (context.projectCommandBaseline) await assertProjectCommandSnapshot(projectContext, context.projectCommandBaseline, await readTextFile(projectContext, proposal.sourcePath));
         },
         publishResult: () => publishEntryActionResultIdempotently(projectContext, proposal.runId, terminal),
@@ -826,3 +841,9 @@ function sameRecoveryOwnership(left, right) {
 function recoveryError(error) { return String(error?.code ?? "").includes("RECOVERY") || String(error?.code ?? "").includes("OWNERSHIP"); }
 function conflictError(error) { return String(error?.code ?? "").includes("STALE") || String(error?.code ?? "").includes("CONFLICT") || String(error?.code ?? "").includes("MISMATCH"); }
 function protocolError(code, message, status = 400) { throw Object.assign(new Error(message), { code, status }); }
+
+export const startProposalOnlyEntryAction = publicationStart(startProposalOnlyEntryActionImplementation);
+
+export const submitFreshEntryActionProposal = publicationSubmit(submitFreshEntryActionProposalImplementation);
+
+export const recoverProposalOnlyEntryActionGroup = publicationRecovery(recoverProposalOnlyEntryActionGroupImplementation);

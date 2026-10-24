@@ -1,3 +1,5 @@
+import {assertPublicationCommitScope} from './publication-window-runtime.mjs';
+import {withHistoricalRun} from './historical-disposition.mjs';
 import { proposalResultStatusDetails } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import { assertAuthorityCurrent } from "./entry-action-authority.mjs";
@@ -76,14 +78,14 @@ export async function prepareEntryActionProposalCommit({
 }
 
 /** Executes the already-authorized JSON proposal through the same durable journal as document saves. */
-export async function commitEntryActionProposal({ journal, prepared, lease, documentText, writeText, readText, publishResult, admit = async () => {} }) {
+export async function commitEntryActionProposal({ projectContext, journal, prepared, lease, documentText, writeText, readText, publishResult, admit = async () => {} }) {
   if (prepared.textArtifact !== null) fail("ENTRY_ACTION_GROUP_COMMIT_REQUIRED");
   const afterText = prepared.format === "csv" ? serializeCsv(prepared.root) : serializeJson(prepared.root);
   const entry = createProposalCommitJournalEntry({ proposal: prepared.proposal, lease, documentText, afterText });
-  await executeJournaledDocumentCommit({
+  const execute = () => executeJournaledDocumentCommit({
     journal,
     entry,
-    admit,
+    admit: async () => {await assertPublicationCommitScope(projectContext,prepared.proposal.runId);await admit();},
     replace: () => writeText(afterText),
     verify: async () => {
       const persisted = await readText();
@@ -91,6 +93,7 @@ export async function commitEntryActionProposal({ journal, prepared, lease, docu
     },
     publishResult: () => publishResult({ runId: entry.runId, ...proposalResultStatusDetails(entry) }),
   });
+  if(projectContext)await withHistoricalRun(projectContext,[prepared.proposal.runId],execute);else await execute();
   return { entry, documentEtag: entry.newEtag };
 }
 

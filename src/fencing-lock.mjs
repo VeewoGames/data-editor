@@ -8,6 +8,8 @@
  * lock. Its owner is attested by the separate admission head, so B5 may claim
  * the directory with one rename to a unique, absent target without overwriting.
  */
+import { withManagedFencingState } from './publication-window-fencing.mjs';
+import {withHistoricalFileEffect} from './historical-disposition.mjs';
 import crypto from "node:crypto";
 import path from "node:path";
 import { mkdir, readFile, readdir, rm, rmdir, stat } from "node:fs/promises";
@@ -39,7 +41,7 @@ export function createFencingAllocator({ stateRoot, now = () => new Date().toISO
   const root = requireAbsolutePath(stateRoot, "stateRoot");
   if (typeof now !== "function" || typeof randomUUID !== "function") throw new TypeError("now and randomUUID must be functions.");
 
-  return Object.freeze({
+  const methods = {
     allocate: (input) => allocate(root, input, { now, randomUUID }),
     reservePromotion: (input) => reservePromotion(root, input, { now, randomUUID }),
     activatePromotion: (lease) => activatePromotion(root, lease),
@@ -50,7 +52,9 @@ export function createFencingAllocator({ stateRoot, now = () => new Date().toISO
     markEvidencePending: (lease) => markEvidencePending(root, lease, { now }),
     persistOwnedEvidence: (lease, evidence) => persistOwnedEvidence(root, lease, evidence, { now }),
     release: (lease) => release(root, lease),
-  });
+  };
+  return Object.freeze(Object.fromEntries(Object.entries(methods).map(([name, operation]) => [name, (...args) =>
+    name === 'probe' ? withManagedFencingState(root,args[0]?.canonicalFileKey,() => operation(...args)) : withHistoricalFileEffect(path.join(root,'_guard'),args[0],()=>withManagedFencingState(root,args[0]?.canonicalFileKey,() => operation(...args)))])));
 }
 
 async function allocate(root, input, deps) {

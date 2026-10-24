@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { withHistoricalFileEffect } from './historical-disposition.mjs';
 import path from "node:path";
 import { open, rename, rm } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
@@ -16,7 +17,8 @@ const defaultOps = {
   randomUUID: () => crypto.randomUUID(),
 };
 
-export async function exclusiveCreateLock(lockPath, payload, options = {}) {
+export const exclusiveCreateLock = (lockPath,payload,options={}) => withHistoricalFileEffect(lockPath,payload,()=>exclusiveCreateLockImplementation(lockPath,payload,options));
+async function exclusiveCreateLockImplementation(lockPath, payload, options = {}) {
   const ops = resolveOps(options);
   let handle;
   let created = false;
@@ -52,7 +54,8 @@ export async function exclusiveCreateLock(lockPath, payload, options = {}) {
   }
 }
 
-export async function atomicReplace(sourcePath, targetPath, options = {}) {
+export const atomicReplace = (sourcePath,targetPath,options={}) => withHistoricalFileEffect(targetPath,null,()=>atomicReplaceImplementation(sourcePath,targetPath,options));
+async function atomicReplaceImplementation(sourcePath, targetPath, options = {}) {
   assertSameDirectoryAndVolume(sourcePath, targetPath);
   const ops = resolveOps(options);
   const maxRetries = readNonNegativeInteger(options.maxRetries, defaultAtomicReplaceOptions.maxRetries, "maxRetries");
@@ -71,7 +74,8 @@ export async function atomicReplace(sourcePath, targetPath, options = {}) {
   }
 }
 
-export async function atomicWrite(targetPath, data, options = {}) {
+export const atomicWrite = (targetPath,data,options={}) => withHistoricalFileEffect(targetPath,data,()=>atomicWriteImplementation(targetPath,data,options));
+async function atomicWriteImplementation(targetPath, data, options = {}) {
   const ops = resolveOps(options);
   const resolvedTarget = path.resolve(targetPath);
   const tempPath = path.join(
@@ -90,7 +94,7 @@ export async function atomicWrite(targetPath, data, options = {}) {
     closeAttempted = true;
     await handle.close();
     closed = true;
-    await atomicReplace(tempPath, resolvedTarget, { ...options, ops });
+    await atomicReplaceImplementation(tempPath, resolvedTarget, { ...options, ops });
   } catch (primaryError) {
     const cleanupErrors = [];
     if (handle && !closed && !closeAttempted) {

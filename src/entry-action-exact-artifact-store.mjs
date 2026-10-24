@@ -1,4 +1,6 @@
+import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import crypto from "node:crypto";
+import {assertHistoricalRunAllowed,withHistoricalFileEffect} from './historical-disposition.mjs';
 import path from "node:path";
 import { link, mkdir, readFile, rm } from "node:fs/promises";
 import { atomicWrite } from "./atomic-file.mjs";
@@ -7,7 +9,7 @@ import { resolveInsideRoot } from "./project-context.mjs";
 const ID = /^[A-Za-z0-9._-]+$/;
 const DIGEST = /^[0-9a-f]{64}$/;
 
-export async function publishExactArtifact({ projectContext, artifactId, content, humanNotes = null }) {
+async function publishExactArtifactImplementation({ projectContext, artifactId, content, humanNotes = null }) {
   assertId(artifactId); if (typeof content !== "string") fail("EXACT_ARTIFACT_CONTENT_INVALID");
   const directory = root(projectContext); await mkdir(directory, { recursive: true });
   const artifactDigest = digest(content);
@@ -51,11 +53,18 @@ async function publishImmutableFile(targetPath, content) {
   const temporaryPath = `${targetPath}.${crypto.randomUUID()}.publish`;
   try {
     await atomicWrite(temporaryPath, content);
-    try { await link(temporaryPath, targetPath); }
-    catch (error) {
-      if (error?.code !== "EEXIST") throw error;
-      if (await readFile(targetPath, "utf8") !== content) fail("EXACT_ARTIFACT_IDEMPOTENCY_CONFLICT");
-    }
+    await withHistoricalFileEffect(targetPath,null,async()=>{
+      try { await link(temporaryPath, targetPath); }
+      catch (error) {
+        if (error?.code !== "EEXIST") throw error;
+        if (await readFile(targetPath, "utf8") !== content) fail("EXACT_ARTIFACT_IDEMPOTENCY_CONFLICT");
+      }
+    });
   } finally { await rm(temporaryPath, { force: true }).catch(() => {}); }
 }
 function fail(code) { throw Object.assign(new Error(code), { code, status: 409 }); }
+
+export const publishExactArtifact = async input => {
+  await assertHistoricalRunAllowed(input.projectContext,[input.runId].filter(Boolean));
+  return publicationExistingOperation(input.projectContext,input.runId,()=>publishExactArtifactImplementation(input));
+};

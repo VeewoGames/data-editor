@@ -1,10 +1,12 @@
 import crypto from "node:crypto";
+import {withHistoricalFileEffect} from './historical-disposition.mjs';
 import path from "node:path";
 import { mkdir, readFile, rename, rmdir, stat, unlink } from "node:fs/promises";
 import { exclusiveCreateLock } from "./atomic-file.mjs";
 import { fencingLayoutForRecovery, findFencingLeaseByRunId, readCurrentFencingAdmission, readFencingOwnedEvidence } from "./fencing-lock.mjs";
 /** Strict recovery classification and claim-first primitive. */
-export async function claimAdmissionLock({ fixedPath, quarantineRoot, randomUUID = crypto.randomUUID }) {
+export const claimAdmissionLock = input => withHistoricalFileEffect(input.fixedPath,null,()=>claimAdmissionLockImplementation(input));
+async function claimAdmissionLockImplementation({ fixedPath, quarantineRoot, randomUUID = crypto.randomUUID }) {
   const claimDirectory = path.join(quarantineRoot, randomUUID());
   await mkdir(quarantineRoot, { recursive: true });
   await mkdir(claimDirectory, { recursive: false });
@@ -12,7 +14,8 @@ export async function claimAdmissionLock({ fixedPath, quarantineRoot, randomUUID
   await rename(fixedPath, claimedPath);
   return { claimDirectory, claimedPath };
 }
-export async function claimFencingAdmission({ stateRoot, lease, randomUUID = crypto.randomUUID }) {
+export const claimFencingAdmission = input => withHistoricalFileEffect(path.join(input.stateRoot,'_guard'),input.lease,()=>claimFencingAdmissionImplementation(input));
+async function claimFencingAdmissionImplementation({ stateRoot, lease, randomUUID = crypto.randomUUID }) {
   const existing = await findExistingRecoveryClaim(stateRoot, lease);
   if (existing) {
     if (existing.lockPresent) return existing;
@@ -89,10 +92,12 @@ export async function recoverClaim({ inspection, releaseClaim, writeCompletedRec
   await writeCompletedRecord();
   return { exitCode: 0, decision: "completed", outcome: "recovered", released: true };
 }
-export async function releaseClaimedAdmission({ claimDirectory, claimedPath }) {
+export const releaseClaimedAdmission = input => withHistoricalFileEffect(input.claimedPath,null,()=>releaseClaimedAdmissionImplementation(input));
+async function releaseClaimedAdmissionImplementation({ claimDirectory, claimedPath }) {
   await rmdir(claimedPath).catch((error) => { if (error?.code !== "ENOENT") throw error; });
 }
-export async function finalizeClaimedRecovery({ claimDirectory }) {
+export const finalizeClaimedRecovery = input => withHistoricalFileEffect(path.join(input.claimDirectory,'_guard'),null,()=>finalizeClaimedRecoveryImplementation(input));
+async function finalizeClaimedRecoveryImplementation({ claimDirectory }) {
   // Remove the entire completed claim from the admission barrier atomically.
   // A crash while deleting its metadata must not leave an unreadable quarantine
   // entry that permanently prevents the next admission.

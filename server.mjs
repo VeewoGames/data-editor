@@ -1,3 +1,5 @@
+import { publicationObserve, publicationConfigWrite } from './src/publication-window-runtime.mjs';
+import { inspectPublicationWindow } from './src/publication-window-state.mjs';
 import { readGeneratedFields, assertNoGeneratedFieldInjection } from "./src/generated-fields-service.mjs";
 import { loadFieldWritePolicy, assertOrdinarySaveFieldPolicy, ordinarySaveBlockingRuns } from "./src/field-write-policy.mjs";
 import { readInlineTemplateDefinitions } from "./src/inline-template-context.mjs";
@@ -39,6 +41,7 @@ import { assertValidFieldPresentations, loadViewConfig, saveViewConfig } from ".
 import { loadSharedViews, saveSharedViews } from "./src/shared-views.mjs";
 import { clearServiceStateIfOwned } from "./src/runtime-state.mjs";
 import { createProjectContext } from "./src/project-context.mjs";
+import {withHistoricalAuthorSave,projectHistoricalRunActivity} from './src/historical-disposition.mjs';
 import { addOrActivateProject, loadProjectRegistry, saveProjectRegistry } from "./src/project-registry.mjs";
 import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
 import { createProjectCapabilityRegistry, findCapabilityBindings } from "./src/project-capability-registry.mjs";
@@ -158,6 +161,7 @@ const runEntryAction = createEntryActionRunRoute({
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
+    if (url.pathname === '/api/publication-window' && req.method === 'GET') return sendJson(res, await inspectPublicationWindow(await projectContextForUrl(url)));
     if (url.pathname === "/api/entry-actions/run" && req.method === "POST") {
       return await handleRunEntryAction(req, res);
     }
@@ -278,6 +282,7 @@ async function ensureInitialProject() {
   const project = registry.projects.find((candidate) => candidate.id === registry.activeProjectId);
   if (project) {
     const context = createProjectContext({ projectRoot: project.root, projectId: project.id, capabilityRegistryOptions: registryOptions, dataSources: project.dataSources, filePolicy: project.filePolicy });
+    await publicationObserve(context, `identity-recovery:${project.id}`, async () => {
     if (!recoveredIdentityPromotionProjects.has(project.id)) {
     const capabilityState = await projectCapabilityRegistry.resolve(project);
     await recoverPendingEmbeddedIdentityPromotions({
@@ -297,6 +302,7 @@ async function ensureInitialProject() {
     }
     recoveredIdentityPromotionProjects.add(project.id);
     }
+    });
   }
   return registry;
 }
@@ -437,6 +443,7 @@ async function handleSave(req, res) {
       if (existing?.stage === "commit_intent") {
         assertDocumentContractPostReplace(existing.contractAdmission, documentContracts, body.root);
       }
+      await withHistoricalAuthorSave(projectContext,{sourceFile:identity.resolvedPath??identity.canonicalPath,journalFile:path.join(commitJournalDirectory(projectContext),idempotencyKey+'.json')},async()=>{
       if (existing) await resumeDocumentSaveJournal({ journal, entry: existing, currentText });
       else assertDocumentEtagUnchanged(body.documentEtag, currentText);
       const entry = existing ?? createDocumentSaveJournalEntry({ body: { ...body, idempotencyKey }, identity, currentText, text, requestDigest, documentContracts });
@@ -455,6 +462,7 @@ async function handleSave(req, res) {
           if (currentContracts.error) throw currentContracts.error;
           assertDocumentContractPostReplace(entry.contractAdmission, currentContracts, canonicalRoot);
         },
+      });
       });
       sendJson(res, { ok: true, documentEtag: documentEtag(text) });
     });
@@ -552,6 +560,7 @@ async function handleSaveAutomationSettings(req, res) {
       return sendJson(res, { error: `Selected preflight is unavailable: ${preflightId}`, code: "AUTOMATION_PREFLIGHT_REFERENCE_INVALID" }, 400);
     }
   }
+  return publicationConfigWrite(projectContext,async () => {
   const previousBindings = await loadAutomationBindings(projectContext);
   try {
     const savedBindings = await saveAutomationBindings(projectContext, bindings, { expectedRevision: body?.bindingsRevision ?? null });
@@ -572,6 +581,7 @@ async function handleSaveAutomationSettings(req, res) {
     }
     throw error;
   }
+  });
 }
 
 async function handlePatchAutomationProfileRule(url, req, res) {
@@ -804,7 +814,7 @@ async function handleLoadEntryActionResult(url, res) {
   const runId = String(url.searchParams.get("runId") ?? "").trim();
   if (!runId) throw new Error("Missing runId");
   const projectContext = await projectContextForUrl(url);
-  await recoverProjectCommandRun(projectContext, runId, documentCommitCoordinator);
+  await recoverProjectCommandRun(projectContext, runId, documentCommitCoordinator, {observer:true});
   try {
     const result = await readEntryActionResult(projectContext, runId);
     sendJson(res, { ...result, artifacts: await describeEntryActionArtifacts(projectContext, runId) });
@@ -878,7 +888,9 @@ async function handleLoadLatestEntryActionResult(url, res) {
     sourceRowIndex,
   });
   if (run?.runId) {
-    await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator);
+    const historical=await projectHistoricalRunActivity(projectContext,[run]);
+    if(historical.historicalRuns.length){sendJson(res,{run:null,historicalRun:historical.historicalRuns[0]});return;}
+    await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator, {observer:true});
     run = await findLatestEntryActionRun(projectContext, { actionId, sourcePath, collectionPath, rowId, sourceRowIndex });
   }
   sendJson(res, { run });
@@ -888,7 +900,7 @@ async function handleLoadActiveEntryActionRuns(url, res) {
   const sourcePath = normalizeEntryActionPath(url.searchParams.get("sourcePath"), "sourcePath");
   const projectContext = await projectContextForUrl(url);
   const active = await findActiveEntryActionRuns(projectContext, sourcePath);
-  for (const run of active.runs) await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator);
+  for (const run of active.runs) await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator, {observer:true});
   sendJson(res, await findActiveEntryActionRuns(projectContext, sourcePath));
 }
 
@@ -1142,7 +1154,7 @@ async function ensureEntryActionStateMigration(projectContext) {
   const key = projectContext.projectRoot;
   let migration = entryActionStateMigrationByProjectRoot.get(key);
   if (!migration) {
-    migration = migrateLegacyEntryActionStateArtifacts(projectContext).catch((error) => {
+    migration = publicationObserve(projectContext, "legacy-state-migration", () => migrateLegacyEntryActionStateArtifacts(projectContext)).catch((error) => {
       entryActionStateMigrationByProjectRoot.delete(key);
       throw error;
     });

@@ -1,5 +1,8 @@
+import {publicationConfigWrite} from './publication-window-runtime.mjs';
 import crypto from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile as rawWriteFile } from "node:fs/promises";
+import {withHistoricalFileEffect} from './historical-disposition.mjs';
+const writeFile=(file,data,options)=>withHistoricalFileEffect(file,null,()=>rawWriteFile(file,data,options));
 import path from "node:path";
 import { createProjectContext, displayProjectPath } from "./project-context.mjs";
 import { resolveCodexSkill } from "./codex-runtime.mjs";
@@ -21,7 +24,7 @@ export async function loadAutomationBindings(projectContextOrRoot) {
   }
 }
 
-export async function saveAutomationBindings(projectContextOrRoot, value, options = {}) {
+async function saveAutomationBindingsImplementation(projectContextOrRoot, value, options = {}) {
   const context = createProjectContext(projectContextOrRoot);
   const target = bindingsPath(context);
   const normalized = validateAutomationBindings(value);
@@ -209,3 +212,5 @@ function normalizeRequiredEnum(value, allowed, label) {
 function bindingsPath(context) {
   return path.resolve(context.localAutomationBindingsPath);
 }
+
+export const saveAutomationBindings = async (context,...args) => publicationConfigWrite(context,()=>saveAutomationBindingsImplementation(context,...args));

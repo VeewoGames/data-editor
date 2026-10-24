@@ -48,8 +48,9 @@ test("fixed project command commits through the existing row journal", async t =
   assert.equal((await readEntryActionResult(f.context, started.runId)).outcome, "completed_with_writeback");
 });
 
-async function crashedFixture(t, stage) {
+async function crashedFixture(t, stage, setup) {
   const f = await fixture(t, stage === "running" ? "await new Promise(resolve=>setTimeout(resolve,600))" : "");
+  if (setup) await setup(f);
   const driver = path.join(f.root, "service-fixture.mjs");
   const moduleUrl = name => pathToFileURL(path.resolve("src", name)).href;
   await writeFile(driver, `import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
@@ -300,4 +301,148 @@ test("project-command writeback survives a disconnected observer and rereads the
   assert.deepEqual(await readEntryActionResult(reopened,started.runId),result);
   assert.equal(JSON.parse(await readFile(path.join(f.root,'data/items.json'),'utf8'))[0].generated,'new');
   assert.equal((await findActiveEntryActionRuns(reopened,f.request.sourcePath)).runs.length,0);
+});
+
+
+async function enableValidator(f, body = "const status='pass'") {
+  const profileFile = path.join(f.root, ".data-editor/automation-profile.json");
+  const profile = JSON.parse(await readFile(profileFile, "utf8"));
+  profile.rules[0].execution.proposalValidator = { version: 1, command: { path: "validator.mjs", args: [], readDependencies: ["validator-input.json"], timeoutMs: 3000 } };
+  await writeFile(path.join(f.root, "validator-input.json"), "{}");
+  await writeFile(path.join(f.root, "validator.mjs"), `let text='';for await(const part of process.stdin)text+=part;const input=JSON.parse(text);${body};console.log(JSON.stringify({version:1,kind:'project-command-validation-result',status,diagnostics:[],inputDigest:input.inputDigest,changesDigest:input.changesDigest}));`);
+  await writeFile(profileFile, JSON.stringify(profile));
+}
+
+test("required validator receives accepted row, language, exact after image and server-bound context", async t => {
+  const f = await fixture(t);
+  await enableValidator(f, `const status=input.request.locales.join(',')==='zh'&&input.request.rowId==='row-1'&&input.request.runId&&input.beforeRow.generated==='old'&&input.afterRow.generated==='new'&&input.beforeRow.source===input.afterRow.source&&input.action.contractDigest&&['fresh','commit','admit'].includes(input.mode)?'pass':'reject'`);
+  const source = await readFile(path.join(f.root, "validator.mjs"), "utf8");
+  const started = await startProjectCommandEntryAction(f.input); await started.completion;
+  assert.equal((await readEntryActionResult(f.context, started.runId)).outcome, "completed_with_writeback");
+  assert.equal(await readFile(path.join(f.root, "validator.mjs"), "utf8"), source);
+});
+
+for (const mode of ["fresh", "commit", "admit"]) test(`validator rejection at ${mode} prevents all formal writes`, async t => {
+  const f = await fixture(t);
+  await enableValidator(f, `const status=input.mode===${JSON.stringify(mode)}?'reject':'pass'`);
+  const original = await readFile(path.join(f.root, "data/items.json"), "utf8");
+  const started = await startProjectCommandEntryAction(f.input);
+  await assert.rejects(started.completion, { code: "PROJECT_COMMAND_VALIDATOR_REJECTED" });
+  assert.equal(await readFile(path.join(f.root, "data/items.json"), "utf8"), original);
+  assert.equal((await readEntryActionResult(f.context, started.runId)).outcome, "failed");
+  assert.equal((await findActiveEntryActionRuns(f.context, f.request.sourcePath)).runs.length, 0);
+});
+
+for (const satisfied of [false, true]) test(`no_changes is successful only when the validator proves the accepted request: ${satisfied}`, async t => {
+  const f = await fixture(t, `console.log(JSON.stringify({kind:'project-command-result',status:'no_changes'}));process.exit(0)`);
+  await enableValidator(f, `const status=input.mode==='no_changes'&&JSON.stringify(input.beforeRow)===JSON.stringify(input.afterRow)&&input.changes.length===0&&${satisfied}?'pass':'reject'`);
+  const started = await startProjectCommandEntryAction(f.input);
+  if (satisfied) await started.completion;
+  else await assert.rejects(started.completion, { code: "PROJECT_COMMAND_VALIDATOR_REJECTED" });
+  assert.equal((await readEntryActionResult(f.context, started.runId)).outcome, satisfied ? "completed_without_changes" : "failed");
+  assert.equal(JSON.parse(await readFile(path.join(f.root, "data/items.json"), "utf8"))[0].generated, "old");
+});
+
+for (const extra of ["result.afterRow={}", "result.inputDigest='wrong'"]) test(`validator cannot supply an unbound result or replacement patch: ${extra}`, async t => {
+  const f = await fixture(t); await enableValidator(f);
+  await writeFile(path.join(f.root, "validator.mjs"), `let t='';for await(const p of process.stdin)t+=p;const input=JSON.parse(t);const result={version:1,kind:'project-command-validation-result',status:'pass',diagnostics:[],inputDigest:input.inputDigest,changesDigest:input.changesDigest};${extra};console.log(JSON.stringify(result));`);
+  const started = await startProjectCommandEntryAction(f.input);
+  await assert.rejects(started.completion, { code: "PROJECT_COMMAND_VALIDATOR_RESULT_INVALID" });
+  assert.equal(JSON.parse(await readFile(path.join(f.root, "data/items.json"), "utf8"))[0].generated, "old");
+});
+
+for (const dependency of ["validator.mjs", "validator-input.json"]) test(`validator dependency ${dependency} participates in the accepted snapshot`, async t => {
+  const f = await fixture(t, "await new Promise(resolve=>setTimeout(resolve,200))"); await enableValidator(f);
+  const started = await startProjectCommandEntryAction(f.input);
+  const completion = assert.rejects(started.completion, { code: "PROJECT_COMMAND_DEPENDENCY_STALE" });
+  await writeFile(path.join(f.root, dependency), "changed"); await completion;
+  assert.equal(JSON.parse(await readFile(path.join(f.root, "data/items.json"), "utf8"))[0].generated, "old");
+});
+
+for (const rejectRecovery of [false, true]) test(`post-replace recovery validates the original request without re-execution: ${rejectRecovery}`, async t => {
+  const f = await crashedFixture(t, "replaced", f => enableValidator(f, `const status=input.request.locales.join(',')==='zh'&&input.request.rowId==='row-1'&&!(input.mode==='recovery'&&${rejectRecovery})?'pass':'reject'`));
+  const source = await readFile(path.join(f.root, "data/items.json"), "utf8");
+  if (rejectRecovery) {
+    await assert.rejects(recoverProjectCommandRun(f.context, f.runId), error => error.code === "PROJECT_COMMAND_RECOVERY_REQUIRED" && error.message.includes("PROJECT_COMMAND_VALIDATOR_REJECTED"));
+    await assert.rejects(readEntryActionResult(f.context, f.runId), { code: "ENOENT" });
+  } else {
+    await recoverProjectCommandRun(f.context, f.runId);
+    assert.equal((await readEntryActionResult(f.context, f.runId)).outcome, "completed_with_writeback");
+  }
+  assert.equal(await readFile(path.join(f.root, "data/items.json"), "utf8"), source);
+});
+
+
+test("validator request language is captured at acceptance, not read from later caller state", async t => {
+  const f = await fixture(t, "await new Promise(resolve=>setTimeout(resolve,100))");
+  await enableValidator(f, "const status=input.request.locales.join(',')==='zh'?'pass':'reject'");
+  const started = await startProjectCommandEntryAction(f.input);
+  f.request.locales.push("en");
+  await started.completion;
+  assert.equal((await readEntryActionResult(f.context, started.runId)).outcome, "completed_with_writeback");
+});
+
+test("validator failure and timeout are rejected without formal writes", async t => {
+  for (const body of ["process.exit(1)", "setInterval(()=>{},1000)"]) {
+    const f = await fixture(t); await enableValidator(f);
+    await writeFile(path.join(f.root,"validator.mjs"),body);
+    const file = path.join(f.root,".data-editor/automation-profile.json");
+    const profile = JSON.parse(await readFile(file,"utf8")); profile.rules[0].execution.proposalValidator.command.timeoutMs=70;
+    await writeFile(file,JSON.stringify(profile));
+    const started = await startProjectCommandEntryAction(f.input);
+    await assert.rejects(started.completion, {code:body.startsWith('process')?'PROJECT_COMMAND_FAILED':'PROJECT_COMMAND_TIMEOUT'});
+    assert.equal(JSON.parse(await readFile(path.join(f.root,"data/items.json"),"utf8"))[0].generated,"old");
+  }
+});
+
+test("required-validator recovery rejects missing accepted request binding and keeps the written source", async t => {
+  const f = await crashedFixture(t,"replaced",enableValidator);
+  // Locate via the public path contract rather than guessing its runtime layout.
+  const {entryActionHandoffPath}=await import('../src/entry-actions.mjs');
+  const handoffFile=entryActionHandoffPath(f.context,f.runId);
+  const handoff=JSON.parse(await readFile(handoffFile,"utf8")); delete handoff.projectCommand.requestBinding;
+  await writeFile(handoffFile,JSON.stringify(handoff));
+  const source=await readFile(path.join(f.root,"data/items.json"),"utf8");
+  await assert.rejects(recoverProjectCommandRun(f.context,f.runId),e=>e.code==='PROJECT_COMMAND_RECOVERY_REQUIRED'&&e.message.includes('REQUEST_BINDING_INVALID'));
+  assert.equal(await readFile(path.join(f.root,"data/items.json"),"utf8"),source);
+  await assert.rejects(readEntryActionResult(f.context,f.runId),{code:'ENOENT'});
+});
+
+async function selectedPolicy(f, values=["approved"]) {
+  await writeFile(path.join(f.root,".data-editor/field-write-policy.json"),JSON.stringify({version:1,policies:[{file:f.request.sourcePath,collection:'$',requiresFields:['description_sources'],fields:['generated'],rowSelector:{primaryKeyField:'id',values}}]}));
+}
+
+test("exact row selector protects only admitted rows and leaves their draft editable", async t => {
+  const f=await fixture(t); await selectedPolicy(f);
+  const admitted={...f.row,id:'approved'},other={...f.row,__entry_id:'row-2',id:'other'};
+  await assertOrdinarySaveFieldPolicy({context:f.context,sourcePath:f.request.sourcePath,beforeRoot:[admitted,other],afterRoot:[{...admitted,source:'new request'},{...other,generated:'ordinary editable'}]});
+  await assert.rejects(assertOrdinarySaveFieldPolicy({context:f.context,sourcePath:f.request.sourcePath,beforeRoot:[admitted,other],afterRoot:[{...admitted,generated:'tamper'},other]}),{code:'FIELD_WRITE_POLICY_FORBIDDEN'});
+});
+
+for (const mutation of ['id','durable','both','marker','field','delete','duplicate','enter']) test(`exact protection cannot be unlocked through ${mutation}`,async t=>{
+  const f=await fixture(t);await selectedPolicy(f);
+  const row={...f.row,id:'approved'};
+  let before=[row],after=[{...row}];
+  if(mutation==='id'||mutation==='both')after[0].id='other';
+  if(mutation==='durable'||mutation==='both')after[0].__entry_id='replacement';
+  if(mutation==='marker')delete after[0].description_sources;
+  if(mutation==='field')delete after[0].generated;
+  if(mutation==='delete')after=[];
+  if(mutation==='duplicate')after.push({...row,id:'other'});
+  if(mutation==='enter')before=[{...row,id:'other'}];
+  await assert.rejects(assertOrdinarySaveFieldPolicy({context:f.context,sourcePath:f.request.sourcePath,beforeRoot:before,afterRoot:after}),e=>['FIELD_WRITE_POLICY_FORBIDDEN','FIELD_WRITE_POLICY_INVALID'].includes(e.code));
+});
+
+test("selector rejects missing/duplicate identities and malformed selection declarations",async t=>{
+  const f=await fixture(t);await selectedPolicy(f);
+  for(const rows of [[{id:'approved',generated:'old',description_sources:{}}],[{...f.row,id:'approved'},{...f.row,id:'approved',__entry_id:'row-2'}]])await assert.rejects(assertOrdinarySaveFieldPolicy({context:f.context,sourcePath:f.request.sourcePath,beforeRoot:rows,afterRoot:rows}),{code:'FIELD_WRITE_POLICY_INVALID'});
+  await selectedPolicy(f,['approved','approved']);
+  await assert.rejects(assertOrdinarySaveFieldPolicy({context:f.context,sourcePath:f.request.sourcePath,beforeRoot:[],afterRoot:[]}),{code:'FIELD_WRITE_POLICY_INVALID'});
+});
+
+
+test("required validator rejects the native proposal launch route",async t=>{
+  const f=await fixture(t);await enableValidator(f);
+  const {startProposalOnlyEntryAction}=await import('../src/entry-action-service.mjs');
+  await assert.rejects(startProposalOnlyEntryAction(f.input),{code:'PROJECT_COMMAND_VALIDATOR_ROUTE_UNSUPPORTED'});
 });

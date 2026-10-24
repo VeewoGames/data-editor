@@ -1,4 +1,6 @@
+import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import crypto from "node:crypto";
+import {currentHistoricalRunId,assertHistoricalRecoveredRun,withHistoricalRun} from './historical-disposition.mjs';
 import path from "node:path";
 import { parseCsv, serializeCsv } from "./csv-codec.mjs";
 import { buildDocumentModel, getRows } from "./document-model.mjs";
@@ -14,7 +16,7 @@ import { rowDigest } from "./row-digest.mjs";
  * Performs only the durable-identity half of an Entry Action admission.
  * It deliberately returns a receipt and canonical snapshot; it never starts a run.
  */
-export async function promoteEmbeddedIdentity({
+async function promoteEmbeddedIdentityImplementation({
   projectContext,
   capabilityState,
   sourcePath,
@@ -59,6 +61,7 @@ export async function promoteEmbeddedIdentity({
     if (existing && existing.kind !== "identity_promotion") fail("IDENTITY_PROMOTION_IDEMPOTENCY_CONFLICT", "idempotencyKey belongs to another operation.", 409);
     if (existing?.stage === "receipt") return replayReceipt({ existing, rows, policy: target.policy, sourcePath, collectionPath, index, parsed, currentText });
     if (existing?.stage === "intent") {
+      await assertHistoricalRecoveredRun(projectContext,existing.runId);
       const recovered = rows.filter((row) => row?.[target.policy.provider.field] === existing.durableId);
       if (recovered.length === 1) {
         const receipt = {
@@ -108,6 +111,7 @@ export async function promoteEmbeddedIdentity({
       sourcePath, collectionPath, root: model.root, format: parsed.format, capabilityState: state,
     });
     const intent = existing ?? createIdentityPromotionIntent({
+      ...(currentHistoricalRunId()?{runId:currentHistoricalRunId()}:{}),
       idempotencyKey: key,
       projectId: projectContext.projectId,
       sourcePath,
@@ -156,7 +160,7 @@ export async function promoteEmbeddedIdentity({
 }
 
 /** Reconciles only replaced-but-unreceipted promotions. It never creates or removes identity. */
-export async function recoverPendingEmbeddedIdentityPromotions({ projectContext, capabilityState, verifyPostReplaceCandidate, dependencies = {} }) {
+async function recoverPendingEmbeddedIdentityPromotionsImplementation({ projectContext, capabilityState, verifyPostReplaceCandidate, dependencies = {} }) {
   const readText = dependencies.readText ?? readTextFile;
   const journal = dependencies.journal ?? createIdentityPromotionJournal({ directory: journalDirectory(projectContext) });
   const entries = await journal.list();
@@ -165,6 +169,7 @@ export async function recoverPendingEmbeddedIdentityPromotions({ projectContext,
   for (const entry of entries) {
     if (entry?.kind !== "identity_promotion" || entry.stage !== "intent" || entry.projectId !== projectContext.projectId) continue;
     try {
+      await assertHistoricalRecoveredRun(projectContext,entry.runId);
       const target = resolveIdentityPolicy(projectContext, assertCapabilityState(capabilityState), entry.sourcePath, entry.collectionPath);
       const requiresContractAdmission = hasDocumentContractAdmission(projectContext, capabilityState, entry.sourcePath);
       if (requiresContractAdmission && typeof verifyPostReplaceCandidate !== "function") throw Object.assign(new Error("DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING"), { code: "DOCUMENT_CONTRACT_ADMISSION_SNAPSHOT_MISSING" });
@@ -185,7 +190,7 @@ export async function recoverPendingEmbeddedIdentityPromotions({ projectContext,
         capabilityGeneration: entry.capabilityGeneration, manifestDigest: entry.manifestDigest, documentEtag: etag(text),
         canonicalRowDigest: rowDigest(matches[0]), receiptDigest: digest(JSON.stringify({ idempotencyKey: entry.idempotencyKey, durableId: entry.durableId, row: matches[0] })),
       };
-      await journal.write(completeIdentityPromotion(entry, receipt));
+      await withHistoricalRun(projectContext,[entry.runId].filter(Boolean),()=>journal.write(completeIdentityPromotion(entry, receipt)));
       recovered.push(entry.idempotencyKey);
     } catch { pending.push(entry.idempotencyKey); }
   }
@@ -240,3 +245,7 @@ function journalDirectory(context) { return resolveInsideRoot(context.projectRoo
 function digest(value) { return crypto.createHash("sha256").update(value, "utf8").digest("hex"); }
 function etag(text) { return `"${digest(text)}"`; }
 function fail(code, message, status) { throw Object.assign(new IdentityPromotionError(code, message), { status }); }
+
+export const promoteEmbeddedIdentity = async input => publicationExistingOperation(input.projectContext, null, () => promoteEmbeddedIdentityImplementation(input));
+
+export const recoverPendingEmbeddedIdentityPromotions = publicationRecovery(recoverPendingEmbeddedIdentityPromotionsImplementation);

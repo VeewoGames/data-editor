@@ -41,6 +41,7 @@ export type EntryActionRule = {
   execution: {
     kind: "proposal" | "project-skill" | "project-command";
     command?: {path:string;args:string[];readDependencies:string[];timeoutMs:number};
+    proposalValidator?: {version:1;command:{path:string;args:string[];readDependencies:string[];timeoutMs:number}};
     allowConcurrentSave?: boolean;
     resultPolicy: "proposal" | "result-only";
     workspaceMode?: "snapshot" | "project-write";
@@ -920,7 +921,7 @@ function normalizeFetchedEntryActionRule(value: unknown): EntryActionRule | null
     },
     execution: {
       kind: (rule.execution as { kind?: unknown } | null)?.kind === "project-command" ? "project-command" : (rule.execution as { kind?: unknown } | null)?.kind === "proposal" ? "proposal" : "project-skill",
-      ...((rule.execution as {kind?:unknown})?.kind === "project-command" ? {command:(rule.execution as EntryActionRule["execution"]).command,allowConcurrentSave:(rule.execution as EntryActionRule["execution"]).allowConcurrentSave} : {}),
+      ...((rule.execution as {kind?:unknown})?.kind === "project-command" ? {command:(rule.execution as EntryActionRule["execution"]).command,allowConcurrentSave:(rule.execution as EntryActionRule["execution"]).allowConcurrentSave,...((rule.execution as EntryActionRule["execution"]).proposalValidator ? {proposalValidator:(rule.execution as EntryActionRule["execution"]).proposalValidator} : {})} : {}),
       resultPolicy: normalizeEntryActionResultPolicy((rule.execution as { resultPolicy?: unknown } | null)?.resultPolicy),
       ...((rule.execution as EntryActionRule["execution"])?.workspaceMode != null
         ? { workspaceMode: (rule.execution as EntryActionRule["execution"]).workspaceMode } : {}),
@@ -1113,7 +1114,11 @@ async function fetchJson(url: string, options?: RequestInit, fetchOptions: Fetch
       message: res.ok ? undefined : `HTTP ${res.status}`,
     });
   }
-  const data = await res.json();
+  const data = await res.json().catch((error: unknown) => {
+    // A proxy/service outage may return HTML or an empty body; retain HTTP identity.
+    if (error instanceof Error) Object.assign(error, { status: res.status });
+    throw error;
+  });
   if (!res.ok) {
     const error = new Error(data.error ?? `HTTP ${res.status}`);
     Object.assign(error, {

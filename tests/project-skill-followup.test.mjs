@@ -1,3 +1,4 @@
+import {initializePublicationWindow,inspectPublicationWindow} from '../src/publication-window-state.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fork } from "node:child_process";
@@ -190,3 +191,5 @@ test("a live accepted child owned by another service is not cancelled by polling
   assert.equal(intent.state, "pending");
   await assert.rejects(readFile(projectSkillCancellationPath(f.context, identity.childRunId)), { code: "ENOENT" });
 });
+
+for(const status of ['write','no_changes'])test('managed parent '+status+' gives followup its own durable admission',async t=>{const f=await fixture(t,status);await initializePublicationWindow(f.context);const started=await f.start();await started.completion;const intent=await waitTerminal(f.context,started.runId);assert.equal(intent.state,'completed');assert.deepEqual(f.calls,['design','review']);const state=await inspectPublicationWindow(f.context);assert.ok(state.accepted[started.runId]);assert.ok(state.accepted[intent.childRunId]);assert.notEqual(state.accepted[started.runId].reservationId,state.accepted[intent.childRunId].reservationId);});

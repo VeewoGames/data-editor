@@ -28,8 +28,9 @@ export async function projectCommandFile(context, relative) {
   resolveInsideRoot(root, target);
   return target;
 }
-export async function captureProjectCommandSnapshot(context, { sourcePath, documentText, command, action }) {
-  const paths = [...new Set([command.path, ...command.readDependencies, ".data-editor/entry-action-contracts.json"])];
+export async function captureProjectCommandSnapshot(context, { sourcePath, documentText, command, action, requestContext }) {
+  const validator = action.execution?.proposalValidator?.command;
+  const paths = [...new Set([command.path, ...command.readDependencies, ...(validator ? [validator.path, ...validator.readDependencies] : []), ".data-editor/entry-action-contracts.json"])];
   const files = [];
   for (const relative of paths) {
     const file = await projectCommandFile(context, relative);
@@ -46,6 +47,11 @@ export async function captureProjectCommandSnapshot(context, { sourcePath, docum
   const sourceIdentity = await canonicalFileIdentity(context, sourcePath);
   for (const item of files) item.identity = await dependencyIdentity(item.file);
   const baseline = { baseDocumentEtag: `"${commandDigest(documentText)}"`, documentText, sourcePath, sourceCanonicalFileKey: sourceIdentity.canonicalFileKey, files };
+  if (action.execution?.proposalValidator) {
+    if (!requestContext) throw commandError("PROJECT_COMMAND_REQUEST_CONTEXT_REQUIRED");
+    baseline.requestContext = structuredClone(requestContext);
+    baseline.requestContextDigest = commandDigest(JSON.stringify(baseline.requestContext));
+  }
   accepted.add(baseline);
   return baseline;
 }
@@ -76,7 +82,7 @@ export async function assertProjectCommandDependencies(context, baseline) {
 // complete dependency set and exact original document before admitting it.
 export async function restoreProjectCommandSnapshot(context, stored, action) {
   if (!stored || typeof stored.documentText !== "string") throw commandError("PROJECT_COMMAND_RECOVERY_BASELINE_INVALID");
-  const fresh = await captureProjectCommandSnapshot(context, { sourcePath: stored.sourcePath, documentText: stored.documentText, command: action.execution.command, action });
+  const fresh = await captureProjectCommandSnapshot(context, { sourcePath: stored.sourcePath, documentText: stored.documentText, command: action.execution.command, action, requestContext: stored.requestContext });
   if (JSON.stringify(fresh) !== JSON.stringify(stored)) throw commandError("PROJECT_COMMAND_RECOVERY_DEPENDENCY_STALE");
   return fresh;
 }

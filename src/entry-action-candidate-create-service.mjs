@@ -1,3 +1,4 @@
+import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { atomicWrite } from "./atomic-file.mjs";
@@ -16,7 +17,7 @@ import { candidateCreateRequestIdentity, prepareCandidateCreate } from "./entry-
 import { findAutomationEntryAction, publishEntryActionResultIdempotently, validateEntryActionTarget, writeEntryActionStarted } from "./entry-actions.mjs";
 import { createFencingAllocator } from "./fencing-lock.mjs";
 
-export async function commitPreparedCandidateCreate({
+async function commitPreparedCandidateCreateImplementation({
   projectContext,
   prepared,
   lease,
@@ -57,7 +58,7 @@ export async function commitPreparedCandidateCreate({
   return { replayed: false, runId: group.runId, candidateId: group.candidateId, rowId: group.rowId };
 }
 
-export async function recoverCandidateCreate({
+async function recoverCandidateCreateImplementation({
   projectContext,
   idempotencyKey = null,
   runId = null,
@@ -92,7 +93,7 @@ export async function recoverCandidateCreate({
 }
 
 /** Production admission for a project-skill candidate manifest. */
-export async function submitFreshCandidateCreate({
+async function submitFreshCandidateCreateImplementation({
   projectContext,
   project,
   request,
@@ -197,3 +198,9 @@ async function resolveCreateArtifact(projectContext, manifest, artifactPath) {
   if (current !== null && crypto.createHash("sha256").update(current, "utf8").digest("hex") !== manifest.textArtifact.afterDigest) fail("CANDIDATE_CREATE_TEXT_ARTIFACT_EXISTS");
   return { id: `candidate_${manifest.candidateId}`, path: artifactPath, beforeExists: false, beforeDigest: null, beforeContent: null, afterContent: manifest.textArtifact.afterContent, afterDigest: manifest.textArtifact.afterDigest };
 }
+
+export const submitFreshCandidateCreate = publicationSubmit(submitFreshCandidateCreateImplementation);
+
+export const commitPreparedCandidateCreate = publicationSubmit(commitPreparedCandidateCreateImplementation, input => input.lease?.runId);
+
+export const recoverCandidateCreate = publicationRecovery(recoverCandidateCreateImplementation);

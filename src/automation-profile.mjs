@@ -1,5 +1,8 @@
+import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import crypto from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile as rawWriteFile } from "node:fs/promises";
+import {withHistoricalFileEffect} from './historical-disposition.mjs';
+const writeFile=(file,data,options)=>withHistoricalFileEffect(file,null,()=>rawWriteFile(file,data,options));
 import path from "node:path";
 import { createProjectContext, displayProjectPath } from "./project-context.mjs";
 import { normalizeSharedViewIcon } from "./view/shared-view-normalize.mjs";
@@ -48,7 +51,7 @@ export async function loadAutomationProfile(projectContextOrRoot) {
   }
 }
 
-export async function patchAutomationProfileRule(projectContextOrRoot, ruleId, replacement, expectedEtag, expectedRuleDigest) {
+async function patchAutomationProfileRuleImplementation(projectContextOrRoot, ruleId, replacement, expectedEtag, expectedRuleDigest) {
   const context = createProjectContext(projectContextOrRoot);
   const target = profilePath(context);
   const normalizedId = normalizeRequiredString(ruleId, "Entry action rule id");
@@ -68,7 +71,7 @@ export async function patchAutomationProfileRule(projectContextOrRoot, ruleId, r
   });
 }
 
-export async function saveAutomationProfile(projectContextOrRoot, profile, expectedEtag = null) {
+async function saveAutomationProfileImplementation(projectContextOrRoot, profile, expectedEtag = null) {
   const context = createProjectContext(projectContextOrRoot);
   const target = profilePath(context);
   const normalized = validateAutomationProfile(profile);
@@ -143,6 +146,7 @@ function normalizeRule(value, seenIds) {
   const targets = normalizeTargets(value.targets, id);
   const payload = normalizePayload(value.payload, id);
   const execution = normalizeExecution(value.execution, id);
+  if (execution.proposalValidator && targets.some(target => target.textArtifact || !target.file.endsWith(".json"))) throw new Error("Proposal validator only supports a single JSON source without textArtifact");
   const contractId = normalizeRequiredString(value.contractId, `Entry action rule "${id}" contractId`);
   const createAuthority = normalizeCreateAuthority(value.createAuthority, id, contractId);
   const runtime = normalizeRuntime(value.runtime, id);
@@ -154,12 +158,20 @@ function normalizeRule(value, seenIds) {
 function normalizeExecution(value, ruleId) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Entry action rule "${ruleId}" execution is required`);
   if (value.kind === "project-command") {
-    if (Object.keys(value).some(key => !["kind", "resultPolicy", "command", "allowConcurrentSave"].includes(key)) || value.resultPolicy !== "proposal" || typeof value.allowConcurrentSave !== "boolean") throw new Error("Invalid project-command execution");
-    const command = value.command;
-    if (!command || Object.keys(command).some(key => !["path", "args", "readDependencies", "timeoutMs"].includes(key)) || !Array.isArray(command.args) || command.args.some(arg => typeof arg !== "string") || !Array.isArray(command.readDependencies) || !Number.isSafeInteger(command.timeoutMs) || command.timeoutMs < 1 || command.timeoutMs > 600000) throw new Error("Invalid project-command declaration");
-    const commandPath = normalizeProjectInputPath(normalizeRequiredString(command.path, "command.path"), ruleId);
-    if (!commandPath.endsWith(".mjs")) throw new Error("Project command must be a project .mjs file");
-    return { kind: value.kind, resultPolicy: "proposal", allowConcurrentSave: value.allowConcurrentSave, command: { path: commandPath, args: [...command.args], readDependencies: [...new Set(command.readDependencies.map(item => normalizeProjectInputPath(normalizeRequiredString(item, "readDependencies"), ruleId)))], timeoutMs: command.timeoutMs } };
+    if (Object.keys(value).some(key => !["kind", "resultPolicy", "command", "allowConcurrentSave", "proposalValidator"].includes(key)) || value.resultPolicy !== "proposal" || typeof value.allowConcurrentSave !== "boolean") throw new Error("Invalid project-command execution");
+    const normalizeCommand = command => {
+      if (!command || Object.keys(command).some(key => !["path", "args", "readDependencies", "timeoutMs"].includes(key)) || !Array.isArray(command.args) || command.args.some(arg => typeof arg !== "string") || !Array.isArray(command.readDependencies) || !Number.isSafeInteger(command.timeoutMs) || command.timeoutMs < 1 || command.timeoutMs > 600000) throw new Error("Invalid project-command declaration");
+      const commandPath = normalizeProjectInputPath(normalizeRequiredString(command.path, "command.path"), ruleId);
+      if (!commandPath.endsWith(".mjs")) throw new Error("Project command must be a project .mjs file");
+      return { path: commandPath, args: [...command.args], readDependencies: [...new Set(command.readDependencies.map(item => normalizeProjectInputPath(normalizeRequiredString(item, "readDependencies"), ruleId)))], timeoutMs: command.timeoutMs };
+    };
+    let proposalValidator;
+    if (Object.hasOwn(value, "proposalValidator")) {
+      const validator = value.proposalValidator;
+      if (!validator || Object.keys(validator).sort().join(",") !== "command,version" || validator.version !== 1) throw new Error("Invalid project-command proposal validator");
+      proposalValidator = { version: 1, command: normalizeCommand(validator.command) };
+    }
+    return { kind: value.kind, resultPolicy: "proposal", allowConcurrentSave: value.allowConcurrentSave, command: normalizeCommand(value.command), ...(proposalValidator ? { proposalValidator } : {}) };
   }
   const keys = Object.keys(value).sort();
   const expectedKeys = ["advancedExecution", "kind", "resultPolicy"];
@@ -404,3 +416,7 @@ async function withProfileSaveLock(key, task) {
   try { return await task(); }
   finally { release(); if (profileSaveLocks.get(key) === current) profileSaveLocks.delete(key); }
 }
+
+export const patchAutomationProfileRule = async (context, ...args) => publicationConfigWrite(context, () => patchAutomationProfileRuleImplementation(context, ...args));
+
+export const saveAutomationProfile = async (context, ...args) => publicationConfigWrite(context, () => saveAutomationProfileImplementation(context, ...args));

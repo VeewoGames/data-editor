@@ -310,3 +310,9 @@ test("saving automation settings preserves command declarations and AI execution
     assert.deepEqual(saved.rules[2].execution, rules[2].execution);
   } finally {globalThis.fetch = originalFetch;}
 });
+
+test('non-JSON service outages retain HTTP status for reconnect polling',async()=>{
+ const originalFetch=globalThis.fetch;
+ globalThis.fetch=async()=>new Response('<html>Unavailable</html>',{status:503,headers:{'content-type':'text/html'}});
+ try {await assert.rejects(loadAutomationSkillCatalog('p'),error=>error.status===503);}finally{globalThis.fetch=originalFetch;}
+});
