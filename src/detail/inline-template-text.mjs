@@ -1,3 +1,4 @@
+import { fieldWritePolicyMatchesRow } from '../field-write-policy-match.mjs';
 const decode=text=>text.replace(/&(amp|lt|gt|quot);/g,(_,key)=>({amp:'&',lt:'<',gt:'>',quot:'"'})[key]);
 /** Editing a label must preserve its admitted identity until the project validates it. */
 export function keywordSourceFromDisplay(id,mode,display){
@@ -17,7 +18,7 @@ export function projectTemplateSearchRow(row,definitions) {
 }
 
 export function isTemplateProtectedField(row,field,definitions){
- return definitions.some(definition=>definition.writePolicies?.some(policy=>policy.fields.includes(field)&&policy.requiresFields.every(key=>Object.hasOwn(row,key))));
+ return definitions.some(definition=>definition.writePolicies?.some(policy=>policy.fields.includes(field)&&fieldWritePolicyMatchesRow(policy,row)));
 }
 
 export function balancedTemplateScopes(source){

@@ -21,7 +21,7 @@ export function templateNodes(source){
   if(match[0]==='</effect>'){if(parents.length>1&&parent.dataset.templateEffect)parents.pop();else{malformed=true;parent.append(document.createTextNode(match[0]));}continue;}
   if(match[0]==='<cost>'){if(parents.some(node=>node.dataset?.templateSection==='cost'))malformed=true;const span=document.createElement('span');span.dataset.templateSection='cost';span.title='描述分段；结构随内容一起保存';parent.append(span);parents.push(span);continue;}
   if(match[0]==='</cost>'){if(parents.length>1&&parent.dataset.templateSection==='cost')parents.pop();else{malformed=true;parent.append(document.createTextNode(match[0]));}continue;}
-  const span=document.createElement('span');span.style.cssText='display:inline;white-space:inherit;background:#463b28;color:#ffdc91;border-radius:3px;padding:0 3px';
+  const span=document.createElement('span');
   if(match[5]){span.dataset.templateKeyword=match[5];span.dataset.templateKeywordMode=match[6];span.title='关键词；修改后需生成校验';span.textContent=match[6]==='default'?`{${decode(match[7])}}`:`[${decode(match[7])}]`;}
   else{const id=match[2]??match[3],inputPending=match[4]!==undefined;const text=inputPending?decode(match[4]):`缺可读源文：${id}`;span.dataset.templateRef=id;span.dataset.templateOriginal=text;span.dataset.templatePending=String(inputPending);if(!inputPending)span.dataset.templateUnresolvedRaw=match[0];span.title=`来源：${id}${inputPending?'；待生成校验':''}`;span.textContent=`<${text}>`;}
   parent.append(span);

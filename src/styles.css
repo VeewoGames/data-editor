@@ -97,6 +97,64 @@
   --picker-row-active-icon: #c4ccd8;
 }
 
+/* Author-markup identity is shared by read-only cells and native editing. */
+.inline-template-surface {
+  --template-value-bg: #eaf2ff;
+  --template-value-fg: #2157a5;
+  --template-keyword-default-bg: #fff3d6;
+  --template-keyword-default-fg: #805800;
+  --template-keyword-alt-bg: #f1edfa;
+  --template-keyword-alt-fg: #67509a;
+  --template-unresolved-bg: #fff0ec;
+  --template-unresolved-fg: #9a3b30;
+  --template-unresolved-edge: #deb1a6;
+}
+
+:root[data-theme="dark"] .inline-template-surface {
+  --template-value-bg: #263b55;
+  --template-value-fg: #b4d3ff;
+  --template-keyword-default-bg: #443a25;
+  --template-keyword-default-fg: #f4d78b;
+  --template-keyword-alt-bg: #39304b;
+  --template-keyword-alt-fg: #dac5ff;
+  --template-unresolved-bg: #472e2a;
+  --template-unresolved-fg: #ffc0ae;
+  --template-unresolved-edge: #ac776a;
+}
+
+.inline-template-surface :is([data-template-ref], [data-template-keyword]) {
+  display: inline;
+  white-space: inherit;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  box-shadow: none;
+  font-weight: 500;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.inline-template-surface [data-template-ref] {
+  background: var(--template-value-bg);
+  color: var(--template-value-fg);
+}
+
+.inline-template-surface [data-template-keyword-mode="default"] {
+  background: var(--template-keyword-default-bg);
+  color: var(--template-keyword-default-fg);
+}
+
+.inline-template-surface [data-template-keyword-mode="alt"] {
+  background: var(--template-keyword-alt-bg);
+  color: var(--template-keyword-alt-fg);
+}
+
+.inline-template-surface [data-template-unresolved-raw] {
+  background: var(--template-unresolved-bg);
+  color: var(--template-unresolved-fg);
+  outline: 1px dashed var(--template-unresolved-edge);
+}
+
 :root[data-font-size-base="15"] {
   --font-size-base: 15px;
   --line-height-tight: 1.45;
@@ -4532,6 +4590,14 @@ th:hover .column-resize-handle,
   text-overflow: clip;
   white-space: normal;
   word-break: break-word;
+}
+
+/* Generic cell spans are blocks when wrapped; author tokens and transparent
+   scopes must retain native inline text layout in both display and editing. */
+.cell-display .inline-template-surface span {
+  display: inline;
+  white-space: inherit;
+  line-height: inherit;
 }
 
 .chip {

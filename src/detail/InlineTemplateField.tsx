@@ -68,7 +68,7 @@ export function TemplateEditor({identity,source,onChange,register,label="可读�
     edited.current=true;draftGeneration.current+=1;latest.current=serialize();if(!table)flush();
    }
  };
- return <><div ref={ref} role="textbox" aria-label={label} aria-multiline="true" contentEditable suppressContentEditableWarning className={table?'inline-template-table-input':'detail-input detail-textarea'} style={table?{whiteSpace:tableWrapped?'pre-wrap':'pre',border:0,outline:0,padding:0,width:'100%',minWidth:0,font:'inherit',lineHeight:'inherit',background:'transparent',userSelect:'text',cursor:'text'}:{whiteSpace:'pre-wrap',minHeight:74}} onFocus={()=>{editing.current=true;register?.(handle.current);}} onInput={()=>{edited.current=true;draftGeneration.current+=1;if(!table){flush();return;}const text=serialize();latest.current=text;}} onBlur={()=>{flush();editing.current=false;edited.current=false;setBlurRevision(n=>n+1);register?.(null,handle.current);onDeactivate?.();}} onKeyDown={event=>{if(!table||event.nativeEvent.isComposing)return;if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}else if(event.key==='Escape'){event.preventDefault();cancel();event.currentTarget.blur();}}}
+ return <><div ref={ref} role="textbox" aria-label={label} aria-multiline="true" contentEditable suppressContentEditableWarning className={`inline-template-surface ${table?'inline-template-table-input':'detail-input detail-textarea'}`} style={table?{whiteSpace:tableWrapped?'pre-wrap':'pre',border:0,outline:0,padding:0,width:'100%',minWidth:0,font:'inherit',lineHeight:'inherit',background:'transparent',userSelect:'text',cursor:'text'}:{whiteSpace:'pre-wrap',minHeight:74}} onFocus={()=>{editing.current=true;register?.(handle.current);}} onInput={()=>{edited.current=true;draftGeneration.current+=1;if(!table){flush();return;}const text=serialize();latest.current=text;}} onBlur={()=>{flush();editing.current=false;edited.current=false;setBlurRevision(n=>n+1);register?.(null,handle.current);onDeactivate?.();}} onKeyDown={event=>{if(!table||event.nativeEvent.isComposing)return;if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur();}else if(event.key==='Escape'){event.preventDefault();cancel();event.currentTarget.blur();}}}
   onCopy={event=>copy(event)} onCut={event=>copy(event,true)} onPaste={event=>{
    event.preventDefault();edited.current=true;let text=event.clipboardData.getData('text/plain');
    let structuredSource:string|null=null;
@@ -87,6 +87,13 @@ export function TemplateEditor({identity,source,onChange,register,label="可读�
   }}/>{clipboardNotice?<div role="status">{clipboardNotice}</div>:null}</>;
 }
 
+/** Read-only display shares author-markup recognition with the native editor. */
+export function TemplateDisplay({source,wrapped=false}:{source:string;wrapped?:boolean}) {
+ const ref=useRef<HTMLSpanElement>(null);
+ useEffect(()=>{ref.current?.replaceChildren(templateNodes(source));},[source]);
+ return <span ref={ref} className="inline-template-surface inline-template-display" style={{display:'block',minWidth:0,maxWidth:'100%',overflow:wrapped?'visible':'hidden',whiteSpace:wrapped?'normal':'nowrap',textOverflow:'ellipsis'}}/>;
+}
+
 /** Project-declared template fields only. No game identifiers or arithmetic live here. */
 export function InlineTemplateField(props:Props) {
  const locales=[...new Set([...(props.definition?.languages.map(x=>x.key)??[]),...Object.keys(props.value).filter(k=>typeof props.value[k]==='string')])];
@@ -101,7 +108,7 @@ export function InlineTemplateField(props:Props) {
  const editor=<TemplateEditor refreshRevision={adoption} key={`${props.projectId}:${props.sourcePath}:${props.rowId}:${props.field}:${locale}`} identity={`${props.projectId}:${props.sourcePath}:${props.rowId}:${props.field}:${locale}`} source={String(props.value[locale]??'')} register={register} table={props.table} tableWrapped={props.interaction?.wrapped} onDeactivate={props.interaction?()=>props.interaction!.onDeactivate(props.interaction!.cellId):undefined} label={props.table?`${props.definition?.label??props.field}（${labelFor(locale)}）`:'可读描述'} onChange={source=>props.onChange({...props.value,[locale]:source})}/>;
  if(props.table&&props.interaction){
   const text=readableTemplateText(props.value[locale]);
-  return <div title="作者草稿；生成时核对来源" style={{width:'100%'}}><TextCellSurface {...props.interaction} value={text} wrapped={props.interaction.wrapped} onChangeValue={()=>{}} onRegisterActiveEditor={props.register} displayContent={<span style={{display:'block',minWidth:0,maxWidth:'100%',overflow:props.interaction.wrapped?'visible':'hidden',whiteSpace:props.interaction.wrapped?'normal':'nowrap',textOverflow:'ellipsis'}}>{text.split(/(<[^<>]+>|\{[^{}]+\}|\[[^\[\]]+\])/g).map((part:string,index:number)=>/^(?:<[^<>]+>|\{[^{}]+\}|\[[^\[\]]+\])$/.test(part)?<span key={index} style={{display:'inline',whiteSpace:'inherit',background:'#463b28',color:'#ffdc91',borderRadius:3,padding:'0 3px'}}>{part}</span>:part)}</span>} editorContent={<div className={`table-text-cell-editor editable-cell cell-display cell-text-content ${props.interaction.wrapped?'cell-text-wrap':''}`} data-cell-role="editor" onClick={event=>event.stopPropagation()} onMouseDown={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()}>{editor}</div>}/></div>;
+  return <div title="作者草稿；生成时核对来源" style={{width:'100%'}}><TextCellSurface {...props.interaction} value={text} wrapped={props.interaction.wrapped} onChangeValue={()=>{}} onRegisterActiveEditor={props.register} displayContent={<TemplateDisplay source={String(props.value[locale]??'')} wrapped={props.interaction.wrapped}/>} editorContent={<div className={`table-text-cell-editor editable-cell cell-display cell-text-content ${props.interaction.wrapped?'cell-text-wrap':''}`} data-cell-role="editor" onClick={event=>event.stopPropagation()} onMouseDown={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()}>{editor}</div>}/></div>;
  }
  return <div data-inline-template-field={props.field}>
   <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6}}>作者草稿；生成时核对来源</div>
