@@ -1,3 +1,11 @@
+import { serviceProcessIsAlive } from './src/service-process-identity.mjs';
+import {createDeploymentRuntime} from './src/deployment-runtime.mjs';
+import { findFencingLeaseByRunId, readCurrentFencingAdmission } from './src/fencing-lock.mjs';
+import { findExistingRecoveryClaim } from './src/entry-action-recovery.mjs';
+import { createReadExecutor, checkReadRequest, withoutReadRequest } from './src/read-request-context.mjs';
+import { migrateLegacyEntryActionStateRecord } from './src/entry-action-state.mjs';
+import { createProjectReadiness } from './src/project-readiness.mjs';
+import { stat } from 'node:fs/promises';
 import { publicationObserve, publicationConfigWrite } from './src/publication-window-runtime.mjs';
 import { inspectPublicationWindow } from './src/publication-window-state.mjs';
 import { readGeneratedFields, assertNoGeneratedFieldInjection } from "./src/generated-fields-service.mjs";
@@ -86,11 +94,18 @@ const port = Number(args.port ?? 8787);
 const bridgePort = Number(args.bridgePort ?? 8791);
 const staticRoot = args.static ? path.resolve(scriptRoot, args.static) : null;
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const deploymentRuntime=isMainModule?await createDeploymentRuntime('main',scriptRoot):{maintenance:false,refresh:async()=>false};
 const execFileAsync = promisify(execFile);
 let shuttingDown = false;
 let initialProjectPromise = null;
-const recoveredIdentityPromotionProjects = new Set();
-const entryActionStateMigrationByProjectRoot = new Map();
+const recoverySignatures = new Map();
+const observedProjects=new Map();
+const commandRecoveryErrors=new Map();
+const closedRecoveryRuns=new Set();
+let recoveryPollRunning = false;
+let recoveryTimer=null;
+let recoveryDiscovery=Promise.resolve();
+const projectReadiness = createProjectReadiness({ prepare: prepareProject });
 const connectionShutdown = createConnectionShutdown();
 const jobSupervisor = createJobSupervisor({ toolRoot });
 const documentCommitCoordinator = createDocumentCommitCoordinator();
@@ -102,7 +117,7 @@ const activeEntryActionCompletions = new Map();
 const runEntryAction = createEntryActionRunRoute({
   capabilityRegistryOptions: registryOptions,
   loadRegistry: async () => {
-    await ensureInitialProject();
+    await ensureInitialRegistry();
     return loadProjectRegistry(registryOptions);
   },
   toolRoot,
@@ -154,14 +169,29 @@ const runEntryAction = createEntryActionRunRoute({
   resolveCapabilityState: (project) => projectCapabilityRegistry.resolve(project),
   onCompletion(started) {
     activeEntryActionCompletions.set(started.runId, started.completion);
-    void started.completion.finally(() => activeEntryActionCompletions.delete(started.runId)).catch(() => {});
+    void started.completion.finally(() => { activeEntryActionCompletions.delete(started.runId); projectReadiness.invalidateAll(); }).catch(() => {});
   },
 });
 
-const server = http.createServer(async (req, res) => {
+const readExecutor=createReadExecutor();
+const server=http.createServer((req,res)=>{
+  if(req.method!=='GET'||req.url?.startsWith('/api/health')){void handleHttp(req,res);return;}
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(Object.assign(new Error('服务端读取超时。'),{code:'READ_TIMEOUT',status:503})),30000);
+  res.once('close',()=>{clearTimeout(timer);if(!res.writableEnded)controller.abort();});
+  void readExecutor.run(()=>handleHttp(req,res),{signal:controller.signal,priority:req.headers['x-data-editor-read-priority']==='background'?'background':'foreground'}).catch(error=>withoutReadRequest(()=>sendJson(res,{error:error.message,code:error.code},error.status??503))).finally(()=>clearTimeout(timer));
+});
+async function handleHttp(req, res) {
+  res.requestStartedAt=performance.now();
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    if (url.pathname === '/api/publication-window' && req.method === 'GET') return sendJson(res, await inspectPublicationWindow(await projectContextForUrl(url)));
+    if(deploymentRuntime.maintenance&&await deploymentRuntime.refresh())startNormalPreparation();
+    if(url.pathname==='/api/deployment-attestation'&&req.method==='GET')return sendJson(res,deploymentRuntime.attest(url.searchParams.get('challenge')));
+    if(deploymentRuntime.maintenance){
+      const pureReads=new Set(['/api/health','/api/projects','/api/files','/api/document','/api/document-metadata','/api/document-index','/api/document-content','/api/document-contracts','/api/field-write-policy','/api/inline-template-definitions','/api/project-capabilities','/api/nested-schema-capabilities','/api/generated-fields','/api/view-config','/api/shared-views','/api/view-profiles','/api/view-profile']);
+      if(!(req.method==='GET'&&(!url.pathname.startsWith('/api/')||pureReads.has(url.pathname)))&&!(req.method==='POST'&&url.pathname==='/api/shutdown'))return sendJson(res,{code:'HISTORY_DEPLOYMENT_MAINTENANCE',error:'升级正在进行只读验收。'},503);
+    }
+    if (url.pathname === '/api/publication-window' && req.method === 'GET') return sendJson(res, await inspectPublicationWindow(contextForProject(await projectForId(url.searchParams.get('projectId')))));
     if (url.pathname === "/api/entry-actions/run" && req.method === "POST") {
       return await handleRunEntryAction(req, res);
     }
@@ -170,12 +200,23 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === "/api/entry-actions/submit-exact-artifact" && req.method === "POST") return await handleSubmitExactArtifact(req, res);
     if (url.pathname === "/api/entry-actions/publish-exact-artifact" && req.method === "POST") return await handlePublishExactArtifact(req, res);
-    await ensureInitialProject();
+    if (url.pathname === "/api/health" && req.method === "GET") return sendJson(res, { ok: true, bridgePort });
+    if (!url.pathname.startsWith('/api/')) return await serveStatic(url.pathname,res);
+    if (url.pathname.startsWith('/api/shared-view-icon-pack') && req.method === 'GET') return url.pathname.endsWith('manifest') ? await handleSharedViewIconPackManifest(url,res) : await handleSharedViewIconPack(url,res);
+    await ensureInitialRegistry();
+    if (url.pathname === '/api/project-readiness' && req.method === 'GET') {
+      const project=await projectForId(url.searchParams.get('projectId'));
+      return sendJson(res,projectReadiness.inspect(project),200,{'cache-control':'no-store'});
+    }
+    if (url.pathname === '/api/project-retry' && req.method === 'POST') {
+      const body=await readJsonBody(req);const project=await projectForId(body.projectId);
+      await projectReadiness.ensure(project,{retry:true});return sendJson(res,projectReadiness.inspect(project));
+    }
     if (url.pathname === "/api/projects" && req.method === "GET") return sendJson(res, await loadProjectRegistry(registryOptions));
     if (url.pathname === "/api/field-write-policy" && req.method === "GET") return sendJson(res, await loadFieldWritePolicy(await projectContextForUrl(url)), 200, { "cache-control": "no-store" });
     if (url.pathname === "/api/inline-template-definitions" && req.method === "GET") return sendJson(res, await readInlineTemplateDefinitions(await projectContextForUrl(url)), 200, { "cache-control": "no-store" });
     if (url.pathname === "/api/project-capabilities" && req.method === "GET") return await handleProjectCapabilities(url, res);
-    if (url.pathname === "/api/project-processes" && req.method === "GET") return sendJson(res, await projectProcessService.list(url.searchParams.get("projectId")), 200, { "cache-control": "no-store" });
+    if (url.pathname === "/api/project-processes" && req.method === "GET") {await projectContextForUrl(url);return sendJson(res, await projectProcessService.list(url.searchParams.get("projectId")), 200, { "cache-control": "no-store" });}
     if (["/api/project-processes/control", "/api/project-processes/authorize"].includes(url.pathname) && req.method === "POST") {
       assertProjectProcessHttpSource(req, Number(args.frontendPort ?? port));
       const body = await readJsonBody(req);
@@ -193,7 +234,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/api/project-activate" && req.method === "POST") return await handleActivateProject(req, res);
     if (url.pathname === "/api/files") return sendJson(res, await listDataFiles(await projectContextForUrl(url)));
     if (url.pathname === "/api/generated-fields" && req.method === "GET") return await handleGeneratedFields(url, res);
-    if (url.pathname === "/api/document") return await handleDocument(url, res);
+    if (url.pathname === "/api/document" || url.pathname === "/api/document-metadata") return await handleDocument(url, res);
     if (url.pathname === "/api/document-index") return await handleDocumentIndex(url, res);
     if (url.pathname === "/api/document-content") return await handleDocumentContent(url, res);
     if (url.pathname === "/api/document-contracts" && req.method === "GET") return await handleDocumentContracts(url, res);
@@ -233,14 +274,14 @@ const server = http.createServer(async (req, res) => {
       ...(error?.details ? { details: error.details } : {}),
     }, entryActionHttpStatus(error), { "cache-control": "no-store" });
   }
-});
+}
 connectionShutdown.attach(server);
 
 if (isMainModule) {
   assertImplicitStartupDoesNotUseToolRoot(projectRoot, requestedProjectRoot, toolRoot);
   assertTestProjectRegistryIsolation(projectRoot, args.registryHome);
   registerRuntimeStateCleanup();
-  await ensureInitialProject();
+  if(!deploymentRuntime.maintenance){await ensureInitialRegistry();startNormalPreparation();}
   server.listen(port, "127.0.0.1", () => {
     console.log(`Data Editor running at http://127.0.0.1:${port}`);
     console.log(`Project root: ${projectRoot}`);
@@ -279,17 +320,46 @@ function samePath(left, right) {
   return path.resolve(left).toLowerCase() === path.resolve(right).toLowerCase();
 }
 
-async function ensureInitialProject() {
-  initialProjectPromise ??= addOrActivateProject({ root: projectRoot }, registryOptions);
+async function ensureInitialRegistry() {
+  if(deploymentRuntime.maintenance){await loadProjectRegistry(registryOptions);return;}
+  initialProjectPromise ??= addOrActivateProject({ root: projectRoot }, registryOptions).catch(error=>{initialProjectPromise=null;throw error;});
   await initialProjectPromise;
-  const registry = await loadProjectRegistry(registryOptions);
-  const project = registry.projects.find((candidate) => candidate.id === registry.activeProjectId);
-  if (project) {
-    const context = createProjectContext({ projectRoot: project.root, projectId: project.id, capabilityRegistryOptions: registryOptions, dataSources: project.dataSources, filePolicy: project.filePolicy });
-    await publicationObserve(context, `identity-recovery:${project.id}`, async () => {
-    if (!recoveredIdentityPromotionProjects.has(project.id)) {
+}
+function startNormalPreparation(){
+  if(recoveryTimer)return;
+  void ensureInitialProject().catch(error=>console.error('Project preparation:',error.code??error.message));
+  recoveryTimer=setInterval(()=>{recoveryDiscovery=discoverRecoveryWork().catch(error=>console.error('Project recovery:',error.code??error.message));},5000);recoveryTimer.unref();
+}
+async function projectForId(projectId) {
+  const registry=await loadProjectRegistry(registryOptions);
+  const id=typeof projectId==='string'&&projectId.trim()?projectId.trim():registry.activeProjectId;
+  const project=registry.projects.find(item=>item.id===id);
+  if(!project)throw Object.assign(new Error('Unknown project: '+id),{status:404});
+  observedProjects.set(project.id,project);
+  return project;
+}
+function contextForProject(project) {
+  return createProjectContext({projectRoot:project.root,projectId:project.id,capabilityRegistryOptions:registryOptions,dataSources:project.dataSources,filePolicy:project.filePolicy});
+}
+async function ensureInitialProject() {
+  await ensureInitialRegistry();
+  const registry=await loadProjectRegistry(registryOptions);
+  const project=registry.projects.find(item=>item.id===registry.activeProjectId);
+  await Promise.allSettled(registry.projects.map(item=>projectReadiness.ensure(item)));
+  return registry;
+}
+function scheduleProjectPreparation(project){
+  if(!project)return;
+  projectReadiness.invalidate(project.id);
+  void projectReadiness.ensure(project,{retry:true}).catch(error=>console.error('Project preparation:',project.id,error.code??error.message));
+}
+async function prepareProject(project) {
+  const context=contextForProject(project);
+  const observedSignature=await recoverySignature(context);
+  if(!await hasPreparationWork(project,context)){recoverySignatures.set(project.id,observedSignature);return;}
+  const result=await publicationObserve(context,`identity-recovery:${project.id}`,async()=>{
     const capabilityState = await projectCapabilityRegistry.resolve(project);
-    await recoverPendingEmbeddedIdentityPromotions({
+    const recoveredIdentities=await recoverPendingEmbeddedIdentityPromotions({
       projectContext: context,
       capabilityState,
       verifyPostReplaceCandidate: async ({ sourcePath, root, format, admissionSnapshot }) => {
@@ -298,17 +368,98 @@ async function ensureInitialProject() {
         assertDocumentContractPostReplace(admissionSnapshot, contracts, root);
       },
     });
+    if(recoveredIdentities.pending?.length)throw Object.assign(new Error('身份升级恢复尚不能确认，原内容已保留。'),{code:'IDENTITY_PROMOTION_NEEDS_RECOVERY',status:503});
     const pendingStore = createPendingEntryActionStore({ projectContext: context });
     const allocator = createFencingAllocator({ stateRoot: resolveInsideRoot(context.projectRoot, path.join(context.runtimeDir, "entry-action-fencing")) });
     for (const pending of await pendingStore.list()) {
       if (pending?.state !== "pending" || !pendingStore.isExpired(pending)) continue;
-      await allocator.cancelPromotion(pending.lease).then(() => pendingStore.write({ ...pending, state: "expired", expiredAt: new Date().toISOString() })).catch(() => {});
+      await allocator.cancelPromotion(pending.lease).then(() => pendingStore.write({ ...pending, state: "expired", expiredAt: new Date().toISOString() }));
     }
-    recoveredIdentityPromotionProjects.add(project.id);
+
+    await migrateLegacyEntryActionStateArtifacts(context);
+  });
+  recoverySignatures.set(project.id,observedSignature);
+  return result;
+}
+async function hasPreparationWork(project,context) {
+  const projection=await projectCapabilityRegistry.read(project);
+  if(projection.error?.code==='CAPABILITY_REFRESH_REQUIRED')return true;
+  const base=path.join(context.projectRoot,context.runtimeDir);
+  for(const dir of ['identity-promotion-journal','pending-entry-actions','entry-actions']){
+    const names=await readdir(path.join(base,dir)).catch(error=>{if(error.code==='ENOENT')return [];throw error;});
+    for(const name of names){
+      if(!name.endsWith('.json'))continue;
+      let value;try{value=JSON.parse(await readFile(path.join(base,dir,name),'utf8'));}catch(error){if(error.code==='ENOENT'||error instanceof SyntaxError)continue;throw error;}
+      if(dir==='identity-promotion-journal'&&value.kind==='identity_promotion'&&value.stage==='intent')return true;
+      if(dir==='pending-entry-actions'&&value.state==='pending'&&createPendingEntryActionStore({projectContext:context}).isExpired(value))return true;
+      const kind=name.endsWith('.started.json')?'started':name.endsWith('.result.json')?'result':null;
+      if(dir==='entry-actions'&&kind&&migrateLegacyEntryActionStateRecord(value,kind))return true;
     }
-    });
   }
-  return registry;
+  return false;
+}
+async function recoverySignature(context) {
+  const base=path.join(context.projectRoot,context.runtimeDir);
+  const rows=[];
+  for(const dir of ['identity-promotion-journal','pending-entry-actions','entry-actions']) {
+    const directory=path.join(base,dir);
+    const names=await readdir(directory).catch(error=>{if(error.code==='ENOENT')return [];throw error;});
+    for(const name of names.sort()){
+      const info=await stat(path.join(directory,name)).catch(error=>{if(error.code==='ENOENT')return null;throw error;});
+      if(info?.isFile())rows.push([dir,name,info.size,info.mtimeMs]);
+    }
+  }
+  for(const file of ['project.json','enrollment.json']){
+    const text=await readFile(path.join(context.projectRoot,'.data-editor',file)).catch(error=>{if(error.code==='ENOENT')return null;throw error;});
+    rows.push([file,text===null?null:crypto.createHash('sha256').update(text).digest('hex')]);
+  }
+  return JSON.stringify(rows);
+}
+async function discoverRecoveryWork() {
+  if(recoveryPollRunning||shuttingDown)return;recoveryPollRunning=true;
+  try {
+    const registry=await loadProjectRegistry(registryOptions);
+    for(const project of registry.projects.filter(item=>observedProjects.has(item.id)||item.id===registry.activeProjectId)){
+      const context=contextForProject(project);
+      try{
+        const signature=await recoverySignature(context);
+        if(signature!==recoverySignatures.get(project.id)||projectReadiness.inspect(project).state==='initializing'){
+          projectReadiness.invalidate(project.id);
+          await projectReadiness.ensure(project,{retry:true});
+        }
+        await recoverObservedCommands(project,context);
+      }catch(error){console.error('Project recovery:',project.id,error.code??error.message);}
+    }
+  }finally{recoveryPollRunning=false;}
+}
+async function recoverObservedCommands(project,context){
+  const directory=path.join(context.projectRoot,context.runtimeDir,'entry-actions');
+  const names=await readdir(directory).catch(error=>{if(error.code==='ENOENT')return [];throw error;});
+  for(const name of names){
+    if(!name.endsWith('.json')||name.endsWith('.started.json')||name.endsWith('.result.json')||name.endsWith('.followup.json'))continue;
+    let handoff;try{handoff=JSON.parse(await readFile(path.join(directory,name),'utf8'));}catch(error){if(error.code==='ENOENT'||error instanceof SyntaxError)continue;throw error;}
+    if(handoff?.action?.execution?.kind!=='project-command'||typeof handoff.runId!=='string')continue;
+    const key=project.id+':'+handoff.runId;
+    if(closedRecoveryRuns.has(key))continue;
+    try{
+      const terminal=await readEntryActionResult(context,handoff.runId).catch(()=>null);
+      if(terminal?.phase==='terminal'){
+        const stateRoot=path.join(context.projectRoot,context.runtimeDir,'entry-action-fencing');
+        const lease=await findFencingLeaseByRunId(stateRoot,handoff.runId);
+        if(!lease){commandRecoveryErrors.delete(key);continue;}
+        const current=await readCurrentFencingAdmission(stateRoot,lease.canonicalFileKey);
+        if((!current||current.runId!==handoff.runId)&&!await findExistingRecoveryClaim(stateRoot,lease)){commandRecoveryErrors.delete(key);continue;}
+      }
+      // This predicate only avoids no-op work. Any recovery effect still enters
+      // the original full authority, fencing and publication owners below.
+      if(await serviceProcessIsAlive(handoff.projectCommand?.writer)===true)continue;
+      await recoverProjectCommandRun(context,handoff.runId,documentCommitCoordinator,{observer:true});
+      commandRecoveryErrors.delete(key);
+    }catch(error){
+      if(error.code==='HISTORY_RUN_CLOSED'){closedRecoveryRuns.add(key);if(closedRecoveryRuns.size>1024)closedRecoveryRuns.delete(closedRecoveryRuns.values().next().value);}
+      else {commandRecoveryErrors.set(key,error);if(commandRecoveryErrors.size>128)commandRecoveryErrors.delete(commandRecoveryErrors.keys().next().value);}
+    }
+  }
 }
 
 async function handleGeneratedFields(url, res) {
@@ -317,7 +468,7 @@ async function handleGeneratedFields(url, res) {
   const project = registry.projects.find((item) => item.id === context.projectId);
   const sourcePath = url.searchParams.get("path"); const collection = url.searchParams.get("collection");
   if (!sourcePath || !collection || !url.searchParams.get("projectId")) throw Object.assign(new Error("Missing generated field scope"), { status: 400 });
-  const state = await projectCapabilityRegistry.resolve(project);
+  const state = await projectCapabilityRegistry.read(project);
   sendJson(res, await readGeneratedFields({ project, context, state, sourcePath, collection }), 200, { "cache-control": "no-store" });
 }
 
@@ -328,27 +479,31 @@ async function handleDocument(url, res) {
   const text = await readTextFile(projectContext, relativePath);
   const ext = path.extname(relativePath).toLowerCase();
   const parsed = ext === ".csv" ? { data: parseCsv(text), format: "csv" } : parseJson(text);
+  const model=buildDocumentModel(parsed.data,parsed.format,relativePath);
+  if(url.pathname==='/api/document-metadata')return sendJson(res,{format:model.format,sourcePath:relativePath,collections:model.collections,documentEtag:documentEtag(text)});
   sendJson(res, {
-    ...buildDocumentModel(parsed.data, parsed.format, relativePath),
+    ...model,
     documentEtag: documentEtag(text),
   });
 }
 
 async function handleProjectCapabilities(url, res) {
+  await projectContextForUrl(url);
   const registry = await loadProjectRegistry(registryOptions);
   const requestedProjectId = typeof url.searchParams.get("projectId") === "string" ? url.searchParams.get("projectId").trim() : "";
   const projectId = requestedProjectId || registry.activeProjectId;
   const project = registry.projects.find((candidate) => candidate.id === projectId);
   if (!project) throw new Error(projectId ? `Unknown project: ${projectId}` : "No active project is configured.");
-  sendJson(res, await projectCapabilityRegistry.resolve(project), 200, { "cache-control": "no-cache" });
+  sendJson(res, await projectCapabilityRegistry.read(project), 200, { "cache-control": "no-cache" });
 }
 
 async function handleNestedSchemaCapabilities(url, res) {
+  await projectContextForUrl(url);
   const registry = await loadProjectRegistry(registryOptions);
   const projectId = String(url.searchParams.get("projectId") ?? "").trim() || registry.activeProjectId;
   const project = registry.projects.find((candidate) => candidate.id === projectId);
   if (!project) throw new Error(projectId ? `Unknown project: ${projectId}` : "No active project is configured.");
-  const state = await projectCapabilityRegistry.resolve(project);
+  const state = await projectCapabilityRegistry.read(project);
   if (state.status !== "active") return sendJson(res, { projectId: project.id, generation: state.generation, bindings: [] }, 200, { "cache-control": "no-cache" });
   const bindings = await Promise.all(state.bindings.nestedSchemas.map(async (binding) => {
     let definition;
@@ -367,7 +522,7 @@ async function resolveApplicableDocumentContracts(projectContext, documentPath, 
   const registry = await loadProjectRegistry(registryOptions);
   const project = registry.projects.find((candidate) => candidate.id === projectContext.projectId);
   if (!project) throw new Error(`Unknown project: ${projectContext.projectId}`);
-  const capabilityState = await projectCapabilityRegistry.resolve(project);
+  const capabilityState = await (projectContext.capabilityRegistryOptions?.readOnly ? projectCapabilityRegistry.read(project) : projectCapabilityRegistry.resolve(project));
   if (capabilityState.status === "generic_absent") return { state: capabilityState, contracts: [] };
   if (capabilityState.status !== "active") {
     return { state: capabilityState, contracts: [], error: new DocumentSaveError("DOCUMENT_CONTRACT_CAPABILITY_UNAVAILABLE", "项目 capability 状态不可用于安全保存。", "path", { status: 409, details: capabilityState.error ?? null }) };
@@ -506,7 +661,7 @@ async function handleSaveViewConfig(req, res) {
   const projectContext = await projectContextForId(body.projectId);
   const config = body && typeof body === "object" && "config" in body ? body.config : body;
   assertValidFieldPresentations(config);
-  const result = await saveViewConfig(projectContext, config);
+  const result = await saveViewConfig(projectContext, config, Object.hasOwn(body,'expected')?{expected:body.expected}:{});
   sendJson(res, { ok: true, ...result });
 }
 
@@ -514,7 +669,7 @@ async function handleSaveSharedViews(req, res) {
   const body = await readJsonBody(req);
   const projectContext = await projectContextForId(body.projectId);
   const config = body && typeof body === "object" && "config" in body ? body.config : body;
-  const result = await saveSharedViews(projectContext, config);
+  const result = await saveSharedViews(projectContext, config, Object.hasOwn(body,'expected')?{expected:body.expected}:{});
   sendJson(res, { ok: true, ...result });
 }
 
@@ -528,7 +683,7 @@ async function handleSaveViewProfile(req, res) {
   const body = await readJsonBody(req);
   if (!body.name) throw new Error("Missing view profile name");
   const projectContext = await projectContextForId(body.projectId);
-  const result = await saveViewProfile(projectContext, body.name, body.profile);
+  const result = await saveViewProfile(projectContext, body.name, body.profile, Object.hasOwn(body,'expected')?{expected:body.expected}:{});
   await registerUserProfileName(body.name, registryOptions);
   sendJson(res, { ok: true, ...result });
 }
@@ -719,12 +874,14 @@ async function handleSaveAutomationBindings(req, res) {
 async function handleCreateProject(req, res) {
   const body = await readJsonBody(req);
   const result = await addOrActivateProject(body, registryOptions);
+  scheduleProjectPreparation(result.project);
   sendJson(res, { ok: true, activeProjectId: result.registry.activeProjectId, project: result.project, registry: result.registry });
 }
 
 async function handleUpdateProject(req, res) {
   const body = await readJsonBody(req);
   const saved = await updateProjectDefinition(body, registryOptions);
+  scheduleProjectPreparation(saved.projects.find(item=>item.id===body.id));
   sendJson(res, { ok: true, registry: saved });
 }
 
@@ -745,18 +902,19 @@ async function handleActivateProject(req, res) {
   const projectId = body.projectId;
   if (!projectId) throw new Error("Missing project id");
   const saved = await activateProject(projectId, registryOptions);
+  scheduleProjectPreparation(saved.projects.find(item=>item.id===projectId));
   sendJson(res, { ok: true, activeProjectId: saved.activeProjectId, registry: saved });
 }
 
 async function handleRunEntryAction(req, res) {
   const body = await readJsonBody(req);
-  await ensureInitialProject();
+  await ensureInitialRegistry();
   sendJson(res, await withProjectRegistryLock(() => runEntryAction.run(body), registryOptions));
 }
 
 async function handleAckStartEntryAction(req, res) {
   const body = await readJsonBody(req);
-  await ensureInitialProject();
+  await ensureInitialRegistry();
   sendJson(res, await withProjectRegistryLock(() => runEntryAction.ackStart(body), registryOptions));
 }
 
@@ -806,8 +964,9 @@ async function handlePublishExactArtifact(req, res) {
 async function handleLoadEntryActionResult(url, res) {
   const runId = String(url.searchParams.get("runId") ?? "").trim();
   if (!runId) throw new Error("Missing runId");
-  const projectContext = await projectContextForUrl(url);
-  await recoverProjectCommandRun(projectContext, runId, documentCommitCoordinator, {observer:true});
+  const projectContext = contextForProject(await projectForId(url.searchParams.get('projectId')));
+  const recoveryError=commandRecoveryErrors.get(projectContext.projectId+':'+runId);
+  if(recoveryError)throw recoveryError;
   try {
     const result = await readEntryActionResult(projectContext, runId);
     sendJson(res, { ...result, artifacts: await describeEntryActionArtifacts(projectContext, runId) });
@@ -872,7 +1031,7 @@ async function handleLoadLatestEntryActionResult(url, res) {
   const actionId = String(url.searchParams.get("actionId") ?? "").trim();
   if (!actionId) throw new Error("Missing actionId");
   if (rowId == null && sourceRowIndex == null) throw new Error("Entry action requires rowId or sourceRowIndex");
-  const projectContext = await projectContextForUrl(url);
+  const projectContext = contextForProject(await projectForId(url.searchParams.get('projectId')));
   let run = await findLatestEntryActionRun(projectContext, {
     actionId,
     sourcePath,
@@ -883,7 +1042,6 @@ async function handleLoadLatestEntryActionResult(url, res) {
   if (run?.runId) {
     const historical=await projectHistoricalRunActivity(projectContext,[run]);
     if(historical.historicalRuns.length){sendJson(res,{run:null,historicalRun:historical.historicalRuns[0]});return;}
-    await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator, {observer:true});
     run = await findLatestEntryActionRun(projectContext, { actionId, sourcePath, collectionPath, rowId, sourceRowIndex });
   }
   sendJson(res, { run });
@@ -891,16 +1049,15 @@ async function handleLoadLatestEntryActionResult(url, res) {
 
 async function handleLoadActiveEntryActionRuns(url, res) {
   const sourcePath = normalizeEntryActionPath(url.searchParams.get("sourcePath"), "sourcePath");
-  const projectContext = await projectContextForUrl(url);
+  const projectContext = contextForProject(await projectForId(url.searchParams.get('projectId')));
   const active = await findActiveEntryActionRuns(projectContext, sourcePath);
-  for (const run of active.runs) await recoverProjectCommandRun(projectContext, run.runId, documentCommitCoordinator, {observer:true});
-  sendJson(res, await findActiveEntryActionRuns(projectContext, sourcePath));
+  sendJson(res, active);
 }
 
 async function handleLoadEntryActionOutput(url, res) {
   const runId = String(url.searchParams.get("runId") ?? "").trim();
   if (!runId) throw new Error("Missing runId");
-  const projectContext = await projectContextForUrl(url);
+  const projectContext = contextForProject(await projectForId(url.searchParams.get('projectId')));
   try {
     const output = await readFile(entryActionOutputPath(projectContext, runId), "utf8");
     sendJson(res, { runId, output });
@@ -954,8 +1111,11 @@ async function serveStatic(urlPath, res) {
 }
 
 function sendJson(res, data, status = 200, headers = {}) {
-  res.writeHead(status, { "content-type": "application/json; charset=utf-8", ...headers });
-  res.end(JSON.stringify(data));
+  if(res.destroyed||res.writableEnded)return;
+  if(status<400)checkReadRequest();
+  const text=JSON.stringify(data);
+  res.writeHead(status, { "content-type": "application/json; charset=utf-8", "server-timing":`total;dur=${(performance.now()-(res.requestStartedAt??performance.now())).toFixed(2)}`, "cache-control":"no-store", ...headers });
+  res.end(text);
 }
 
 function scheduleControllerStop() {
@@ -1064,6 +1224,7 @@ async function collectSharedViewIconPackSvg(packRoot, payload, currentRelativeDi
     : packRoot.absoluteRoot;
   const entries = await readdir(currentAbsoluteDir, { withFileTypes: true });
   for (const entry of entries) {
+    checkReadRequest();
     const nextRelative = currentRelativeDir
       ? `${currentRelativeDir}/${entry.name}`.replaceAll("\\", "/")
       : entry.name;
@@ -1115,6 +1276,9 @@ function registerRuntimeStateCleanup() {
 async function shutdownServer(exitCode) {
   if (shuttingDown) return;
   shuttingDown = true;
+  clearInterval(recoveryTimer);
+  await recoveryDiscovery;
+  await projectReadiness.settled();
   process.exitCode = exitCode;
   await jobSupervisor.shutdown().catch((error) => console.error(error));
   await Promise.allSettled([...activeEntryActionCompletions.values()]);
@@ -1124,36 +1288,17 @@ async function shutdownServer(exitCode) {
 }
 
 async function projectContextForUrl(url) {
-  return projectContextForId(url.searchParams.get("projectId"));
+  const project=await projectForId(url.searchParams.get("projectId"));
+  // Read the requested inputs directly. Lifecycle recovery has its own status
+  // endpoint; it is neither a prerequisite nor an authority permit for a GET.
+  checkReadRequest();
+  const context=contextForProject(project);
+  return {...context,capabilityRegistryOptions:{...registryOptions,readOnly:true}};
 }
 
 async function projectContextForId(projectId) {
-  const registry = await loadProjectRegistry(registryOptions);
-  const resolvedProjectId = typeof projectId === "string" && projectId.trim() ? projectId.trim() : registry.activeProjectId;
-  const project = registry.projects.find((candidate) => candidate.id === resolvedProjectId);
-  if (!project) throw new Error(resolvedProjectId ? `Unknown project: ${resolvedProjectId}` : "No active project is configured.");
-  const projectContext = createProjectContext({
-    projectRoot: project.root,
-    projectId: project.id,
-    capabilityRegistryOptions: registryOptions,
-    dataSources: project.dataSources,
-    filePolicy: project.filePolicy,
-  });
-  await ensureEntryActionStateMigration(projectContext);
-  return projectContext;
-}
-
-async function ensureEntryActionStateMigration(projectContext) {
-  const key = projectContext.projectRoot;
-  let migration = entryActionStateMigrationByProjectRoot.get(key);
-  if (!migration) {
-    migration = publicationObserve(projectContext, "legacy-state-migration", () => migrateLegacyEntryActionStateArtifacts(projectContext)).catch((error) => {
-      entryActionStateMigrationByProjectRoot.delete(key);
-      throw error;
-    });
-    entryActionStateMigrationByProjectRoot.set(key, migration);
-  }
-  await migration;
+  const project=await projectForId(projectId);
+  return contextForProject(project);
 }
 
 function runtimeTargetFromArgs() {

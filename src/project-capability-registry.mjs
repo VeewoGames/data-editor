@@ -41,6 +41,7 @@ export function createProjectCapabilityRegistry(options = {}) {
       states.set(projectId, next);
       return next;
     },
+    async read(project) { return resolveProjectCapabilityState(project,{...options,readOnly:true}); },
     get(projectId) {
       return states.get(projectId) ?? null;
     },
@@ -125,7 +126,8 @@ async function compileCapabilityState(loaded, project, lkg, options) {
     && previous.manifestDigest === bindingDigest
     && previous.capabilityApi === 1;
   const generation = unchanged ? previous.generation : Math.max(1, Number(previous?.generation ?? 0) + 1);
-  const snapshot = await saveCapabilityLkg({
+  if (!unchanged && options.readOnly) return degraded(project,lkg,{code:'CAPABILITY_REFRESH_REQUIRED',message:'项目能力已变化，等待受控刷新。'});
+  const snapshot = unchanged ? previous : await saveCapabilityLkg({
     version: 1,
     projectId: project.id,
     rootDigest,

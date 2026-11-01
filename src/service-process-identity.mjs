@@ -1,4 +1,6 @@
-import { spawnSync } from "node:child_process";
+import {promisify} from 'node:util';
+const execFileAsync=promisify(execFile);
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 let ownIdentity;
 
@@ -7,10 +9,10 @@ export async function readServiceProcessIdentity(pid = process.pid) {
   if (!Number.isSafeInteger(Number(pid)) || Number(pid) < 1) return null;
   if (process.platform === "win32") {
     const script = `try { $p=[Diagnostics.Process]::GetProcessById(${Number(pid)}); [Console]::Out.Write($p.StartTime.ToUniversalTime().ToFileTimeUtc().ToString([Globalization.CultureInfo]::InvariantCulture)) } catch [System.ArgumentException] { [Console]::Out.Write('ABSENT') } catch { [Console]::Out.Write('ERROR') }`;
-    const result = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8", windowsHide: true });
+    const result = await execFileAsync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8", windowsHide: true, timeout:5000, maxBuffer:16384 }).catch(error=>({error,stdout:""}));
     const value = result.stdout?.trim();
     if (value === "ABSENT") return false;
-    return !result.error && result.status === 0 && /^\d+$/.test(value ?? "") ? { pid: String(pid), creationTime: value } : null;
+    return !result.error && /^\d+$/.test(value ?? "") ? { pid: String(pid), creationTime: value } : null;
   }
   if (process.platform === "linux") {
     try {

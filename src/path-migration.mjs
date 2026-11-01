@@ -1,6 +1,10 @@
 import { syncBacklinksWithRelations } from "./model/field-role.mjs";
 
 export const fingerprintCacheStorageKey = "data-editor:__file-fingerprints";
+export const fingerprintProjectScope=project=>JSON.stringify([project.id,project.root,project.dataSources,project.filePolicy]);
+export function selectFingerprintMigrationBaseline(previousFiles,previousScope,scope,cache){
+  return previousScope===scope&&previousFiles.length?previousFiles:Object.entries(cache.files).map(([path,entry])=>({path,size:entry.size,modifiedAt:entry.modifiedAt}));
+}
 
 function emptyReport() {
   return { migrated: [], conflicts: [], skipped: [] };
@@ -64,9 +68,9 @@ function inferReason(oldPath, newPath) {
   return "file-move";
 }
 
-export function readFingerprintCache(storage) {
+export function readFingerprintCache(storage, scope = "") {
   const fallback = { version: 1, files: {} };
-  const rawValue = storage?.getItem?.(fingerprintCacheStorageKey);
+  const rawValue = storage?.getItem?.(scope ? `${fingerprintCacheStorageKey}:${scope}` : fingerprintCacheStorageKey);
   if (!rawValue) return fallback;
   try {
     const parsed = JSON.parse(rawValue);
@@ -89,12 +93,12 @@ export function readFingerprintCache(storage) {
   }
 }
 
-export function writeFingerprintCache(storage, cache) {
+export function writeFingerprintCache(storage, cache, scope = "") {
   const normalized = normalizeFingerprintCache(cache);
   const nextValue = JSON.stringify(normalized);
-  const previousValue = storage?.getItem?.(fingerprintCacheStorageKey);
+  const previousValue = storage?.getItem?.(scope ? `${fingerprintCacheStorageKey}:${scope}` : fingerprintCacheStorageKey);
   if (previousValue === nextValue) return { value: normalized, changed: false, report: emptyReport() };
-  storage?.setItem?.(fingerprintCacheStorageKey, nextValue);
+  storage?.setItem?.(scope ? `${fingerprintCacheStorageKey}:${scope}` : fingerprintCacheStorageKey, nextValue);
   return { value: normalized, changed: true, report: emptyReport() };
 }
 
@@ -194,9 +198,15 @@ export async function detectPathMigrations({
     oldEntries.push({ path: oldPath, identity });
   }
 
+  if (!oldEntries.length || !added.length) return { migrations: [], report };
+
+  let incomplete=false;
   for (const newPath of added) {
     const file = nextByPath.get(newPath);
-    const fingerprint = await readFingerprint?.(file);
+    let fingerprint;
+    try{fingerprint=await readFingerprint?.(file);}catch(error){
+      incomplete=true;report.skipped.push({surface:'detectPathMigrations',path:newPath,reason:'fingerprint-read-failed',message:String(error.message)});continue;
+    }
     const identity = fingerprintIdentity(fingerprint);
     if (!identity) {
       report.skipped.push({ surface: "detectPathMigrations", path: newPath, reason: "invalid-fingerprint" });
@@ -205,6 +215,7 @@ export async function detectPathMigrations({
     newEntries.push({ path: newPath, identity });
   }
 
+  if(incomplete)return {migrations:[],report};
   const oldByIdentity = groupBy(oldEntries, (entry) => entry.identity);
   const newByIdentity = groupBy(newEntries, (entry) => entry.identity);
   const migrations = [];

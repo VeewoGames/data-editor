@@ -1,4 +1,5 @@
-import { readFile, readdir, stat } from "node:fs/promises";
+import { checkReadRequest } from './read-request-context.mjs';
+import { readFile, readdir, stat, lstat, realpath } from "node:fs/promises";
 import path from "node:path";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
 import { atomicWrite } from "./atomic-file.mjs";
@@ -11,9 +12,10 @@ export async function listDataFiles(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
   const result = [];
   for (const source of context.dataSources) {
+    checkReadRequest();
     const sourceRoot = dataSourceRoot(context, source);
     try {
-      await walk(sourceRoot, source.id, result, source);
+      await walk(sourceRoot, source.id, result, source, context.filePolicy?.includeExtensions ?? [".json", ".csv"]);
     } catch (error) {
       if (error.code === "ENOENT") continue;
       throw error;
@@ -58,11 +60,14 @@ export async function readTextFile(projectContextOrRoot, relativePath) {
     }
     throw error;
   }
+  checkReadRequest();
   const info = await stat(target);
   if (info.size > MAX_PREVIEW_BYTES) {
     throw new Error("File is too large for MVP preview. Limit: 20 MB.");
   }
-  return readFile(target, "utf8");
+  const text=await readFile(target,"utf8");
+  checkReadRequest();
+  return text;
 }
 
 export async function writeTextFile(projectContextOrRoot, relativePath, text) {
@@ -123,12 +128,25 @@ async function findAllowedDataFile(context, normalizedPath) {
   const separatorIndex = normalizedPath.indexOf("/");
   const sourceId = normalizedPath.slice(0, separatorIndex);
   const innerPath = normalizedPath.slice(separatorIndex + 1);
-  const files = await listDataFiles(context);
-  return files.find((file) => {
-    if (file.dataSourceId !== sourceId) return false;
-    if (process.platform !== "win32") return file.displayPath === innerPath;
-    return file.displayPath.toLowerCase() === innerPath.toLowerCase();
-  });
+  const source=context.dataSources.find(item=>item.id===sourceId);
+  if(!source)return undefined;
+  const root=dataSourceRoot(context,source);
+  const target=resolveInsideRoot(root,innerPath);
+  const segments=path.relative(root,target).split(path.sep);
+  let current=root;
+  try{
+    for(let i=0;i<segments.length;i++){
+      current=path.join(current,segments[i]);
+      const info=await lstat(current);
+      // walk() excludes symlinks/junctions; preserve that qualification without
+      // reading any sibling directories, including for absolute data sources.
+      if(info.isSymbolicLink() || (i===segments.length-1?!info.isFile():!info.isDirectory()))return undefined;
+    }
+  }catch(error){if(['ENOENT','ENOTDIR'].includes(error.code))return undefined;throw error;}
+  // Windows accepts aliases in case; virtual identities still use the spelling
+  // on disk, while the configured source id remains case sensitive.
+  const actualInner=process.platform==='win32'?path.relative(await realpath(root),await realpath(target)).replaceAll('\\','/'):innerPath;
+  return {path:`${sourceId}/${actualInner}`,displayPath:actualInner,dataSourceId:sourceId};
 }
 
 function isDataFileSelectionError(error) {
@@ -139,13 +157,14 @@ function isDataFileSelectionError(error) {
     || message.startsWith("Path is outside project root:");
 }
 
-async function walk(absDir, relDir, result, source) {
+async function walk(absDir, relDir, result, source, includeExtensions) {
   for (const entry of await readdir(absDir, { withFileTypes: true })) {
+    checkReadRequest();
     const absPath = path.join(absDir, entry.name);
     const relPath = `${relDir}/${entry.name}`.replaceAll("\\", "/");
     if (entry.isDirectory()) {
-      await walk(absPath, relPath, result, source);
-    } else if (entry.isFile()) {
+      await walk(absPath, relPath, result, source, includeExtensions);
+    } else if (entry.isFile() && includeExtensions.includes(path.extname(entry.name).toLowerCase())) {
       const info = await stat(absPath);
       result.push({
         path: relPath,

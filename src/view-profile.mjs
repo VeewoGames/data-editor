@@ -1,5 +1,10 @@
+import {normalizeProfileName} from './project-context.mjs';
+export {normalizeProfileName} from './project-context.mjs';
+import {withHistoricalConfigurationSave} from './historical-disposition.mjs';
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {atomicWrite} from './atomic-file.mjs';
+import {withConfigWrite} from './config-write-precondition.mjs';
 import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
 import { normalizeSharedViewDraftState } from "./shared-views.mjs";
 import { buildSidebarTreePreferences } from "./sidebar-tree.mjs";
@@ -28,13 +33,13 @@ export async function loadViewProfile(projectContextOrRoot, name) {
   }
 }
 
-export async function saveViewProfile(projectContextOrRoot, name, profile) {
-  const context = createProjectContext(projectContextOrRoot);
-  const profileName = normalizeProfileName(name);
-  const target = path.join(profileDir(context), `${profileName}.json`);
-  await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, `${JSON.stringify(serializeViewProfile(profile), null, 2)}\n`, "utf8");
-  return { path: displayProjectPath(context, target), name: profileName };
+export async function saveViewProfile(projectContextOrRoot, name, profile, options={}) {
+ const context=createProjectContext(projectContextOrRoot);
+ return withHistoricalConfigurationSave(context,{kind:'view-profile',name},target=>withConfigWrite(target,options,()=>loadViewProfile(context,name),async()=>{
+  await mkdir(path.dirname(target),{recursive:true});
+  await atomicWrite(target,JSON.stringify(serializeViewProfile(profile),null,2)+'\n');
+  return { path: displayProjectPath(context,target), name: normalizeProfileName(name) };
+ }));
 }
 
 export function emptyViewProfile() {
@@ -56,12 +61,6 @@ export function emptyViewProfile() {
   };
 }
 
-export function normalizeProfileName(name) {
-  const value = String(name ?? "").trim();
-  if (!value) throw new Error("View profile name is required");
-  if (/[<>:"/\\|?*]/.test(value)) throw new Error(`View profile name contains unsupported characters: ${value}`);
-  return value;
-}
 
 function normalizeViewProfile(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return emptyViewProfile();

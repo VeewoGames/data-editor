@@ -1,11 +1,14 @@
+import {resolveConfigurationSaveTarget} from './project-context.mjs';
+import {managedHistoryRequiredDeploymentFiles} from './historical-required-files.mjs';
+import {verifyDeploymentPolicy,historySnapshot,validateReceiptEvidence} from './historical-proof.mjs';
 // Managed entry non-replay owner. Business results and external writers are separate facts.
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
-import {readFile,realpath,stat,mkdir,writeFile,readdir,rm,rename,open} from 'node:fs/promises';
+import {readFile,realpath,stat,readdir} from 'node:fs/promises';
 import {withProjectProcessLock} from './project-process-lock.mjs';
-import {readHistoryDeployment,historyDeploymentFile} from './historical-deployment.mjs';
-import {validateSuccessorLedger,sourceEntryFor,artifactReference,successorContract} from './historical-deployment-successor.mjs';
+import {readHistoryDeployment} from './historical-deployment.mjs';
+import {readAuthoritySnapshot,assertAuthorityStamp,withAuthorityDeliveryLock,validateAuthorityLedger} from './deployment-authority-store.mjs';
 
 const scope=new AsyncLocalStorage(),lockScope=new AsyncLocalStorage();
 const ID=/^[A-Za-z0-9:_-]{1,160}$/;
@@ -19,19 +22,22 @@ export async function historyBinding(context){
  const root=normalize(await physical(path.resolve(typeof context==='string'?context:context.projectRoot)));
  const runtime=normalize(await physical(path.resolve(root,context.runtimeDir??'.data-editor/runtime')));
  if(!runtime.startsWith(root+'/'))bad('HISTORY_BINDING_INVALID');
- const entries=await readHistoryDeployment(),entry=entries.find(e=>e.projectRoot===root);
+ const snapshot=await readAuthoritySnapshot(),entries=snapshot.entries,entry=entries.find(e=>e.projectRoot===root);
  if(!entry&&entries.some(e=>root.startsWith(e.projectRoot+'/')))bad('HISTORY_BINDING_INVALID');
  if(entry&&(entry.runtime!==runtime||context.historicalDispositionAnchorId&&context.historicalDispositionAnchorId!==entry.anchorId))bad('HISTORY_BINDING_INVALID');
- return {root,runtime,key:sha(root),deployed:!!entry,expectedAnchorId:entry?.anchorId,policy:entry?.managedNonReplay,deploymentSuccessor:entry?.deploymentSuccessor,registration:path.join(root,'.data-editor/historical-disposition-registration.json'),directory:path.join(runtime,'entry-action-dispositions')};
+ return {root,runtime,key:sha(root),authorityStamp:snapshot.stamp,authority:entry?.authority,deployed:!!entry,expectedAnchorId:entry?.anchorId,policy:entry?.managedNonReplay,registration:path.join(root,'.data-editor/historical-disposition-registration.json'),directory:path.join(runtime,'entry-action-dispositions')};
 }
 // Same short lock as publication; stale ALS inherited by completion is not a permit.
 export async function withHistoryProjectLock(binding,operation){
+ if(binding.authorityStamp===undefined)binding=await historyBinding({projectRoot:binding.root,runtimeDir:binding.runtime});
  const held=lockScope.getStore();
- if(held?.key===binding.key&&held.active)return operation();
- return withProjectProcessLock(`publication:${binding.key}`,async()=>{
+ if(held?.key===binding.key&&held.active){await assertAuthorityStamp(binding.authorityStamp);return operation();}
+ const acquire=()=>withProjectProcessLock(`publication:${binding.key}`,async()=>{
+  await assertAuthorityStamp(binding.authorityStamp);
   const token={key:binding.key,active:true};
   try{return await lockScope.run(token,operation);}finally{token.active=false;}
  });
+ return binding.deployed?acquire():withAuthorityDeliveryLock(acquire);
 }
 async function readLedger(binding){
  const registration=await optional(binding.registration);
@@ -45,7 +51,7 @@ async function readLedger(binding){
  for(const [id,record]of Object.entries(state.records)){
   if(!valid(id)||record.runId!==id||!['intent','receipt'].includes(record.phase)||!Array.isArray(record.relatedRunIds)||!record.relatedRunIds.includes(id)||!record.relatedRunIds.every(valid)||typeof record.evidenceDigest!=='string'||!/^[a-f0-9]{64}$/.test(record.evidenceDigest))bad('HISTORY_STATE_UNVERIFIABLE');
  }
- if(binding.deploymentSuccessor)await validateSuccessorLedger(binding,state,await readFile(path.join(binding.directory,'state.json')));
+ if(binding.authority)await validateAuthorityLedger(binding,state,await readFile(path.join(binding.directory,'state.json')));
  return state;
 }
 async function ancestors(binding,ids){
@@ -96,12 +102,25 @@ export async function assertHistoricalRunAllowed(context,ids=[],{fullInventory=f
   for(const record of records.filter(r=>r.phase==='receipt'))await validateManagedReceipt(binding,record,{fullInventory,snapshot});
  });
 }
-export async function withHistoricalRun(context,ids,operation){
+function assertScopeActive(current){if(current&&current.active===false)bad(current.mode==='automation'?'HISTORY_RUN_SCOPE_EXPIRED':'HISTORY_AUTHOR_SCOPE_EXPIRED');}
+export async function withHistoricalRun(context,ids,operation,{ownedCompletion=false}={}){
  const current=scope.getStore(),binding=await historyBinding(context);
+ if(current&&current.active===false)bad('HISTORY_RUN_SCOPE_EXPIRED');
+ if(current&&current.mode!=='automation')bad('HISTORY_AUTHOR_SCOPE_ESCALATION');
  const inherited=current?.binding.key===binding.key?(current.ids??[]):[];
  const all=[...new Set([...inherited,...ids.filter(Boolean)])];
  await assertHistoricalRunAllowed(context,all);
- return scope.run({mode:'automation',binding,context,ids:all},operation);
+ assertScopeActive(current);
+ const token={mode:'automation',active:true,binding,context,ids:all};
+ let retained=false;
+ try{
+  const result=await scope.run(token,operation);
+  if(ownedCompletion&&result?.completion?.then){
+   const completion=Promise.resolve(result.completion).finally(()=>{token.active=false;});
+   void completion.catch(()=>{});retained=true;return {...result,completion};
+  }
+  return result;
+ }finally{if(!retained)token.active=false;}
 }
 export function currentHistoricalRunId(){const current=scope.getStore();return current?.mode==='automation'?current.ids.at(-1):null;}
 export async function assertHistoricalRecoveredRun(context,runId){
@@ -111,14 +130,15 @@ export async function assertHistoricalRecoveredRun(context,runId){
 // Enclose only a synchronous spawn or bounded command dispatch, never completion.
 export async function withHistoricalScopeEffect(operation,context=null){
  const current=scope.getStore(),binding=context?await historyBinding(context):current?.binding;
+ if(current&&current.active===false)bad(current.mode==='automation'?'HISTORY_RUN_SCOPE_EXPIRED':'HISTORY_AUTHOR_SCOPE_EXPIRED');
  if(!current){
   if(context){await assertHistoricalRunAllowed(context,[]);if(binding.deployed)bad('HISTORY_RUN_CONTEXT_REQUIRED');}
-  else await readHistoryDeployment();
-  return operation();
+  else return withAuthorityDeliveryLock(async()=>{await readAuthoritySnapshot();return operation();});
+  return withHistoryProjectLock(binding,()=>operation());
  }
  if(binding&&binding.key!==current.binding.key)bad('HISTORY_BINDING_INVALID');
  if(current.mode!=='automation')bad('HISTORY_AUTHOR_SCOPE_ESCALATION');
- return withHistoryProjectLock(current.binding,async()=>{await assertHistoricalRunAllowed(current.context,current.ids);return operation();});
+ return withHistoryProjectLock(current.binding,async()=>{assertScopeActive(current);await assertHistoricalRunAllowed(current.context,current.ids);assertScopeActive(current);return operation();});
 }
 export async function cleanupHistoricalRun(operation){
  try{return await withHistoricalScopeEffect(operation);}catch(error){if(String(error.code).startsWith('HISTORY_'))return {retained:true,reason:error.code};throw error;}
@@ -135,6 +155,31 @@ export async function withHistoricalAuthorSave(context,{sourceFile,journalFile},
  const token={mode:'author',active:true,binding,context,ids:[],files:[source,journal]};
  try{return await scope.run(token,operation);}finally{token.active=false;}
 }
+// Precise ordinary configuration ownership; no automation run is synthesized.
+export async function withHistoricalConfigurationSave(input,descriptor,operation){
+ if(scope.getStore())bad('HISTORY_AUTHOR_SCOPE_ESCALATION');
+ const {context,target:declared}=resolveConfigurationSaveTarget(input,descriptor);
+ const binding=await historyBinding(context),target=normalize(await physical(declared));
+ if(target!==normalize(path.resolve(declared)))bad('HISTORY_CONFIGURATION_ALIAS_REJECTED');
+ const snapshot=await readAuthoritySnapshot(),authorityDirectory=normalize(await physical(snapshot.directory));
+ const inside=(file,root)=>file===root||file.startsWith(root+'/');
+ const forbidden=[binding.runtime,authorityDirectory,binding.root+'/.data-editor/publication-admission',binding.root+'/.data-editor/entry-action-contracts.json',binding.root+'/.data-editor/historical-disposition-registration.json'];
+ for(const source of context.dataSources){
+  const sourceRoot=normalize(await physical(source.kind==='absolute'?path.resolve(source.path):path.resolve(context.projectRoot,source.path)));
+  // A root data source also contains reserved configuration metadata. Only the
+  // precise category target is granted; runtime/ledger checks remain above.
+  if(sourceRoot===binding.root&&target.startsWith(binding.root+'/.data-editor/'))continue;
+  forbidden.push(sourceRoot);
+ }
+ for(const relative of binding.policy?.businessFiles??[])forbidden.push(normalize(await physical(path.resolve(binding.root,relative))));
+ if(forbidden.some(root=>inside(target,root)))bad('HISTORY_CONFIGURATION_WRITESET_INVALID');
+ const discovered=await bindingForPath(declared);
+ if(discovered&&discovered.key!==binding.key)bad('HISTORY_BINDING_INVALID');
+ // This admission lock is released before the existing configuration lock is acquired.
+ await withHistoryProjectLock(binding,()=>readLedger(binding));
+ const token={mode:'configuration',active:true,binding,context,ids:[],files:[target]};
+ try{return await scope.run(token,()=>operation(declared));}finally{token.active=false;}
+}
 // Publication owner can write only its two metadata files, never business or run state.
 export async function withHistoricalPublicationState(context,operation){
  if(scope.getStore())return operation();
@@ -146,7 +191,7 @@ export async function withHistoricalPublicationState(context,operation){
 }
 export async function withHistoricalFileRun(file,ids,operation){
  if(!file)return operation(); // Pure callback primitives have no physical project binding.
- const binding=await bindingForPath(file);if(!binding)return operation();
+ const binding=await bindingForPath(file);if(!binding)return withAuthorityDeliveryLock(async()=>{const discovered=await bindingForPath(file);if(discovered)return withHistoricalRun({projectRoot:discovered.root,runtimeDir:discovered.runtime},ids,operation);await readAuthoritySnapshot();return operation();});
  return withHistoricalRun({projectRoot:binding.root,runtimeDir:binding.runtime},ids,operation);
 }
 async function bindingForPath(file){
@@ -173,15 +218,23 @@ function runReferences(value,ids=[],groups=[]){
 }
 export async function withHistoricalFileEffect(file,payload,operation){
  const current=scope.getStore(),discovered=await bindingForPath(file),target=normalize(await physical(path.resolve(file)));
+ if(current&&current.active===false)bad(current.mode==='automation'?'HISTORY_RUN_SCOPE_EXPIRED':'HISTORY_AUTHOR_SCOPE_EXPIRED');
  // A historical scope authorizes its physical project only. Tool caches outside every
  // registered project keep their own owner; another registered project never inherits it.
  if(current&&discovered&&current.binding.key!==discovered.key)bad('HISTORY_BINDING_INVALID');
- if(current&&!discovered&&target!==current.binding.root&&!target.startsWith(current.binding.root+'/'))return operation();
+ // Check even external profile effects before the generic external-cache fast path.
+ if(current?.mode==='configuration')return withHistoryProjectLock(current.binding,async()=>{
+  assertScopeActive(current);
+  if(!current.files.includes(target)||target!==normalize(path.resolve(file)))bad('HISTORY_CONFIGURATION_WRITESET_INVALID');
+  await readLedger(current.binding);assertScopeActive(current);return operation();
+ });
+ if(current&&!discovered&&target!==current.binding.root&&!target.startsWith(current.binding.root+'/'))return withHistoryProjectLock(current.binding,async()=>{await readLedger(current.binding);assertScopeActive(current);return operation();});
  const binding=current?.binding??discovered;
- if(!binding)return operation();
+ if(!binding)return withAuthorityDeliveryLock(async()=>{const discovered=await bindingForPath(file);if(discovered)return withHistoricalFileEffect(file,payload,operation);await readAuthoritySnapshot();return operation();});
  return withHistoryProjectLock(binding,async()=>{
+  assertScopeActive(current);
   if(['author','publication'].includes(current?.mode)&&!current.active)bad('HISTORY_AUTHOR_SCOPE_EXPIRED');
-  const ledger=await readLedger(binding);if(!ledger)return operation();
+  const ledger=await readLedger(binding);if(!ledger){assertScopeActive(current);return operation();}
   let value=payload;
   if(typeof value==='string'){try{value=JSON.parse(value);}catch{value=null;}}
   const refs=runReferences(value),ids=[...(current?.ids??[]),...refs.ids].filter(Boolean),groups=refs.groups;
@@ -203,221 +256,22 @@ export async function withHistoricalFileEffect(file,payload,operation){
   if(Object.values(ledger.records).some(r=>r.evidence?.snapshot?.groupIds?.some(id=>groups.includes(id))))bad('HISTORY_RUN_CLOSED');
   await assertHistoricalRunAllowed(context,ids);
   if(!current)bad('HISTORY_RUN_CONTEXT_REQUIRED');
+  assertScopeActive(current);
   return operation();
  });
 }
 // The delivery configuration fixes the guarantee. This is not a request-selected trust mode.
 export const managedHistoryContract='managed-entry-non-replay-v1';
-export const managedHistoryRequiredDeploymentFiles=Object.freeze([
- 'src/historical-deployment-successor.mjs','scripts/historical-deployment-upgrade.mjs',
- 'src/historical-disposition.mjs','src/historical-deployment.mjs','src/atomic-file.mjs','src/field-write-policy.mjs','server.mjs',
- 'src/automation-profile.mjs','src/automation-bindings.mjs','src/durable-identity-coordinator.mjs',
- 'src/entry-action-exact-artifact-store.mjs','src/entry-action-group-commit.mjs',
- 'src/entry-action-policy-migration.mjs','src/entry-action-proposal-commit.mjs',
- 'src/entry-action-recovery.mjs','src/entry-actions.mjs','src/fencing-lock.mjs',
- 'src/job-supervisor.mjs','src/project-command-recovery.mjs','src/project-command-runner.mjs','src/project-skill-action-service.mjs',
- 'src/project-skill-followup.mjs','src/project-skill-run-guard.mjs',
- 'src/publication-window-obligations.mjs','src/publication-window-runtime.mjs','src/publication-window-state.mjs'
-]);
+export {managedHistoryRequiredDeploymentFiles} from './historical-required-files.mjs';
 const stable=value=>JSON.stringify(value);
 async function managedPolicy(binding){
  return verifyDeploymentPolicy(binding.policy);
 }
-async function verifyDeploymentPolicy(policy){
- if(!policy||policy.contract!==managedHistoryContract)bad('HISTORY_MANAGED_POLICY_REQUIRED');
- if(managedHistoryRequiredDeploymentFiles.some(file=>!policy.deploymentFiles.some(x=>x.path===file)))bad('HISTORY_DEPLOYMENT_INCOMPLETE');
- const tool=normalize(await physical(path.resolve(import.meta.dirname,'..')));
- for(const file of policy.deploymentFiles){
-  const resolved=normalize(await physical(path.join(tool,file.path)));
-  if(!resolved.startsWith(tool+'/')||sha(await readFile(resolved))!==file.digest)bad('HISTORY_DEPLOYMENT_DRIFT');
- }
- return {policy,digest:sha(stable(policy))};
-}
-async function businessSnapshot(binding,policy){
- const files=[];
- for(const relative of [...policy.businessFiles].sort()){
-  const file=normalize(await physical(path.join(binding.root,relative)));
-  if(!file.startsWith(binding.root+'/')||file.startsWith(binding.root+'/.data-editor/'))bad('HISTORY_BUSINESS_BASELINE_INVALID');
-  files.push({file,digest:sha(await readFile(file))});
- }
- return files;
-}
-const historyDirectories=['entry-actions','entry-action-commit-journal','entry-action-group-journal','identity-promotion-journal','pending-entry-actions','entry-action-fencing'];
-// Inventory the whole denominator; preparation derives the obligation and relationship closure.
-async function historySnapshot(binding){
- const files=[],runIds=new Set(),groups=new Set();
- function references(value){
-  if(!value||typeof value!=='object')return;
-  for(const [key,item]of Object.entries(value)){
-   if(['runId','parentRunId','childRunId'].includes(key)&&typeof item==='string'){if(!valid(item))bad('HISTORY_RUN_INVALID');runIds.add(item);}
-   if(key==='runIds'&&Array.isArray(item))for(const id of item){if(!valid(id))bad('HISTORY_RUN_INVALID');runIds.add(id);}
-   if(key==='groupId'&&typeof item==='string')groups.add(item);
-   references(item);
-  }
- }
- async function walk(directory){
-  for(const entry of (await readdir(directory,{withFileTypes:true}).catch(e=>e.code==='ENOENT'?[]:Promise.reject(e))).sort((a,b)=>a.name.localeCompare(b.name))){
-   const file=path.join(directory,entry.name),resolved=normalize(await physical(file));
-   if(!resolved.startsWith(binding.runtime+'/'))bad('HISTORY_BINDING_INVALID');
-   if(entry.isSymbolicLink())bad('HISTORY_STATE_UNVERIFIABLE');
-   if(entry.isDirectory()){await walk(file);continue;}
-   if(!entry.isFile())bad('HISTORY_STATE_UNVERIFIABLE');
-   const bytes=await readFile(file);
-   try{references(JSON.parse(bytes));}catch(e){if(e.code)throw e;}
-   // Filename identity covers old files without a runId payload.
-   if(path.basename(directory)==='entry-actions'){
-    const id=entry.name.split('.')[0];if(valid(id))runIds.add(id);
-   }
-   // Reparse locally so repeated references remain represented in each original file.
-   const localRuns=new Set(),localGroups=new Set();
-   function local(v){if(!v||typeof v!=='object')return;for(const[k,x]of Object.entries(v)){if(['runId','parentRunId','childRunId'].includes(k)&&typeof x==='string')localRuns.add(x);if(k==='runIds'&&Array.isArray(x))for(const id of x)localRuns.add(id);if(k==='groupId'&&typeof x==='string')localGroups.add(x);local(x);}}
-   try{local(JSON.parse(bytes));}catch{}
-   if(path.basename(directory)==='entry-actions'){const id=entry.name.split('.')[0];if(valid(id))localRuns.add(id);}
-   files.push({file:resolved,digest:sha(bytes),runIds:[...localRuns].sort(),groupIds:[...localGroups].sort()});
-  }
- }
- for(const directory of historyDirectories)await walk(path.join(binding.runtime,directory));
- return {files:files.sort((a,b)=>a.file.localeCompare(b.file)),runIds:[...runIds].sort(),groupIds:[...groups].sort()};
-}
-function obligationClosure(binding,inventory,obligations){
- const runIds=new Set(obligations.map(x=>x.runId).filter(Boolean)),groupIds=new Set(),selected=new Set();
- for(const obligation of obligations){
-  let file=obligation.file;
-  if(file&&!path.isAbsolute(file))file=path.join(binding.runtime,obligation.kind,file);
-  if(file){file=normalize(path.resolve(file));for(const item of inventory.files)if(item.file===file||item.file.startsWith(file+'/'))selected.add(item.file);}
- }
- let changed=true;
- while(changed){
-  changed=false;
-  for(const file of inventory.files){
-   if(!selected.has(file.file)&&!file.runIds.some(id=>runIds.has(id))&&!file.groupIds.some(id=>groupIds.has(id)))continue;
-   if(!selected.has(file.file)){selected.add(file.file);changed=true;}
-   for(const id of file.runIds)if(!runIds.has(id)){runIds.add(id);changed=true;}
-   for(const id of file.groupIds)if(!groupIds.has(id)){groupIds.add(id);changed=true;}
-  }
- }
- return {files:inventory.files.filter(x=>selected.has(x.file)),runIds:[...runIds].sort(),groupIds:[...groupIds].sort()};
-}
-async function privateWrite(file,value){
- const temp=file+'.'+crypto.randomUUID()+'.tmp';let handle;
- try{handle=await open(temp,'wx');await handle.writeFile(stable(value)+'\n');await handle.sync();await handle.close();handle=null;await rename(temp,file);}
- finally{await handle?.close();await rm(temp,{force:true});}
-}
-export async function initializeHistoricalDisposition(context){
- const binding=await historyBinding(context);
- return withHistoryProjectLock(binding,async()=>{
-  await managedPolicy(binding);
-  if(!binding.deployed)bad('HISTORY_DEPLOYMENT_REQUIRED');
-  const registration={schemaVersion:1,anchorId:binding.expectedAnchorId,root:binding.root,runtime:binding.runtime};
-  const existing=await optional(binding.registration);
-  const initialAnchor=await optional(path.join(binding.directory,'anchor.json')),initialState=await optional(path.join(binding.directory,'state.json'));
-  if(existing||initialAnchor||initialState){await readLedger(binding);return {contract:managedHistoryContract,anchorId:binding.expectedAnchorId};}
-  if(existing&&stable(existing)!==stable(registration))bad('HISTORY_BINDING_INVALID');
-  await mkdir(binding.directory,{recursive:true});
-  // Registration and anchor are immutable; interrupted initialization resumes only the exact binding.
-  if(!existing)await writeFile(binding.registration,stable(registration),{flag:'wx'});
-  const anchorFile=path.join(binding.directory,'anchor.json'),anchor=await optional(anchorFile);
-  if(anchor&&stable(anchor)!==stable(registration))bad('HISTORY_BINDING_INVALID');
-  if(!anchor)await writeFile(anchorFile,stable(registration),{flag:'wx'});
-  const stateFile=path.join(binding.directory,'state.json');
-  if(!await optional(stateFile))await privateWrite(stateFile,{schemaVersion:1,anchorId:binding.expectedAnchorId,revision:0,records:{}});
-  await readLedger(binding);return {contract:managedHistoryContract,anchorId:binding.expectedAnchorId};
- });
-}
-export async function prepareHistoricalDisposition(context){
- const binding=await historyBinding(context);
- return withHistoryProjectLock(binding,async()=>{
-  const {policy,digest:deploymentDigest}=await managedPolicy(binding),state=await readLedger(binding);
-  if(!state)bad('HISTORY_REGISTRATION_REQUIRED');
-  const {inventoryPublicationObligations}=await import('./publication-window-obligations.mjs');
-  const obligations=await inventoryPublicationObligations(binding),snapshot=obligationClosure(binding,await historySnapshot(binding),obligations);
-  if(!obligations.length||!snapshot.runIds.length)bad('HISTORY_NO_OBLIGATIONS');
-  // One immutable decision freezes all current obligations. Recovery resumes this original intent.
-  const pending=Object.values(state.records).find(r=>r.contract===managedHistoryContract&&r.phase==='intent');
-  if(pending)return {dispositionId:pending.dispositionId,phase:'intent',evidenceDigest:pending.evidenceDigest};
-  if(Object.values(state.records).some(r=>r.contract===managedHistoryContract))bad('HISTORY_ALREADY_DISPOSED');
-  for(const id of snapshot.runIds)if(state.records[id])bad('HISTORY_RECORD_CONFLICT');
-  const evidence={contract:managedHistoryContract,root:binding.root,runtime:binding.runtime,anchorId:state.anchorId,deploymentDigest,
-   snapshot,obligations,businessBaseline:await businessSnapshot(binding,policy),externalRiskAcceptance:'same-account-direct-writers-unknown-programs-manual-restore-outside-guarantee'};
-  const record={runId:snapshot.runIds[0],phase:'intent',contract:managedHistoryContract,dispositionId:crypto.randomUUID(),relatedRunIds:snapshot.runIds,evidenceDigest:sha(stable(evidence)),evidence};
-  state.records[record.runId]=record;state.revision++;
-  await privateWrite(path.join(binding.directory,'state.json'),state);
-  return {dispositionId:record.dispositionId,phase:record.phase,evidenceDigest:record.evidenceDigest};
- });
-}
 async function validateManagedReceipt(binding,record,{baseline=false,fullInventory=false,snapshot=null}={}){
  if(record.contract!==managedHistoryContract||!record.evidence||record.evidenceDigest!==sha(stable(record.evidence)))bad('HISTORY_PROOF_UNSUPPORTED');
  const evidence=record.evidence,{policy,digest:deploymentDigest}=await managedPolicy(binding);
- if(evidence.deploymentDigest!==deploymentDigest){
-  if(!binding.deploymentSuccessor)bad('HISTORY_BINDING_INVALID');
-  const bytes=await readFile(path.join(binding.directory,'state.json'));
-  const certificate=await validateSuccessorLedger(binding,JSON.parse(bytes),bytes);
-  if(certificate.sourcePolicyDigest!==evidence.deploymentDigest)bad('HISTORY_BINDING_INVALID');
- }
+ if(evidence.deploymentDigest!==deploymentDigest&&binding.authority?.proof.originDigest!==evidence.deploymentDigest)bad('HISTORY_BINDING_INVALID');
  return validateReceiptEvidence(binding,record,{baseline,fullInventory,snapshot,policy});
-}
-async function validateReceiptEvidence(binding,record,{baseline=false,fullInventory=false,snapshot=null,policy}={}){
- if(record.contract!==managedHistoryContract||!record.evidence||record.evidenceDigest!==sha(stable(record.evidence)))bad('HISTORY_PROOF_UNSUPPORTED');
- const evidence=record.evidence;
- if(evidence.contract!==managedHistoryContract||evidence.root!==binding.root||evidence.runtime!==binding.runtime||evidence.anchorId!==binding.expectedAnchorId||stable(record.relatedRunIds)!==stable(evidence.snapshot.runIds))bad('HISTORY_BINDING_INVALID');
- const original=evidence.snapshot;
- if(fullInventory){
-  const current=snapshot??await historySnapshot(binding),byFile=new Map(current.files.map(file=>[file.file,file])),originalFiles=new Set(original.files.map(file=>file.file)),runs=new Set(record.relatedRunIds),groups=new Set(original.groupIds);
-  for(const file of original.files){const found=byFile.get(file.file);if(!found||stable(found)!==stable(file))bad('HISTORY_EVIDENCE_DRIFT');}
-  for(const file of current.files)if(!originalFiles.has(file.file)&&(file.runIds.some(id=>runs.has(id))||file.groupIds.some(id=>groups.has(id))))bad('HISTORY_EVIDENCE_DRIFT');
- }else{
-  // Ordinary reads/effects rehash the exact original evidence, not unrelated history.
-  // Newly added external relations are detected at the next full admission/inventory.
-  await Promise.all(original.files.map(async file=>{
-   try{if(normalize(await physical(file.file))!==file.file||sha(await readFile(file.file))!==file.digest)bad('HISTORY_EVIDENCE_DRIFT');}
-   catch(error){if(error.code==='HISTORY_EVIDENCE_DRIFT')throw error;bad('HISTORY_EVIDENCE_DRIFT');}
-  }));
- }
- if(baseline&&stable(await businessSnapshot(binding,policy))!==stable(evidence.businessBaseline))bad('HISTORY_BUSINESS_BASELINE_DRIFT');
- return evidence;
-}
-
-// Administrative preview only: returns a proof bound to unchanged originals.
-// The caller must hold the project lock through final config CAS when applying.
-export async function prepareHistoricalDeploymentUpgrade(context,sourceSnapshotBytes){
- const binding=await historyBinding(context);
- return withHistoryProjectLock(binding,async()=>{
-  const source=sourceEntryFor(sourceSnapshotBytes,binding),sourcePolicy=source.managedNonReplay;
-  const origin=sha(stable(sourcePolicy)),state=await readLedger(binding);
-  if(!state||!Object.keys(state.records).length||Object.values(state.records).some(r=>r.phase!=='receipt'||r.evidence?.deploymentDigest!==origin))bad('HISTORY_UPGRADE_SOURCE_INVALID');
-  const publication=await optional(path.join(binding.root,'.data-editor/publication-admission/state.json'));
-  const map=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-  if(!publication||publication.state!=='OPEN'||publication.windowId!==null||!map(publication.accepted)||!map(publication.continuations)
-   ||Object.values(publication.accepted).some(x=>!map(x)||x.settled!==true)||Object.keys(publication.continuations).length)bad('HISTORY_UPGRADE_NOT_QUIESCENT');
-  const {publicationBinding,readPublicationState}=await import('./publication-window-state.mjs');
-  await readPublicationState(await publicationBinding(context));
-  const snapshot=await historySnapshot(binding);
-  for(const record of Object.values(state.records))await validateReceiptEvidence(binding,record,{fullInventory:true,snapshot,policy:sourcePolicy});
-  const {inventoryPublicationObligations}=await import('./publication-window-obligations.mjs');
-  const covered=new Set(Object.values(state.records).flatMap(record=>record.evidence.obligations.map(stable)));
-  if((await inventoryPublicationObligations(binding)).some(item=>!covered.has(stable(item))))bad('HISTORY_UPGRADE_NEW_OBLIGATIONS');
-  const files=[...new Set([...binding.policy.deploymentFiles.map(file=>file.path),...managedHistoryRequiredDeploymentFiles])];
-  const targetPolicy={...binding.policy,deploymentFiles:await Promise.all(files.map(async file=>({path:file,digest:sha(await readFile(path.join(path.dirname(historyDeploymentFile),'..',file)))})))};
-  const {digest:targetPolicyDigest}=await verifyDeploymentPolicy(targetPolicy);
-  const ledgerBytes=await readFile(path.join(binding.directory,'state.json'));
-  const certificate={version:1,contract:successorContract,root:binding.root,runtime:binding.runtime,anchorId:binding.expectedAnchorId,
-   ledgerDigest:sha(ledgerBytes),receipts:Object.values(state.records).map(record=>({runId:record.runId,recordDigest:sha(stable(record)),evidenceDigest:record.evidenceDigest})),
-   sourceSnapshot:artifactReference(sourceSnapshotBytes,'snapshot'),sourcePolicyDigest:origin,targetPolicyDigest};
-  return {certificate,targetPolicy,businessBaseline:await businessSnapshot(binding,targetPolicy)};
- });
-}
-export async function commitHistoricalDisposition(context,request){
- if(!request||Object.keys(request).join(',')!=='dispositionId'||!valid(request.dispositionId))bad('HISTORY_DISPOSITION_REQUEST_INVALID');
- const binding=await historyBinding(context);
- return withHistoryProjectLock(binding,async()=>{
-  const state=await readLedger(binding),record=Object.values(state?.records??{}).find(r=>r.dispositionId===request.dispositionId);
-  if(!record)bad('HISTORY_DISPOSITION_NOT_FOUND');
-  await validateManagedReceipt(binding,record,{baseline:record.phase!=='receipt',fullInventory:true});
-  if(record.phase==='receipt')return structuredClone(record);
-  // No transactional result is changed. Receipt only commits the managed non-replay projection.
-  record.phase='receipt';state.revision++;await privateWrite(path.join(binding.directory,'state.json'),state);
-  return structuredClone(record);
- });
 }
 // Request-local scan reuse is valid only inside the caller's same project lock.
 async function scanReceipt(binding,record,validation){
@@ -475,31 +329,3 @@ export async function projectHistoricalObligations(binding,obligations,validatio
  });
 }
 
-// Explicit bootstrap restricted to this candidate's test fixtures. No general initializer.
-export async function initializeHistoryTestFixture(context,records={}){
- const fixtureRoot=path.resolve(import.meta.dirname,'../tests/history-fixtures');
- const root=await physical(path.resolve(context.projectRoot));
- if(path.dirname(root)!==fixtureRoot)bad('HISTORY_FIXTURE_SCOPE_ONLY');
- const binding=await historyBinding(context),anchorId=crypto.randomUUID();
- await mkdir(binding.directory,{recursive:true});
- const registration={schemaVersion:1,anchorId,root:binding.root,runtime:binding.runtime};
- await writeFile(binding.registration,JSON.stringify(registration),{flag:'wx'});
- await writeFile(path.join(binding.directory,'anchor.json'),JSON.stringify(registration),{flag:'wx'});
- await writeFile(path.join(binding.directory,'state.json'),JSON.stringify({schemaVersion:1,anchorId,revision:0,records}),{flag:'wx'});
- await testDeploymentEntry({projectRoot:binding.root,runtime:binding.runtime,anchorId});
- context.historicalDispositionAnchorId=anchorId;
- return historyBinding(context);
-}
-async function testDeploymentEntry(entry,remove=false){
- return withProjectProcessLock('history-test-deployment:'+historyDeploymentFile,async()=>{
-  const entries=await readHistoryDeployment(),next=entries.filter(e=>e.projectRoot!==entry.projectRoot);if(!remove)next.push(entry);
-  const temporary=historyDeploymentFile+'.'+crypto.randomUUID()+'.tmp';
-  try{await writeFile(temporary,JSON.stringify({version:1,entries:next}));const{atomicReplace}=await import('./atomic-file.mjs');await atomicReplace(temporary,historyDeploymentFile,{maxRetries:100,retryDelayMs:10});}
-  finally{await rm(temporary,{force:true});}
- });
-}
-export async function removeHistoryTestFixtureDeployment(context){
- const root=normalize(await physical(path.resolve(context.projectRoot))),fixtureRoot=normalize(await physical(path.resolve(import.meta.dirname,'../tests/history-fixtures')));
- if(path.dirname(root).replaceAll('\\','/')!==fixtureRoot)bad('HISTORY_FIXTURE_SCOPE_ONLY');
- await testDeploymentEntry({projectRoot:root},true);
-}

@@ -1,5 +1,9 @@
+import {sharedViewsConfigPath} from './project-context.mjs';
+import {withHistoricalConfigurationSave} from './historical-disposition.mjs';
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {atomicWrite} from './atomic-file.mjs';
+import {withConfigWrite} from './config-write-precondition.mjs';
 import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
 export {
   emptySharedViewDraftState,
@@ -14,7 +18,7 @@ import {
   normalizeSharedViewsConfig,
 } from "./view/shared-view-normalize.mjs";
 
-const sharedViewsConfigPath = ".data-editor/shared-views.json";
+
 
 export async function loadSharedViews(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
@@ -28,10 +32,11 @@ export async function loadSharedViews(projectContextOrRoot) {
   }
 }
 
-export async function saveSharedViews(projectContextOrRoot, config) {
-  const context = createProjectContext(projectContextOrRoot);
-  const target = resolveInsideRoot(context.projectRoot, sharedViewsConfigPath);
-  await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, `${JSON.stringify(normalizeSharedViewsConfig(config), null, 2)}\n`, "utf8");
-  return { path: displayProjectPath(context, target) };
+export async function saveSharedViews(projectContextOrRoot, config, options={}) {
+ const context=createProjectContext(projectContextOrRoot);
+ return withHistoricalConfigurationSave(context,{kind:'shared-views'},target=>withConfigWrite(target,options,()=>loadSharedViews(context),async()=>{
+  await mkdir(path.dirname(target),{recursive:true});
+  await atomicWrite(target,JSON.stringify(normalizeSharedViewsConfig(config),null,2)+'\n');
+  return { path: displayProjectPath(context,target) };
+ }));
 }

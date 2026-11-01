@@ -102,3 +102,21 @@ function defaultProjectId(projectRoot) {
   const normalized = path.resolve(projectRoot).toLowerCase();
   return Buffer.from(normalized).toString("base64url");
 }
+
+export const sharedViewsConfigPath='.data-editor/shared-views.json';
+export function normalizeProfileName(name){
+ const value=String(name??'').trim();
+ if(!value)throw new Error('View profile name is required');
+ if(/[<>:"/\\|?*]/.test(value))throw new Error('View profile name contains unsupported characters: '+value);
+ return value;
+}
+// Configuration categories, never caller-selected authorization paths.
+export function resolveConfigurationSaveTarget(input,descriptor){
+ const context=createProjectContext(input);
+ switch(descriptor?.kind){
+  case 'view-profile':return {context,target:path.resolve(context.userViewProfilesDir,normalizeProfileName(descriptor.name)+'.json')};
+  case 'view-config':return {context,target:resolveInsideRoot(context.projectRoot,context.sharedViewConfigPath)};
+  case 'shared-views':return {context,target:resolveInsideRoot(context.projectRoot,sharedViewsConfigPath)};
+  default:throw Object.assign(new Error('Unsupported configuration save category'),{code:'HISTORY_CONFIGURATION_WRITESET_INVALID',status:409});
+ }
+}

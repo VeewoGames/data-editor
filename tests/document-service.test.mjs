@@ -24,7 +24,7 @@ test("buildDocumentIndex scans docRoot and resolves markdown titles", async () =
       status: "resolved",
       id: "burn",
       relativePath: "burn.md",
-      title: "Burn",
+      title: "burn.md",
     });
     assert.deepEqual(index.entries.freeze, {
       status: "resolved",
@@ -107,7 +107,7 @@ test("readResolvedDocument returns missing when no matching document exists", as
   }
 });
 
-test("readResolvedDocument reuses cached index and content for repeated reads", async () => {
+test("readResolvedDocument reuses the index but never returns a deleted cached body", async () => {
   clearDocumentServiceCache();
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-document-service-"));
   try {
@@ -127,7 +127,8 @@ test("readResolvedDocument reuses cached index and content for repeated reads", 
       },
     }, "data/keywords.json", "burn");
 
-    assert.deepEqual(second, first);
+    assert.deepEqual(second, {status:'missing',id:'burn'});
+    assert.equal(first.status,'resolved');
   } finally {
     clearDocumentServiceCache();
     await rm(root, { recursive: true, force: true });
@@ -165,7 +166,7 @@ test("buildDocumentIndex refresh picks up markdown files added after the cache w
       status: "resolved",
       id: "burn",
       relativePath: "burn.md",
-      title: "Burn",
+      title: "burn.md",
     });
   } finally {
     clearDocumentServiceCache();
@@ -273,4 +274,17 @@ test("document cache stays isolated per projectRoot even when docRoot strings ma
     await rm(rootA, { recursive: true, force: true });
     await rm(rootB, { recursive: true, force: true });
   }
+});
+
+test("index creation does not read all Markdown bodies and selected content stays fresh",async()=>{
+ const fs=await import('node:fs/promises');const {syncBuiltinESMExports}=await import('node:module');
+ const root=await mkdtemp(path.join(tmpdir(),'editor-lazy-docs-'));
+ try{
+ await mkdir(path.join(root,'docs'));await writeFile(path.join(root,'docs/a.md'),'# A\nold');await writeFile(path.join(root,'docs/b.md'),'# B\nother');clearDocumentServiceCache();
+ const original=fs.default.readFile;let reads=0;fs.default.readFile=async function(file,...args){if(String(file).endsWith('.md'))reads++;return original.call(this,file,...args);};syncBuiltinESMExports();
+ try{const config={'data/items.json':{docRoot:'docs'}};await buildDocumentIndex(root,config,'data/items.json');assert.equal(reads,0);
+ const a=await readResolvedDocument(root,config,'data/items.json','a');assert.equal(a.content,'# A\nold');
+ await writeFile(path.join(root,'docs/a.md'),'# A\nnew');const b=await readResolvedDocument(root,config,'data/items.json','a');assert.equal(b.content,'# A\nnew');
+ }finally{fs.default.readFile=original;syncBuiltinESMExports();}
+ }finally{await rm(root,{recursive:true,force:true});}
 });

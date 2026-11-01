@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   buildMultiSelectFieldConfig,
   buildMultiSelectFieldConfigFromRows,
+  buildSingleSelectFieldConfigFromRows,
+  resolveOptionDataValue,
   buildOptionConfigFromOptions,
   buildOptionConfigByOrder,
   removeMultiSelectOptionFromRows,
@@ -82,6 +84,44 @@ test("buildMultiSelectFieldConfig merges discovered values with project config",
   ]);
   assert.equal(config.optionMap.attack.label, "普攻");
   assert.equal(config.optionMap.spell.color, null);
+});
+
+test("numeric option selection values retain JSON numbers including zero and decimals", () => {
+  const config = buildMultiSelectFieldConfigFromRows([
+    { angles: [0, 90, 180, -2.5] },
+    { angles: [270] },
+  ], "angles", { multiSelectOptions: { 180: { label: "Half turn", color: "red" } } });
+  assert.deepEqual(config.options.map(option => option.dataValue ?? option.value), [180, 0, 90, -2.5, 270]);
+  assert.equal(config.optionMap["180"].label, "Half turn");
+});
+
+test("numeric-looking string options remain strings without numeric inference", () => {
+  const config = buildMultiSelectFieldConfigFromRows([{ ids: ["001", "180", "0", "-2.5"] }], "ids");
+  assert.deepEqual(config.options.map(option => option.dataValue ?? option.value), ["001", "180", "0", "-2.5"]);
+});
+
+test("selection resolves observed JSON values rather than parsing UI keys", () => {
+  const numeric = buildSingleSelectFieldConfigFromRows([{ choice: 0 }, { choice: -2.5 }], "choice");
+  assert.equal(resolveOptionDataValue("0", numeric.options), 0);
+  assert.equal(resolveOptionDataValue("-2.5", numeric.options), -2.5);
+  assert.equal(resolveOptionDataValue("001", [{ value: "001", label: "ID", color: null }]), "001");
+});
+
+test("clearing the last numeric reference retains its type through persisted option metadata", () => {
+  const observed = buildMultiSelectFieldConfig([0, 180, -2.5]);
+  const saved = buildOptionConfigFromOptions(observed.options);
+  const reopened = buildMultiSelectFieldConfig([], { multiSelectOptions: JSON.parse(JSON.stringify(saved)) });
+  assert.equal(resolveOptionDataValue("0", reopened.options), 0);
+  assert.equal(resolveOptionDataValue("180", reopened.options), 180);
+  assert.equal(resolveOptionDataValue("-2.5", reopened.options), -2.5);
+});
+
+test("ambiguous string and numeric source keys cannot silently choose a write type", () => {
+  for (const rows of [[{ values: [180] }, { values: ["180"] }], [{ values: ["180"] }, { values: [180] }]]) {
+    const config = buildMultiSelectFieldConfigFromRows(rows, "values");
+    assert.equal(config.optionMap["180"].dataValueAmbiguous, true);
+    assert.equal(resolveOptionDataValue("180", config.options), undefined);
+  }
 });
 
 test("buildMultiSelectFieldConfig preserves stored option order and appends discovered values", () => {

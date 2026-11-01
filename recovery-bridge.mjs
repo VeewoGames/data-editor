@@ -1,4 +1,5 @@
 import http from "node:http";
+import {createDeploymentRuntime} from './src/deployment-runtime.mjs';
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inferDefaultProjectRoot } from "./src/default-project-root.mjs";
@@ -16,6 +17,7 @@ import { runtimeHome } from "./src/project-registry.mjs";
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 const options = parseArgs(process.argv.slice(2));
+const deploymentRuntime=isMainModule?await createDeploymentRuntime('bridge',scriptRoot):{maintenance:false,refresh:async()=>false};
 let shuttingDown = false;
 let operationPromise = null;
 let currentServiceChild = null;
@@ -23,6 +25,9 @@ let currentServiceChild = null;
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
+    if(deploymentRuntime.maintenance)await deploymentRuntime.refresh();
+    if(url.pathname==='/deployment-attestation'&&req.method==='GET')return sendJson(res,deploymentRuntime.attest(url.searchParams.get('challenge')));
+    if(deploymentRuntime.maintenance&&!['/health','/status','/stop-service'].includes(url.pathname))return sendJson(res,{error:'升级正在进行只读验收。',code:'HISTORY_DEPLOYMENT_MAINTENANCE'},503);
     if (req.method === "OPTIONS") {
       return sendNoContent(res);
     }

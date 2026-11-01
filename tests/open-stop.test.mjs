@@ -432,7 +432,9 @@ async function listListeningPids(port) {
   return (Array.isArray(parsed) ? parsed : [parsed]).map((value) => Number(value));
 }
 
-async function waitForHttpOk(port, timeoutMs = 15000) {
+// Cold Vite dependency optimization in an isolated Windows copy can exceed
+// 15 seconds. Keep the same HTTP readiness assertion with a bounded deadline.
+async function waitForHttpOk(port, timeoutMs = 45000) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     try {
@@ -1464,7 +1466,7 @@ test("inspectWindowsProcess hides the transient powershell window on Windows", a
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        '$p = Get-CimInstance Win32_Process -Filter "ProcessId = 12345"; if (-not $p) { exit 0 }; $p | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress',
+        '[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); $p = Get-CimInstance Win32_Process -Filter "ProcessId = 12345"; if (-not $p) { exit 0 }; $p | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress',
       ],
       {
         windowsHide: true,

@@ -3,6 +3,7 @@ import path from "node:path";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
 import { atomicWrite } from "./atomic-file.mjs";
+import {writeDeliveryRuntimeMetadata} from './deployment-delivery.mjs';
 
 export const runtimeStateProtocolVersion = 2;
 
@@ -114,8 +115,10 @@ export async function saveControllerState(target, state) {
 }
 
 async function saveRuntimeState(target, targetPath, state) {
+  const bytes=JSON.stringify({ ...state, protocolVersion: runtimeStateProtocolVersion }, null, 2)+"\n";
+  if(await writeDeliveryRuntimeMetadata(targetPath,bytes))return;
   await ensureRuntimeDir(target);
-  await atomicWrite(targetPath, JSON.stringify({ ...state, protocolVersion: runtimeStateProtocolVersion }, null, 2) + "\n");
+  await atomicWrite(targetPath,bytes);
 }
 
 function hasCurrentRuntimeStateProtocol(state) {

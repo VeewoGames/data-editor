@@ -109,3 +109,10 @@ test("binding removal requires a digest-bound controlled transition", async (t) 
   assert.equal(transitioned.status, "active");
   assert.equal(transitioned.generation, first.generation + 1);
 });
+
+test("read projection cannot enroll or advance LKG; prepare owns persistence",async t=>{
+ const {home,project}=await fixture(t,'read-only');const registry=createProjectCapabilityRegistry({home});
+ const before=await registry.read(project);assert.equal(before.status,'binding_degraded');assert.equal(before.error.code,'CAPABILITY_REFRESH_REQUIRED');
+ assert.equal((await loadCapabilityLkg(project.id,{home})).status,'absent');
+ await registry.resolve(project);const current=await registry.read(project);assert.equal(current.status,'active');assert.equal(current.generation,1);
+});

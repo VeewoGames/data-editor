@@ -6,15 +6,15 @@ import path from "node:path";
 import { assertValidFieldPresentations, defaultRelationConfigs, emptyViewConfig, loadViewConfig, normalizeViewConfig, saveViewConfig } from "../src/view-config.mjs";
 import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys } from "../src/relation-defaults.mjs";
 
-test("emptyViewConfig includes project relations", () => {
+test("emptyViewConfig has neutral relation buckets", () => {
   assert.deepEqual(emptyViewConfig(), {
     fields: {},
     titleFields: {},
     documentFiles: {},
     documentFields: {},
-    primaryKeys: defaultPrimaryKeys(),
-    backlinks: defaultBacklinkConfigs(),
-    relations: defaultRelationConfigs(),
+    primaryKeys: {},
+    backlinks: {},
+    relations: {},
     relationsVersion: currentRelationsVersion,
   });
 });
@@ -223,7 +223,7 @@ test("loadViewConfig filters invalid relation configs", async () => {
   }
 });
 
-test("default relation migration runs once", async () => {
+test("old relation versions normalize without installing project defaults", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "data-editor-view-config-"));
   try {
     const migrated = await saveViewConfig(root, { fields: {}, relations: {} });
@@ -593,6 +593,52 @@ test("loadViewConfig normalizes invalid document config entries", async () => {
       },
     });
     assert.equal(loaded.fields["data/keywords.json:$:keyword_doc"].type, "Document");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+
+test("empty and old-version configs never inject business primary keys, relations or backlinks", () => {
+  assert.deepEqual(defaultPrimaryKeys(), {});
+  assert.deepEqual(defaultRelationConfigs(), {});
+  assert.deepEqual(defaultBacklinkConfigs(), {});
+  for (const relationsVersion of [undefined, 0, 1, 2, currentRelationsVersion]) {
+    const normalized = normalizeViewConfig({ relationsVersion });
+    assert.deepEqual(normalized.primaryKeys, {});
+    assert.deepEqual(normalized.relations, {});
+    assert.deepEqual(normalized.backlinks, {});
+    assert.equal(normalized.relationsVersion, currentRelationsVersion);
+  }
+});
+
+test("old-version explicit generic relations and titles survive normalization without read-time writes", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "data-editor-neutral-relations-"));
+  try {
+    const target = path.join(root, ".data-editor", "view-config.json");
+    await mkdir(path.dirname(target), { recursive: true });
+    const relations = {
+      "data/orders.json:$:customer": {
+        targetFile: "data/customers.json", targetCollection: "$", targetKey: "code",
+        mode: "single", titleFields: ["label"], allowMissing: false,
+      },
+      "data/orders.json:$:reviewers": {
+        targetFile: "data/customers.json", targetCollection: "$", targetKey: "code",
+        mode: "multi", titleFields: ["label"], allowMissing: true,
+      },
+    };
+    const primaryKeys = { "data/customers.json:$": "code" };
+    const titleFields = { "data/customers.json:$": "label" };
+    const original = JSON.stringify({ primaryKeys, titleFields, relations, relationsVersion: 0 });
+    await writeFile(target, original);
+    const loaded = await loadViewConfig(root);
+    assert.deepEqual(loaded.primaryKeys, primaryKeys);
+    assert.deepEqual(loaded.titleFields, titleFields);
+    assert.deepEqual(loaded.relations, relations);
+    assert.equal(Object.keys(loaded.backlinks).length, 2);
+    assert.equal(await readFile(target, "utf8"), original);
+    await saveViewConfig(root, loaded);
+    assert.deepEqual(await loadViewConfig(root), loaded);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

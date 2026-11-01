@@ -1,121 +1,83 @@
-import { readFile, readdir } from "node:fs/promises";
-import path from "node:path";
-import { createProjectContext, resolveInsideRoot } from "./project-context.mjs";
+import {readFile,readdir,stat} from 'node:fs/promises';
+import path from 'node:path';
+import {createProjectContext,resolveInsideRoot} from './project-context.mjs';
+import {checkReadRequest,currentReadSignal,withReadSignal} from './read-request-context.mjs';
+const documentCache=new Map(),inflight=new Map();
+const nonempty=value=>typeof value==='string'?value.trim():'';
+const cancelled=()=>Object.assign(new Error('文档索引读取已取消。'),{code:'READ_CANCELLED'});
 
-export async function buildDocumentIndex(projectContextOrRoot, documentFiles, dataFilePath, options) {
-  const context = createProjectContext(projectContextOrRoot);
-  const docRoot = normalizeNonEmptyString(documentFiles?.[dataFilePath]?.docRoot);
-  if (!docRoot) {
-    return { docRoot: null, entries: {} };
-  }
-  const cache = await getDocumentCache(context.projectRoot, docRoot, options);
-  return { docRoot, entries: cache.indexEntries };
+export async function buildDocumentIndex(projectContextOrRoot,documentFiles,dataFilePath,options={}){
+ const context=createProjectContext(projectContextOrRoot),docRoot=nonempty(documentFiles?.[dataFilePath]?.docRoot);
+ if(!docRoot)return {docRoot:null,entries:{}};
+ const cache=await getDocumentCache(context.projectRoot,docRoot,options);
+ return {docRoot,entries:cache.indexEntries};
 }
+export async function readResolvedDocument(projectContextOrRoot,documentFiles,dataFilePath,documentId,options={}){
+ const context=createProjectContext(projectContextOrRoot),docRoot=nonempty(documentFiles?.[dataFilePath]?.docRoot),id=nonempty(documentId);
+ if(!docRoot||!id)return {status:'missing',id};
+ const response=await readOnce(context.projectRoot,docRoot,id,options);
+ if(response.status!=='missing'||options?.forceRefresh)return response;
+ return readOnce(context.projectRoot,docRoot,id,{forceRefresh:true});
+}
+export function clearDocumentServiceCache(){documentCache.clear();for(const job of inflight.values())job.controller.abort();inflight.clear();}
 
-export async function readResolvedDocument(projectContextOrRoot, documentFiles, dataFilePath, documentId, options) {
-  const context = createProjectContext(projectContextOrRoot);
-  const docRoot = normalizeNonEmptyString(documentFiles?.[dataFilePath]?.docRoot);
-  const normalizedId = normalizeNonEmptyString(documentId);
-  if (!docRoot) return { status: "missing", id: normalizedId };
-  if (!normalizedId) return { status: "missing", id: normalizedId };
-  const normalizedOptions = normalizeDocumentServiceOptions(options);
-  const response = await readResolvedDocumentOnce(context.projectRoot, docRoot, normalizedId, normalizedOptions);
-  if (response.status !== "missing" || normalizedOptions.forceRefresh) return response;
-  return readResolvedDocumentOnce(context.projectRoot, docRoot, normalizedId, {
-    forceRefresh: true,
+async function walk(directory,relative,files){
+ checkReadRequest();
+ const entries=await readdir(directory,{withFileTypes:true}).catch(error=>{if(error.code==='ENOENT')return [];throw error;});
+ for(const entry of entries){
+  checkReadRequest();const next=relative?`${relative}/${entry.name}`:entry.name;
+  if(entry.isDirectory())await walk(path.join(directory,entry.name),next,files);
+  else if(entry.isFile()&&path.extname(entry.name).toLowerCase()==='.md')files.push(next);
+ }
+}
+async function buildIndex(projectRoot,docRoot){
+ const files=[];await walk(resolveInsideRoot(projectRoot,docRoot),'',files);
+ const grouped=new Map();
+ for(const relative of files){const id=path.basename(relative,'.md');const matches=grouped.get(id)??[];matches.push(relative);grouped.set(id,matches);}
+ const indexEntries={};
+ for(const [id,matches]of grouped){
+  checkReadRequest();
+  indexEntries[id]=matches.length>1?{status:'conflict',id,matches:matches.sort()}:{status:'resolved',id,relativePath:matches[0],title:path.basename(matches[0])};
+ }
+ return {indexEntries};
+}
+async function getDocumentCache(projectRoot,docRoot,options={}){
+ const key=JSON.stringify([projectRoot,docRoot]),forceRefresh=options?.forceRefresh===true;
+ checkReadRequest();
+ if(!forceRefresh&&documentCache.has(key))return documentCache.get(key);
+ let job=inflight.get(key);
+ if(!job||(forceRefresh&&!job.fresh)){
+  const controller=new AbortController();job={controller,fresh:forceRefresh,consumers:0,settled:false,promise:null};
+  const current=job;inflight.set(key,job);
+  job.promise=withReadSignal(controller.signal,()=>buildIndex(projectRoot,docRoot)).then(cache=>{
+   if(controller.signal.aborted)throw cancelled();
+   if(inflight.get(key)===current){documentCache.delete(key);documentCache.set(key,cache);while(documentCache.size>32)documentCache.delete(documentCache.keys().next().value);}
+   return cache;
+  }).finally(()=>{current.settled=true;if(inflight.get(key)===current)inflight.delete(key);});
+  void job.promise.catch(()=>{});
+ }
+ const signal=currentReadSignal();job.consumers++;
+ try{
+  if(signal?.aborted)throw cancelled();
+  if(!signal)return await job.promise;
+  return await new Promise((resolve,reject)=>{
+   const abort=()=>reject(cancelled());signal.addEventListener('abort',abort,{once:true});
+   job.promise.then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));
   });
+ }finally{job.consumers--;if(!job.settled&&!job.consumers)job.controller.abort();}
 }
-
-export function clearDocumentServiceCache() {
-  documentCache.clear();
-}
-
-function extractDocumentTitle(content, relativePath) {
-  const firstHeading = String(content ?? "").match(/^#\s+(.+?)\s*$/m);
-  return firstHeading?.[1]?.trim() || path.basename(relativePath);
-}
-
-async function walkMarkdownFiles(absoluteDir, relativeDir, output) {
-  let entries = [];
-  try {
-    entries = await readdir(absoluteDir, { withFileTypes: true });
-  } catch (error) {
-    if (error?.code === "ENOENT") return;
-    throw error;
-  }
-  for (const entry of entries) {
-    const absolutePath = path.join(absoluteDir, entry.name);
-    const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) {
-      await walkMarkdownFiles(absolutePath, relativePath, output);
-      continue;
-    }
-    if (entry.isFile() && path.extname(entry.name).toLowerCase() === ".md") {
-      output.push(relativePath.replaceAll("\\", "/"));
-    }
-  }
-}
-
-function normalizeNonEmptyString(value) {
-  return typeof value === "string" && value.trim() ? value.trim() : "";
-}
-
-const documentCache = new Map();
-
-async function getDocumentCache(projectRoot, docRoot, options) {
-  const cacheKey = `${projectRoot}\u0000${docRoot}`;
-  const { forceRefresh } = normalizeDocumentServiceOptions(options);
-  const cached = documentCache.get(cacheKey);
-  if (cached && !forceRefresh) return cached;
-  const absoluteDocRoot = resolveInsideRoot(projectRoot, docRoot);
-  const files = [];
-  await walkMarkdownFiles(absoluteDocRoot, "", files);
-  const grouped = new Map();
-  for (const relativePath of files) {
-    const id = path.basename(relativePath, ".md");
-    const current = grouped.get(id) ?? [];
-    current.push(relativePath);
-    grouped.set(id, current);
-  }
-  const indexEntries = {};
-  const contentByRelativePath = {};
-  for (const [id, matches] of grouped.entries()) {
-    if (matches.length > 1) {
-      indexEntries[id] = {
-        status: "conflict",
-        id,
-        matches: [...matches].sort(),
-      };
-      continue;
-    }
-    const relativePath = matches[0];
-    const content = await readFile(path.join(absoluteDocRoot, relativePath), "utf8");
-    contentByRelativePath[relativePath] = content;
-    indexEntries[id] = {
-      status: "resolved",
-      id,
-      relativePath,
-      title: extractDocumentTitle(content, relativePath),
-    };
-  }
-  const nextCache = { indexEntries, contentByRelativePath };
-  documentCache.set(cacheKey, nextCache);
-  return nextCache;
-}
-
-async function readResolvedDocumentOnce(projectRoot, docRoot, documentId, options) {
-  const cache = await getDocumentCache(projectRoot, docRoot, options);
-  const entry = cache.indexEntries[documentId];
-  if (!entry) return { status: "missing", id: documentId };
-  if (entry.status !== "resolved") return entry;
-  return {
-    ...entry,
-    content: cache.contentByRelativePath[entry.relativePath] ?? "",
-  };
-}
-
-function normalizeDocumentServiceOptions(options) {
-  return {
-    forceRefresh: options?.forceRefresh === true,
-  };
+async function readOnce(projectRoot,docRoot,id,options){
+ const cache=await getDocumentCache(projectRoot,docRoot,options),entry=cache.indexEntries[id];
+ if(!entry)return {status:'missing',id};if(entry.status!=='resolved')return entry;
+ checkReadRequest();const file=resolveInsideRoot(resolveInsideRoot(projectRoot,docRoot),entry.relativePath);
+ let content;
+ try{
+  const info=await stat(file);
+  if(info.size>20*1024*1024)throw Object.assign(new Error('说明文档超过20 MB预览上限。'),{code:'READ_RESPONSE_TOO_LARGE'});
+  content=await readFile(file,'utf8');
+ }catch(error){if(error.code==='ENOENT'){documentCache.delete(JSON.stringify([projectRoot,docRoot]));return {status:'missing',id};}throw error;}
+ checkReadRequest();const heading=content.match(/^#\s+(.+?)\s*$/m);
+ const resolved={...entry,title:heading?.[1]?.trim()||path.basename(entry.relativePath)};
+ cache.indexEntries[id]=resolved;
+ return {...resolved,content};
 }

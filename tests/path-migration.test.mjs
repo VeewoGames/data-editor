@@ -344,3 +344,32 @@ test("applyLocalPathMigrations discovers local-only non-root collection layout k
   assert.equal(storage.getItem("data-editor:data/old/items.json:$.items:all:name:width"), null);
   assert.equal(result.report.migrated.some((item) => item.surface === "localStorage"), true);
 });
+
+test("fingerprints are isolated by project and config scope",()=>{
+ const values=new Map();const storage={getItem:key=>values.get(key)??null,setItem:(key,v)=>values.set(key,v)};
+ const a={version:1,files:{'data/items.json':{size:1,modifiedAt:'old',fingerprint:fingerprint('data/items.json','a')}}};
+ writeFingerprintCache(storage,a,'project-a:source-a');
+ assert.equal(Object.keys(readFingerprintCache(storage,'project-b:source-a').files).length,0);
+ assert.equal(Object.keys(readFingerprintCache(storage,'project-a:source-b').files).length,0);
+ assert.equal(readFingerprintCache(storage,'project-a:source-a').files['data/items.json'].fingerprint.contentHash,'a');
+});
+test("new files do not trigger foreground fingerprint reads without any removed candidates",async()=>{
+ let reads=0;const result=await detectPathMigrations({previousFiles:[],nextFiles:[{path:'data/new.json'}],fingerprintCache:{version:1,files:{}},readFingerprint:async()=>{reads++;return fingerprint('data/new.json','a')}});
+ assert.equal(reads,0);assert.deepEqual(result.migrations,[]);
+});
+test('an unreadable added candidate cannot establish a unique migration',async()=>{
+  const fingerprint={extension:'.json',contentHash:'same',schemaSignature:'array'};
+  const result=await detectPathMigrations({previousFiles:[{path:'data/old.json'}],nextFiles:[{path:'data/new.json'},{path:'data/broken.json'}],fingerprintCache:{version:1,files:{'data/old.json':{fingerprint}}},readFingerprint:async file=>{if(file.path.includes('broken'))throw Error('invalid JSON');return fingerprint;}});
+  assert.deepEqual(result.migrations,[]);
+  assert(result.report.skipped.some(item=>item.reason==='fingerprint-read-failed'));
+});
+test('a changed project source scope never reuses the old file list as migration evidence',async()=>{
+ const {fingerprintProjectScope,selectFingerprintMigrationBaseline}=await import('../src/path-migration.mjs');
+ const oldProject={id:'same-project',root:'root',dataSources:[{id:'data',path:'old-source'}],filePolicy:{includeExtensions:['.json']}};
+ const nextProject={...oldProject,dataSources:[{id:'data',path:'new-source'}]};
+ const oldScope=fingerprintProjectScope(oldProject),scope=fingerprintProjectScope(nextProject);
+ const previousFiles=[{path:'data/old.json'}];
+ assert.notEqual(oldScope,scope);
+ assert.deepEqual(selectFingerprintMigrationBaseline(previousFiles,oldScope,scope,{files:{}}),[]);
+ assert.equal(selectFingerprintMigrationBaseline(previousFiles,scope,scope,{files:{}}),previousFiles);
+});

@@ -182,7 +182,7 @@ async function spawnMainService(requested, deps) {
           requested.logsDir,
         ]
       : [
-          "server.mjs",
+          path.join(scriptRoot,"server.mjs"),
           "--project",
           requested.projectRoot,
           "--port",

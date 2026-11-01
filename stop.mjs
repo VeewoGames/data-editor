@@ -313,6 +313,7 @@ export function matchesRecoveryBridgeIdentity(processInfo, state) {
 
 export async function inspectWindowsProcess(pid, { execFileImpl = execFileAsync } = {}) {
   const psCommand = [
+    "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)",
     `$p = Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}"`,
     "if (-not $p) { exit 0 }",
     "$p | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress",

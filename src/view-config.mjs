@@ -1,5 +1,8 @@
+import {withHistoricalConfigurationSave} from './historical-disposition.mjs';
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {atomicWrite} from './atomic-file.mjs';
+import {withConfigWrite} from './config-write-precondition.mjs';
 import { createProjectContext, displayProjectPath, resolveInsideRoot } from "./project-context.mjs";
 import {
   currentRelationsVersion,
@@ -10,6 +13,7 @@ import {
 } from "./relation-defaults.mjs";
 import { syncBacklinksWithRelations } from "./model/field-role.mjs";
 import { isValidCheckboxPresentation, normalizeCheckboxPresentation } from "./model/checkbox-presentation.mjs";
+import { normalizeOptionDataValue } from "./multiselect-config.mjs";
 
 export { defaultRelationConfigs };
 
@@ -25,12 +29,13 @@ export async function loadViewConfig(projectContextOrRoot) {
   }
 }
 
-export async function saveViewConfig(projectContextOrRoot, config) {
-  const context = createProjectContext(projectContextOrRoot);
-  const target = resolveInsideRoot(context.projectRoot, context.sharedViewConfigPath);
-  await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, `${JSON.stringify(normalizeViewConfig(config), null, 2)}\n`, "utf8");
-  return { path: displayProjectPath(context, target) };
+export async function saveViewConfig(projectContextOrRoot, config, options={}) {
+ const context=createProjectContext(projectContextOrRoot);
+ return withHistoricalConfigurationSave(context,{kind:'view-config'},target=>withConfigWrite(target,options,()=>loadViewConfig(context),async()=>{
+  await mkdir(path.dirname(target),{recursive:true});
+  await atomicWrite(target,JSON.stringify(normalizeViewConfig(config),null,2)+'\n');
+  return { path: displayProjectPath(context,target) };
+ }));
 }
 
 export function emptyViewConfig() {
@@ -61,6 +66,7 @@ export function normalizeViewConfig(value) {
         for (const [optionValue, optionConfig] of Object.entries(multiSelectOptionMap)) {
           if (!optionConfig || typeof optionConfig !== "object" || Array.isArray(optionConfig)) continue;
           normalizedOptions[optionValue] = {
+            ...normalizeOptionDataValue(optionValue, optionConfig.dataValue),
             label: typeof optionConfig.label === "string" && optionConfig.label.trim() ? optionConfig.label : optionValue,
             color: typeof optionConfig.color === "string" && optionConfig.color.trim() ? optionConfig.color : null,
           };
@@ -71,6 +77,7 @@ export function normalizeViewConfig(value) {
         for (const [optionValue, optionConfig] of Object.entries(selectOptionMap)) {
           if (!optionConfig || typeof optionConfig !== "object" || Array.isArray(optionConfig)) continue;
           normalizedSelectOptions[optionValue] = {
+            ...normalizeOptionDataValue(optionValue, optionConfig.dataValue),
             label: typeof optionConfig.label === "string" && optionConfig.label.trim() ? optionConfig.label : optionValue,
             color: typeof optionConfig.color === "string" && optionConfig.color.trim() ? optionConfig.color : null,
           };
@@ -97,9 +104,6 @@ export function normalizeViewConfig(value) {
     relationsVersion: Number.isInteger(value.relationsVersion) ? value.relationsVersion : 0,
   };
   if (normalized.relationsVersion < currentRelationsVersion) {
-    normalized.primaryKeys = { ...defaultPrimaryKeys(), ...normalized.primaryKeys };
-    normalized.backlinks = { ...defaultBacklinkConfigs(), ...normalized.backlinks };
-    normalized.relations = { ...defaultRelationConfigs(), ...normalized.relations };
     normalized.relationsVersion = currentRelationsVersion;
   }
   normalized.relations = filterDocumentFieldRelations(normalized.relations, normalized.documentFields);

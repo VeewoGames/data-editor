@@ -3,7 +3,7 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { readFile, realpath } from 'node:fs/promises';
-import { historyDeploymentFile, historyPhysicalKey } from './historical-deployment.mjs';
+const historyPhysicalKey=file=>process.platform==='win32'?file.replaceAll('\\','/').toLowerCase():file;
 
 export const successorContract = 'managed-deployment-successor-v1';
 export const deploymentDigest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -17,9 +17,10 @@ export function artifactReference(bytes, kind) {
   return { path: `historical-deployment-upgrades/${digest}.${kind}.json`, digest };
 }
 
-export async function readDeploymentArtifact(ref, kind) {
+export async function readDeploymentArtifact(ref, kind, directory) {
   if (!keys(ref, 'path,digest') || !hash(ref.digest) || ref.path !== `historical-deployment-upgrades/${ref.digest}.${kind}.json`) bad();
-  const expected = path.join(path.dirname(historyDeploymentFile), ref.path);
+  if(!directory||!path.isAbsolute(directory))bad();
+  const expected = path.join(directory, ref.path);
   let bytes;
   try {
     // Reject aliases/symlinks, even ones pointing elsewhere within the delivery.
@@ -47,17 +48,18 @@ export function sourceEntryFor(snapshotBytes, binding) {
 
 // Called unconditionally by readLedger for upgraded deployments: an empty
 // records object must never bypass receipt validation and reopen historical runs.
-export async function validateSuccessorLedger(binding, state, ledgerBytes) {
+export async function validateSuccessorLedger(binding, state, ledgerBytes, readArtifact) {
   if (!binding.deploymentSuccessor) return null;
+  if(typeof readArtifact!=='function')bad();
   let certificate;
-  try { certificate = JSON.parse((await readDeploymentArtifact(binding.deploymentSuccessor, 'certificate')).toString('utf8')); } catch { bad(); }
+  try { certificate = JSON.parse((await readArtifact(binding.deploymentSuccessor, 'certificate')).toString('utf8')); } catch { bad(); }
   if (!keys(certificate, 'version,contract,root,runtime,anchorId,ledgerDigest,receipts,sourceSnapshot,sourcePolicyDigest,targetPolicyDigest')
     || certificate.version !== 1 || certificate.contract !== successorContract
     || certificate.root !== binding.root || certificate.runtime !== binding.runtime || certificate.anchorId !== binding.expectedAnchorId
     || !hash(certificate.ledgerDigest) || certificate.ledgerDigest !== deploymentDigest(ledgerBytes)
     || certificate.targetPolicyDigest !== deploymentDigest(stable(binding.policy))
     || !Array.isArray(certificate.receipts) || !certificate.receipts.length) bad();
-  const source = sourceEntryFor(await readDeploymentArtifact(certificate.sourceSnapshot, 'snapshot'), binding);
+  const source = sourceEntryFor(await readArtifact(certificate.sourceSnapshot, 'snapshot'), binding);
   const origin = deploymentDigest(stable(source.managedNonReplay));
   if (certificate.sourcePolicyDigest !== origin) bad();
   const records = Object.values(state.records);

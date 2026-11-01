@@ -38,32 +38,72 @@ export function removeSingleSelectOptionFromRows(rows, fieldName, optionValue) {
 
 export function buildMultiSelectFieldConfig(discoveredOptions, storedFieldConfig) {
   const storedOptions = storedFieldConfig?.multiSelectOptions ?? {};
+  const dataValues = new Map();
+  const ambiguous = new Set();
+  for (const value of discoveredOptions) {
+    const key = String(value);
+    if (dataValues.has(key) && dataValues.get(key) !== value) ambiguous.add(key);
+    else dataValues.set(key, value);
+  }
   const orderedValues = [...new Set([
     ...Object.keys(storedOptions),
     ...discoveredOptions.map((value) => String(value)),
   ])];
-  const options = orderedValues.map((value) => ({
-    value,
-    label: storedOptions[value]?.label ?? value,
-    color: storedOptions[value]?.color ?? null,
-  }));
+  const options = orderedValues.map((value) => {
+    const stored = normalizeOptionDataValue(value, storedOptions[value]?.dataValue);
+    const observed = dataValues.has(value) ? dataValues.get(value) : stored.dataValue;
+    const typed = typeof observed === "number" || stored.dataValue !== undefined ? { dataValue: observed } : {};
+    return {
+      value,
+      ...(ambiguous.has(value) ? { dataValueAmbiguous: true } : typed),
+      ...(typed.dataValue !== undefined && typed.dataValue !== stored.dataValue ? { dataValueNeedsPersistence: true } : {}),
+      label: storedOptions[value]?.label ?? value,
+      color: storedOptions[value]?.color ?? null,
+    };
+  });
   return {
     options,
     optionMap: Object.fromEntries(options.map((option) => [option.value, option])),
   };
 }
 
+// UI keys are strings, but a key must never decide the type written to JSON.
+export function resolveOptionDataValue(value, options) {
+  const option = options.find(option => option.value === String(value));
+  if (option?.dataValueAmbiguous) return undefined;
+  return option?.dataValue ?? value;
+}
+
+export function normalizeOptionDataValue(key, value) {
+  return ((typeof value === "number" && Number.isFinite(value)) || typeof value === "string") && String(value) === key
+    ? { dataValue: value } : {};
+}
+
+export function buildSchemaOptionViews(options = []) {
+  const config = buildMultiSelectFieldConfig(options.map(option => option.value));
+  return config.options.map(option => ({
+    ...option,
+    label: options.find(source => String(source.value) === option.value)?.label ?? option.label,
+    dataValueNeedsPersistence: false, // The schema remains the explicit source, including when every cell is empty.
+  }));
+}
+
+export function buildSingleSelectFieldConfigFromRows(rows, fieldName, storedFieldConfig) {
+  const values = rows.map(row => row[fieldName]).filter(value => typeof value === "string" || typeof value === "number");
+  return buildMultiSelectFieldConfig(values, { multiSelectOptions: storedFieldConfig?.selectOptions });
+}
+
 export function buildMultiSelectFieldConfigFromRows(rows, fieldName, storedFieldConfig) {
-  const unique = new Map();
+  const values = [];
   for (const row of rows) {
     const value = row?.[fieldName];
     if (!Array.isArray(value)) continue;
     for (const item of value) {
       if (item == null || (typeof item !== "string" && typeof item !== "number")) continue;
-      unique.set(String(item), item);
+      values.push(item);
     }
   }
-  return buildMultiSelectFieldConfig([...unique.values()], storedFieldConfig);
+  return buildMultiSelectFieldConfig(values, storedFieldConfig);
 }
 
 export function sortValuesByOptionOrder(values, orderedOptionValues) {
@@ -104,6 +144,7 @@ export function buildOptionConfigFromOptions(options) {
     nextConfig[key] = {
       label: option.label ?? key,
       color: option.color ?? null,
+      ...(option.dataValueAmbiguous ? {} : normalizeOptionDataValue(key, option.dataValue)),
     };
   }
   return nextConfig;

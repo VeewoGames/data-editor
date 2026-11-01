@@ -24,7 +24,7 @@ export async function withPublicationOperation(context, options, operation) {
   if(typeof runId!=='string'||!/^[A-Za-z0-9:_-]{1,160}$/.test(runId)||['__proto__','constructor','prototype'].includes(runId))throw publicationError('PUBLICATION_RUN_ID_INVALID');
   if (inherited) {
     await assertPublicationContinuation(context);
-    return withHistoricalRun(context,[runId,...(options.relatedRunIds??[])],()=>operation(runId));
+    return withHistoricalRun(context,[runId,...(options.relatedRunIds??[])],()=>operation(runId),{ownedCompletion:true});
   }
   const id = crypto.randomUUID();
   const registered = await mutatePublication(context, async (state, b) => {
@@ -63,18 +63,20 @@ export async function withPublicationOperation(context, options, operation) {
     });
   };
   return scope.run(token, async () => {
-    let result;
-    try { result = await withHistoricalRun(context,[runId,...(options.relatedRunIds??[])],()=>operation(runId)); }
-    catch (error) { await finish(); throw error; }
-    if (result?.completion?.then) {
-      const completion = result.completion.then(async value => { await finish(); return value; }, async error => { await finish(); throw error; });
-      // The caller still owns observing failures; attaching cleanup must not
-      // create an unhandled rejection when the original host observes its promise.
-      void completion.catch(() => {});
-      return { ...result, completion };
-    }
-    if (!options.pending) await finish();
-    return result;
+    return withHistoricalRun(context,[runId,...(options.relatedRunIds??[])],async()=>{
+      let result;
+      try { result = await operation(runId); }
+      catch (error) { await finish(); throw error; }
+      if (result?.completion?.then) {
+        // The reservation's own scope owns its settlement, including nested ack
+        // completions that outlive their parent's admission.
+        const completion = result.completion.then(async value => { await finish(); return value; }, async error => { await finish(); throw error; });
+        void completion.catch(() => {});
+        return { ...result, completion };
+      }
+      if (!options.pending) await finish();
+      return result;
+    },{ownedCompletion:true});
   });
 }
 

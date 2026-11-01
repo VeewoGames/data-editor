@@ -13,6 +13,8 @@
     "service:finalize": "node scripts/service-finalize.mjs --cleanup --recover",
     "registry:migrate:v2": "node scripts/registry-migrate-v2.mjs",
     "build:job-helper": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-job-helper.ps1",
+    "build:authority-locator": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-authority-locator.ps1",
+    "authority": "node scripts/deployment-authority.mjs",
     "entry-action:recover": "node scripts/entry-action-recover.mjs",
     "entry-action:publish-exact": "node scripts/publish-entry-action-exact-artifact.mjs",
     "test:entry-action-cli-e2e": "node --test tests/entry-action-cli-e2e.test.mjs",
