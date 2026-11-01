@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "mode": "planning-only-no-cleanup",
+  "checkedAt": "2026-10-25T09:43:04.974Z",
+  "preexistingTextFiles": 982,
+  "liveDistFiles": 8,
+  "registryViews": 2,
+  "directoryViews": 4,
+  "oldAbsentProofs": 3,
+  "sampleStillPresent": true,
+  "sampleSha256": "d79005675f22c30408d856ad3be16310e6e8448a07c886a30948d9e10d80b862",
+  "actualG4Backups": [
+    {
+      "repo": "night",
+      "path": "C:\\Code\\data-editor\\.claw\\tasks\\2026-10-25\\G4隔离候选准备与精确执行包冻结\\index-runtime\\formal-c5a13eff-2d09-4645-a70c-45f4534694fe\\night\\before-consistent.sqlite",
+      "sha256": "2dfc0a98b880efd20182b59bda8eb4c64cb969176a4b61ea68c1d8014a07e429",
+      "unchanged": true
+    },
+    {
+      "repo": "editor",
+      "path": "C:\\Code\\data-editor\\.claw\\tasks\\2026-10-25\\G4隔离候选准备与精确执行包冻结\\index-runtime\\formal-c5a13eff-2d09-4645-a70c-45f4534694fe\\editor\\before-consistent.sqlite",
+      "sha256": "a50bd4982536e5cf3c90e9e73e3ea7b162600bdeab87a1522ddfea6032f3961e",
+      "unchanged": true
+    }
+  ],
+  "productionDatabaseOpened": false,
+  "codeBusinessConfigurationCleanup": false,
+  "reviewWordingsClosed": true,
+  "errors": []
+}

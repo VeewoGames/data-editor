@@ -1,0 +1,36 @@
+{
+  "verified": true,
+  "errors": [],
+  "plannedTargets": 209,
+  "protectedUnchanged": 433,
+  "protectedDeclaredChanges": 10,
+  "originalSourceCopies": 73,
+  "closedRuns": 12,
+  "rejectionChecks": 36,
+  "authority": {
+    "generation": 1,
+    "catalogDigest": "ac2e09f234c0af42ed2317b786261c7cc9d6a56131888f33bfca1709344635c6",
+    "directory": "C:\\Users\\lans\\.data-editor\\deployment-authority",
+    "entries": [
+      {
+        "root": "c:/code/nocturnel",
+        "runtime": "c:/code/nocturnel/.data-editor/runtime",
+        "anchorId": "managed-history-e697ab89-159b-4666-9734-3e17cdc5885f",
+        "closedRuns": [
+          "26dcf5f2-5272-49f2-b620-246143823b56",
+          "490f04c8-f3c7-4866-89e1-d98efb071232",
+          "4b6963cd-6ebd-40ff-8d2e-a6961d7e3d44",
+          "5ca3cdbd-c2cf-4983-b534-07847f3776f1",
+          "686ceb46-8997-49f3-b3b7-6de32411aba6",
+          "974c77d1-b98d-44fa-87cc-3af7f2ec400a",
+          "9a3acf94-6ba3-479c-a515-70f9f737d235",
+          "a427b6de-5b93-4b4a-9c28-5101adf0de79",
+          "bc23a84d-be68-4dca-8b73-94a5b6c95f45",
+          "d126609e-2982-45cf-9419-f80b0c257464",
+          "e61f4889-9e75-4103-8995-cc27ddf691a2",
+          "f6f2ae21-a28a-4d22-9b31-c2ef2b3490be"
+        ]
+      }
+    ]
+  }
+}

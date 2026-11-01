@@ -1,0 +1,11 @@
+{
+  "mode": "planning-only-no-cleanup",
+  "mainHealthRequested": false,
+  "bridgeHealthRequested": false,
+  "servicesStartedOrStopped": false,
+  "browserOrTemporaryTcpStarted": false,
+  "formalUrl": "http://127.0.0.1:8787/",
+  "ownResidualProcesses": [],
+  "researchDirectories": "retained as planning evidence; no delete performed",
+  "allExistingMigrationBackupsRetained": true
+}
