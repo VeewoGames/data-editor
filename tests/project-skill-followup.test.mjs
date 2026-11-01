@@ -50,12 +50,17 @@ async function fixture(t, parentStatus = "no_changes", childStatus = "evidence_i
 }
 
 async function waitTerminal(context, runId) {
-  for (let attempt = 0; attempt < 100; attempt++) {
+  // The OS identity check is now asynchronous: the event loop can poll while
+  // admission is in flight. Iteration count was accidentally a ~500ms deadline.
+  const deadline=Date.now()+30000;
+  let lastIntent;
+  while(Date.now()<deadline) {
     const intent = await readProjectSkillFollowup(context, runId);
+    lastIntent=intent;
     if (["completed", "stopped"].includes(intent?.state)) return intent;
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  assert.fail("followup did not reach a terminal state");
+  assert.fail("followup did not reach a terminal state: "+JSON.stringify(lastIntent));
 }
 
 for (const status of ["write", "no_changes"]) {

@@ -4,7 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, mkdtemp, copyFile, readFile, rm, writeFile, realpath } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
-import { saveProjectRegistry } from "../src/project-registry.mjs";
+import { saveProjectRegistry, loadProjectRegistry } from "../src/project-registry.mjs";
+import { resolveProjectCapabilityState } from "../src/project-capability-registry.mjs";
 import { createProjectProcessService } from "../src/project-process-service.mjs";
 import { inspectProjectProcess, matchesProjectProcessInstance } from "../src/project-process-instance.mjs";
 import { spawnPersistentProcess } from "../src/persistent-process.mjs";
@@ -43,6 +44,7 @@ test("real Chinese and spaced root/home/entry preserve exact CIM identity throug
   } });
   const request = (item, action) => ({ projectId: item.projectId, processId: item.processId, action,
     expectedGeneration: item.generation, declarationDigest: item.declarationDigest, expectedIntentVersion: item.intentVersion });
+  await resolveProjectCapabilityState((await loadProjectRegistry({home})).projects[0],{home});
   const initial = (await owner.list("unicode-project")).processes[0]; assert.equal(initial.state, "stopped");
   const permission = await owner.control(request(initial, "start")); assert.equal(permission.code, "AUTH_REQUIRED");
   const running = await owner.authorize(permission.authorizationRequest); assert.equal(running.state, "running", running.error ?? undefined);

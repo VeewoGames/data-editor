@@ -187,6 +187,14 @@ test("actual HTTP service restart recovers the original running action and allow
   const accepted = await generate(); first.child.kill(); await first.exit;
   await new Promise(resolve => setTimeout(resolve, 700));
   await start();
+  // Recovery is a server lifecycle responsibility; no status GET causes it.
+  const recoveryDeadline=Date.now()+10000;
+  while(true){
+    const recovered=await readFile(path.join(f.root,'.data-editor/runtime/entry-actions',accepted.runId+'.result.json'),'utf8').then(JSON.parse).catch(()=>null);
+    if(recovered?.phase==='terminal')break;
+    assert(Date.now()<recoveryDeadline,'background recovery did not finish');
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
   const scope = new URLSearchParams({ projectId, actionId: "compile", sourcePath: f.request.sourcePath, collectionPath: "$", rowId: "row-1" });
   const latest = await (await fetch(base + "/api/entry-actions/latest?" + scope)).json();
   assert.equal(latest.run.runId, accepted.runId); assert.equal(latest.run.outcome, "failed");
@@ -387,7 +395,9 @@ test("validator failure and timeout are rejected without formal writes", async t
     const f = await fixture(t); await enableValidator(f);
     await writeFile(path.join(f.root,"validator.mjs"),body);
     const file = path.join(f.root,".data-editor/automation-profile.json");
-    const profile = JSON.parse(await readFile(file,"utf8")); profile.rules[0].execution.proposalValidator.command.timeoutMs=70;
+    // Distinguish an explicit nonzero exit from a hung process without making
+    // the exit assertion depend on sub-70ms Windows process startup.
+    const profile = JSON.parse(await readFile(file,"utf8")); profile.rules[0].execution.proposalValidator.command.timeoutMs=body.startsWith('process')?2000:100;
     await writeFile(file,JSON.stringify(profile));
     const started = await startProjectCommandEntryAction(f.input);
     await assert.rejects(started.completion, {code:body.startsWith('process')?'PROJECT_COMMAND_FAILED':'PROJECT_COMMAND_TIMEOUT'});

@@ -1,4 +1,4 @@
-import { publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
+import { withPublicationOperation, publicationStart, publicationSubmit, publicationRecovery, publicationExistingOperation, publicationConfigWrite, publicationObserve, publicationIsOpen } from './publication-window-runtime.mjs';
 import { resolveResultOnlyStatus, resolveProposalResultStatusDetails, resultOnlyStatuses, proposalResultStatuses } from "./entry-action-result-status.mjs";
 import crypto from "node:crypto";
 import os from "node:os";
@@ -61,8 +61,8 @@ async function startProjectSkillEntryActionImplementation({ projectContext, proj
   const runId = dependencies.followupRunId ?? dependencies.runId ?? crypto.randomUUID();
   const scratch = path.join(os.tmpdir(), `data-editor-project-skill-${runId}`);
   const snapshotRoot = path.join(scratch, "input");
-  // Codex workspace-write permits output only below its current workspace.
-  // Keep task artifacts out of canonical project content while remaining writable.
+  // The host excludes implicit temp write roots. Keep task artifacts under the
+  // explicit workspace; disposable input edits are never copied to canonical.
   const outputRoot = workspaceMode === "project-write"
     ? path.join(projectContext.projectRoot, ".data-editor", "runtime", "entry-actions", ".task-output", runId)
     : path.join(snapshotRoot, ".data-editor-output");
@@ -133,13 +133,23 @@ async function startProjectSkillEntryActionImplementation({ projectContext, proj
     throw error;
   }
 
+  // Register the continuation before dispatch so the start receipt keeps its
+  // queued semantics. Only rules with a followup allocate this owner.
+  let finishParent,failParent;
+  if(handoff.projectSkillLifecycle?.followup){
+    const parentCompletion=new Promise((resolve,reject)=>{finishParent=resolve;failParent=reject;});
+    const followupOwner=await withPublicationOperation(projectContext,{mode:'continue',runId,fork:true},()=>({
+      completion:parentCompletion.then(() => resumeProjectSkillFollowup({projectContext,parentRunId:runId,startChild:({request:childRequest,childRunId,parentRunId,configDigest})=>startProjectSkillEntryAction({projectContext,project,request:childRequest,toolRoot,jobSupervisor,dependencies:{...dependencies,followupRunId:childRunId,parentRunId,followupConfigDigest:configDigest}})})),
+    }));
+    void followupOwner.completion.catch(()=>{});
+  }
   const completion = continueProjectSkillEntryAction({
     projectContext, project, request, toolRoot, jobSupervisor, dependencies,
     action, profile, bindings, workspaceMode, projectInput, preflightId, sourcePath, collectionPath,
     binding, status, skill, skillDigest, runtime, runId, scratch, snapshotRoot, outputRoot, rowId, sourceRowIndex, artifactPublication, handoff,
   });
   trackProjectSkillRun(projectContext, runId, completion);
-  void completion.then(() => resumeProjectSkillFollowup({projectContext,parentRunId:runId,startChild:({request:childRequest,childRunId,parentRunId,configDigest})=>startProjectSkillEntryAction({projectContext,project,request:childRequest,toolRoot,jobSupervisor,dependencies:{...dependencies,followupRunId:childRunId,parentRunId,followupConfigDigest:configDigest}})})).catch(()=>{});
+  if(finishParent)void completion.then(finishParent,failParent);
   return { runId, acceptedAt, phase: "queued", completion };
 }
 
@@ -178,7 +188,7 @@ async function continueProjectSkillEntryAction(context) {
     const shellInstruction = "Use Codex's built-in shell tool. Do not explicitly invoke an absolute path to pwsh.exe, powershell.exe, cmd.exe, or another command interpreter.";
     const workspaceInstructions = workspaceMode === "project-write"
       ? `Project workspace is the real project root at ${JSON.stringify(workspaceRoot)}. Follow the project's own instructions and only change files owned by this project skill. Data Editor diagnostics and the required JSON reply belong under ${JSON.stringify(outputRoot)}. ${shellInstruction}`
-      : `Project workspace is a disposable read-only snapshot at ${JSON.stringify(workspaceRoot)}. Do not treat changes there as project output. Write task-owned output only under ${JSON.stringify(outputRoot)}. ${shellInstruction}`;
+      : `Project workspace is a disposable input copy at ${JSON.stringify(workspaceRoot)}. Changes to this copy are not canonical project writes and are never copied back automatically. Publish task-owned output only under ${JSON.stringify(outputRoot)}. ${shellInstruction}`;
     const proposalInstruction = resultPolicy === "proposal"
       ? 'For a write proposal, return the exact entry-action-proposal envelope produced by the project skill adapter under the current project contract. textArtifact may be null or the authorized text artifact required by that contract; never invent an artifact path or bypass its document policy. Each change must contain field, beforeExists, before, afterExists, after. Do not include authority tokens or humanNotes: Data Editor binds them from the canonical target after execution. Only use no_changes after all required reading and analysis completed and no change is needed. Tool, policy, permission, contract-reading or adapter failures must return status failed; insufficient design evidence must return status blocked. A partial write proposal may include resultStatus blocked. For a completed no-change analysis, return exactly {"kind":"project-skill-result","resultOnly":true,"status":"no_changes","summary":"..."}.'
       : "Return exactly one JSON object allowed by the configured result policy.";

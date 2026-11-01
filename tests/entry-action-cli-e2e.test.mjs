@@ -1,3 +1,4 @@
+import {runCliIsolationCase} from './helpers/cli-isolation-case.mjs';
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import crypto from "node:crypto";
@@ -5,7 +6,7 @@ import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile, symlink } from "node:fs/promises";
 import { createJobSupervisor } from "../src/job-supervisor.mjs";
 import { resolveCodexCli } from "../src/codex-runtime.mjs";
 import { createFencingAllocator } from "../src/fencing-lock.mjs";
@@ -57,7 +58,7 @@ async function waitForReady(outputPath) {
   for (let i = 0; i < BASELINE.readinessMs / 250; i += 1) {
     try {
       const events = (await readFile(outputPath, "utf8")).trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
-      if (events.some((event) => event.type === "item.completed" && event.item?.type === "agent_message" && event.item.text === "READY")) return true;
+      if (events.some((event) => event.type === "item.completed" && event.item?.type === "agent_message" && event.item.text.trim() === "READY")) return true;
     } catch {}
     await wait(250);
   }
@@ -156,27 +157,8 @@ test("real Codex CLI timeout terminates its Job and publishes nothing", { timeou
   await allocator.release(lease); await wait(BASELINE.observationMs); assert.equal(digest(await readFile(env.source)), before); const proposals = await readdir(path.join(env.root, "proposals")).catch((error) => error.code === "ENOENT" ? [] : Promise.reject(error)); assert.deepEqual(proposals, []); env.markPassed();
 });
 
-test("real project-skill Codex CLI cannot mutate an absolute canonical sentinel but can write output-root", { timeout: BASELINE.scriptMs }, async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "project-skill-cli-e2e-"));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  const inputRoot = path.join(root, "input"); const outputRoot = path.join(inputRoot, ".data-editor-output");
-  await mkdir(inputRoot); await mkdir(outputRoot, { recursive: true });
-  const snapshotEvidence = path.join(inputRoot, "snapshot-evidence.txt");
-  await writeFile(snapshotEvidence, "SNAPSHOT-READABLE\n", "utf8");
-  const canonicalSentinel = path.join(root, "canonical-sentinel.txt");
-  await writeFile(canonicalSentinel, "CANONICAL-UNCHANGED\n", "utf8");
-  const before = digest(await readFile(canonicalSentinel));
-  const cli = await resolveCodexCli(); assert.equal(cli.available, true, cli.message);
-  const marker = path.join(outputRoot, "output-marker.txt");
-  const promptPath = path.join(outputRoot, "prompt.md"); const reply = path.join(outputRoot, "reply.json");
-  const events = path.join(outputRoot, "events.jsonl"); const diagnostics = path.join(outputRoot, "diagnostics.log");
-  await writeFile(promptPath, `Use the shell tool to first read ${JSON.stringify(snapshotEvidence)}. Then attempt both writes. First attempt to overwrite this absolute canonical sentinel: ${JSON.stringify(canonicalSentinel)}. Then write exactly OUTPUT-WRITABLE to ${JSON.stringify(marker)}. Even if the first write is denied, perform the second. Finally return only {"kind":"project-skill-result","resultOnly":true,"status":"verified","summary":"sandbox checked","snapshot":"SNAPSHOT-READABLE"}.`, "utf8");
-  await execFileAsync(process.execPath, [path.resolve("scripts/run-project-skill-action-host.mjs"), "--codex", cli.path, "--workspace-root", inputRoot, "--ignore-rules", "--output-root", outputRoot, "--prompt", promptPath, "--reply", reply, "--events", events, "--diagnostics", diagnostics, "--model", defaultAutomationRuntime.model, "--reasoning", defaultAutomationRuntime.reasoning, "--verbosity", defaultAutomationRuntime.verbosity], { cwd: inputRoot, windowsHide: true, timeout: BASELINE.successMs, maxBuffer: 1024 * 1024 });
-  assert.equal(digest(await readFile(canonicalSentinel)), before, "canonical sentinel must remain byte-identical");
-  const eventText = await readFile(events, "utf8");
-  assert.match(eventText, /canonical-sentinel\.txt/i, "CLI events must record the active absolute sentinel write attempt");
-  assert.match(eventText, /blocked by policy/i, "the absolute canonical write attempt must be rejected");
-  const replyText = await readFile(reply, "utf8");
-  assert.ok(replyText.length > 0, "Codex must be able to publish its output under output-root");
-  assert.deepEqual(JSON.parse(replyText), { kind: "project-skill-result", resultOnly: true, status: "verified", summary: "sandbox checked", snapshot: "SNAPSHOT-READABLE" });
-});
+test("real project-skill Codex CLI cannot mutate an absolute canonical sentinel but can write output-root", {timeout: BASELINE.scriptMs}, t=>runCliIsolationCase(t,{placement:'temp'}));
+
+test("real project-skill CLI rejects non-temp canonical, aliases and inherited TMPDIR", {timeout:BASELINE.scriptMs}, t=>runCliIsolationCase(t,{placement:'profile',injectTmpdir:true}));
+
+test("real project-write service retains explicit fixture writes without external TEMP authority", {timeout:BASELINE.scriptMs}, t=>runCliIsolationCase(t,{placement:'temp',projectWrite:true}));

@@ -95,6 +95,7 @@ test("untrusted existing running instance allows first stop permission and stays
   const anotherHome = path.join(f.base, "another-home");
   await saveProjectRegistry(await loadProjectRegistry({ home: f.home }), { home: anotherHome });
   const fresh = createProjectProcessService({ home: anotherHome });
+  await fresh.open("fixture-project"); // Explicit lifecycle enrollment; status reads stay pure.
   const current = (await fresh.list("fixture-project")).processes[0]; assert.equal(current.state, "running"); assert.equal(current.canStop, true); assert.equal(current.authorized, false);
   const pending = await fresh.control(f.request(current, "stop")); assert.equal(pending.desiredEnabled, false); assert.equal(pending.code, "AUTH_REQUIRED");
   assert.equal((await fresh.open("fixture-project", binding.id)).processes[0].state, "running");

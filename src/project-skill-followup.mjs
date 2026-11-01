@@ -1,4 +1,4 @@
-import { publicationIsOpen, publicationExistingOperation, publicationObserve } from './publication-window-runtime.mjs';
+import { withPublicationOperation, publicationIsOpen, publicationExistingOperation, publicationObserve } from './publication-window-runtime.mjs';
 import crypto from "node:crypto";
 import {withHistoricalRun,assertHistoricalRunAllowed} from './historical-disposition.mjs';
 import path from "node:path";
@@ -96,10 +96,13 @@ async function resume({ projectContext, parentRunId, startChild }) {
     await assertProjectSkillRunCurrent(projectContext, parentRunId);
     const accepted = await startChild({ request: { ...intent.target, actionId: spec.actionId }, childRunId: intent.childRunId, parentRunId, configDigest: intent.configDigest });
     await save("running");
-    void accepted.completion.then(async () => {
-      childResult = await readEntryActionResult(projectContext, intent.childRunId);
-      await save("completed", { childOutcome: childResult.outcome, childResultStatus: childResult.resultStatus ?? null });
-    }, async (error) => { await save("stopped", { code: error.code ?? "PROJECT_SKILL_FOLLOWUP_FAILED", message: error.message }); }).catch(() => {});
+    const owner=await withPublicationOperation(projectContext,{mode:'continue',runId:intent.childRunId,relatedRunIds:[parentRunId],fork:true},()=>({
+      completion:accepted.completion.then(async () => {
+        childResult = await readEntryActionResult(projectContext, intent.childRunId);
+        await save("completed", { childOutcome: childResult.outcome, childResultStatus: childResult.resultStatus ?? null });
+      }, async (error) => { await save("stopped", { code: error.code ?? "PROJECT_SKILL_FOLLOWUP_FAILED", message: error.message }); }),
+    }));
+    void owner.completion.catch(() => {});
     return intent;
   } catch (error) {
     if (error.code === "EEXIST" && await optionalJson(entryActionStartedPath(projectContext, intent.childRunId))) {

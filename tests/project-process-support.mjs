@@ -1,3 +1,5 @@
+import { resolveProjectCapabilityState } from '../src/project-capability-registry.mjs';
+import { loadProjectRegistry } from '../src/project-registry.mjs';
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,6 +23,8 @@ export async function fixture(t, deps = {}) {
   await writeFile(path.join(root, ".data-editor", "project.json"), JSON.stringify(manifest));
   await saveProjectRegistry({ version: 2, activeProjectId: "fixture-project", projects: [{ id: "fixture-project", name: "Fixture", root,
     dataSources: [{ id: "data", label: "Data", path: "data", kind: "relative" }], filePolicy: { includeExtensions: [".json"] } }] }, { home });
+  const refreshCapability=async()=>{const registry=await loadProjectRegistry({home});return resolveProjectCapabilityState(registry.projects[0],{home});};
+  await refreshCapability();
   const launched = new Map();
   const spawn = deps.spawnPersistentProcess ?? spawnPersistentProcess;
   const owner = createProjectProcessService({ home }, { ...deps, spawnPersistentProcess: async (...args) => {
@@ -56,7 +60,7 @@ export async function fixture(t, deps = {}) {
     assert.ok(relative && !relative.startsWith("..") && !path.isAbsolute(relative), "cleanup stays inside owned test root");
     await rm(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   });
-  async function current() { return (await owner.list("fixture-project")).processes[0]; }
+  async function current() { await refreshCapability();return (await owner.list("fixture-project")).processes[0]; }
   function request(item, action) { return { projectId: item.projectId, processId: item.processId, action,
     expectedGeneration: item.generation, declarationDigest: item.declarationDigest, expectedIntentVersion: item.intentVersion }; }
   async function permit(action = "start") { const pending = await owner.control(request(await current(), action)); assert.equal(pending.code, "AUTH_REQUIRED"); return owner.authorize(pending.authorizationRequest); }

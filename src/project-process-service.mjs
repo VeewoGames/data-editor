@@ -39,13 +39,13 @@ export function createProjectProcessService(options = {}, dependencies = {}) {
     return JSON.parse(stdout.trim());
   };
 
-  async function projectForId(projectId) {
+  async function projectForId(projectId, readOnly = false) {
     if (typeof projectId !== "string" || !projectId) throw processError("PROCESS_PROJECT_REQUIRED", "必须明确指定项目。", 400);
     const registry = await loadRegistry();
     const project = registry.projects.find(candidate => candidate.id === projectId);
     if (!project) throw processError("PROCESS_PROJECT_UNKNOWN", "项目未注册到当前 Data Editor home。", 404);
     const root = await realpath(project.root);
-    return { project, root, home: await realpath(home), state: await resolveCapabilities(project) };
+    return { project, root, home: await realpath(home), state: await (readOnly && !dependencies.resolveCapabilities ? resolveProjectCapabilityState(project,{...options,readOnly:true}) : resolveCapabilities(project)) };
   }
 
   function targetFor(projectInfo, binding) {
@@ -121,7 +121,7 @@ export function createProjectProcessService(options = {}, dependencies = {}) {
   }
 
   async function list(projectId) {
-    const info = await projectForId(projectId);
+    const info = await projectForId(projectId,true);
     // Never expose last-known-good executable bindings when declaration is invalid.
     const bindings = info.state.status === "active" ? info.state.bindings.projectProcesses ?? [] : [];
     return { projectId, generation: info.state.generation, processes: await Promise.all(bindings.map(binding => readTarget(targetFor(info, binding)))),
