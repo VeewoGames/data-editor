@@ -1,24 +1,24 @@
 import {
   captureTableStats,
   captureVisibleRowSignature,
-  createRegistryHome,
+  createPerfWorkspace,
+  cleanupPerfWorkspace,
+  perfFilePath,
   findAvailablePort,
   findAvailableBridgePort,
   finalizeTempService,
   openSidebarFile,
   printJson,
-  resolveProjectRoot,
   runBuild,
   startOpenService,
   waitForHealth,
   withBrowserPage,
 } from "./perf-helpers.mjs";
 
-const filePath = "data/prototypes_expansion.json";
-const searchQuery = "部署物";
+const filePath = perfFilePath;
+const searchQuery = "planning";
 
-const registryHome = await createRegistryHome("data-editor-perf-static");
-const projectRoot = resolveProjectRoot();
+const { registryHome, projectRoot } = await createPerfWorkspace();
 const port = await findAvailablePort();
 const bridgePort = await findAvailableBridgePort(port);
 
@@ -89,9 +89,8 @@ try {
 
   printJson(result);
 } finally {
-  await finalizeTempService({ port, bridgePort, registryHome }).catch((error) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  });
+  await finalizeTempService({ port, bridgePort, registryHome, projectRoot });
+  await cleanupPerfWorkspace(projectRoot);
 }
 
 function round(value) {

@@ -1,20 +1,63 @@
 import { spawn } from "node:child_process";
 import http from "node:http";
-import { mkdtemp } from "node:fs/promises";
-import os from "node:os";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
+import { stopService } from "../../stop.mjs";
+import { runtimeHome } from "../../src/project-registry.mjs";
+import { perfFilePath, perfRowCount, createPerfRows, createPerfSharedViews } from "../fixtures/perf-generic/dataset.mjs";
 
 const toolRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const projectRoot = path.resolve(process.env.DATA_EDITOR_PERF_PROJECT_ROOT ?? path.join(toolRoot, "..", "Nocturnel"));
+const scratchRoot = path.join(toolRoot, "tests", ".scratch");
+const workspaces = new Map();
+const serviceOrigins = new Set();
+export { perfFilePath, perfRowCount };
 
-export function resolveProjectRoot() {
-  return projectRoot;
+// Every run owns its entire writable project and registry. External project-root
+// environment overrides are intentionally ignored, even when they name a fixture.
+export async function createPerfWorkspace() {
+  await mkdir(scratchRoot, { recursive: true });
+  const workspaceRoot = await mkdtemp(path.join(scratchRoot, "perf-generic-"));
+  const projectRoot = path.join(workspaceRoot, "project");
+  const registryHome = path.join(workspaceRoot, "registry");
+  workspaces.set(projectRoot, { workspaceRoot, registryHome });
+  try {
+    await mkdir(path.join(projectRoot, "data"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".data-editor"), { recursive: true });
+    await mkdir(registryHome, { recursive: true });
+    await writeFile(path.join(projectRoot, perfFilePath), `${JSON.stringify(createPerfRows(), null, 2)}\n`);
+    await writeFile(path.join(projectRoot, ".data-editor", "shared-views.json"), `${JSON.stringify(createPerfSharedViews(), null, 2)}\n`);
+  } catch (error) {
+    await cleanupPerfWorkspace(projectRoot);
+    throw error;
+  }
+  return { projectRoot, registryHome };
 }
 
-export async function createRegistryHome(prefix) {
-  return mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
+export async function cleanupPerfWorkspace(projectRoot) {
+  const owned = workspaces.get(projectRoot);
+  if (!owned) throw new Error("Refusing cleanup of an unowned performance workspace.");
+  const relative = path.relative(scratchRoot, owned.workspaceRoot);
+  if (!relative.startsWith("perf-generic-") || relative.includes(path.sep)) {
+    throw new Error("Performance workspace escaped its scratch directory.");
+  }
+  await rm(owned.workspaceRoot, { recursive: true, force: true });
+  workspaces.delete(projectRoot);
+}
+
+export function assertPerfWorkspace({ projectRoot, registryHome }) {
+  const owned = workspaces.get(projectRoot);
+  if (!owned || owned.registryHome !== registryHome) {
+    throw new Error("Performance services require a freshly allocated owned workspace and registry.");
+  }
+}
+
+function workspaceEnvironment(projectRoot) {
+  const owned = workspaces.get(projectRoot);
+  if (!owned) throw new Error("Unowned performance workspace.");
+  const home = path.join(owned.workspaceRoot, "machine-home");
+  return { APPDATA: home, DATA_EDITOR_HOME: home, DATA_EDITOR_PROFILE_HOME: path.join(home, "profiles") };
 }
 
 export async function findAvailablePort() {
@@ -58,10 +101,11 @@ export async function runBuild(options = {}) {
   });
 }
 
-export async function startOpenService({ mode, port, bridgePort, registryHome, projectRoot: root = projectRoot }) {
+export async function startOpenService({ mode, port, bridgePort, registryHome, projectRoot }) {
+  assertPerfWorkspace({ projectRoot, registryHome });
   await runNodeScript(path.join(toolRoot, "open.mjs"), [
     "--project",
-    root,
+    projectRoot,
     "--mode",
     mode,
     "--port",
@@ -70,20 +114,18 @@ export async function startOpenService({ mode, port, bridgePort, registryHome, p
     String(bridgePort),
     "--registry-home",
     registryHome,
-  ], { cwd: toolRoot });
+  ], { cwd: toolRoot, env: workspaceEnvironment(projectRoot) });
+  serviceOrigins.add(`http://127.0.0.1:${port}`);
 }
 
-export async function finalizeTempService({ port, bridgePort, registryHome }) {
-  return runNodeScript(path.join(toolRoot, "scripts", "service-finalize.mjs"), [
-    "--cleanup",
-    "--recover",
-    "--port",
-    String(port),
-    "--bridge-port",
-    String(bridgePort),
-    "--registry-home",
-    registryHome,
-  ], { cwd: toolRoot });
+export async function finalizeTempService({ port, bridgePort, registryHome, projectRoot }) {
+  assertPerfWorkspace({ projectRoot, registryHome });
+  // The product finalizer preserves its target service and can sweep unrelated
+  // temporary processes. Stop only this owned registry, with no fallback root.
+  const result = await stopService(runtimeHome({ home: registryHome }), { includeBridge: true });
+  if (!result.ok) throw new Error(result.message || "Failed to stop owned performance service.");
+  serviceOrigins.delete(`http://127.0.0.1:${port}`);
+  return { ...result, port, bridgePort };
 }
 
 export async function waitForHealth(url, timeoutMs = 120_000) {
@@ -99,6 +141,7 @@ export async function waitForHealth(url, timeoutMs = 120_000) {
 }
 
 export async function withBrowserPage(baseURL, fn) {
+  if (!serviceOrigins.has(new URL(baseURL).origin)) throw new Error("Browser target is not an owned performance service.");
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ baseURL });
   try {
@@ -110,6 +153,7 @@ export async function withBrowserPage(baseURL, fn) {
 
 export async function preparePerfProfile(page, profileName, filePath) {
   await page.goto("/");
+  if (!serviceOrigins.has(new URL(page.url()).origin)) throw new Error("Profile POST target is not an owned performance service.");
   await page.evaluate(async ({ profileName, filePath }) => {
     localStorage.clear();
     localStorage.setItem("data-editor:enable-detail-reorder-profiling", "1");
@@ -262,7 +306,7 @@ async function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd ?? toolRoot,
-      env: { ...process.env, ...(options.env ?? {}) },
+      env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("DATA_EDITOR_"))), ...(options.env ?? {}) },
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
       shell: false,

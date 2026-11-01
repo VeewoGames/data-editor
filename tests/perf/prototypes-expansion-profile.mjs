@@ -1,6 +1,8 @@
 import {
   captureTableStats,
-  createRegistryHome,
+  createPerfWorkspace,
+  cleanupPerfWorkspace,
+  perfFilePath,
   dragFirstDetailFieldUp,
   findAvailablePort,
   findAvailableBridgePort,
@@ -9,17 +11,15 @@ import {
   preparePerfProfile,
   printJson,
   readDetailReorderMeasures,
-  resolveProjectRoot,
   startOpenService,
   waitForHealth,
   withBrowserPage,
 } from "./perf-helpers.mjs";
 
-const filePath = "data/prototypes_expansion.json";
+const filePath = perfFilePath;
 const profileName = "perf_prototypes_expansion";
 
-const registryHome = await createRegistryHome("data-editor-perf-profile");
-const projectRoot = resolveProjectRoot();
+const { registryHome, projectRoot } = await createPerfWorkspace();
 const port = await findAvailablePort();
 const bridgePort = await findAvailableBridgePort(port);
 
@@ -63,9 +63,8 @@ try {
 
   printJson(result);
 } finally {
-  await finalizeTempService({ port, bridgePort, registryHome }).catch((error) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  });
+  await finalizeTempService({ port, bridgePort, registryHome, projectRoot });
+  await cleanupPerfWorkspace(projectRoot);
 }
 
 function summarizeReactSamples(measures) {

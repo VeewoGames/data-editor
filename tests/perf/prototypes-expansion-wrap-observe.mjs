@@ -1,23 +1,24 @@
 import {
   captureTableStats,
-  createRegistryHome,
+  createPerfWorkspace,
+  cleanupPerfWorkspace,
+  perfFilePath,
+  perfRowCount,
   findAvailablePort,
   findAvailableBridgePort,
   finalizeTempService,
   openSidebarFile,
   printJson,
-  resolveProjectRoot,
   runBuild,
   startOpenService,
   waitForHealth,
   withBrowserPage,
 } from "./perf-helpers.mjs";
 
-const filePath = "data/prototypes_expansion.json";
+const filePath = perfFilePath;
 const wrappedField = "description";
 
-const registryHome = await createRegistryHome("data-editor-perf-wrap-observe");
-const projectRoot = resolveProjectRoot();
+const { registryHome, projectRoot } = await createPerfWorkspace();
 const port = await findAvailablePort();
 const bridgePort = await findAvailableBridgePort(port);
 
@@ -102,7 +103,7 @@ try {
         anchorRestoredAtTop: before.firstVisibleRowId === afterScrollRestore.firstVisibleRowId,
       },
       evaluation: evaluateWrapPoc({
-        totalRows: 187,
+        totalRows: perfRowCount,
         before,
         afterWrap,
         afterScroll,
@@ -113,9 +114,8 @@ try {
 
   printJson(result);
 } finally {
-  await finalizeTempService({ port, bridgePort, registryHome }).catch((error) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  });
+  await finalizeTempService({ port, bridgePort, registryHome, projectRoot });
+  await cleanupPerfWorkspace(projectRoot);
 }
 
 async function toggleWrapForField(page, fieldName, currentlyWrapped) {
