@@ -1,68 +1,71 @@
-# skills Targeting 项目级合同与保存门禁
+﻿# ADR: 项目文档合同所有权与保存门禁
 
-status: accepted
+<!-- document-state: accepted -->
+<!-- state: accepted -->
 
-## context
+## Context
 
-已完成计划 `.claw/archive/tasks/将最新技能-Targeting-合同编辑能力合入当前-data-editor/plan.json` 将技能 Targeting 合同编辑能力接入当前 data-editor。需要固定的长期边界不是本次提交移植过程，而是 `skills.nodes` 的合同所有权、正式数据结构、失配行为、并发保存协议和跨接入形态验证范围。
+具体领域节点及约束属于项目，通用编辑器不能定义第二套结构，也不能在已声明合同不可用时用旧静态schema继续写入。历史业务接入验证出的通用价值，是项目所有权、失败关闭、并发一致性和跨部署形态一致性。
 
-`skills.nodes` 属于项目业务模型，不是 data-editor 自身可以独立定义的通用 schema。若编辑器保留静态 skills schema 或在项目合同不可用时继续写入，会形成双真值，并可能把过期结构保存回项目数据。
+当前能力通过 `.data-editor/project.json` 与enrollment进入通用registry：文档保存约束使用 `document-contract-v1`，节点展示与编辑结构使用 `nested-schema-v1`。两类能力分别声明、按真实文档身份匹配；它们不固定业务文件名或某组领域字段。
 
-## decision
+## Decision
 
-### 1. `skills.nodes` 只消费项目级 `skill_nodes` 合同
+### 1. 合同由项目声明并维护
 
-编辑器从当前项目的 `data/contracts/skill_nodes.json` 加载版本化合同。该合同是 `skills.nodes` 的唯一结构与约束真值；data-editor 只负责加载、解释、展示、校验和保存，不维护第二套 skills 节点定义。
+`src/project-capability-manifest.mjs` 和 `src/project-capability-registry.mjs` 负责声明、资源与generation状态。`src/document-contract-service.mjs` 只读取active binding指定的合同及meta-schema，执行JSON解析、schema、版本及受支持语法校验，再交通用compiler解释。
 
-### 2. Targeting 的正式结构固定为 `selection`、`area`、`affects`
+字段、variant、默认值、约束和派生含义属于项目；编辑器只加载、解释、呈现、校验与保存，不维护具体领域的平行静态定义。没有声明合同的通用JSON/CSV文档保持通用保存；已经声明但失效的能力不能被当作“未声明”绕过。
 
-Targeting 节点顶层只按合同暴露 `selection`、`area`、`affects`。`selection` 与 `area` 根据各自 discriminator 展开合同声明字段，`affects` 使用合同声明的 `relations` 与 `entity_types` 等约束。
+### 2. 失败关闭与能力分层
 
-旧平铺字段 `range_type`、`range_value`、`target_type`、`area_shape`、`area_size`、`target_count`、`target_alignment` 不再属于正式编辑结构，也不得作为静态 fallback 重新进入保存链路。
+合同缺失、资源损坏、版本/语法不合法或capability不可用时，拒绝依赖该合同的保存；不能恢复旧静态schema或通过完整JSON编辑绕过。nested未匹配结构按通用只读fallback承接，不能据fallback重新授予业务写权限。
 
-### 3. 合同缺失或版本不匹配时只读并阻止保存
+文档合同校验与nested展示不互相替代：UI能显示不证明候选合法；UI只读也不代替服务端保存门禁。项目先演进受支持合同/声明，再由编辑器解释，编辑器不先行发明领域字段。
 
-当项目合同缺失、无法加载、响应缺少必要元数据，或 `contract_version` 与编辑器支持版本不匹配时，`skills.nodes` 必须进入明确只读状态并阻止保存。不得回退到旧静态 skills schema，也不得以通用可编辑 JSON 绕过合同门禁。
+### 3. 使用当前documentContracts admission集合
 
-### 4. 保存执行项目级 `version + ETag + token` 双重校验
+保存客户端读取匹配文档的 `documentContracts` token集合；服务端要求与当前解析结果精确相等。当前每项由 `contractId`、`generation`、`manifestDigest`、`contractDigest`、`compiledContractDigest` 和 `version` 绑定，按contractId排序。
 
-技能文档保存必须携带当前项目合同的 `contractVersion`、`contractEtag` 和项目级 `saveToken`。`saveToken` 至少绑定 `projectId`、合同版本和 ETag。
+项目身份由请求project context和registry共同确定；token不是可跨项目复用的业务授权。命中合同而缺token、token陈旧或多/少成员均拒绝；未命中合同却附带非空token同样拒绝。普通文档ETag/idempotency门禁与合同admission是不同约束，应共同保留。
 
-服务端同时校验请求版本与文档根 `skill_node_contract_version`、当前合同版本与 ETag，以及 token 的项目、版本和 ETag；通过保存门禁后还要在实际写入前再次确认合同 ETag 未变化。任何项目错配、版本错配、陈旧 ETag 或校验期间合同变化都必须拒绝保存。
+`src/document-contract-compiler.mjs` 校验候选并生成admission snapshot；保存的提交前与替换后重新解析capability/合同并验证同一snapshot及候选。合同或generation漂移不能只在前端提示，须由服务端拒绝并沿既有保存恢复语义处理。
 
-### 5. 独立仓库与 Nocturnel submodule 是同一能力的正式测试路径
+### 4. 派生输出、视图与迁移保持同一交付闭环
 
-合同能力必须同时支持两种接入形态：直接在独立 `C:/Code/data-editor` 仓库运行，以及由 Nocturnel 的 `tools/data-editor` submodule 使用。测试 fixture、合同单测和 targeted Playwright 应覆盖项目级合同读取与 `skills.nodes` 编辑链，不得把某一种物理检出路径写成产品语义。
+项目合同声明的派生输出由通用compiler计算，展示和旧引用迁移必须和合同演进一起核对。不能只改schema而遗漏view/profile/local草稿中的引用，也不能把某组历史领域派生字段名固定为所有项目的产品规定。
 
-## alternatives considered
+### 5. 接入形态不决定合同含义
 
-- 保留旧静态 skills schema 作为合同故障 fallback：会形成双真值并允许旧结构重新写入，因此拒绝。
-- 只用前端加载时版本判断保护保存：无法防止跨项目 token、并发合同更新或请求篡改，因此拒绝。
-- 只支持独立 data-editor 或只支持 Nocturnel submodule：会把部署形态误当成合同所有权，降低同一能力在两条正式使用路径上的可信度，因此拒绝。
+通用能力不以仓库物理位置、submodule或某个游戏是否在本机存在决定。测试使用独立项目fixture，覆盖项目合同读取、nested解释、候选校验、保存拒旧与视图引用；真实项目只作为明确选择的附加集成验证，不是产品默认依赖。
 
-## consequences
+## Consequences
 
-- 项目合同演进必须先更新项目级 `skill_nodes` 合同，再由编辑器按受支持版本消费；data-editor 不得先行发明 Targeting 字段。
-- 合同不可用时可读性优先于错误写入，用户必须先恢复匹配合同才能继续保存。
-- 保存协议比普通文档保存更严格，客户端和服务端必须共同保留版本、ETag、项目 token 与写入前复核。
-- Targeting 的视图派生、表单模型和端到端断言都应围绕 `selection/area/affects`，不得恢复旧平铺字段断言。
-- 仓库位置和 submodule 位置可以不同，但合同语义、保存门禁与测试结论必须一致。
+- 项目保有唯一领域authority；编辑器保有通用admission、校验和保存owner。
+- 客户端与服务端共同维护新鲜token和候选一致性，不能仅凭UI加载成功或某次HTTP成功声明保存链可靠。
+- 旧业务文档根版本字段、旧saveToken形状和固定业务路径不再是通用协议；历史材料不得用于恢复已退出通道。
+- 验证至少覆盖service/compiler、capability、nested宿主、保存、派生与引用迁移，不能只检查表单可见性。
 
-## related code
+## Alternatives
 
-- `server.mjs`
-- `src/skill-node-contract-service.mjs`
-- `src/skill-node-contract-version.mjs`
-- `src/api/skill-node-contract-client.mjs`
-- `src/api/save-documents.mjs`
-- `src/detail/skill-node-contract-form-model.mjs`
-- `src/detail/skill-node-contract-state.mjs`
-- `src/detail/NodeEditorHost.tsx`
-- `src/view/derived-field-projection.mjs`
-- `tests/skill-node-contract-*.test.mjs`
-- `tests/api-client.test.mjs`
-- `tests/data-editor.spec.ts`
+- 合同故障时回退旧静态业务schema：形成双真值并允许过期结构写回，拒绝。
+- 只依赖前端版本判断：无法阻止跨项目请求、合同并发变化及请求篡改，拒绝。
+- 把特定检出路径和真实游戏数据作为正式测试前提：混淆部署形态与领域所有权，拒绝。
 
-## search terms
+## References
 
-`skill_nodes`、`skill_node_contract_version`、`selection`、`area`、`affects`、`contractVersion`、`contractEtag`、`saveToken`、`ETag`、`read-only`、`Nocturnel submodule`
+- [当前通用合同总览](C:/Code/data-editor/docs/11_文档合同与嵌套Schema.md)
+- [capability manifest](C:/Code/data-editor/src/project-capability-manifest.mjs)
+- [capability registry](C:/Code/data-editor/src/project-capability-registry.mjs)
+- [合同资源加载](C:/Code/data-editor/src/document-contract-service.mjs)
+- [token集合、候选与替换后校验](C:/Code/data-editor/src/document-contract-compiler.mjs)
+- [客户端保存](C:/Code/data-editor/src/api/save-documents.mjs)
+- [服务端保存门禁](C:/Code/data-editor/server.mjs)
+
+<!-- state: history -->
+## Evolution history
+
+<!-- dated: 2026-10-25 -->
+### 旧业务接入来源
+
+本文件原题为“skills Targeting 项目级合同与保存门禁”。原业务字段集合、旧合同路径、文档根版本字段、旧token及submodule验收要求仅由[项目历史索引](C:/Code/Nocturnel/.claw/truth/tech/data-editor/编辑器侧项目知识承接与历史索引.md)承接，[原字节对象](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/objects/fb54e64de898b4af073e13608df8e743cb846990f232e7d52a0eec524fd87845.source)完整保存。该历史不定义当前游戏结构，也不恢复旧业务保存通道。

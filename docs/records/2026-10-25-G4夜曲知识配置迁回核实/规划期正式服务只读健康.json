@@ -1,0 +1,11 @@
+{
+  "mode": "read-only planning; no service start/stop/finalize or browser",
+  "bridge": {
+    "ok": true
+  },
+  "main": {
+    "ok": true,
+    "bridgePort": 8791
+  },
+  "at": "2026-10-25T05:31:51.4153447Z"
+}

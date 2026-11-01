@@ -27,3 +27,6 @@ src/publication-window-runtime.mjs text eol=crlf
 src/publication-window-state.mjs text eol=crlf
 config/historical-disposition-deployment.json text eol=lf
 config/historical-deployment-upgrades/*.json -text
+# Preserve audit JSON bytes and their SHA-256 evidence across checkouts.
+docs/records/2026-10-25-G4夜曲知识配置迁回核实/*.json -text
+docs/records/2026-10-25-G5旧样例与遗留绑定核实/*.json -text

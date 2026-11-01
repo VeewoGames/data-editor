@@ -1,68 +1,29 @@
-# skills `全部` 组公共筛选同步：更新 shared view 本体，保留各叶子 `advancedRoot`
+﻿# skills `全部` 组公共筛选同步：更新 shared view 本体，保留各叶子 `advancedRoot`（历史迁回入口）
 
-status: accepted
+<!-- document-state: historical -->
 
-## context
+<!-- state: current -->
+## Current behavior
 
-本条 truth 记录 `skills.json` 的“全部”标签组内叶子标签页公共筛选条件不一致时的稳定收口入口。当前这类问题的真值层是 `C:\Code\Nocturnel\.data-editor\shared-views.json` 里的 shared view 本体，不是 profile draft，也不是个人 `viewLayouts`。
+本入口仅作历史导航，不拥有项目业务规则；文档状态为 historical。
 
-在本轮已确认的稳定样本里：
+<!-- state: history -->
+## Evolution history
 
-- `data/skills.json:skills` 的“攻击”页视图 id 为 `tag-melee-copy-2`。
-- 该视图的公共层条件位于 shared view 本体：`sorts` 为 `sort: dev_status asc`，`filters.topLevelRules` 包含 `owner contains player` 与 `skill_category contains general`。
-- 各叶子标签页自己的标签语义仍由 `filters.advancedRoot` 承接，例如 `spell`、`melee`、`ranged`、`critical`、`ignite`。
+<!-- dated: 2026-10-25 -->
+### 归属与现行入口
 
-## 结论
+本文件保留旧入口的可达性，不再拥有项目规则。来源核实日期为 2026-10-25；旧预算、评级、开发状态、样本、配置路径、视图数量及历史验收不得据此恢复为当前规则。
 
-1. 当用户要求“把 `skills.json` 的‘全部’组其他标签页同步攻击页的公共筛选条件”时，优先把它视为 shared view 本体的批量同步任务，而不是 profile 布局对齐任务。
-2. 稳定做法是以“攻击”页 `tag-melee-copy-2` 为模板，只批量复制公共层 `sorts` 与 `filters.topLevelRules` 到同组其它叶子标签页。
-3. 同步公共层时必须保留每个标签页原有的 `filters.advancedRoot`，不能用模板页的标签过滤覆盖各页专属语义。
-4. 这类同步不涉及 profile layout、shared view 分组树、叶子数量、名称、图标或标签专属过滤重写；边界是“统一公共层条件”，不是“重建整组结构”。
+项目知识的原字节来源、过期原因和承接映射见[夜曲历史接收索引](C:/Code/Nocturnel/.claw/truth/tech/data-editor/编辑器侧项目知识承接与历史索引.md)。现行规则仍由以下既有 owner 维护，本次迁回不覆盖其内容：
 
-## 长期规则
+- [data-editor共享配置与稳定条目身份边界.md](C:/Code/Nocturnel/.claw/truth/data-editor共享配置与稳定条目身份边界.md)
 
-- `shared-views.json` 负责 shared view 的团队基线结构、公共筛选与排序定义。
-- profile `viewLayouts` 负责个人列布局状态，不承接这类公共筛选同步。
-- 同组叶子标签页如果只需要共享一套公共入口条件，应复制 `sorts` 与 `topLevelRules`，同时保留各自 `advancedRoot`。
-- 看到某页缺少 `owner contains player`、`skill_category contains general` 或 `dev_status asc` 这类公共层条件时，优先检查 shared view 本体，不要先怀疑 profile draft。
+## 原始证据
 
-## 真实链路
+- 来源标识：`K14`，原文件：`shared-view-skills-all-group-public-filter-alignment.md`。
+- 原字节 SHA-256：`a7b66e9a6002c96ce3272f6b880f5782445c479e1c9fba271d8aa1cab8fd2edd`。
+- [原字节历史对象](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/objects/a7b66e9a6002c96ce3272f6b880f5782445c479e1c9fba271d8aa1cab8fd2edd.source)。对象为不可执行的 `.source`，不作为 current 检索正文；其相对引用按 manifest 的原路径解释，不在这里执行。
+- [来源 manifest](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/manifest.v1.json)。
 
-- `C:\Code\Nocturnel\.data-editor\shared-views.json` 是本轮公共筛选真值源。
-- `src/shared-views.mjs` 负责加载和保存 `<project>/.data-editor/shared-views.json`。
-- `src/App.tsx` 通过 `loadSharedViews(...)` / `saveSharedViews(...)` 进入 shared view 配置链路。
-- `src/view/view-state.mjs` 的 `mergeSharedViewWithDraft(...)` / `saveSharedViewDraftsToConfig(...)` 说明 shared view 正式配置与 draft/profile 是分层关系，不应把本类 shared base 同步误判成个人布局问题。
-- `docs/05_数据与配置模型.md`、`docs/07_校验与保存机制.md` 已明确 shared view 正式配置与 profile/layout 的职责边界。
-
-## 本轮稳定例子
-
-- 模板视图为“攻击”页 `tag-melee-copy-2`。
-- 批量同步字段为 `sorts` 与 `filters.topLevelRules`。
-- 抽样 `tag-spell`、`tag-melee`、`tag-ranged`、`tag-critical`、`tag-ignite-copy-3` 后，公共层均已具备 `owner contains player`、`skill_category contains general`、`sort: dev_status asc`。
-- 上述抽样页的 `advancedRoot` 仍分别保留 `spell`、`melee`、`ranged`、`critical`、`ignite` 等标签过滤。
-
-## 适用边界
-
-- 适用于“同一 shared group 内部，多页应共享同一套公共筛选/排序基线，但保留各自标签过滤”的场景。
-- 不适用于字段隐藏、列顺序、列宽、换行、详情顺序等个人布局问题；这些仍应优先走 profile `viewLayouts`。
-- 不适用于重排 shared 分组树、增删叶子视图或整体改写标签 taxonomy 的场景。
-
-## 关联代码
-
-- `C:\Code\Nocturnel\.data-editor\shared-views.json`
-- `src/shared-views.mjs`
-- `src/App.tsx`
-- `src/view/view-state.mjs`
-- `docs/05_数据与配置模型.md`
-- `docs/07_校验与保存机制.md`
-
-## 验证标准
-
-- `tag-melee-copy-2` 的公共层条件已确认来自 `shared-views.json` 本体，而不是 profile draft。
-- 同组目标叶子标签页均收到同一份 `sorts` 与 `filters.topLevelRules`。
-- 抽样多个标签页后，公共层与模板页一致，但各自 `advancedRoot` 仍保留标签专属过滤。
-- shared view 分组结构未被改写，profile layout 未作为本轮同步目标。
-
-## 关键检索词
-
-`skills.json`、`全部`、`攻击`、`tag-melee-copy-2`、`shared-views.json`、`topLevelRules`、`advancedRoot`、`dev_status`、`owner contains player`、`skill_category contains general`、`公共筛选`、`批量同步`
+编辑器的 shared/profile 分层、普通保存、文档合同、自动化调度及历史非重放仍由通用产品维护；项目知识历史化不改变任何业务数据、现行配置或运行保护。

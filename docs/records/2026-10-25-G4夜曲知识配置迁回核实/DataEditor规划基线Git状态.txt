@@ -1,0 +1,125 @@
+ M .claw/truth/SUMMARY.md
+ M .claw/truth/adr/array-row-reordering-and-row-action-boundary.md
+ M .claw/truth/adr/document-index-cache-refresh-and-body-linkage.md
+ M .claw/truth/adr/document-save-load-hash-optimistic-concurrency.md
+ M .claw/truth/adr/entry-actions-codex-exec-runtime-protocol.md
+ M .claw/truth/adr/entry-actions-legacy-direct-write-hard-disable.md
+ M .claw/truth/adr/entry-actions-user-local-personalized-configuration.md
+ M .claw/truth/adr/historical-deployment-successor-evidence-preservation.md
+ M .claw/truth/adr/list-picker-keyboard-navigation-contract.md
+ M .claw/truth/adr/nested-detail-panel-collection-rail-first-batch-contract.md
+ M .claw/truth/adr/nested-detail-panel-fifth-batch-template-coverage-and-dollar-path-registration.md
+ M .claw/truth/adr/nested-detail-panel-fourth-batch-summary-card-fallback-actions-and-template-expansion.md
+ M .claw/truth/adr/nested-detail-panel-information-architecture-and-rollout-order.md
+ M .claw/truth/adr/nested-detail-panel-sixth-batch-visual-surface-tertiary-layout-and-width-vars.md
+ M .claw/truth/adr/nested-detail-panel-third-batch-presentation-sections-advanced-fallback.md
+ M .claw/truth/adr/nested-node-editing-first-phase-architecture-boundary.md
+ M .claw/truth/adr/nocturnel-player-skill-review-authority-and-verification-gate.md
+ M .claw/truth/adr/nocturnel-skill-budget-ledger-model.md
+ M .claw/truth/adr/npm-dependency-vulnerability-remediation-policy.md
+ M .claw/truth/adr/persistent-internal-entry-id-and-entry-action-stable-locating.md
+ M .claw/truth/adr/project-registry-and-view-profile-cleanup-policy.md
+ M .claw/truth/adr/relation-multi-semantics-and-primary-key-rename-sync.md
+ M .claw/truth/adr/relation-target-file-searchable-picker-boundary.md
+ M .claw/truth/adr/selector-visual-state-semi-merged-model.md
+ M .claw/truth/adr/shared-view-generated-icon-runtime-pack-delivery.md
+ M .claw/truth/adr/shared-view-icon-favorites-refresh-and-pack-version-contract.md
+ M .claw/truth/adr/shared-view-icon-phase-a.md
+ M .claw/truth/adr/shared-view-icon-playwright-static-webserver.md
+ M .claw/truth/adr/shared-view-tabler-icon-supply-chain.md
+ M .claw/truth/adr/skill-targeting-project-contract-and-save-gate.md
+ M .claw/truth/adr/streamline-tags-manifest-metadata.md
+ M .claw/truth/adr/table-cell-editor-external-target-blur-flush.md
+ M .claw/truth/array-row-reordering-and-row-actions.md
+ M .claw/truth/automation-settings-icon-picker-wheel-scroll-boundary.md
+ M .claw/truth/automation-settings-skill-truth-chain-and-save-boundary.md
+ M .claw/truth/data-table-rect-selection-option-trigger-exemption.md
+ M .claw/truth/document-field-markdown-cache-invalidation.md
+ M .claw/truth/entry-action-running-duration-display.md
+ M .claw/truth/entry-actions-legacy-protocol-hard-disable-and-preenable-fencing-recovery.md
+ M .claw/truth/entry-actions-same-source-concurrency-and-timeout-evidence-gap.md
+ M .claw/truth/entry-actions-v2-codex-local-exec-chain-and-writeback-verification.md
+ M .claw/truth/entry-actions-v2-completed-and-writeback-observation-gap-minimal-evidence.md
+ M .claw/truth/entry-actions-v2-execution-ready-illusion-and-runner-placeholder-root-cause.md
+ M .claw/truth/entry-actions-v2-observed-writeback-status-split-and-project-verification.md
+ M .claw/truth/entry-actions-v2-persistent-entry-id-and-stable-location.md
+ M .claw/truth/entry-actions-v2-personal-automation-direction.md
+ M .claw/truth/entry-actions-v2-phase2-automation-settings-entry-and-import.md
+ M .claw/truth/entry-actions-v2-runtime-truth-switch-and-final-state.md
+ M .claw/truth/historical-deployment-successor-and-verification-boundary.md
+ M .claw/truth/nested-detail-panel-first-phase-boundary-and-resolver-key.md
+ M .claw/truth/nocturnel-player-skill-review-and-completion-gates.md
+ M .claw/truth/npm-dependency-security-baseline.md
+ M .claw/truth/relation-target-file-searchable-picker-boundary.md
+ M .claw/truth/shared-view-collaboration-mode-routing-and-save-contract.md
+ M .claw/truth/shared-view-icon-final-closeout.md
+ M .claw/truth/shared-view-icon-pack-diagnostics-and-legacy-inventory.md
+ M .claw/truth/shared-view-icon-performance-closeout.md
+ M .claw/truth/shared-view-icon-phase-a-planning-truth.md
+ M .claw/truth/shared-view-icon-planning-execution-entry.md
+ M .claw/truth/shared-view-icon-playwright-cold-start-fix.md
+ M .claw/truth/shared-view-icon-playwright-cold-start-planning-entry.md
+ M .claw/truth/shared-view-icon-refresh-build-fix.md
+ M .claw/truth/shared-view-profile-viewlayouts-hidden-override.md
+ M .claw/truth/shared-view-root-tags-config-alignment-traits.md
+ M .claw/truth/shared-view-runes-traits-group-structure-alignment.md
+ M .claw/truth/shared-view-skills-all-group-profile-layout-alignment.md
+ M .claw/truth/shared-view-skills-all-group-public-filter-alignment.md
+ M .claw/truth/shared-view-tabler-icon-supply-chain.md
+ M .claw/truth/streamline-core-solid-svg-route.md
+ M .claw/truth/streamline-shared-view-icon-picker-family-regression.md
+ M .claw/truth/traits-class-view-entries-foundation.md
+ M README.md
+ D config/historical-deployment-upgrades/9f1ab3556c23bb5a7c4d50c430727474cb0740011b77fa4d7c0c5486e9939dc2.snapshot.json
+ D config/historical-deployment-upgrades/b77f4e7081d88a9bdc335328fc4daaf4be229e6e704c7748937f129fe1d6c432.certificate.json
+ D config/historical-disposition-deployment.json
+ M package.json
+ M scripts/historical-deployment-upgrade.mjs
+ M scripts/run-project-skill-action-host.mjs
+ M src/App.tsx
+ M src/detail/DetailPanel.tsx
+ M src/historical-deployment-successor.mjs
+ M src/historical-deployment.mjs
+ M src/historical-disposition.mjs
+ M src/project-skill-action-service.mjs
+ M src/project-skill-followup.mjs
+ M src/project-skill-host-config.mjs
+ M src/publication-window-runtime.mjs
+ M src/relation-defaults.mjs
+ M src/view-config.mjs
+ M stop.mjs
+ M tests/entry-action-cli-e2e.test.mjs
+ M tests/historical-deployment-integration.test.mjs
+ M tests/historical-disposition-integration.test.mjs
+ M tests/inline-template-draft-dom.test.mjs
+ M tests/managed-historical-disposition.test.mjs
+ M tests/open-stop.test.mjs
+ M tests/perf/perf-helpers.mjs
+ M tests/perf/prototypes-expansion-profile.mjs
+ M tests/perf/prototypes-expansion-static.mjs
+ M tests/perf/prototypes-expansion-wrap-observe.mjs
+ M tests/perf/shared-view-icons-profile.mjs
+ M tests/project-command-action-service.test.mjs
+ M tests/project-skill-action-host.test.mjs
+ M tests/view-config-client.test.mjs
+ M tests/view-config.test.mjs
+?? .claw/truth/adr/project-generality-and-external-deployment-authority.md
+?? .claw/truth/project-generality-audit-boundary.md
+?? docs/records/2026-10-25-G4夜曲知识配置迁回核实/
+?? native/authority-locator/
+?? scripts/build-authority-locator.ps1
+?? scripts/deployment-authority.mjs
+?? src/deployment-authority-locator.mjs
+?? src/deployment-authority-proof.mjs
+?? src/deployment-authority-schema.mjs
+?? src/deployment-authority-store.mjs
+?? src/historical-proof.mjs
+?? src/historical-required-files.mjs
+?? tests/authority-locator.test.mjs
+?? tests/authority-native-creation.test.mjs
+?? tests/deployment-authority.test.mjs
+?? tests/fixtures/cli-sandbox-write-probe.mjs
+?? tests/fixtures/perf-generic/
+?? tests/generic-detail-surface.test.mjs
+?? tests/helpers/
+?? tests/perf-generic-isolation.test.mjs

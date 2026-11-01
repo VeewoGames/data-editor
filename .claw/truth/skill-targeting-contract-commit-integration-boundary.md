@@ -1,149 +1,66 @@
-﻿# 技能 Targeting 合同提交移植与脏工作树合入边界
+﻿# 项目合同能力提交移植与脏工作树合入边界
 
-## 结论
+<!-- document-state: current -->
+<!-- state: current -->
 
-目标提交 `4539067f`（`接入技能节点合同编辑支持`）包含 52 个文件。这 52 个文件共同构成技能 Targeting 合同编辑的完整依赖链，不能把其中的 service、client、schema、form/state、host/detail、表格派生、迁移或测试文件误判为无关改动后拆除。
+## Current behavior
 
-向当前脏工作树合入该提交时，不得执行 `pull`、`cherry-pick`，也不得用目标版本整文件覆盖已有修改。应从精确提交逐文件引入无重叠文件，并只对重叠文件做人工三方合并。
+本文保留跨层合同能力的依赖识别、脏工作树保护、交付顺序和验证边界。历史提交已完成合入，不再要求重放某次提交，也不把当时的文件总数和重叠集合当作下一次迁移清单。
 
-## 精确提交边界
+当前合同与嵌套能力通过通用capability manifest进入，项目拥有结构、约束和派生语义，编辑器拥有加载、解释、admission和保存。协议入口见[通用合同总览](C:/Code/data-editor/docs/11_文档合同与嵌套Schema.md)及[合同保存ADR](C:/Code/data-editor/.claw/truth/adr/skill-targeting-project-contract-and-save-gate.md)。
 
-- 来源提交：`4539067f`
-- 文件总数：52
-- 变更主题：技能节点合同编辑、Targeting 派生字段与视图迁移，以及贯穿服务端、API、详情宿主、表格和测试的配套依赖
-- 排除提交：`3247e55e`
-- `3247e55e` 只修改 `.gitignore`，不属于本轮 Targeting 合同依赖链，不得随合入带入
+## 长期合入规则
 
-## 脏工作树重叠边界
+### 1. 先按调用链确定完整依赖闭包
 
-目标提交的 52 个文件与当前未提交修改的精确交集只有以下 5 个文件：
+不能只看新增文件。合同service/compiler/client、schema/form/state、host/detail、表格派生、视图迁移、server/API/App和测试可能共同构成交付闭环；遗漏已有文件中的接线会形成表面可编译但功能断链的候选。
 
-- `server.mjs`
-- `src/api/client.ts`
-- `src/App.tsx`
-- `src/detail/DetailPanel.tsx`
-- `src/detail/node-schema-registry.mjs`
+每轮从精确提交和当前文件树重新取得依赖及变更清单。排除无关提交和ignore规则等附带变更，不从旧“52文件”快照推断本轮范围。
 
-这 5 个文件必须人工三方合并，合并时同时保留目标提交中的 Targeting 合同能力与当前工作树中的既有成果：
+### 2. dirty tree逐文件三方保护
 
-- `server.mjs`、`src/api/client.ts`、`src/App.tsx`：保护 entry actions 与 project registry 的服务/API/应用接线
-- `src/detail/DetailPanel.tsx`：保护 entry actions 详情入口与 nested detail 行为
-- `src/detail/node-schema-registry.mjs`：保护 Nocturnel 正式 `data/content/*.json` nested schema 路径修复
+先核对当前status/diff与目标提交，区分无重叠文件和重叠文件；无重叠按精确来源引入，重叠人工三方合并，不以整文件覆盖当前成果。
 
-其余 47 个目标文件当前没有未提交重叠，可以从 `4539067f` 精确引入，但仍应保持提交原有依赖链和后述顺序，不做跨提交的整仓同步。
+合入必须保留既有自动化、project registry、nested导航/路径接线及当前项目声明的匹配修复。禁止因文件名属于另一条功能线就误删同文件中的必要逻辑。需要dirty-tree逐文件保护的任务，不用pull/cherry-pick替代已约定的保护过程，也不做跨提交整仓同步。
 
-## 长期合入顺序
+### 3. 按依赖顺序形成可验证切片
 
-技能 Targeting 合同依赖链的稳定合入顺序为：
+通常先形成service/compiler/client和类型/状态，再接schema/host/detail、派生及迁移、server/API/App，最后完成相应测试与端到端验证。具体顺序以当前调用链为准，不把旧组件名称固定为永久架构。
 
-1. 基础 service/client
-2. schema/form/state
-3. host/detail
-4. 表格派生/迁移
-5. `server.mjs` / API / `src/App.tsx`
-6. 测试
+前层先提供语义、类型与接口，后层再接入消费和写回。不能在依赖尚未落地时把UI或保存入口置于不可验证的中间态。
 
-该顺序用于降低中间态断链和重叠文件误覆盖风险。前序层先提供语义、类型、状态和调用能力，后序层再接入 UI、迁移、服务入口与合同测试。
+### 4. 保存和合同必须使用当前owner
 
-## 主要代码锚点
+当前加载由 `project-capability-manifest/registry` 及 `document-contract-service/grammar/compiler` 承担；nested由 `nested-schema-capability`、`NodeSchema` 与 `NodeEditorHost` 解释。旧业务service、固定文件名和静态schema不是当前真值。
 
-- 基础合同与服务：`src/skill-node-contract-semantics.mjs`、`src/skill-node-contract-service.mjs`、`src/skill-node-contract-version.mjs`
-- client 与保存：`src/api/skill-node-contract-client.mjs`、`src/api/save-documents.mjs`、`src/api/client.ts`
-- schema/form/state：`src/detail/node-schema.mjs`、`src/detail/node-schema-registry.mjs`、`src/detail/skill-node-contract-form-model.mjs`、`src/detail/skill-node-contract-state.mjs`
-- host/detail：`src/detail/NodeEditorHost.tsx`、`src/detail/DetailPanel.tsx`
-- 表格派生与迁移：`src/view/derived-field-projection.mjs`、`src/view/targeting-view-field-migration.mjs`、`src/view/targeting-view-file-migration.mjs`、`src/table/CellRenderer.tsx`
-- 最终接线：`server.mjs`、`src/api/client.ts`、`src/App.tsx`
-- 合同测试：`tests/skill-node-contract-*.test.mjs`、`tests/derived-field-projection.test.mjs`、`tests/targeting-view-field-migration.test.mjs`
+合同不可用时失败关闭；不能用旧静态结构放行。保存必须维护当前documentContracts admission集合、候选合法性和替换前后复核，拒绝陈旧或跨context内容；具体token和失败语义由当前通用owner负责，本文不另定义旧saveToken协议。
 
-## 已知陷阱
+### 5. 派生展示与旧视图引用同批核对
 
-- 只看新增文件会漏掉已有 schema、detail、table 和 API 文件中的必要修改，形成表面可编译但合同链不完整的状态。
-- 对 5 个重叠文件执行整文件覆盖会回退 entry actions、project registry 或 nested `data/content` 路径修复。
-- 直接 `cherry-pick 4539067f` 会把冲突处理交给整提交级流程，不符合当前脏工作树的逐文件保护边界。
-- 把 `3247e55e` 的 `.gitignore` 一并带入会扩大本轮范围，且不属于 Targeting 合同依赖。
-- 跳过既定层级顺序会让 host/detail 或 App 在依赖尚未落地时进入不可验证的中间态。
+结构变化时同时追踪派生输出及view/profile/local引用迁移，不能仅改变表单schema。当前项目声明决定领域字段与派生含义；通用编辑器不能从历史业务节点字段列表推导新的游戏规则。
 
-## 验证标准
+## 验证与证据边界
 
-后续执行合入时，至少应确认：
+完成标准是本轮冻结依赖清单逐项处理、重叠三方合并保留既有功能、无附带ignore/无关提交、service到UI和保存及迁移闭环成立。每轮实际运行适用的typecheck/build及定向测试，不以旧测试数字代替本轮结果。
 
-- `4539067f` 的 52 个目标文件均已按依赖链处理，没有遗漏
-- 只有上述 5 个重叠文件采用人工三方合并
-- entry actions、project registry、nested `data/content` 路径修复仍保留
-- `.gitignore` 不包含来自 `3247e55e` 的附带修改
-- Targeting service/client、schema/form/state、host/detail、表格派生/迁移、server/API/App 与测试形成完整闭环
+验证覆盖项目capability、合同加载/compiler、token拒旧/候选及替换后校验、nested host、派生/引用迁移与保存。仅UI展示、单元测试或普通health成功均不足以单独证明完整链。
 
-## 关键检索词
+历史服务健康与维护验收是当次快照。文档整理不需要启动服务；若实施任务实际启动服务或执行停止/恢复，按项目服务收尾规则检查正式main/bridge，不复用旧健康结果。
 
-`4539067f`、`3247e55e`、`Targeting`、`skill-node-contract`、`derived-field-projection`、`targeting-view-field-migration`、`targeting-view-file-migration`、`三方合并`、`entry actions`、`project registry`、`data/content`、`52 files`
+## References
 
-## 合入完成态与当前正式合同
+- [通用文档合同与嵌套Schema](C:/Code/data-editor/docs/11_文档合同与嵌套Schema.md)
+- [当前合同保存ADR](C:/Code/data-editor/.claw/truth/adr/skill-targeting-project-contract-and-save-gate.md)
+- [capability registry](C:/Code/data-editor/src/project-capability-registry.mjs)
+- [合同compiler与保存校验](C:/Code/data-editor/src/document-contract-compiler.mjs)
+- [nested解释](C:/Code/data-editor/src/detail/nested-schema-capability.mjs)
+- [客户端保存](C:/Code/data-editor/src/api/save-documents.mjs)
+- [服务端保存](C:/Code/data-editor/server.mjs)
 
-`4539067f` 的技能 Targeting 合同编辑能力已经完成增量合入。上文“脏工作树重叠边界”和“长期合入顺序”保留为本次移植的审计与复用规则；当前产品行为以本节为准，不再处于待合入状态。
+<!-- state: history -->
+## Evolution history
 
-归档计划位于：
+<!-- dated: 2026-10-25 -->
+### 旧移植现场与业务合同历史
 
-- `.claw/archive/tasks/将最新技能-Targeting-合同编辑能力合入当前-data-editor/plan.json`
-
-### 1. `skills.nodes` 的唯一合同真值来自当前项目
-
-正式加载入口是 `src/skill-node-contract-service.mjs`：
-
-- 合同固定读取当前项目的 `data/contracts/skill_nodes.json`
-- 合同 meta-schema 固定读取当前项目的 `data/contracts/skill_nodes.schema.json`
-- 服务端先执行 JSON Schema、支持版本与运行时语义校验，再返回合同和基于原始合同字节生成的 ETag
-
-`skills.nodes` 不复制第二套 Targeting schema，也不回退旧静态 skills targeting 定义。`src/detail/node-schema-registry.mjs` 的合同 adapter 根据项目合同生成 nested schema；无合同 adapter 时，skills targeting 不应被旧静态 resolver 接管。
-
-### 2. Targeting 正式结构只有 `selection` / `area` / `affects`
-
-Targeting 顶层正式字段固定为：
-
-- `selection`
-- `area`
-- `affects`
-
-`selection` 和 `area` 根据合同 discriminator 展示各 variant 声明的字段；`affects` 承载 `relations` 与 `entity_types`，并参与合同约束。旧平铺字段 `range_type`、`range_value`、`target_type`、`area_shape`、`area_size`、`target_count`、`target_alignment` 已退出 `skills.nodes` 正式编辑路径。
-
-主要生成与约束锚点是 `src/detail/node-schema-registry.mjs` 和 `src/detail/skill-node-contract-form-model.mjs`；宿主写回继续由 `src/detail/NodeEditorHost.tsx` 与 `src/detail/DetailPanel.tsx` 承担。
-
-### 3. 合同不可用时采用失败关闭，不做静态 fallback
-
-`src/detail/skill-node-contract-state.mjs` 将合同状态收敛为 `loading`、`ready`、`error`、`version_mismatch`。只有完整合同、受支持版本、响应版本一致且 ETag 有效时 `canEdit=true`。
-
-合同缺失、加载失败、版本不受支持、响应版本不一致或 ETag 缺失时，`skills.nodes` 必须进入明确只读状态，并阻止保存；不得为了继续编辑而恢复旧静态 Targeting schema。文档根的 `skill_node_contract_version` 与当前项目合同版本不一致时同样只读并禁止保存。
-
-### 4. 保存必须通过版本、ETag 与 project-scoped save token 门禁
-
-保存链路由 `src/api/save-documents.mjs`、`src/api/client.ts`、`server.mjs` 和 `src/detail/skill-node-contract-state.mjs` 共同约束。正式保存请求必须携带：
-
-- `contractVersion`
-- `contractEtag`
-- project-scoped `saveToken`
-- 文档根 `skill_node_contract_version`
-
-服务端会校验 token 的 `projectId`、版本与 ETag，校验文档根版本，并在写入前后重新核对当前合同，拒绝 stale ETag、版本漂移、跨项目 token 或保存期间合同变化。该门禁是并发与合同一致性边界，不是可选前端提示。
-
-### 5. 派生字段与旧视图迁移是同一交付链
-
-`src/view/derived-field-projection.mjs` 从正式 Targeting 结构投影 `@selection_type`、`@selection_distance`、`@selection_relations`、`@area_shape`、`@affects_relations` 等只读派生字段，`src/view/view-engine.mjs` 在视图计算前接入该投影。
-
-`src/view/targeting-view-field-migration.mjs` 与 `src/view/targeting-view-file-migration.mjs` 负责把旧 Targeting 视图字段引用迁移到新的 `@...` 派生字段，并覆盖项目文件、profile 与 localStorage 相关存储。后续调整正式结构时，不能只改 schema 而漏掉派生字段和视图迁移。
-
-## 完成验证基线
-
-本次合入完成时的验证基线为：
-
-- `npm run typecheck` 通过
-- `npm run build` 通过
-- 合同相关单元测试共 71 项通过
-- 新增 Targeting Playwright 用例 `skills targeting nodes use the shared selection area affects contract` 通过
-- `service:finalize` 完成后，正式服务与 recovery bridge 均健康
-- `http://127.0.0.1:8787/api/health` 返回 `{"ok":true,"bridgePort":8791}`
-- `http://127.0.0.1:8791/health` 返回 `{"ok":true}`
-
-后续回归至少应同时覆盖合同 service/client、registry/form model、save gate、派生字段、视图迁移和 Targeting Playwright；只验证 UI 展示不足以证明保存门禁与迁移链完整。
-
-## 完成态补充检索词
-
-`data/contracts/skill_nodes.json`、`data/contracts/skill_nodes.schema.json`、`selection`、`area`、`affects`、`skill_node_contract_version`、`contractVersion`、`contractEtag`、`saveToken`、`ETag`、`version_mismatch`、`@selection_type`、`@area_shape`、`71 tests`
+原题“技能 Targeting 合同提交移植与脏工作树合入边界”中提交 `4539067f`、排除提交 `3247e55e`、52文件/5重叠清单、具体游戏路径修复、旧字段结构及71项测试等证据，统一由[项目历史索引](C:/Code/Nocturnel/.claw/truth/tech/data-editor/编辑器侧项目知识承接与历史索引.md)承接，[原字节对象](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/objects/50e9080da6c19b5e1ebb846239790bc17ba803cb36d26627ae72c357e03ce929.source)完整保存。它们不能作为重新合入旧提交、恢复旧字段或旧业务保存协议的依据。

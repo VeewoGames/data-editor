@@ -1,0 +1,25 @@
+ M mechanics/AGENTS.md
+ M mechanics/README.md
+ M mechanics/concepts.md
+ M mechanics/mechanics/action-resource-and-cast.md
+ M mechanics/mechanics/attribute-composition-and-projection.md
+ M mechanics/mechanics/brand-and-settlement.md
+ M mechanics/mechanics/combo-and-finisher.md
+ M mechanics/mechanics/counterattack-reaction.md
+ M mechanics/mechanics/damage-defense-and-death.md
+ M mechanics/mechanics/equipment-generation-and-slots.md
+ M mechanics/mechanics/loot-reward-and-capacity.md
+ M mechanics/mechanics/rune-board-and-support.md
+ M mechanics/mechanics/shop-services-events-consumables.md
+ M mechanics/mechanics/skill-form-and-projectile-carrier.md
+ M mechanics/mechanics/status-ailment-and-field.md
+ M mechanics/mechanics/system-character-resources.md
+ M mechanics/mechanics/system-reward-economy.md
+ M mechanics/mechanics/trait-and-level-up.md
+ M mechanics/mechanics/transformation-and-stance.md
+ M mechanics/mechanics/trigger-agent-and-timing.md
+ M mechanics/mechanics/weapon-actions-and-dual-wield.md
+?? .data-editor/history-evidence/
+?? docs/plans/2026-10-24-实时战斗六技能自由符文板后续设计方案.md
+?? mechanics/mechanics/tooltip-source-and-close.md
+?? 项目文档/设计草稿/

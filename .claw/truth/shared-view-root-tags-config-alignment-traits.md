@@ -1,29 +1,29 @@
-# shared view 根目录 tags 配置对齐 traits
+﻿# shared view 根目录 tags 配置对齐 traits（历史迁回入口）
 
-status: accepted
+<!-- document-state: historical -->
 
-## context
+<!-- state: current -->
+## Current behavior
 
-本条 truth 记录 `C:\Code\Nocturnel\.data-editor\view-config.json` 的长期收口规则。该共享配置的根字段实际是 `fields`，不是 `fieldConfigs`。当前稳定基准是 `data/traits.json:traits` 里的 `input_tags`、`output_tags`、`tags` 配置。
+本入口仅作历史导航，不拥有项目业务规则；文档状态为 historical。
 
-## 结论
+<!-- state: history -->
+## Evolution history
 
-1. 根目录共享 view 的 `input_tags` / `output_tags` / `tags` 配置，应以 `data/traits.json:traits` 的对应字段为基准对齐。
-2. 这次批量对齐只改共享 `view-config.json`，不改 `data` 下业务 JSON 内容。
-3. 只处理 `C:\Code\Nocturnel\data` 根目录文件，不包含子目录。
-4. 本次验证范围内的 19 个目标字段配置已全部与 `traits` 对应字段一致。
+<!-- dated: 2026-10-25 -->
+### 归属与现行入口
 
-## 作用范围
+本文件保留旧入口的可达性，不再拥有项目规则。来源核实日期为 2026-10-25；旧预算、评级、开发状态、样本、配置路径、视图数量及历史验收不得据此恢复为当前规则。
 
-- `data/affixes.json:affixes:{input_tags,output_tags,tags}`
-- `data/affixes_mechanic.json:affixes_mechanic:{input_tags,output_tags,tags}`
-- `data/classes.json:$:{input_tags,output_tags,tags}`
-- `data/equipment_bases.json:bases:{input_tags,output_tags,tags}`
-- `data/runes.json:$:{input_tags,output_tags,tags}`
-- `data/skills.json:skills:{input_tags,output_tags,tags}`
-- `data/status_effects.json:$:tags`
-- `data/traits.json:traits:{input_tags,output_tags,tags}`
+项目知识的原字节来源、过期原因和承接映射见[夜曲历史接收索引](C:/Code/Nocturnel/.claw/truth/tech/data-editor/编辑器侧项目知识承接与历史索引.md)。现行规则仍由以下既有 owner 维护，本次迁回不覆盖其内容：
 
-## 关键检索词
+- [data-editor共享配置与稳定条目身份边界.md](C:/Code/Nocturnel/.claw/truth/data-editor共享配置与稳定条目身份边界.md)
 
-`C:\Code\Nocturnel\.data-editor\view-config.json`、`fields`、`fieldConfigs`、`data/traits.json:traits`、`input_tags`、`output_tags`、`tags`、`affixes`、`affixes_mechanic`、`classes`、`equipment_bases`、`runes`、`skills`、`status_effects`
+## 原始证据
+
+- 来源标识：`K11`，原文件：`shared-view-root-tags-config-alignment-traits.md`。
+- 原字节 SHA-256：`eac0c53aa616f81c363098f14425a0286aad5e04d295abcd01c58aefacd08dee`。
+- [原字节历史对象](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/objects/eac0c53aa616f81c363098f14425a0286aad5e04d295abcd01c58aefacd08dee.source)。对象为不可执行的 `.source`，不作为 current 检索正文；其相对引用按 manifest 的原路径解释，不在这里执行。
+- [来源 manifest](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/manifest.v1.json)。
+
+编辑器的 shared/profile 分层、普通保存、文档合同、自动化调度及历史非重放仍由通用产品维护；项目知识历史化不改变任何业务数据、现行配置或运行保护。

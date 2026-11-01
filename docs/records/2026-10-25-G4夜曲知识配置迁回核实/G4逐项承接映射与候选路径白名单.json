@@ -1,0 +1,873 @@
+{
+  "version": 1,
+  "status": "proposed-path-allowlist-not-frozen-not-executable",
+  "approved": false,
+  "generatedAt": "2026-10-25T05:41:18.984Z",
+  "sourceInventoryDigest": "33d05fb2367212de98c3f57240d1231d03e75efe0bd1cd77ac5297c1ae0d22ee",
+  "totalTargets": 40,
+  "editorTargets": 21,
+  "nightTargets": 19,
+  "create": 18,
+  "replace": 22,
+  "delete": 0,
+  "archive": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25",
+  "bridge": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+  "readOnlyCurrentOwners": [
+    {
+      "topic": "budget",
+      "path": "C:\\Code\\Nocturnel\\.claw\\truth\\adr\\0425-single-component-bu-trial-guide-authority-boundary.md",
+      "sha256": "844e12bbd2b152489982f7ce777ad87becf6a28c7e3fcdc655bf99d32f13f325",
+      "size": 13942,
+      "action": "read-only-existing-current-owner-not-replaced"
+    },
+    {
+      "topic": "budget",
+      "path": "C:\\Code\\Nocturnel\\.claw\\truth\\玩家技能mana预算双层模型.md",
+      "sha256": "5107107d111137ea6b5704d3a78a168562b40c07a15f1de8885ce8011fef0013",
+      "size": 86552,
+      "action": "read-only-existing-current-owner-not-replaced"
+    },
+    {
+      "topic": "review",
+      "path": "C:\\Code\\Nocturnel\\.claw\\truth\\玩家技能设计评审与实现验收流程真值.md",
+      "sha256": "e6771ef169dc3898bceed9c4e44119e07add965934090bb9a43c3d992a1a1211",
+      "size": 10152,
+      "action": "read-only-existing-current-owner-not-replaced"
+    },
+    {
+      "topic": "review",
+      "path": "C:\\Code\\Nocturnel\\.claw\\truth\\adr\\0413-player-skill-review-application-and-implementation-acceptance-authority.md",
+      "sha256": "91cba86dbbeda05d0090111a24904470c8157305c2f87bf0763e75d54d624bd6",
+      "size": 7949,
+      "action": "read-only-existing-current-owner-not-replaced"
+    },
+    {
+      "topic": "limit",
+      "path": "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor组件描述候选与保存边界.md",
+      "sha256": "2e221fdad74d932b40cd5afc99f72944a184f0ea7020e654e9e9394fc5b5b84a",
+      "size": 9838,
+      "action": "read-only-existing-current-owner-not-replaced"
+    },
+    {
+      "topic": "view",
+      "path": "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md",
+      "sha256": "e0db46e3d4b1079cd8991d590a1a1740ebee277c733c1f25d582cc05c0572579",
+      "size": 3664,
+      "action": "read-only-existing-current-owner-not-replaced"
+    }
+  ],
+  "mappings": [
+    {
+      "id": "K01",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nested-node-editing-first-phase-architecture-boundary.md",
+      "sourceRelative": "adr/nested-node-editing-first-phase-architecture-boundary.md",
+      "sourceSha256": "77e523dfd3900de3548457627accafc443e64bf2caffd4e0ba52420078718c8f",
+      "classification": "mixed-retain-generic-split-project-segments",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\77e523dfd3900de3548457627accafc443e64bf2caffd4e0ba52420078718c8f.source",
+      "disposition": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments",
+      "incoming": [
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        36,
+        71
+      ],
+      "criticalStale": "old real-Nocturnel-default fixture requirement is superseded by repository fixture"
+    },
+    {
+      "id": "K02",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-limit-candidate-capability-and-production-activation.md",
+      "sourceRelative": "adr/nocturnel-limit-candidate-capability-and-production-activation.md",
+      "sourceSha256": "53cd1c4435962818b73611b345247cec9418f2086c0f7a2c6771b7e0eb72c7b8",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "limit",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor组件描述候选与保存边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\53cd1c4435962818b73611b345247cec9418f2086c0f7a2c6771b7e0eb72c7b8.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/nocturnel-limit-request-project-command-preenable-boundary.md",
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        1,
+        18,
+        47,
+        58,
+        60,
+        62,
+        69,
+        76,
+        83,
+        92,
+        99,
+        105,
+        107,
+        108,
+        109
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K03",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-player-skill-review-authority-and-verification-gate.md",
+      "sourceRelative": "adr/nocturnel-player-skill-review-authority-and-verification-gate.md",
+      "sourceSha256": "4f28c9d883002ad5f224cfc7c8b8a8f46ca63089302caf0fe93f532cbd9f329d",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "review",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\玩家技能设计评审与实现验收流程真值.md",
+        "C:\\Code\\Nocturnel\\.claw\\truth\\adr\\0413-player-skill-review-application-and-implementation-acceptance-authority.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\4f28c9d883002ad5f224cfc7c8b8a8f46ca63089302caf0fe93f532cbd9f329d.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/adr/nocturnel-skill-budget-ledger-model.md",
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        1,
+        15,
+        16,
+        22,
+        50,
+        55,
+        60,
+        62,
+        63,
+        78,
+        80,
+        93,
+        97,
+        100,
+        109
+      ],
+      "criticalStale": "old review/completion gating conflicts with current workflow; never reinstate"
+    },
+    {
+      "id": "K04",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-skill-budget-ledger-model.md",
+      "sourceRelative": "adr/nocturnel-skill-budget-ledger-model.md",
+      "sourceSha256": "76f5c413177901228008a21f2823a891edd59fed456cc70e53e18b9a1d30dddc",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "budget",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\adr\\0425-single-component-bu-trial-guide-authority-boundary.md",
+        "C:\\Code\\Nocturnel\\.claw\\truth\\玩家技能mana预算双层模型.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\76f5c413177901228008a21f2823a891edd59fed456cc70e53e18b9a1d30dddc.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/adr/nocturnel-player-skill-review-authority-and-verification-gate.md",
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        1,
+        9,
+        15,
+        17,
+        19,
+        21,
+        23,
+        25,
+        32,
+        40,
+        56,
+        66,
+        68,
+        76,
+        90,
+        92,
+        96,
+        124,
+        126,
+        138,
+        139,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        158,
+        168
+      ],
+      "criticalStale": "skill-only BU authority is superseded by existing shared-BU authority"
+    },
+    {
+      "id": "K05",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\adr\\skill-targeting-project-contract-and-save-gate.md",
+      "sourceRelative": "adr/skill-targeting-project-contract-and-save-gate.md",
+      "sourceSha256": "fb54e64de898b4af073e13608df8e743cb846990f232e7d52a0eec524fd87845",
+      "classification": "mixed-retain-generic-split-project-segments",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\fb54e64de898b4af073e13608df8e743cb846990f232e7d52a0eec524fd87845.source",
+      "disposition": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments",
+      "incoming": [
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        33,
+        35,
+        41,
+        68
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K06",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\nested-detail-panel-first-phase-boundary-and-resolver-key.md",
+      "sourceRelative": "nested-detail-panel-first-phase-boundary-and-resolver-key.md",
+      "sourceSha256": "e7cd494ab649dfbf37eebcba76ec6f2b10938aa536c22f5a09fad0bd253ab33b",
+      "classification": "mixed-retain-generic-split-project-segments",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\e7cd494ab649dfbf37eebcba76ec6f2b10938aa536c22f5a09fad0bd253ab33b.source",
+      "disposition": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments",
+      "incoming": [
+        ".claw/truth/adr/nested-node-editing-first-phase-architecture-boundary.md",
+        ".claw/truth/SUMMARY.md",
+        ".claw/truth/table-nested-detail-panel-nested-editing.md"
+      ],
+      "matchedSourceLines": [
+        164,
+        165,
+        166,
+        394,
+        554,
+        912,
+        919,
+        920,
+        921,
+        929,
+        939,
+        952,
+        976,
+        977,
+        978,
+        989,
+        990,
+        991,
+        996,
+        999,
+        1003,
+        1004,
+        1017,
+        1043,
+        1045,
+        1105,
+        1109,
+        1111
+      ],
+      "criticalStale": "old real-Nocturnel-default fixture requirement is superseded by repository fixture"
+    },
+    {
+      "id": "K07",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-limit-request-project-command-preenable-boundary.md",
+      "sourceRelative": "nocturnel-limit-request-project-command-preenable-boundary.md",
+      "sourceSha256": "b75ac6ddd84377d12e0fae180125ca16c96c742d3042571df829a2f2e72d6874",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "limit",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor组件描述候选与保存边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\b75ac6ddd84377d12e0fae180125ca16c96c742d3042571df829a2f2e72d6874.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/adr/nocturnel-limit-candidate-capability-and-production-activation.md",
+        ".claw/truth/adr/protected-generated-structured-value-display.md",
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        1,
+        30,
+        32,
+        62,
+        68,
+        101,
+        103,
+        107,
+        111,
+        119,
+        172,
+        186,
+        192,
+        219,
+        260,
+        273,
+        280,
+        281,
+        287,
+        299
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K08",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-player-skill-review-and-completion-gates.md",
+      "sourceRelative": "nocturnel-player-skill-review-and-completion-gates.md",
+      "sourceSha256": "247f845929f62ee8999ed41309c981200b021550bf6a8a21bd02eecfd05c8711",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "review",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\玩家技能设计评审与实现验收流程真值.md",
+        "C:\\Code\\Nocturnel\\.claw\\truth\\adr\\0413-player-skill-review-application-and-implementation-acceptance-authority.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\247f845929f62ee8999ed41309c981200b021550bf6a8a21bd02eecfd05c8711.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/nocturnel-skill-budget-model-analysis.md",
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        1,
+        6,
+        12,
+        13,
+        22,
+        27,
+        90,
+        100,
+        110
+      ],
+      "criticalStale": "old review/completion gating conflicts with current workflow; never reinstate"
+    },
+    {
+      "id": "K09",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-skill-budget-model-analysis.md",
+      "sourceRelative": "nocturnel-skill-budget-model-analysis.md",
+      "sourceSha256": "b059a322edce24b9f2b255aab1c3e83b914c0429de2e3bd60262b01e020f0edd",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "budget",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\adr\\0425-single-component-bu-trial-guide-authority-boundary.md",
+        "C:\\Code\\Nocturnel\\.claw\\truth\\玩家技能mana预算双层模型.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\b059a322edce24b9f2b255aab1c3e83b914c0429de2e3bd60262b01e020f0edd.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/nocturnel-player-skill-review-and-completion-gates.md",
+        ".claw/truth/project-generality-audit-boundary.md",
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        1,
+        3,
+        8,
+        10,
+        27,
+        30,
+        33,
+        46,
+        48,
+        50,
+        57,
+        58,
+        64,
+        68,
+        72,
+        76,
+        77,
+        81,
+        86,
+        90,
+        92,
+        100
+      ],
+      "criticalStale": "skill-only BU authority is superseded by existing shared-BU authority"
+    },
+    {
+      "id": "K10",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-icon-multi-save-followup-closeout.md",
+      "sourceRelative": "shared-view-icon-multi-save-followup-closeout.md",
+      "sourceSha256": "c324f3f85e3473671696739e39ca9348faeaa554ed29b5da1498a1cd382ff201",
+      "classification": "mixed-retain-generic-split-project-segments",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\c324f3f85e3473671696739e39ca9348faeaa554ed29b5da1498a1cd382ff201.source",
+      "disposition": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments",
+      "incoming": [
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        134,
+        142
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K11",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-root-tags-config-alignment-traits.md",
+      "sourceRelative": "shared-view-root-tags-config-alignment-traits.md",
+      "sourceSha256": "eac0c53aa616f81c363098f14425a0286aad5e04d295abcd01c58aefacd08dee",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\eac0c53aa616f81c363098f14425a0286aad5e04d295abcd01c58aefacd08dee.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        7,
+        11,
+        13,
+        22,
+        23,
+        25,
+        29
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K12",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-runes-traits-group-structure-alignment.md",
+      "sourceRelative": "shared-view-runes-traits-group-structure-alignment.md",
+      "sourceSha256": "aebaf6bac84dfcc5522ede89718d14262e3a3c2d193258d1202a23ce71607ad1",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\aebaf6bac84dfcc5522ede89718d14262e3a3c2d193258d1202a23ce71607ad1.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [],
+      "matchedSourceLines": [
+        7,
+        11,
+        27,
+        32
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K13",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-skills-all-group-profile-layout-alignment.md",
+      "sourceRelative": "shared-view-skills-all-group-profile-layout-alignment.md",
+      "sourceSha256": "e56c21457f35b6e80a539b00fb0306114bf025b470c610351f4c91c7397a5c19",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\e56c21457f35b6e80a539b00fb0306114bf025b470c610351f4c91c7397a5c19.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        7,
+        11,
+        13,
+        37,
+        54,
+        55,
+        60
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K14",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-skills-all-group-public-filter-alignment.md",
+      "sourceRelative": "shared-view-skills-all-group-public-filter-alignment.md",
+      "sourceSha256": "a7b66e9a6002c96ce3272f6b880f5782445c479e1c9fba271d8aa1cab8fd2edd",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\a7b66e9a6002c96ce3272f6b880f5782445c479e1c9fba271d8aa1cab8fd2edd.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        7,
+        11,
+        31,
+        52
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K15",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\skill-targeting-contract-commit-integration-boundary.md",
+      "sourceRelative": "skill-targeting-contract-commit-integration-boundary.md",
+      "sourceSha256": "50e9080da6c19b5e1ebb846239790bc17ba803cb36d26627ae72c357e03ce929",
+      "classification": "mixed-retain-generic-split-project-segments",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\50e9080da6c19b5e1ebb846239790bc17ba803cb36d26627ae72c357e03ce929.source",
+      "disposition": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments",
+      "incoming": [
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        31
+      ],
+      "criticalStale": null
+    },
+    {
+      "id": "K16",
+      "source": "C:\\Code\\data-editor\\.claw\\truth\\traits-class-view-entries-foundation.md",
+      "sourceRelative": "traits-class-view-entries-foundation.md",
+      "sourceSha256": "a2a3df88f834d8f9afb1efedbb0928e1cc15baec4442cd8dc203232f7b98a3dd",
+      "classification": "project-knowledge-receive-then-redirect",
+      "topic": "view",
+      "currentOwners": [
+        "C:\\Code\\Nocturnel\\.claw\\truth\\data-editor共享配置与稳定条目身份边界.md"
+      ],
+      "historicalReceiver": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "rawReceiver": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\a2a3df88f834d8f9afb1efedbb0928e1cc15baec4442cd8dc203232f7b98a3dd.source",
+      "disposition": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged",
+      "incoming": [
+        ".claw/truth/project-generality-audit-boundary.md",
+        ".claw/truth/SUMMARY.md"
+      ],
+      "matchedSourceLines": [
+        7,
+        11,
+        22,
+        23,
+        35
+      ],
+      "criticalStale": null
+    }
+  ],
+  "writes": [
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nested-node-editing-first-phase-architecture-boundary.md",
+      "action": "replace",
+      "beforeSha256": "77e523dfd3900de3548457627accafc443e64bf2caffd4e0ba52420078718c8f",
+      "purpose": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\77e523dfd3900de3548457627accafc443e64bf2caffd4e0ba52420078718c8f.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nested-node-editing-first-phase-architecture-boundary.md",
+      "proposedAfterSha256": "77e523dfd3900de3548457627accafc443e64bf2caffd4e0ba52420078718c8f"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-limit-candidate-capability-and-production-activation.md",
+      "action": "replace",
+      "beforeSha256": "53cd1c4435962818b73611b345247cec9418f2086c0f7a2c6771b7e0eb72c7b8",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\53cd1c4435962818b73611b345247cec9418f2086c0f7a2c6771b7e0eb72c7b8.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-limit-candidate-capability-and-production-activation.md",
+      "proposedAfterSha256": "53cd1c4435962818b73611b345247cec9418f2086c0f7a2c6771b7e0eb72c7b8"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-player-skill-review-authority-and-verification-gate.md",
+      "action": "replace",
+      "beforeSha256": "4f28c9d883002ad5f224cfc7c8b8a8f46ca63089302caf0fe93f532cbd9f329d",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\4f28c9d883002ad5f224cfc7c8b8a8f46ca63089302caf0fe93f532cbd9f329d.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-player-skill-review-authority-and-verification-gate.md",
+      "proposedAfterSha256": "4f28c9d883002ad5f224cfc7c8b8a8f46ca63089302caf0fe93f532cbd9f329d"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-skill-budget-ledger-model.md",
+      "action": "replace",
+      "beforeSha256": "76f5c413177901228008a21f2823a891edd59fed456cc70e53e18b9a1d30dddc",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\76f5c413177901228008a21f2823a891edd59fed456cc70e53e18b9a1d30dddc.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\adr\\nocturnel-skill-budget-ledger-model.md",
+      "proposedAfterSha256": "76f5c413177901228008a21f2823a891edd59fed456cc70e53e18b9a1d30dddc"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\adr\\skill-targeting-project-contract-and-save-gate.md",
+      "action": "replace",
+      "beforeSha256": "fb54e64de898b4af073e13608df8e743cb846990f232e7d52a0eec524fd87845",
+      "purpose": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\fb54e64de898b4af073e13608df8e743cb846990f232e7d52a0eec524fd87845.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\adr\\skill-targeting-project-contract-and-save-gate.md",
+      "proposedAfterSha256": "fb54e64de898b4af073e13608df8e743cb846990f232e7d52a0eec524fd87845"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\nested-detail-panel-first-phase-boundary-and-resolver-key.md",
+      "action": "replace",
+      "beforeSha256": "e7cd494ab649dfbf37eebcba76ec6f2b10938aa536c22f5a09fad0bd253ab33b",
+      "purpose": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\e7cd494ab649dfbf37eebcba76ec6f2b10938aa536c22f5a09fad0bd253ab33b.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\nested-detail-panel-first-phase-boundary-and-resolver-key.md",
+      "proposedAfterSha256": "e7cd494ab649dfbf37eebcba76ec6f2b10938aa536c22f5a09fad0bd253ab33b"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-limit-request-project-command-preenable-boundary.md",
+      "action": "replace",
+      "beforeSha256": "b75ac6ddd84377d12e0fae180125ca16c96c742d3042571df829a2f2e72d6874",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\b75ac6ddd84377d12e0fae180125ca16c96c742d3042571df829a2f2e72d6874.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-limit-request-project-command-preenable-boundary.md",
+      "proposedAfterSha256": "b75ac6ddd84377d12e0fae180125ca16c96c742d3042571df829a2f2e72d6874"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-player-skill-review-and-completion-gates.md",
+      "action": "replace",
+      "beforeSha256": "247f845929f62ee8999ed41309c981200b021550bf6a8a21bd02eecfd05c8711",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\247f845929f62ee8999ed41309c981200b021550bf6a8a21bd02eecfd05c8711.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-player-skill-review-and-completion-gates.md",
+      "proposedAfterSha256": "247f845929f62ee8999ed41309c981200b021550bf6a8a21bd02eecfd05c8711"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-skill-budget-model-analysis.md",
+      "action": "replace",
+      "beforeSha256": "b059a322edce24b9f2b255aab1c3e83b914c0429de2e3bd60262b01e020f0edd",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\b059a322edce24b9f2b255aab1c3e83b914c0429de2e3bd60262b01e020f0edd.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\nocturnel-skill-budget-model-analysis.md",
+      "proposedAfterSha256": "b059a322edce24b9f2b255aab1c3e83b914c0429de2e3bd60262b01e020f0edd"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-icon-multi-save-followup-closeout.md",
+      "action": "replace",
+      "beforeSha256": "c324f3f85e3473671696739e39ca9348faeaa554ed29b5da1498a1cd382ff201",
+      "purpose": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\c324f3f85e3473671696739e39ca9348faeaa554ed29b5da1498a1cd382ff201.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-icon-multi-save-followup-closeout.md",
+      "proposedAfterSha256": "c324f3f85e3473671696739e39ca9348faeaa554ed29b5da1498a1cd382ff201"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-root-tags-config-alignment-traits.md",
+      "action": "replace",
+      "beforeSha256": "eac0c53aa616f81c363098f14425a0286aad5e04d295abcd01c58aefacd08dee",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\eac0c53aa616f81c363098f14425a0286aad5e04d295abcd01c58aefacd08dee.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-root-tags-config-alignment-traits.md",
+      "proposedAfterSha256": "eac0c53aa616f81c363098f14425a0286aad5e04d295abcd01c58aefacd08dee"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-runes-traits-group-structure-alignment.md",
+      "action": "replace",
+      "beforeSha256": "aebaf6bac84dfcc5522ede89718d14262e3a3c2d193258d1202a23ce71607ad1",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\aebaf6bac84dfcc5522ede89718d14262e3a3c2d193258d1202a23ce71607ad1.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-runes-traits-group-structure-alignment.md",
+      "proposedAfterSha256": "aebaf6bac84dfcc5522ede89718d14262e3a3c2d193258d1202a23ce71607ad1"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-skills-all-group-profile-layout-alignment.md",
+      "action": "replace",
+      "beforeSha256": "e56c21457f35b6e80a539b00fb0306114bf025b470c610351f4c91c7397a5c19",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\e56c21457f35b6e80a539b00fb0306114bf025b470c610351f4c91c7397a5c19.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-skills-all-group-profile-layout-alignment.md",
+      "proposedAfterSha256": "e56c21457f35b6e80a539b00fb0306114bf025b470c610351f4c91c7397a5c19"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-skills-all-group-public-filter-alignment.md",
+      "action": "replace",
+      "beforeSha256": "a7b66e9a6002c96ce3272f6b880f5782445c479e1c9fba271d8aa1cab8fd2edd",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\a7b66e9a6002c96ce3272f6b880f5782445c479e1c9fba271d8aa1cab8fd2edd.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\shared-view-skills-all-group-public-filter-alignment.md",
+      "proposedAfterSha256": "a7b66e9a6002c96ce3272f6b880f5782445c479e1c9fba271d8aa1cab8fd2edd"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\skill-targeting-contract-commit-integration-boundary.md",
+      "action": "replace",
+      "beforeSha256": "50e9080da6c19b5e1ebb846239790bc17ba803cb36d26627ae72c357e03ce929",
+      "purpose": "archive-exact-source; retain-generic-current-contract; remove-or-date-project-specific-segments"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\50e9080da6c19b5e1ebb846239790bc17ba803cb36d26627ae72c357e03ce929.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\skill-targeting-contract-commit-integration-boundary.md",
+      "proposedAfterSha256": "50e9080da6c19b5e1ebb846239790bc17ba803cb36d26627ae72c357e03ce929"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\traits-class-view-entries-foundation.md",
+      "action": "replace",
+      "beforeSha256": "a2a3df88f834d8f9afb1efedbb0928e1cc15baec4442cd8dc203232f7b98a3dd",
+      "purpose": "archive-exact-source-as-history; same-path-historical-redirect; current-target-owners-unchanged"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\objects\\a2a3df88f834d8f9afb1efedbb0928e1cc15baec4442cd8dc203232f7b98a3dd.source",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "byte-exact source provenance; not a current knowledge source",
+      "payloadSource": "C:\\Code\\data-editor\\.claw\\truth\\traits-class-view-entries-foundation.md",
+      "proposedAfterSha256": "a2a3df88f834d8f9afb1efedbb0928e1cc15baec4442cd8dc203232f7b98a3dd"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\adr\\protected-generated-structured-value-display.md",
+      "action": "replace",
+      "beforeSha256": "247e45e06a1519702735230f1cf779d91cb4718bfc73352913446de30abb61ba",
+      "purpose": "update current inbound references or migration state; retain generic ownership"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\project-generality-audit-boundary.md",
+      "action": "replace",
+      "beforeSha256": "64439c210c8964c7ebbbe4f12bc3becc543bbd92c2d2f512baaeacbfd5487be0",
+      "purpose": "update current inbound references or migration state; retain generic ownership"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\.claw\\truth\\SUMMARY.md",
+      "action": "replace",
+      "beforeSha256": "f4111544d0c76a91ce93865f7f59ddfba91dfb6cc4801d78fa960339e4e38c6e",
+      "purpose": "update current inbound references or migration state; retain generic ownership"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\docs\\02_快速开始.md",
+      "action": "replace",
+      "beforeSha256": "a8bdfddd6f36d31d6e66362f05976ac33f8e624c247d2196b1d9741edbb25d0d",
+      "purpose": "neutralize illustrative project names/paths only"
+    },
+    {
+      "target": "C:\\Code\\data-editor\\docs\\05_数据与配置模型.md",
+      "action": "replace",
+      "beforeSha256": "08547d635f94998d1e7abd64c6cc31729e3abd826cef8dff80120ce2b3bc1d13",
+      "purpose": "neutralize illustrative project names/paths only"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\docs\\records\\data-editor知识迁回来源\\2026-10-25\\manifest.v1.json",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "provenance source-path/hash map and semantic disposition"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\.claw\\truth\\tech\\data-editor\\编辑器侧项目知识承接与历史索引.md",
+      "action": "create",
+      "beforeSha256": null,
+      "purpose": "historical receiver index; references existing project authorities; no new game rules"
+    },
+    {
+      "target": "C:\\Code\\Nocturnel\\.claw\\truth\\SUMMARY.md",
+      "action": "replace",
+      "beforeSha256": "8ef02af3c21162d569b697a0d4010d68d77b57e4c70ae2c77b4423038d60f02e",
+      "purpose": "add historical receiver index without changing current rule owners"
+    }
+  ],
+  "notFrozen": [
+    "complete semantic payloads and after hashes except byte-identical raw source copies",
+    "per-section before/after projection and link anchor resolution",
+    "native index dry-run and query assertions",
+    "reviewed content packet and new explicit user execution approval",
+    "document state and section-state inheritance audit",
+    "native-index and consistent-backup write boundaries and total execution effects"
+  ],
+  "excluded": [
+    "all business JSON/CSV/Markdown",
+    "all existing project .data-editor configuration and personal profile/binding",
+    "Profile authority/catalog/objects and original historical proof/provenance",
+    "runtime/publication/ledger/registration/anchor",
+    "code/tests/native/static/service/registry/gitlink",
+    "old example physical deletion and G5 cleanup",
+    "canonical claw plan/job and live database/metadata direct edits"
+  ],
+  "targetCountScope": "content-files-only; not the complete native-index/tool/backup write effects",
+  "derivedEffects": {
+    "status": "not-frozen-await-isolated-observation",
+    "owner": "native claw index tool",
+    "requirements": [
+      "ADR0262 consistent database backup before refresh",
+      "validate backup/restore in isolation including WAL consistency",
+      "inventory native index/WAL/SHM/tool metadata/log/backup effects separately",
+      "never hand-edit live SQLite or internal metadata; no arbitrary business/config/protection writes"
+    ]
+  }
+}

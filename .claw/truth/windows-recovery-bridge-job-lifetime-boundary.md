@@ -1,5 +1,30 @@
 ﻿# Windows recovery bridge 的 Job 生命周期边界、WMI broker 与双端口存活合同
 
+<!-- document-state: current -->
+<!-- state: current -->
+## Current behavior
+
+Windows recovery bridge通过spawnPersistentProcess的WMI Win32_Process.Create broker建立持久进程；macOS/Linux继续detached/unref。bridge对主服务的attach监督、PID/命令行身份校验、runtime state及停止/恢复协议保留。WMI可能有自己的系统Job；资格要求脱离调用方kill-on-close Job，不要求IsProcessInJob=false。
+
+复用bridge必须比较port、servicePort、mode、registryHome及规范化projectRoot；缺projectRoot不可复用。主服务退出须记录真实exit并清理监督state，202/stopping不能证明端口已退出。先核实owner和进程身份，不按历史PID停止进程。
+
+当前启动指引见[README](C:/Code/data-editor/README.md)。旧adapter参数已退出；项目能力由项目自己的声明提供。下文带旧参数的命令仅是历史证据，不可复制重放。
+
+health、service:status、service:finalize不统一等同于无副作用只读查询：主服务路由先进入identity-recovery观察，可能改写publication元数据。冻结维护窗口应按已批准执行包核对静默、完整前像与owner；不得为健康观察破坏冻结条件。已启动/停止服务等情形仍须遵守现行[AGENTS](C:/Code/data-editor/AGENTS.md)的service:finalize收尾要求，历史事故重试文字不构成无条件执行或重试授权。
+
+合成Job测试、真实HTTP/CLI、类型检查和全量测试各有证据边界；下文2026-07的PID、健康、数量、清理及测试限制只代表原现场，不是今天的实时结论。
+
+<!-- state: history -->
+## Evolution history
+
+<!-- dated: 2026-10-25 -->
+### 文档收口前的完整来源正文
+
+下列正文保持原句；旧命令、旧数量、旧健康和阶段状态仅作历史，不授予执行或覆盖输入权限。原字节归档由本次manifest绑定。原metadata在展示层中和，避免重新进入current。
+
+﻿# Windows recovery bridge 的 Job 生命周期边界、WMI broker 与双端口存活合同
+
+<!-- state: history -->
 ## 结论
 
 Data Editor 在 Codex 回合结束后出现 `8787` 主服务与 `8791` recovery bridge 同时失效、runtime state 仍残留旧 PID、`lastExit = null`，且日志只有正常启动记录时，已确认的根因不是服务主动退出，也不是 recovery 协议本身未启动，而是旧版 Windows recovery bridge 的创建边界仍依赖宿主进程所属的外部 Job Object。
@@ -10,6 +35,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 
 当前修复已把持久进程创建统一收口到 `src/persistent-process.mjs::spawnPersistentProcess(...)`：Windows 通过 WMI `Win32_Process.Create` broker 创建 bridge，macOS/Linux 保留 Node `detached: true` + `unref()`。`open.mjs` 只替换 recovery bridge 的创建方式，bridge 对主服务的 attach 监督链没有改变。
 
+<!-- state: history -->
 ## 真实调用链路
 
 1. `open.mjs::ensureRecoveryBridgeRunning(...)` 检查 recovery bridge state、PID 身份和 `8791/health`。
@@ -21,6 +47,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 
 旧版外部 Job Object 直接结束 bridge 时，上述 JavaScript cleanup 与退出记录链不会可靠执行，因此旧 PID、`lastExit = null` 和“日志只有正常启动”是同一根因的配套证据。当前 Windows WMI broker 创建边界已经通过关闭调用方 kill-on-close Job 的合成测试，bridge 与主服务不会再随调用方 Job 一起退出。
 
+<!-- state: history -->
 ## 跨平台持久进程合同
 
 - Windows recovery bridge 固定通过 WMI `Win32_Process.Create` broker 创建，使 bridge 生命周期不依赖 Codex shell / 调用方 Job。
@@ -29,6 +56,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 - runtime state、PID 与命令行身份校验、`stop`、`service:status` 和 `service:finalize` 协议必须保留。
 - 不使用定时重启掩盖 bridge 被宿主 Job 终止的问题；修复点是进程创建与生命周期归属，而不是故障后的轮询拉起。
 
+<!-- state: history -->
 ## Windows broker 实现合同
 
 - `src/persistent-process.mjs::spawnWindowsPersistentProcess(...)` 使用 `windowsHide: true` 启动系统 `powershell.exe`，并通过 `-EncodedCommand` 传入 UTF-16LE Base64 PowerShell 脚本。
@@ -39,6 +67,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 - `EnvironmentVariables` 显式传递 broker 当前环境；`open.mjs` 调用时传入 `process.env`。
 - WMI 返回值必须为 `0` 且 `ProcessId` 必须为正整数，否则持久进程创建失败并向调用方暴露错误。
 
+<!-- state: history -->
 ## 测试 fixture 生命周期合同
 
 `tests/open-stop.test.mjs` 使用 `activeOpenToolRoots` 只跟踪真正调用过 `runOpen(...)` 或 `runOpenInsideKillOnCloseJob(...)` 的 tool root。两条 open helper 会在启动前把 root 加入集合；`runStop(toolRoot)` 成功后会将其移除。
@@ -47,6 +76,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 
 旧 fixture 只删除临时目录，过去之所以没有持续泄漏，是因为 bridge 仍会被测试宿主所属的 Job 隐式终止。WMI 持久化修复生效后，bridge 正确脱离调用方 Job；若 active root 继续只删目录，就会留下服务进程、监听端口和已经失去 runtime 文件的孤儿生命周期。因此长期合同是“精确跟踪已 open 的 root；成功 stop 后解除跟踪；teardown 只补停仍 active 的 root，再删目录”。不能依赖 test runner 退出、临时目录删除或宿主 Job 关闭来代替服务收尾。
 
+<!-- state: history -->
 ## Job 验收语义
 
 不能把“bridge 必须满足 `IsProcessInJob = false`”作为验收条件。WMI 创建的进程可能属于 WMI provider 自身的系统 Job；真正需要证明的是 bridge 已脱离调用方的 kill-on-close Job，不会在调用方 Job 关闭时被连带终止。
@@ -55,6 +85,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 
 当前实现没有使用 `CREATE_BREAKAWAY_FROM_JOB`，且已经通过上述合成 Job 验证。后续不能把该 flag 写成必需条件；若要改变创建标志，必须先重新证明调用方 Job 隔离、监督链和 stop/finalize 合同仍成立。
 
+<!-- state: history -->
 ## 关联代码
 
 主要锚点：
@@ -73,6 +104,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 - `tests/open-stop.test.mjs::activeOpenToolRoots`、`makeToolRoot(...)`、`runOpen(...)`、`runOpenInsideKillOnCloseJob(...)`、`runStop(...)`：只对真正 open 且尚未成功 stop 的 fixture 执行 teardown 收尾。
 - `tests/open-stop.test.mjs`：detached 启动、bridge 健康、stop/finalize 清理，以及调用方 kill-on-close Job 关闭后的存活测试。
 
+<!-- state: history -->
 ## 验证标准
 
 - `tests/persistent-process.test.mjs` 的 4 个 launcher 单测覆盖 macOS/Unix detached + `unref()` 参数、Windows 隐藏 WMI broker / `EncodedCommand` / 环境边界、Windows command-line quoting，以及 WMI 返回值错误。
@@ -85,6 +117,7 @@ recovery bridge 又以 `attach: true` 启动并监督主服务。因此旧版 br
 - 非 Windows 的启动与停止行为没有变化。
 - TypeScript `tsc --noEmit` 与 production build 通过。
 
+<!-- state: history -->
 ## 正式服务验收快照（2026-07-10）
 
 正式入口通过以下命令启动成功：
@@ -111,22 +144,26 @@ npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
 
 正式验收不能只看端口监听或 runtime state 文件：必须在独立后续命令中同时核对两个 health、真实父子进程关系，并运行 `service:finalize` 验证保护、恢复判定和临时目录清理合同。
 
+<!-- state: history -->
 ### `service:finalize` 的 Windows 停止竞态
 
 `service:finalize` 在 Windows 上可能遇到 `Stop-Process` 的检查后使用竞态：目标进程在身份检查与实际停止之间已经退出，导致第一次 finalize 报错。此类单次失败不能单独作为最终服务异常结论；应立即重跑一次 `npm run service:finalize`，再以第二次 finalize 结果、`cleanupPerformed`，以及 `8787/api/health` 与 `8791/health` 的独立复核共同收口。
 
 2026-07-14 的一次正式收尾中，第一次 finalize 命中该竞态，第二次成功；最终清理结果为 0 个进程、2 个临时目录，随后 `8787/api/health` 返回 `{ "ok": true, "bridgePort": 8791 }`，`8791/health` 返回 `{ "ok": true }`。这证明重试后的服务保护与临时目录清理合同成立；具体 PID 只属于当次运行快照，不作为长期真值。
 
+<!-- state: history -->
 ## 本轮验证边界
 
 当前不能声明完整 `npm test` 全绿：全量运行仍会命中未修改的 `automation-bindings` / `view-state` 源码断言失败；完整 `tests/open-stop.test.mjs` 运行还会被未修改的 entry-action 临时 server 用例拖到 10 分钟工具上限。这两项不属于 persistent launcher / recovery lifecycle 修复的回归证据，不能据此把本次修复判为失败。
 
 判断本合同是否成立，应优先看 launcher 4 个定向单测、关键 open/stop/finalize 集成用例、kill-on-close Job 存活测试、typecheck 与 production build。全量测试中的既有失败仍应单独治理；未来这些外部失败修复后，应重新运行全量套件并更新此验证边界。
 
+<!-- state: history -->
 ## 关键检索词
 
 `8787`、`8791`、`recovery-bridge.mjs`、`spawnPersistentProcess`、`path.win32.resolve`、`ensureRecoveryBridgeRunning`、`activeOpenToolRoots`、`makeToolRoot`、`runOpenInsideKillOnCloseJob`、`runStop`、`attach: true`、`detached: true`、`unref()`、`Job Object`、`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`、`lastExit`、`Win32_Process.Create`、`WmiPrvSE.exe`、`EncodedCommand`、`CREATE_BREAKAWAY_FROM_JOB`、`main-healthy`、`protected`、`service:status`、`service:finalize`
 
+<!-- state: history -->
 ## recovery bridge 配置复用必须包含 `projectRoot`
 
 本次根因调查确认，`recovery-bridge.mjs` 启动时会把 `projectRoot` 写入 recovery bridge state，并在后续 `startServiceThroughController(...)` 中持续使用该 root 启动主服务。`open.mjs::openService(...)` 在确认 bridge 可复用后只向 `/start` 发送空对象，不会把本次请求的项目 root 重新传给既有 bridge。
@@ -145,10 +182,12 @@ npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
 
 关键检索词：`hasSameRecoveryBridgeConfig`、`sameConfig`、`projectRoot`、`registryHome`、`/start`、`Recovery bridge port`
 
+<!-- state: history -->
 ### 实现与回归状态（2026-07-14）
 
 上述 bridge 配置合同已经落地：`open.mjs::hasSameRecoveryBridgeConfig(...)` 现同时比较规范化后的 `state.projectRoot` 与 `requested.projectRoot`，`ensureRecoveryBridgeRunning(...)` 统一复用该判断。`tests/open-stop.test.mjs` 已加入 project root 相同可复用、其余配置相同但 project root 不同不可复用的定向用例，本轮该 1 个定向测试通过。
 
+<!-- state: history -->
 ## controller state 未跟踪的孤儿主服务排障边界
 
 本次端到端收口发现，旧 `8787` server PID `56160` 未被当前 controller state 跟踪，属于孤儿主服务。向该进程调用 `POST /api/shutdown` 虽返回 `{ "ok": true, "stopping": true }`，但 `8787` 端口没有随之退出。这说明 202 响应只表示正式停止流程已被调度，不能单独证明目标端口已关闭；当实际进程不在 controller 的监督状态中时，必须继续核对 controller/service state、PID command line 身份与端口存活。
@@ -157,6 +196,7 @@ npm run open -- --project C:\Code\Nocturnel --adapter nocturnel
 
 关键检索词：`controller state`、`orphan`、`孤儿进程`、`/api/shutdown`、`stopping`、`commandLine`、`8791 recovery bridge`、`受管主服务`
 
+<!-- state: history -->
 ### 本轮最终完成快照（2026-07-14）
 
 修复、定向测试、无效 registry 清理、API/UI 验收与 `service:finalize` 已全部完成。最终独立复核中，`8787/api/health` 与 `8791/health` 均健康；主服务 PID `19128` 已由 recovery controller PID `33392` 跟踪，证明清理孤儿进程后重新建立了正式监督链。临时 Playwright 目录与测试进程均已清理，没有遗留本轮验证资源。

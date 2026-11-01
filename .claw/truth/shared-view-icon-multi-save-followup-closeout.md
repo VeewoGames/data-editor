@@ -1,172 +1,61 @@
-﻿# shared view 图标多轮保存 follow-up：剩余真实根因、当前验证边界与复现收口
+﻿# shared view 图标多轮保存：持久化、快照与验证边界
 
-status: accepted
+<!-- document-state: current -->
+<!-- state: current -->
 
-## context
+## Current behavior
 
-这条 truth 记录“继续排查 shared view 图标在多轮操作后仍会丢失的问题”这一轮 follow-up 的稳定事实。它不重复更早的图标体系方案，而是把这轮实际确认的剩余丢字段链、已经补上的持久化边界、以及当前本地仍未复现出来的部分统一收口，供后续继续排查时复用。
+shared view顶层view/group icon是first-class persisted field，和结构身份、名称及顺序共同保存，不是渲染时随意推导的装饰。删除、重建、复制、normalize、迁移和profile序列化都必须保留icon。
 
-## 结论
-
-### 1. 本轮确认的剩余真实根因不是单一路径，而是多条 icon 丢字段链叠加
-
-这轮继续排查后，确认 shared view 图标“多轮操作后丢失”至少包含以下几条已经落地修复的真实链路：
-
-- `src/view/view-state.mjs` 的 `deleteViewFromItems(...)` 在删除 top-level view 后重建剩余 items 时，没有保留其它 top-level leaf 的 `icon`。
-- `src/App.tsx` 的 `handleDuplicateSharedViewGroup(...)` 在复制 group 时，`resolvedGroupSnapshot` 曾经缺少 `group.icon`，导致副本组先天丢 icon。
-- `src/App.tsx` 的 `normalizeUserViewProfile(...)` 在序列化命名 profile 的 `structureDrafts` 时，group 项只保留了 `groupId`、`name`、`viewIds`，会把 `icon` 静默丢掉。
-- 此前已确认并保留的链路还包括 top-level view rename 未保留 `item.icon`，以及 profile save 请求需要 `keepalive` 才能降低刷新/离页时保存丢失概率。
-
-可复用的判断是：这类问题不是单一“保存请求没发出去”，而是多个结构重建 / normalize / duplicate / delete 入口分别把 `icon` 当成非关键字段漏掉。
-
-### 2. shared view 的顶层 view / group icon 现在必须视为 first-class persisted field
-
-这轮之后，顶层 view icon 和 group icon 不能再被当成“渲染时可推导元信息”。当前稳定要求是：
-
-- collection items 重建时必须显式带回 leaf `icon`
-- group duplicate 时必须显式复制 `group.icon`
-- 命名 profile 的 `structureDrafts` 落盘与回读时必须保留 group `icon`
-- path migration、本地 drafts、profile 文件都要把 group `icon` 当成 schema 内稳定字段
-
-也就是说，icon 现在和 `groupId`、`viewIds`、`name` 一样，属于结构真值的一部分，而不是 UI 装饰字段。
-
-### 3. team mode 与 personal mode 当前都已有稳定保存边界，但语义不同
-
-当前 shared view 编辑仍按模式分流：
-
-- `team mode`：普通编辑与结构拖拽先进入 draft / structure draft，再通过显式 `保存团队共享视图` 发布到正式 shared config。
-- `personal mode`：普通 shared view 编辑与结构拖拽直存正式 shared config，不再常态停留在团队 draft 语义里。
-
-本轮补强后，当前本地已验证以下组合不会把 icon 再打回旧值：
-
-- `team mode` 下 top-level view 先带 icon，再做 filter 修改并发布，再刷新
-- `team mode` 下 top-level view reorder 并发布，再刷新
-- `team mode` 下命名 profile 的 structure draft 对 top-level group reorder 落盘后，刷新仍保留 group icon
-- `personal mode` 下 top-level view 先加 filter，再做 reorder，直存 shared config 后刷新仍保留 icon
-
-这说明当前本地证据下，常规的筛选 / 重排 / 发布 / 刷新组合已经被 team 与 personal 两条主路径覆盖。
-
-### 4. Chrome 真实现场最终补出了一条剩余链路：personal mode 的直接保存会读到旧 `sharedViewsConfigRef`
-
-后续按用户要求改用真实 Chrome 现场验证后，这轮最终补出了一条此前没有锁定的剩余链路：
-
-- 先在第一层 top-level view 上修改 icon；
-- icon 保存请求先成功，把新值写进 `shared-views.json`；
-- 紧接着在 `personal mode` 下拖动该顶层视图位置；
-- 结构重排走 `enqueueSharedViewDirectSave(...)`，但它读取的是 `sharedViewsConfigRef.current`；
-- 旧实现里这个 ref 只靠 `useEffect` 在下一拍同步，所以“刚改完 icon 又立刻重排”时，第二次保存可能仍拿到旧配置；
-- 结果是重排保存把刚写入的新 icon 覆盖回旧值，刷新后 UI 看起来像“移动位置导致图标丢失”。
-
-这条链路和前面那些“结构重建时漏带 `icon` 字段”的问题不同。它不是字段在 helper 里被丢掉，而是连续两次保存之间存在 stale snapshot 覆盖。
-
-### 5. 这次 Chrome 复现证明：要排查“刷新后丢图标”，必须区分“字段没写”与“后写回旧值”
-
-这一轮的最终稳定结论是，shared view icon 丢失至少分成两类：
-
-- 结构重建 / normalize / duplicate / delete 时没有携带 `icon`
-- 连续保存时，后一次保存读到旧快照，把前一次刚写入的新 icon 覆盖掉
-
-第二类只有在真实交互节奏里才容易露出来。单看某一次保存成功，不能证明最终刷新后的持久化真值仍然正确。
+多轮保存问题要区分两类机制：结构重建漏字段；连续保存读取旧快照并覆盖前一次新值。一次HTTP成功不能证明多轮操作后磁盘与刷新结果仍正确。
 
 ## 长期规则
 
-### 5. 后续排查必须先按保存入口拆解，不要把所有“刷新后丢图标”混成一个 bug
+### 1. 全部持久化表面保留结构字段
 
-本轮的有效方法是按入口拆解：
+collection items重建带回leaf icon，group duplicate复制group.icon；命名profile的structureDrafts及其normalize/serialize/migrate完整保留group icon。viewDrafts、viewLayouts、path migration或local drafts只要承载该字段，也必须遵守同一保留边界。
 
-- direct save
-- publish draft
-- structure reorder
-- duplicate
-- rename / delete
-- profile normalize / serialize
+结构字段不能只在shared config正确、到profile就静默丢失。排查入口包括delete/rename、duplicate、direct save、publish draft、structure reorder和profile处理，不先假定网络波动或某一个helper负责全部故障。
 
-后续再遇到类似反馈，应优先先回答“是哪条保存入口回写了旧值”，而不是先假设是网络波动或同一个 helper 的问题。
+### 2. team与personal保存语义分别验证
 
-### 6. 命名 profile 是这类问题的高风险层，任何结构字段都不能只在 shared config 保留
+team mode普通编辑/结构拖拽先入draft或structure draft，再由显式“保存团队共享视图”发布；personal mode这类shared view编辑/重排直接保存正式shared config。个人profile布局与共享内容的owner仍分开，不能用个人布局覆盖团队共享配置。
 
-只要某个 shared view 结构字段还会进入命名 profile 的 `structureDrafts`、`viewDrafts`、`viewLayouts` 或相关迁移链，它就必须在 profile normalize / serialize / migrate 层被完整保留。否则共享配置本身正确，profile 仍可能在刷新后把旧字段覆盖回来。
+必须分别验证filter修改后发布、top-level view重排、group structure draft落盘回读、personal direct save及刷新。没有覆盖某种组合时，不能用一次成功扩大为所有模式/动作已验。
 
-### 7. 未来仍报“多轮操作后丢失”时，最小必需复现信息必须先拿到
+### 3. 连续保存共享最新ref与React state
 
-下一轮最该优先补的不是新猜测，而是用户最小操作序列。至少需要确认：
+`src/App.tsx::commitSharedViewsConfig(...)` 同步更新 `sharedViewsConfigRef.current` 和React state；成功保存后的状态提交沿该入口维护一致性。`enqueueSharedViewDirectSave(...)` 的下一次mutator必须消费最新已提交配置，不能只等useEffect下一拍同步ref。
 
-- 当前是 `team mode` 还是 `personal mode`
-- 丢的是 top-level view icon、top-level group icon，还是 group 内 leaf icon
-- 操作前是否刚改过 icon
-- 后续动作具体是什么：filter、sort、rename、delete、duplicate、top-level reorder、group 内拖拽、模式切换、publish、direct save、refresh
-- icon 是在“本次页面内立即消失”，还是“刷新后才消失”
-- 如果是 team mode，丢失发生在发布前还是发布后
+保存时序的典型反证是先改icon成功，再立即reorder：若第二次读取旧ref，就会把新icon覆盖成旧值。刷新只是读出已写坏的共享配置，不应直接被当作丢字段源头。
 
-没有这些信息时，继续扩大修复范围的收益会明显下降。
+profile保存的keepalive降低离页/刷新时请求丢失概率，但不代替字段完整性与快照一致性。不能以“请求发出/成功”推断后续保存未覆盖新内容。
+
+### 4. 最小复现与文件证据
+
+记录mode、profile是否命名、顶层view/group/leaf、是否刚改icon、后续filter/sort/rename/delete/duplicate/reorder/模式切换/publish/direct-save/refresh序列，以及立即消失还是刷新后消失；team模式还要区分发布前后。
+
+文件取证至少对比两次保存后的共享配置：第一次写入新icon；第二次操作是否仍保留该值。复现使用明确选择的独立fixture，不要求真实项目路径或公开个人profile内容。
 
 ## 验证边界
 
-### 8. 本轮已经补上的自动化覆盖
+回归按保存入口拆开：view-state的rename/delete/group复制，profile normalize/保存/加载，local draft读写及path migration，team发布与personal direct-save，紧邻icon更新的即时重排与刷新。命名profile的structure draft和顶层group/view都要覆盖。
 
-当前与这轮问题直接相关、已经补齐或扩展的验证包括：
+相关现有入口为 `tests/view-state.test.mjs`、`tests/view-state-storage.test.mjs`、`tests/view-profile.test.mjs`、`tests/path-migration.test.mjs` 与 `tests/data-editor.spec.ts`。测试是否存在及本轮结果须按当前树与实际执行核对；旧Chrome现场只证明当时复现的链路，不能宣称所有多轮组合已穷尽。
 
-- `tests/view-state.test.mjs`
-  - `renameSharedViewConfig keeps top-level view icons`
-  - `deleteSharedViewConfig keeps remaining top-level view icons`
-  - `normalizeUserViewProfile keeps structure draft group icons`
-- `tests/view-state-storage.test.mjs`
-  - `readLocalSharedViewDrafts keeps shared view structure draft payload`
-  - `writeLocalSharedViewDrafts keeps structure draft group icons`
-- `tests/view-profile.test.mjs`
-  - `saveViewProfile writes normalized profile file`
-  - `loadViewProfile preserves structure draft group icons`
-- `tests/path-migration.test.mjs`
-  - `rewriteSharedDraftState migrates structureDrafts collection keys together with other shared draft surfaces`
-- `tests/data-editor.spec.ts`
-  - `saving grouped view filters keeps top-level group icon`
-  - `duplicating a view group copies child view snapshots and the current user's local view layout without creating a dirty target draft`
-  - `personal mode saves shared view structure reorders directly without surfacing publish buttons`
-  - `personal mode keeps a newly changed top-level icon after immediate reorder and reload`
-  - `named profile team-mode structure drafts keep top-level group icon through reload`
-  - `named profile keeps top-level view icon through team publish and reload`
-  - `named profile team-mode top-level view reorder keeps icon through reload`
+## References
 
-### 9. Chrome 真实复现与文件层取证的最小契约
+- [应用内ref/state与保存队列](C:/Code/data-editor/src/App.tsx)
+- [保存客户端与keepalive](C:/Code/data-editor/src/api/client.ts)
+- [共享view结构处理](C:/Code/data-editor/src/view/view-state.mjs)
+- [协作模式与保存通用合同](C:/Code/data-editor/.claw/truth/shared-view-collaboration-mode-routing-and-save-contract.md)
 
-这轮最终在真实 Chrome 中稳定确认的最小契约是：
+<!-- state: history -->
+## Evolution history
 
-1. 在正式页面 `http://127.0.0.1:8787/` 打开 `data/skills.json`
-2. 切到命名 profile `Lans`
-3. 在 `personal mode` 下给第一层 top-level view 修改 icon
-4. 立即拖动该 top-level view 的位置
-5. 刷新页面
+<!-- dated: 2026-10-25 -->
+### 事故与项目现场来源
 
-文件层真相源需要同时看两步：
+旧实现曾分别在删除后重建items、group duplicate及命名profile normalize时漏icon，另有连续保存旧ref覆盖新值的独立缺陷。这些是通用事故机理，不能读成当前仍未修复的状态。
 
-- 第一次 icon 更新后，`C:\Code\Nocturnel\.data-editor\shared-views.json` 已经先写入新 icon
-- 第二次结构重排保存后，同一个文件又被旧快照覆盖回旧 icon
-
-因此，真实现场里“刷新后丢图标”的本质不是 refresh 自己丢字段，而是 refresh 读到了上一轮交互已经写坏的正式 shared config。
-
-### 10. 本轮修复入口
-
-当前修复入口已经收敛到 `src/App.tsx`：
-
-- 新增 `commitSharedViewsConfig(...)`
-- 所有 shared views config 成功保存后的状态提交都要同时同步 `sharedViewsConfigRef.current` 与 React state
-- 这样 `enqueueSharedViewDirectSave(...)` 在紧随其后的下一次保存里不会再读到旧 `sharedViewsConfigRef`
-
-这条入口对应的是保存时序一致性，而不是结构 schema 扩展。
-
-## 关联代码
-
-- `src/App.tsx`
-- `src/App.tsx#commitSharedViewsConfig`
-- `src/api/client.ts`
-- `src/view/view-state.mjs`
-- `tests/view-state.test.mjs`
-- `tests/view-state-storage.test.mjs`
-- `tests/view-profile.test.mjs`
-- `tests/path-migration.test.mjs`
-- `tests/data-editor.spec.ts`
-- `.claw/truth/shared-view-collaboration-mode-routing-and-save-contract.md`
-
-## 关键检索词
-
-`sharedViewsConfigRef.current`、`commitSharedViewsConfig`、`enqueueSharedViewDirectSave`、`personal mode keeps a newly changed top-level icon after immediate reorder and reload`、`deleteViewFromItems`、`handleDuplicateSharedViewGroup`、`normalizeUserViewProfile keeps structure draft group icons`、`team publish`、`personal direct save`、`stale snapshot overwrite`
+原题“shared view 图标多轮保存 follow-up：剩余真实根因、当前验证边界与复现收口”中的真实游戏文件、命名profile和Chrome具体现场移交[项目历史索引](C:/Code/Nocturnel/.claw/truth/tech/data-editor/编辑器侧项目知识承接与历史索引.md)；[原字节对象](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/objects/c324f3f85e3473671696739e39ca9348faeaa554ed29b5da1498a1cd382ff201.source)保留全部现场、旧测试名称和证据。本文没有复制个人profile文件，也不把当次现场提升为所有项目的当前验收。

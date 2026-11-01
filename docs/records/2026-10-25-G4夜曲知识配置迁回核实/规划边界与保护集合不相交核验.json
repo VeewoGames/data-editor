@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-25T05:54:13.008Z",
+  "verified": true,
+  "originalTruthFilesUnchanged": 100,
+  "projectConfigFilesUnchanged": 18,
+  "currentNightOwnersUnchanged": 6,
+  "proposedTargets": 40,
+  "create": 18,
+  "replace": 22,
+  "delete": 0,
+  "intersections": {
+    "g3Targets": [],
+    "g3Protected": [],
+    "g3Sources": [],
+    "projectConfigs": [],
+    "currentOwners": []
+  },
+  "sourceInventoryDigest": "33d05fb2367212de98c3f57240d1231d03e75efe0bd1cd77ac5297c1ae0d22ee",
+  "proposalDigest": "fc39254b8190126ca6f7f44a2c203a935a0a397d155111ea5d5dbecd332ad3a6",
+  "errors": []
+}

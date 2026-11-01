@@ -8,7 +8,7 @@ status: accepted
 
 ## decision
 
-采用工具交付侧 `managed-deployment-successor-v1` 承接证书，精确绑定原配置快照、policy、ledger 字节、receipt record/evidence 与目标 policy；固定部署配置是唯一选择入口。保留原件，公共 readLedger 无条件验证 pin，继续分别校验原 evidence 闭包与当前完整部署。
+采用 `managed-deployment-successor-v1` 承接证书，精确绑定原配置快照、policy、ledger 字节、receipt record/evidence 与目标 policy；原实现使用固定工具部署配置，G3 后由固定 Profile authority 选择并承接原始证明。保留原件，公共 readLedger 无条件验证 pin，继续分别校验原 evidence 闭包与当前完整部署。
 
 只提供显式离线 prepare/apply，采用 delivery → project 锁、静默发布及未覆盖义务预检、配置 CAS 与最终重算。不可覆盖材料先落盘，原子替换部署配置才生效。旧任务闭锁和未知业务结果保持原语义。
 
@@ -21,6 +21,8 @@ status: accepted
 ## consequences
 
 升级需要显式维护窗口及完整证据，新增未覆盖义务或漂移即停止；承接材料随工具部署保留。新任务合法准入不证明历史业务成功，也不自动批准业务启用。哈希检测漂移，不是抵御同账户写者的签名。
+
+G3 后原始承接材料由 authority immutable objects 与项目 provenance 保留，工具内三份旧配置已晚清退；当前迁移及激活后恢复遵守 [源码仓外 authority ADR](./project-generality-and-external-deployment-authority.md)，不再以旧部署配置回退运行。原始证明身份和旧闭锁语义不因存储归属变化而改写。
 
 <!-- dated: 2026-10-24 -->
 ## implementation

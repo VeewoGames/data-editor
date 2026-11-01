@@ -1,41 +1,29 @@
-# traits.json 职业视图条目回填基线
+﻿# traits.json 职业视图条目回填基线（历史迁回入口）
 
-status: accepted
+<!-- document-state: historical -->
 
-## context
+<!-- state: current -->
+## Current behavior
 
-本条 truth 记录 `C:\Code\Nocturnel\data\traits.json` 中“职业”视图条目的长期回填规则。当前稳定入口不是扫描全部 traits 草稿，而是先看 `C:\Code\Nocturnel\.data-editor\shared-views.json` 里 `collection` 为 `data/traits.json:traits` 的视图 `职业`。
+本入口仅作历史导航，不拥有项目业务规则；文档状态为 historical。
 
-## 结论
+<!-- state: history -->
+## Evolution history
 
-1. 当用户提到“`traits.json` 的职业视图条目”时，优先检查 `C:\Code\Nocturnel\.data-editor\shared-views.json` 中 `data/traits.json:traits` 的 `职业` 视图筛选条件，而不是先扫全量 traits 草稿。
-2. 当前可复用的稳定筛选条件是 `category contains class`，本轮实际消费的职业视图记录固定为 4 条：`fighter`、`mage`、`ranger`、`cultist`。
-3. 这 4 条职业特质的 Notion 真值页分别对应：
-   - `trait_fighter_base`，名称 `攻守兼备`
-   - `trait_mage_base`，名称 `奥术节奏`
-   - `trait_ranger_base`，名称 `张弛有度`
-   - `trait_cultist_base`，名称 `灵骸供仪`
-4. 回填这类职业特质时，优先补齐并校准 `id`、`description_zh`、`level`、`rating`、`budget_left`、`budget_deviation`、`type`、`tags`、`use`、`dev_note`，其中 `description_zh` 以 Notion 页面最终落库文案为准。
+<!-- dated: 2026-10-25 -->
+### 归属与现行入口
 
-## 关联代码
+本文件保留旧入口的可达性，不再拥有项目规则。来源核实日期为 2026-10-25；旧预算、评级、开发状态、样本、配置路径、视图数量及历史验收不得据此恢复为当前规则。
 
-- `C:\Code\Nocturnel\data\traits.json`
-- `C:\Code\Nocturnel\.data-editor\shared-views.json`
-- `https://app.notion.com/p/355668a98f0d809e8372e46d0b88603e`
-- `collection://32b668a9-8f0d-818e-abb1-000bf3a3cb5b`
+项目知识的原字节来源、过期原因和承接映射见[夜曲历史接收索引](C:/Code/Nocturnel/.claw/truth/tech/data-editor/编辑器侧项目知识承接与历史索引.md)。现行规则仍由以下既有 owner 维护，本次迁回不覆盖其内容：
 
-## 长期规则
+- [data-editor共享配置与稳定条目身份边界.md](C:/Code/Nocturnel/.claw/truth/data-editor共享配置与稳定条目身份边界.md)
 
-- 职业视图的判断基准是 `shared-views.json` 里的 `职业` 视图定义，不是 traits 草稿目录里的临时残留。
-- 只要筛选条件没有变，职业视图的稳定消费面就以 `category = class` 这一组为准。
-- 新增或修补职业特质时，先对齐 Notion 真值页，再回填本地 JSON，避免把未定稿文案写入长期真值。
+## 原始证据
 
-## 验证标准
+- 来源标识：`K16`，原文件：`traits-class-view-entries-foundation.md`。
+- 原字节 SHA-256：`a2a3df88f834d8f9afb1efedbb0928e1cc15baec4442cd8dc203232f7b98a3dd`。
+- [原字节历史对象](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/objects/a2a3df88f834d8f9afb1efedbb0928e1cc15baec4442cd8dc203232f7b98a3dd.source)。对象为不可执行的 `.source`，不作为 current 检索正文；其相对引用按 manifest 的原路径解释，不在这里执行。
+- [来源 manifest](C:/Code/Nocturnel/docs/records/data-editor知识迁回来源/2026-10-25/manifest.v1.json)。
 
-- `shared-views.json` 中 `data/traits.json:traits` 的 `职业` 视图仍然使用 `category contains class`。
-- `traits.json` 中职业视图消费到的记录仍然是 `fighter`、`mage`、`ranger`、`cultist` 这 4 条。
-- 4 条记录的关键字段与对应 Notion 真值页保持一致，尤其是 `description_zh`。
-
-## 关键检索词
-
-`traits.json`、`职业`、`shared-views.json`、`category contains class`、`fighter`、`mage`、`ranger`、`cultist`、`trait_fighter_base`、`trait_mage_base`、`trait_ranger_base`、`trait_cultist_base`
+编辑器的 shared/profile 分层、普通保存、文档合同、自动化调度及历史非重放仍由通用产品维护；项目知识历史化不改变任何业务数据、现行配置或运行保护。
