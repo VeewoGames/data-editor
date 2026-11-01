@@ -1,0 +1,8 @@
+{
+  "format_version": 1,
+  "records": [
+    {"id": "numeric", "values": [180], "__entry_id": "aa087408-321b-4017-9508-7782111e6311"},
+    {"id": "string", "values": ["180"], "__entry_id": "aa087408-321b-4017-9508-7782111e6312"},
+    {"id": "empty", "values": [], "__entry_id": "aa087408-321b-4017-9508-7782111e6313"}
+  ]
+}

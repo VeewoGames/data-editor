@@ -34,20 +34,13 @@ export function getRows(model, collectionPath) {
   return Array.isArray(rows) ? rows : [];
 }
 
-export function getMainColumns(model, collectionPath) {
-  if (isRecordMapModel(model) && collectionPath === objectMapCollectionPath) {
-    const fields = classifyFields(getRows(model, collectionPath), model.rootKeyField);
-    return [model.rootKeyField, ...buildVisibleFieldList(fields.main)];
-  }
-  return buildVisibleFieldList(classifyFields(getRows(model, collectionPath)).main);
+export function getCollectionFields(model, collectionPath) {
+  const recordMap = isRecordMapModel(model) && collectionPath === objectMapCollectionPath;
+  const fields = classifyFields(getRows(model, collectionPath), recordMap ? model.rootKeyField : null);
+  return {main: recordMap ? [model.rootKeyField, ...buildVisibleFieldList(fields.main)] : buildVisibleFieldList(fields.main), nested: buildVisibleFieldList(fields.nested)};
 }
-
-export function getNestedFields(model, collectionPath) {
-  return buildVisibleFieldList(classifyFields(
-    getRows(model, collectionPath),
-    isRecordMapModel(model) && collectionPath === objectMapCollectionPath ? model.rootKeyField : null,
-  ).nested);
-}
+export function getMainColumns(model, collectionPath) { return getCollectionFields(model, collectionPath).main; }
+export function getNestedFields(model, collectionPath) { return getCollectionFields(model, collectionPath).nested; }
 
 export function summarizeNested(value) {
   if (Array.isArray(value)) {

@@ -1,6 +1,6 @@
 import { resolveFieldRole } from "../model/field-role.mjs";
 import { resolveCompatibleDisplayType } from "../model/fieldTypes.mjs";
-import { buildMultiSelectFieldConfigFromRows } from "../multiselect-config.mjs";
+import { buildMultiSelectFieldConfigFromRows, buildSingleSelectFieldConfigFromRows } from "../multiselect-config.mjs";
 
 /**
  * @param {{
@@ -50,23 +50,7 @@ export function buildTableRuntimeDeps({
     }
 
     if (currentDisplayType === "Select") {
-      const storedOptions = fieldViewConfigs[fieldName]?.selectOptions ?? {};
-      const merged = new Map();
-      for (const [value, option] of Object.entries(storedOptions)) {
-        merged.set(value, { value, label: option.label, color: option.color ?? null });
-      }
-      for (const row of optionRows) {
-        const value = row[fieldName];
-        if (value == null) continue;
-        const normalized = String(value).trim();
-        if (!normalized || merged.has(normalized)) continue;
-        merged.set(normalized, { value: normalized, label: normalized, color: null });
-      }
-      const normalizedOptions = [...merged.values()];
-      selectOptions[fieldName] = {
-        options: normalizedOptions,
-        optionMap: Object.fromEntries(normalizedOptions.map((option) => [option.value, option])),
-      };
+      selectOptions[fieldName] = buildSingleSelectFieldConfigFromRows(optionRows, fieldName, fieldViewConfigs[fieldName]);
     }
 
     if (currentDisplayType === "Document") {
@@ -86,7 +70,7 @@ export function buildTableRuntimeDeps({
 
     const role = getFieldRole(sourcePath, collectionPath, fieldName, relationConfigs);
     relationOptionsByField[fieldName] = role.kind === "relation"
-      ? (relationOptions[role.relationKey] ?? [])
+      ? relationOptions[role.relationKey]
       : [];
     relationConfigByField[fieldName] = role.kind === "relation" ? role.config : null;
   }

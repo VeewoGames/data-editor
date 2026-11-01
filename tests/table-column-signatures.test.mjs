@@ -2,6 +2,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildTableColumnModelsSignature } from "../src/table/table-column-signatures.mjs";
 
+test("option source type changes invalidate the compiled column signature", () => {
+  const base = {
+    visibleFields: ["values"], rows: [{ values: [] }], nestedFieldSet: new Set(),
+    displayTypes: { values: "Multi-select" }, wrappedFields: new Set(), detectedTitleField: null,
+    backlinkColumns: [], relationOptionsByField: {}, relationConfigByField: {}, selectOptions: {},
+    widths: {}, textEditable: false,
+  };
+  const signature = (dataValue, dataValueNeedsPersistence = false) => buildTableColumnModelsSignature({ ...base, fieldOptions: {
+    values: { options: [{ value: "180", label: "180", color: null, dataValue, dataValueNeedsPersistence }] },
+  } });
+  assert.notEqual(signature(180), signature("180"));
+  assert.notEqual(signature(180, true), signature(180, false));
+});
+
 test("buildTableColumnModelsSignature stays stable when runtime refs churn without changing compiled column meaning", () => {
   const base = {
     visibleFields: ["title", "target_id", "payload"],

@@ -31,6 +31,7 @@ type CellRendererProps = {
   documentLabel?: string | null;
   relationOptions?: RelationOption[];
   relationConfigured?: boolean;
+  relationReady?: boolean;
   relationMode?: RelationMode;
   textEditable?: boolean;
   textEditingActive?: boolean;
@@ -61,6 +62,7 @@ function CellRendererComponent({
   documentLabel,
   relationOptions = [],
   relationConfigured = false,
+  relationReady = true,
   relationMode,
   textEditable = false,
   textEditingActive = false,
@@ -159,6 +161,7 @@ function CellRendererComponent({
           <RelationCellEditor
             cellId={cellId}
             configured={relationConfigured}
+            ready={relationReady}
             mode={relationMode}
             options={relationOptions}
             surface="table"
@@ -273,6 +276,7 @@ export const CellRenderer = memo(CellRendererComponent, (previous, next) =>
   previous.documentLabel === next.documentLabel &&
   previous.relationOptions === next.relationOptions &&
   previous.relationConfigured === next.relationConfigured &&
+  previous.relationReady === next.relationReady &&
   previous.relationMode === next.relationMode &&
   previous.textEditable === next.textEditable &&
   previous.textEditingActive === next.textEditingActive &&

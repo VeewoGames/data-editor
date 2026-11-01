@@ -2,7 +2,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { icons } from "../components/icons";
 import type { MultiSelectOptionColor, MultiSelectOptionView } from "../model/viewConfig";
-import { sortValuesByOptionOrder } from "../multiselect-config.mjs";
+import { resolveOptionDataValue, sortValuesByOptionOrder } from "../multiselect-config.mjs";
 import { focusWithoutScroll } from "../editing/focus-without-scroll.mjs";
 import { namedChipPalette, chipStyleForValue } from "./chipColors";
 import { confirmNextSelectedValues, resolveDefaultCandidate, resolveEnterAction } from "./discrete-value-picker.mjs";
@@ -385,9 +385,11 @@ export function OptionFieldEditor({
   }
 
   function toggleOption(optionValue: string | number) {
+    const dataValue = resolveOptionDataValue(optionValue, localOptionsRef.current);
+    if (dataValue === undefined) return;
     const exists = selectedValues.some((selected) => String(selected) === String(optionValue));
     if (mode === "single") {
-      const nextSelectedValues = exists ? [] : [optionValue];
+      const nextSelectedValues = exists ? [] : [dataValue];
       selectedValuesRef.current = nextSelectedValues;
       setSelectedValues(nextSelectedValues);
       commitDraftAndClose();
@@ -395,17 +397,19 @@ export function OptionFieldEditor({
     }
     const nextSelectedValues = exists
       ? selectedValues.filter((selected) => String(selected) !== String(optionValue))
-      : [...selectedValues, optionValue];
+      : [...selectedValues, dataValue];
     selectedValuesRef.current = nextSelectedValues;
     setSelectedValues(nextSelectedValues);
     restoreInputFocus();
   }
 
   function confirmOption(optionValue: string | number) {
+    const dataValue = resolveOptionDataValue(optionValue, localOptionsRef.current);
+    if (dataValue === undefined) return;
     const nextSelectedValues = confirmNextSelectedValues({
       mode,
       selectedValues: selectedValuesRef.current,
-      value: String(optionValue),
+      value: dataValue,
     });
     selectedValuesRef.current = nextSelectedValues;
     setSelectedValues(nextSelectedValues);
@@ -434,17 +438,22 @@ export function OptionFieldEditor({
   }
 
   function beginEdit(option: DraftOptionView) {
+    if (option.dataValueAmbiguous) return;
     setEditing({ value: option.value, label: option.label });
   }
 
   function applyRename() {
     if (!editing) return;
+    if (localOptionsRef.current.find(option => option.value === editing.value)?.dataValueAmbiguous) return;
     const nextValue = editing.label.trim();
     if (!nextValue || nextValue === editing.value || localOptions.some((option) => option.value === nextValue && option.value !== editing.value)) {
       setEditing(null);
       return;
     }
-    const nextOptions = localOptionsRef.current.map((option) => option.value === editing.value ? { ...option, value: nextValue, label: nextValue } : option);
+    const nextOptions = localOptionsRef.current.map((option) => option.value === editing.value ? {
+      ...option, value: nextValue, label: nextValue,
+      ...(option.dataValue !== undefined ? { dataValue: castLike(option.dataValue, nextValue) } : {}),
+    } : option);
     localOptionsRef.current = nextOptions;
     setLocalOptions(nextOptions);
     const nextSelectedValues = selectedValuesRef.current.map((item) => String(item) === editing.value ? castLike(item, nextValue) : item);
@@ -455,6 +464,7 @@ export function OptionFieldEditor({
   }
 
   function removeOption(optionValue: string) {
+    if (localOptionsRef.current.find(option => option.value === optionValue)?.dataValueAmbiguous) return;
     const nextOptions = localOptionsRef.current.filter((option) => option.value !== optionValue);
     localOptionsRef.current = nextOptions;
     setLocalOptions(nextOptions);
@@ -658,6 +668,8 @@ export function OptionFieldEditor({
                   </button>
                   <button
                     className={`multi-select-option${selected ? " is-selected" : ""}`}
+                    disabled={option.dataValueAmbiguous}
+                    title={option.dataValueAmbiguous ? "同一选项对应不同类型，请先统一来源数据" : undefined}
                     onPointerDown={(event) => {
                       event.preventDefault();
                       if (selected) {
@@ -670,14 +682,16 @@ export function OptionFieldEditor({
                     id={`option-${cellId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${index}`}
                     role="option"
                     aria-selected={selected}
+                    aria-disabled={option.dataValueAmbiguous}
                   >
                     <span className="chip" style={chipStyleForValue(option.value, option.color)}>{option.label}</span>
                     {selected ? <span className="picker-option-selected-check" aria-hidden="true"><icons.check size={14} /></span> : null}
                   </button>
-                  <Popover.Root open={editing?.value === option.value} onOpenChange={(nextOpen) => setEditing(nextOpen ? { value: option.value, label: option.label } : null)}>
+                  <Popover.Root open={editing?.value === option.value && !option.dataValueAmbiguous} onOpenChange={(nextOpen) => setEditing(nextOpen && !option.dataValueAmbiguous ? { value: option.value, label: option.label } : null)}>
                     <Popover.Trigger asChild>
                       <button
                         className="option-menu-trigger"
+                        disabled={option.dataValueAmbiguous}
                         onClick={(event) => {
                           event.stopPropagation();
                           beginEdit(option);
@@ -848,7 +862,9 @@ function buildDraftOptions(value: Array<string | number>, options: MultiSelectOp
   }
   for (const optionValue of value) {
     const key = String(optionValue);
-    if (!unique.has(key)) unique.set(key, { value: key, label: key, color: null, originValue: key });
+    // A configured key alone carries no type. Preserve this cell's observed value.
+    const option = unique.get(key) ?? { value: key, label: key, color: null, originValue: key };
+    unique.set(key, option.dataValueAmbiguous ? option : { ...option, dataValue: optionValue });
   }
   return [...unique.values()];
 }
@@ -878,7 +894,8 @@ function buildDraftCommit(
     nextOptionOrder,
     nextOptions,
     nextSelectedValues,
-    optionsChanged: !sameOptionMetaSnapshot(nextOptions, initialSession.options),
+    optionsChanged: !sameOptionMetaSnapshot(nextOptions, initialSession.options)
+      || (!sameSelectedValues(nextSelectedValues, initialSession.selectedValues) && currentOptions.some(option => option.dataValueNeedsPersistence)),
     orderChanged: !sameStringArray(nextOptionOrder, initialOptionOrder),
     renamedOptions,
     valueChanged: !sameSelectedValues(nextSelectedValues, initialSession.selectedValues),
@@ -895,6 +912,9 @@ function sameOptionMetaSnapshot(left: MultiSelectOptionView[], right: Array<Mult
     const candidate = right[index];
     return candidate
       && option.value === candidate.value
+      && option.dataValue === candidate.dataValue
+      && Boolean(option.dataValueAmbiguous) === Boolean(candidate.dataValueAmbiguous)
+      && Boolean(option.dataValueNeedsPersistence) === Boolean(candidate.dataValueNeedsPersistence)
       && option.label === candidate.label
       && option.color === candidate.color;
   });
@@ -906,13 +926,16 @@ function sameDraftOptionSnapshot(left: DraftOptionView[], right: DraftOptionView
     return candidate
       && option.originValue === candidate.originValue
       && option.value === candidate.value
+      && option.dataValue === candidate.dataValue
+      && Boolean(option.dataValueAmbiguous) === Boolean(candidate.dataValueAmbiguous)
+      && Boolean(option.dataValueNeedsPersistence) === Boolean(candidate.dataValueNeedsPersistence)
       && option.label === candidate.label
       && option.color === candidate.color;
   });
 }
 
 function sameSelectedValues(left: Array<string | number>, right: Array<string | number>) {
-  return left.length === right.length && left.every((value, index) => String(value) === String(right[index]));
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 function sameStringArray(left: string[], right: string[]) {

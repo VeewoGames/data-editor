@@ -4577,6 +4577,17 @@ th:hover .column-resize-handle,
   min-height: 24px;
 }
 
+/* Read-only text is a direct flex child, unlike the editable text surface. */
+.cell-text-content[data-cell-readonly="true"] {
+  min-width: 0;
+  width: 100%;
+}
+
+.cell-text-content[data-cell-readonly="true"] > span {
+  display: block;
+  max-width: 100%;
+}
+
 .cell-text-wrap {
   align-items: flex-start;
   overflow: visible;

@@ -1,3 +1,5 @@
+import { reuseEquivalentRelationIndexes } from './validation/stable-inputs.mjs';
+import { invalidateProjectReads, isReadInterruption, readJson } from './api/read-coordinator.mjs';
 import { projectTemplateSearchRow, isTemplateProtectedField } from './detail/inline-template-text.mjs';
 import { useInlineTemplateDefinitions } from './detail/useInlineTemplateDefinitions';
 import { refreshCommandDocument } from "./editing/command-result-refresh.mjs";
@@ -24,6 +26,7 @@ import {
   loadNestedSchemaCapabilities,
   listViewProfiles,
   loadDocument,
+  loadDocumentMetadata,
   loadDocumentContent,
   loadDocumentIndex,
   loadViewConfig,
@@ -110,11 +113,12 @@ import { buildDetailSelectionState, resolveDetailSelectionSync } from "./detail/
 import { stabilizeViewResult } from "./view/stable-view-result.mjs";
 import { buildStableViewEngineRows } from "./view/stable-view-engine-rows.mjs";
 import type { DataRecord, DocumentModel } from "./model/documentModel";
-import { addField, addRow, buildDocumentModel, deleteField, deleteRow, getMainColumns, getNestedFields, getRows, setCellValue } from "./model/documentModel";
+import { addField, addRow, buildDocumentModel, deleteField, deleteRow, getCollectionFields, getMainColumns, getNestedFields, getRows, setCellValue } from "./model/documentModel";
 import type { FieldDisplayType } from "./model/fieldTypes";
 import { defaultTypeFor, isCompatible, resolveCompatibleDisplayType } from "./model/fieldTypes";
 import type { RelationOption } from "./model/relations";
-import { buildRelationLookupState } from "./model/relation-lookup.mjs";
+import { buildRelationLookupState, relationLookupScope, relationLookupForScope } from "./model/relation-lookup.mjs";
+import { getBacklinkColumnsForView } from "./model/backlink-grid.mjs";
 import { buildBacklinkLookupState } from "./model/backlink-lookup.mjs";
 import { buildMaintenanceLookupState } from "./model/maintenance-lookup.mjs";
 import { resolveRelationTargetSelection } from "./model/relation-target-lookup.mjs";
@@ -135,7 +139,7 @@ import { findTitleField, getRecordTitle } from "./model/titleField";
 import type { ValidationIssue } from "./model/validation";
 import type { BacklinkGridColumn } from "./model/backlinkGrid";
 import type { BacklinkConfig, FieldViewConfig, MultiSelectOptionColor, MultiSelectOptionView, RealFieldType, RelationConfig } from "./model/viewConfig";
-import { currentRelationsVersion, defaultBacklinkConfigs, defaultPrimaryKeys, defaultRelationConfigs } from "./relation-defaults.mjs";
+import { currentRelationsVersion } from "./relation-defaults.mjs";
 import { normalizeFileOrder } from "./file-order.mjs";
 import { recordWindowAutosaveDebugEvent } from "./autosave-debug.mjs";
 import {
@@ -159,7 +163,7 @@ import {
   updatePageContextQuery,
   updatePageContextViewGrouping,
   writePageContextState,
-  updatePageContextScroll,
+  createPageContextScrollWriter,
   updatePageContextSelection,
   type ProjectPageContextState,
 } from "./page-context-storage";
@@ -175,6 +179,8 @@ import {
   applyProfilePathMigrations,
   applyViewConfigPathMigrations,
   detectPathMigrations,
+  fingerprintProjectScope,
+  selectFingerprintMigrationBaseline,
   migrateFingerprintCache,
   readFingerprintCache,
   rewriteSharedViewsConfig,
@@ -401,19 +407,18 @@ function recordPerfDuration(name: string, duration: number) {
 
 function scheduleDeferredTask(handleRef: { current: DeferredTaskHandle }, task: () => void, timeoutMs = 120) {
   cancelDeferredTask(handleRef.current);
-  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
-    const idleId = window.requestIdleCallback(() => {
-      handleRef.current = null;
-      task();
-    }, { timeout: timeoutMs });
-    handleRef.current = { kind: "idle", id: idleId };
-    return;
-  }
-  const timeoutId = window.setTimeout(() => {
+  let handle: DeferredTaskHandle;
+  const run = () => {
+    if (handleRef.current !== handle) return;
     handleRef.current = null;
     task();
-  }, timeoutMs);
-  handleRef.current = { kind: "timeout", id: timeoutId };
+  };
+  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+    handle = { kind: "idle", id: window.requestIdleCallback(run, { timeout: timeoutMs }) };
+  } else {
+    handle = { kind: "timeout", id: window.setTimeout(run, timeoutMs) };
+  }
+  handleRef.current = handle;
 }
 
 function cancelDeferredTask(handle: DeferredTaskHandle) {
@@ -618,8 +623,8 @@ function extensionForPath(path: string) {
   return index >= 0 ? fileName.slice(index) : "";
 }
 
-async function buildDataFileFingerprint(file: DataFile, projectId: string | null) {
-  const model = await loadDocument(file.path, projectId) as DocumentModel;
+async function buildDataFileFingerprint(file: DataFile, projectId: string | null, signal?: AbortSignal) {
+  const model = await loadDocument(file.path, projectId, {signal,priority:"background"}) as DocumentModel;
   const serializedRoot = JSON.stringify(model.root ?? null);
   return {
     path: file.path,
@@ -632,13 +637,13 @@ async function buildDataFileFingerprint(file: DataFile, projectId: string | null
   };
 }
 
-async function refreshFingerprintCacheForFiles(cache: unknown, files: DataFile[], projectId: string | null) {
+async function refreshFingerprintCacheForFiles(cache: unknown, files: DataFile[], projectId: string | null, signal: AbortSignal) {
   const normalizedCache = (cache ?? {}) as { version?: number; files?: Record<string, { size: number; modifiedAt: string }> };
   const fingerprints: Array<Awaited<ReturnType<typeof buildDataFileFingerprint>>> = [];
   for (const file of files) {
     const cached = normalizedCache.files?.[file.path];
-    if (cached && cached.size === file.size && cached.modifiedAt === file.modifiedAt) continue;
-    fingerprints.push(await buildDataFileFingerprint(file, projectId));
+    if (signal.aborted) return {changed:false,value:cache};
+    fingerprints.push(await buildDataFileFingerprint(file, projectId, signal));
   }
   return updateFingerprintCache(cache, files.filter((file) => fingerprints.some((fingerprint: { path: string }) => fingerprint.path === file.path)), fingerprints);
 }
@@ -689,9 +694,13 @@ export function App() {
   const [disconnectMessage, setDisconnectMessage] = useState("");
   const [flashStatus, setFlashStatus] = useState(() => consumeTransientStatus());
   const [status, setStatus] = useState("");
-  const [relationIndexes, setRelationIndexes] = useState<Record<string, Set<string> | null>>({});
+  const [inlineTemplateSource,setInlineTemplateSource]=useState<{projectId:string|null;templates:any[]}|null>(null);
+  const [dependencyLoadState,setDependencyLoadState] = useState<Record<string,string>>({});
+  const relationReadAbortRef=useRef<AbortController|null>(null);
+  const backlinkReadAbortRef=useRef<AbortController|null>(null);
+  const [loadedRelationIndexes, setRelationIndexes] = useState<Record<string, Set<string> | null>>({});
   const [dataRevision, bumpDataRevision] = useState(0);
-  const [relationOptions, setRelationOptions] = useState<Record<string, RelationOption[]>>({});
+  const [loadedRelationOptions, setRelationOptions] = useState<Record<string, RelationOption[]>>({});
   const [relationBacklinks, setRelationBacklinks] = useState<RelationBacklink[]>([]);
   const [backlinkColumns, setBacklinkColumns] = useState<BacklinkGridColumn[]>([]);
   const [backlinkValuesByRowIdState, setBacklinkValuesByRowIdState] = useState<Record<string, Record<string, RelationBacklink[]>>>({});
@@ -728,6 +737,15 @@ export function App() {
   const [tableRevision, bumpTableRevision] = useState(0);
   const [, setSharedViewIconPackVersion] = useState(0);
   const [viewConfig, setViewConfig] = useState<ViewConfig>(emptyProjectViewConfig());
+  const [loadedRelationScope,setLoadedRelationScope]=useState<string|null>(null);
+  const relationScope=relationLookupScope(activeProjectId,selectedPath,collectionPath,viewConfig.relations);
+  const {indexes:scopedRelationIndexes,options:relationOptions}=useMemo<{indexes:Record<string,Set<string>|null>;options:Record<string,RelationOption[]>}>(()=>relationLookupForScope(relationScope,{scope:loadedRelationScope,indexes:loadedRelationIndexes,options:loadedRelationOptions}),[relationScope,loadedRelationScope,loadedRelationIndexes,loadedRelationOptions]);
+  const stableRelationIndexesRef = useRef<Record<string, Set<string> | null>>({});
+  const relationIndexes = useMemo(() => {
+    const next = reuseEquivalentRelationIndexes(stableRelationIndexesRef.current, scopedRelationIndexes);
+    stableRelationIndexesRef.current = next;
+    return next;
+  }, [scopedRelationIndexes]);
   const [sharedViewsConfig, setSharedViewsConfig] = useState<SharedViewsConfig>(emptySharedViewsConfig());
   const [localSharedViewDrafts, setLocalSharedViewDrafts] = useState<SharedViewDraftState>(() => readLocalSharedViewDrafts(window.localStorage));
   const [viewProfiles, setViewProfiles] = useState<string[]>([]);
@@ -747,6 +765,8 @@ export function App() {
   const [primaryKeyCandidateDialogOpen, setPrimaryKeyCandidateDialogOpen] = useState(false);
   const [selectedPrimaryKeyCandidate, setSelectedPrimaryKeyCandidate] = useState<string>("");
   const openRequestRef = useRef(0);
+  const documentReadAbortRef = useRef<AbortController | null>(null);
+  const fingerprintWarmupAbortRef = useRef<AbortController | null>(null);
   const workspaceLoadRequestRef = useRef(0);
   const maintenanceRequestRef = useRef(0);
   const filesRef = useRef<DataFile[]>([]);
@@ -769,6 +789,20 @@ export function App() {
   const profileDirtyRef = useRef(false);
   const relationIndexRequestRef = useRef(0);
   const backlinkRequestRef = useRef(0);
+  // Identity includes in-place edits: model identity alone does not advance on every edit.
+  const dependencyLoadContext = useMemo(() => ({ projectId: activeProjectId, path: selectedPath }),
+    [activeProjectId, selectedPath, collectionPath, model, tableRevision, viewConfig.relations, viewConfig.backlinks, viewConfig.primaryKeys]);
+  const dependencyLoadContextRef = useRef(dependencyLoadContext);
+  useLayoutEffect(() => {
+    dependencyLoadContextRef.current = dependencyLoadContext;
+    invalidateDependencyLoads();
+    setRelationIndexes(current => reuseEquivalentRelationIndexes(current, {}));
+    setRelationOptions({});
+    setLoadedRelationScope(null);
+    setBacklinkColumns([]);
+    setBacklinkValuesByRowIdState({});
+    setDependencyLoadState({});
+  }, [dependencyLoadContext]);
   const relationWarmupHandleRef = useRef<DeferredTaskHandle>(null);
   const backlinkWarmupHandleRef = useRef<DeferredTaskHandle>(null);
   const deferRelationWarmupRef = useRef(false);
@@ -819,7 +853,10 @@ export function App() {
   const rebuildingRef = useRef(false);
   const restartingRef = useRef(false);
   const profileSavePromiseRef = useRef<Promise<void> | null>(null);
+  const saveRevisionRef = useRef<Record<AutosaveDomain, number>>({ document: 0, "project-config": 0, profile: 0 });
+  const saveScopeEpochRef = useRef(0);
   const loadedProjectIdRef = useRef<string | null>(null);
+  const loadedFingerprintScopeRef=useRef<string|null>(null);
   const viewDraftDirtyRef = useRef(false);
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) ?? null,
@@ -830,6 +867,7 @@ export function App() {
     [files, selectedPath],
   );
   const detailReorderPerfRef = useRef({
+    generation: 0,
     active: false,
     awaitingRows: false,
     awaitingFieldConfig: false,
@@ -1093,7 +1131,7 @@ export function App() {
     }
     let cancelled = false;
     setDocumentIndexError(null);
-    loadDocumentIndex(selectedPath, activeProjectId)
+    loadDocumentIndex(selectedPath, activeProjectId, {refresh:true})
       .then((response) => {
         if (cancelled) return;
         setDocumentIndex(response);
@@ -1110,20 +1148,26 @@ export function App() {
 
   async function reloadProjectWorkspace(projectId: string) {
     const requestId = ++workspaceLoadRequestRef.current;
+    fingerprintWarmupAbortRef.current?.abort();
+    const warmupController = new AbortController();
+    fingerprintWarmupAbortRef.current = warmupController;
+    invalidateProjectReads(projectId);
     const isCurrentRequest = () => requestId === workspaceLoadRequestRef.current;
     const previousFiles = loadedProjectIdRef.current === projectId ? filesRef.current : [];
+    const previousFingerprintScope=loadedFingerprintScopeRef.current;
     try {
       flushActiveTextEditorDraft();
       const flushResult = await saveCoordinator.flush("flush");
       if (!isCurrentRequest() || (flushResult.outcome !== "saved" && flushResult.outcome !== "idle")) return;
       resetWorkspaceState();
       const profileNameForInitialOrder = selectedViewProfileNameRef.current;
-      const [nextFiles, nextConfig, nextSharedViewsConfig, nextProfiles, nextProfile] = await Promise.all([
+      const [nextFiles, nextConfig, nextSharedViewsConfig, nextProfiles, nextProfile, nextRegistry] = await Promise.all([
         listFiles(projectId),
         loadViewConfig(projectId),
         loadSharedViews(projectId),
         listViewProfiles(projectId),
         profileNameForInitialOrder ? loadViewProfile(profileNameForInitialOrder, projectId) : Promise.resolve(null),
+        listProjects(),
       ]);
       if (!isCurrentRequest()) return;
       let migratedConfig = nextConfig;
@@ -1132,65 +1176,13 @@ export function App() {
       let normalizedInitialProfile = profileNameForInitialOrder ? normalizeUserViewProfile(nextProfile) : null;
       const pageContextState = readPageContextState(window.localStorage);
       let currentPageContext = readProjectPageContext(pageContextState, projectId);
-      let fingerprintCache = readFingerprintCache(window.localStorage);
-      if (previousFiles.length) {
-        const detection = await detectPathMigrations({
-          previousFiles,
-          nextFiles,
-          fingerprintCache,
-          readFingerprint: (file: DataFile) => buildDataFileFingerprint(file, projectId),
-        });
-        const migrations = detection.migrations as PathMigration[];
-        if (migrations.length) {
-          const context = buildPathRewriteContext({
-            migrations,
-            viewConfig: migratedConfig,
-            sharedViewsConfig: migratedSharedViewsConfig,
-            profile: normalizedInitialProfile,
-            localSharedViewDrafts: migratedLocalSharedViewDrafts,
-            pageContext: currentPageContext,
-            localStorage: window.localStorage,
-          });
-          const profileResult = normalizedInitialProfile
-            ? applyProfilePathMigrations(normalizedInitialProfile, migrations, context)
-            : null;
-          const sharedViewsResult = rewriteSharedViewsConfig(migratedSharedViewsConfig, migrations, context);
-          const viewConfigResult = applyViewConfigPathMigrations(migratedConfig, migrations);
-          const pageContextResult = applyPageContextPathMigrations(currentPageContext, migrations, context);
-
-          await Promise.all([
-            profileResult?.changed && profileNameForInitialOrder
-              ? saveViewProfile(profileNameForInitialOrder, profileResult.value as UserViewProfile, projectId)
-              : Promise.resolve(),
-            sharedViewsResult.changed
-              ? saveSharedViews(sharedViewsResult.value as SharedViewsConfig, projectId)
-              : Promise.resolve(),
-            viewConfigResult.changed
-              ? saveViewConfig(viewConfigResult.value as ViewConfig, projectId)
-              : Promise.resolve(),
-          ]);
-
-          migratedConfig = viewConfigResult.value as ViewConfig;
-          migratedSharedViewsConfig = sharedViewsResult.value as SharedViewsConfig;
-          normalizedInitialProfile = (profileResult?.value as UserViewProfile | undefined) ?? normalizedInitialProfile;
-          const localResult = applyLocalPathMigrations(window.localStorage, migrations, context);
-          migratedLocalSharedViewDrafts = readLocalSharedViewDrafts(window.localStorage);
-          if (pageContextResult.changed) {
-            pageContextState.projects[projectId] = pageContextResult.value as ProjectPageContextState;
-            writePageContextState(window.localStorage, pageContextState);
-            currentPageContext = pageContextResult.value as ProjectPageContextState;
-          }
-          const migratedFingerprintCache = migrateFingerprintCache(fingerprintCache, migrations);
-          fingerprintCache = migratedFingerprintCache.value;
-          writeFingerprintCache(window.localStorage, fingerprintCache);
-          if (localResult.changed || viewConfigResult.changed || sharedViewsResult.changed || profileResult?.changed || pageContextResult.changed) {
-            setStatus(`已迁移 ${migrations.length} 个移动文件的视图配置。`);
-          }
-        }
-      }
-      const refreshedFingerprintCache = await refreshFingerprintCacheForFiles(fingerprintCache, nextFiles, projectId);
+      const projectDefinition=nextRegistry.projects.find(item=>item.id===projectId);
+      if(!projectDefinition)throw new Error("项目配置已变化，请刷新项目列表。");
+      const fingerprintScope=fingerprintProjectScope(projectDefinition);
+      let fingerprintCache = readFingerprintCache(window.localStorage,fingerprintScope);
+      const rememberedFiles=selectFingerprintMigrationBaseline(previousFiles,previousFingerprintScope,fingerprintScope,fingerprintCache);
+      const commitWorkspaceConfiguration=()=>{
       if (!isCurrentRequest()) return;
-      if (refreshedFingerprintCache.changed) writeFingerprintCache(window.localStorage, refreshedFingerprintCache.value);
       setFiles(nextFiles);
       filesRef.current = nextFiles;
       setViewConfig(migratedConfig);
@@ -1214,6 +1206,87 @@ export function App() {
         setDetailDocumentPanelOpen(readDetailDocumentPanelOpen());
         setDetailDocumentPanelWidth(readDetailDocumentPanelWidth());
       }
+      };
+      commitWorkspaceConfiguration();
+      const initialTree=buildResolvedSidebarTree(nextFiles,profileNameForInitialOrder,normalizedInitialProfile,window.localStorage);
+      const pendingLocation=pendingSharedViewUrlLocationRef.current;
+      const initialUrlPath=(!pendingLocation?.projectId||pendingLocation.projectId===projectId)&&nextFiles.some(file=>file.path===pendingLocation?.path)?pendingLocation?.path:null;
+      const initialRemembered=initialUrlPath??currentPageContext.selectedPath??selectedPathRef.current;
+      const earlyPath=initialRemembered&&!nextFiles.some(file=>file.path===initialRemembered)?null:findSidebarFallbackFilePath(initialTree,initialRemembered);
+      if(earlyPath){
+        loadedProjectIdRef.current=projectId;loadedFingerprintScopeRef.current=fingerprintScope;
+        const earlyOpened=await openDocumentAt(earlyPath,(earlyPath===initialUrlPath?pendingLocation?.collectionPath:earlyPath===currentPageContext.selectedPath?currentPageContext.collectionPath:undefined)??undefined,undefined,false,projectId);
+        if(earlyPath===initialUrlPath&&earlyOpened&&earlyOpened.collectionPath!==(pendingLocation?.collectionPath??'$'))sharedViewUrlResolutionRef.current.invalidCollectionPath=true;
+      }
+      if(!isCurrentRequest())return;
+      const migrationOpenRequest=openRequestRef.current;
+      let migrationApplied=false;
+      if (rememberedFiles.length) {
+        const migrationSignal=AbortSignal.any([warmupController.signal,AbortSignal.timeout(10000)]);
+        const detection = await detectPathMigrations({
+          previousFiles: rememberedFiles,
+          nextFiles,
+          fingerprintCache,
+          readFingerprint: (file: DataFile) => buildDataFileFingerprint(file, projectId, migrationSignal),
+        });
+        if (!isCurrentRequest() || warmupController.signal.aborted) return;
+        if(detection.report.skipped.some((item:any)=>item.reason==='fingerprint-read-failed'))setStatus('文件迁移检测未完成，原配置和选择已保留。');
+        const migrations = detection.migrations as PathMigration[];
+        if (migrations.length) {
+          if(openRequestRef.current!==migrationOpenRequest||dataDirtyRef.current||viewConfigDirtyRef.current||profileDirtyRef.current)return;
+          const migrationPageContext=readPageContextState(window.localStorage);
+          const context = buildPathRewriteContext({
+            migrations,
+            viewConfig: migratedConfig,
+            sharedViewsConfig: migratedSharedViewsConfig,
+            profile: normalizedInitialProfile,
+            localSharedViewDrafts: migratedLocalSharedViewDrafts,
+            pageContext: currentPageContext,
+            localStorage: window.localStorage,
+          });
+          const profileResult = normalizedInitialProfile
+            ? applyProfilePathMigrations(normalizedInitialProfile, migrations, context)
+            : null;
+          const sharedViewsResult = rewriteSharedViewsConfig(migratedSharedViewsConfig, migrations, context);
+          const viewConfigResult = applyViewConfigPathMigrations(migratedConfig, migrations);
+          const pageContextResult = applyPageContextPathMigrations(currentPageContext, migrations, context);
+
+          await Promise.all([
+            profileResult?.changed && profileNameForInitialOrder
+              ? saveViewProfile(profileNameForInitialOrder, profileResult.value as UserViewProfile, projectId, nextProfile)
+              : Promise.resolve(),
+            sharedViewsResult.changed
+              ? saveSharedViews(sharedViewsResult.value as SharedViewsConfig, projectId, nextSharedViewsConfig)
+              : Promise.resolve(),
+            viewConfigResult.changed
+              ? saveViewConfig(viewConfigResult.value as ViewConfig, projectId, nextConfig)
+              : Promise.resolve(),
+          ]);
+
+          if (!isCurrentRequest()) return;
+          if(openRequestRef.current!==migrationOpenRequest||dataDirtyRef.current||viewConfigDirtyRef.current||profileDirtyRef.current)return;
+          migrationApplied=true;
+          migratedConfig = viewConfigResult.value as ViewConfig;
+          migratedSharedViewsConfig = sharedViewsResult.value as SharedViewsConfig;
+          normalizedInitialProfile = (profileResult?.value as UserViewProfile | undefined) ?? normalizedInitialProfile;
+          const localResult = applyLocalPathMigrations(window.localStorage, migrations, context);
+          migratedLocalSharedViewDrafts = readLocalSharedViewDrafts(window.localStorage);
+          if (pageContextResult.changed) {
+            const latestPageContext=readPageContextState(window.localStorage);
+            if(JSON.stringify(latestPageContext.projects[projectId])!==JSON.stringify(migrationPageContext.projects[projectId]))return;
+            latestPageContext.projects[projectId] = pageContextResult.value as ProjectPageContextState;
+            writePageContextState(window.localStorage, latestPageContext);
+            currentPageContext = pageContextResult.value as ProjectPageContextState;
+          }
+          const migratedFingerprintCache = migrateFingerprintCache(fingerprintCache, migrations);
+          fingerprintCache = migratedFingerprintCache.value;
+          writeFingerprintCache(window.localStorage, fingerprintCache, fingerprintScope);
+          if (localResult.changed || viewConfigResult.changed || sharedViewsResult.changed || profileResult?.changed || pageContextResult.changed) {
+            setStatus(`已迁移 ${migrations.length} 个移动文件的视图配置。`);
+          }
+        }
+      }
+      if(migrationApplied)commitWorkspaceConfiguration();
       const sidebarTree = buildResolvedSidebarTree(nextFiles, profileNameForInitialOrder, normalizedInitialProfile, window.localStorage);
       const pendingUrlLocation = pendingSharedViewUrlLocationRef.current;
       const urlPathCandidate = pendingUrlLocation?.projectId && pendingUrlLocation.projectId !== projectId
@@ -1225,13 +1298,15 @@ export function App() {
       if (urlPathCandidate && !validUrlPath) {
         sharedViewUrlResolutionRef.current.invalidPath = true;
       }
-      const preferredPath = findSidebarFallbackFilePath(
+      const rememberedPath = validUrlPath ?? currentPageContext.selectedPath ?? selectedPathRef.current;
+      const missingRememberedPath = rememberedPath && !nextFiles.some(file=>file.path===rememberedPath);
+      const preferredPath = missingRememberedPath ? null : findSidebarFallbackFilePath(
         sidebarTree,
         validUrlPath ?? currentPageContext.selectedPath ?? selectedPathRef.current,
       );
       if (!isCurrentRequest()) return;
       loadedProjectIdRef.current = projectId;
-      if (preferredPath) {
+      if (preferredPath && preferredPath!==earlyPath) {
         const targetCollection = preferredPath === validUrlPath
           ? (pendingUrlLocation?.collectionPath ?? "$")
           : preferredPath === currentPageContext.selectedPath
@@ -1249,14 +1324,24 @@ export function App() {
       }
       if (!isCurrentRequest()) return;
       loadedProjectIdRef.current = projectId;
+      loadedFingerprintScopeRef.current=fingerprintScope;
+      if (missingRememberedPath) setStatus(`原文件 ${rememberedPath} 已缺失，无法确认迁移，请选择文件。`);
+      window.setTimeout(()=>{
+        if(!isCurrentRequest()||warmupController.signal.aborted)return;
+        void refreshFingerprintCacheForFiles(fingerprintCache,nextFiles,projectId,warmupController.signal).then(result=>{
+          if(isCurrentRequest()&&!warmupController.signal.aborted&&result.changed)writeFingerprintCache(window.localStorage,result.value,fingerprintScope);
+        }).catch(error=>{if(!isReadInterruption(error)&&isCurrentRequest())setStatus('文件指纹后台更新失败：'+String(error.message));});
+      },0);
     } catch (error) {
       if (isCurrentRequest()) setStatus(error instanceof Error ? error.message : String(error));
     }
   }
 
   function resetWorkspaceState() {
+    saveScopeEpochRef.current += 1;
     openRequestRef.current += 1;
-    relationIndexRequestRef.current += 1;
+    documentReadAbortRef.current?.abort();
+    invalidateDependencyLoads();
     loadedProjectIdRef.current = null;
     clearEntryActionFeedback();
     setFiles([]);
@@ -1290,7 +1375,8 @@ export function App() {
     setDocumentContent(null);
     setDocumentContentLoading(false);
     setDocumentContentError(null);
-    setRelationIndexes({});
+    setDependencyLoadState({});
+    setRelationIndexes(current => reuseEquivalentRelationIndexes(current, {}));
     setRelationOptions({});
     setRelationBacklinks([]);
     setBacklinkColumns([]);
@@ -1321,6 +1407,7 @@ export function App() {
   }
 
   function switchProjectAfterGuard(projectId: string) {
+    invalidateDependencyLoads();
     workspaceLoadRequestRef.current += 1;
     openRequestRef.current += 1;
     const url = writeProjectUrlLocation(window.location, projectId);
@@ -1450,26 +1537,21 @@ export function App() {
       if (disconnectConfirmTimerRef.current != null) {
         window.clearTimeout(disconnectConfirmTimerRef.current);
       }
-      cancelDeferredTask(relationWarmupHandleRef.current);
-      cancelDeferredTask(backlinkWarmupHandleRef.current);
+      invalidateDependencyLoads();
     };
   }, []);
 
   useEffect(() => {
-    if (!selectedPath || !model) {
-      setRelationIndexes({});
-      setRelationOptions({});
-      return;
-    }
-    if (deferRelationWarmupRef.current) {
-      deferRelationWarmupRef.current = false;
-      scheduleDeferredTask(relationWarmupHandleRef, () => {
-        void loadRelationIndexes(viewConfig);
-      });
-      return;
-    }
-    void loadRelationIndexes(viewConfig);
-  }, [viewConfig.relations, selectedPath, collectionPath, model, activeProjectId, tableRevision]);
+    if (!selectedPath || !model) return;
+    const scheduledRequest = relationIndexRequestRef.current;
+    const timeoutMs = deferRelationWarmupRef.current ? 120 : 0;
+    deferRelationWarmupRef.current = false;
+    // Never compute a dependency in layout: even same-file lookups may be expensive.
+    scheduleDeferredTask(relationWarmupHandleRef, () => {
+      void loadRelationIndexes(viewConfig, scheduledRequest);
+    }, timeoutMs);
+    return () => invalidateDependencyLoads("relations");
+  }, [dependencyLoadContext]);
 
   useEffect(() => {
     async function syncHealth() {
@@ -1484,15 +1566,16 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (deferBacklinkWarmupRef.current) {
-      deferBacklinkWarmupRef.current = false;
-      scheduleDeferredTask(backlinkWarmupHandleRef, () => {
-        void loadBacklinkGridData();
-      });
-      return;
-    }
-    void loadBacklinkGridData();
-  }, [selectedPath, collectionPath, model, viewConfig.relations, viewConfig.backlinks, viewConfig.primaryKeys, tableRevision]);
+    if (!selectedPath || !model) return;
+    const scheduledRequest = backlinkRequestRef.current;
+    const timeoutMs = deferBacklinkWarmupRef.current ? 120 : 0;
+    deferBacklinkWarmupRef.current = false;
+    // Never compute a dependency in layout: even same-file lookups may be expensive.
+    scheduleDeferredTask(backlinkWarmupHandleRef, () => {
+      void loadBacklinkGridData(scheduledRequest);
+    }, timeoutMs);
+    return () => invalidateDependencyLoads("backlinks");
+  }, [dependencyLoadContext]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -1539,9 +1622,22 @@ export function App() {
     if (missingCurrentProjectRef.current) {
       setStatus("当前项目已从列表移除，请重新添加原目录后保存草稿。"); return false;
     }
+    const projectId = activeProjectIdRef.current;
+    const profileName = selectedViewProfileNameRef.current;
+    const epoch = saveScopeEpochRef.current;
     flushActiveTextEditorDraft();
-    const result = await saveCoordinator.flush("flush");
-    return result.outcome === "saved" || result.outcome === "idle";
+    try {
+      while (true) {
+        const result = await saveCoordinator.flush("flush");
+        if (result.outcome !== "saved" && result.outcome !== "idle") return false;
+        await flushPendingProfileSave();
+        if (projectId !== activeProjectIdRef.current || profileName !== selectedViewProfileNameRef.current || epoch !== saveScopeEpochRef.current) return false;
+        if (!collectAutosaveDirtyDomains().length && !profileSavePromiseRef.current) return true;
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+      return false;
+    }
   }
 
   async function openFile(path: string) {
@@ -1638,6 +1734,11 @@ export function App() {
     return dataDirtyRef.current || viewConfigDirtyRef.current || profileDirtyRef.current || viewDraftDirtyRef.current;
   }
 
+  function markAutosaveDirty(domain: AutosaveDomain) {
+    saveRevisionRef.current[domain] += 1;
+    saveCoordinator.markDirty(domain);
+  }
+
   function collectAutosaveDirtyDomains(): AutosaveDomain[] {
     const dirtyDomains: AutosaveDomain[] = [];
     if (dataDirtyRef.current) dirtyDomains.push("document");
@@ -1707,19 +1808,15 @@ export function App() {
     const requestId = openRequestRef.current + 1;
     openRequestRef.current = requestId;
     selectedPathRef.current = path;
+    invalidateDependencyLoads();
+    setDependencyLoadState({});
     if (!preserveEntryActionFeedback) clearEntryActionFeedback();
     setSelectedPath(path);
     setModel(null);
     modelRef.current = null;
-    cancelDeferredTask(relationWarmupHandleRef.current);
-    relationWarmupHandleRef.current = null;
-    cancelDeferredTask(backlinkWarmupHandleRef.current);
-    backlinkWarmupHandleRef.current = null;
     deferRelationWarmupRef.current = true;
     deferBacklinkWarmupRef.current = true;
-    relationIndexRequestRef.current += 1;
-    backlinkRequestRef.current += 1;
-    setRelationIndexes({});
+    setRelationIndexes(current => reuseEquivalentRelationIndexes(current, {}));
     setRelationOptions({});
     setBacklinkColumns([]);
     setBacklinkValuesByRowIdState({});
@@ -1728,11 +1825,22 @@ export function App() {
     setSelectedRowIndex(null);
     setSelectedRowIdState(null);
     setDetailOpen(false);
-    setStatus(`Loading ${path}...`);
+    setStatus(`正在读取 ${path}…`);
+    documentReadAbortRef.current?.abort();
+    const readController = new AbortController();
+    documentReadAbortRef.current = readController;
     let documentModel: DocumentModel;
     try {
-      documentModel = await loadDocument(path, projectId);
+      const [loaded,templates]=await Promise.all([
+        loadDocument(path, projectId, {fresh:true,signal:readController.signal}),
+        readJson('/api/inline-template-definitions?'+new URLSearchParams({projectId:projectId??''}),{signal:readController.signal}),
+      ]);
+      if(!Array.isArray(templates.templates))throw new Error('编辑配置格式无效。');
+      if(requestId!==openRequestRef.current)return null;
+      setInlineTemplateSource({projectId,templates:templates.templates});
+      documentModel=loaded;
     } catch (error) {
+      if (requestId !== openRequestRef.current || readController.signal.aborted) return null;
       if (shouldRetryWithFallbackFile(error)) {
         const sidebarTree = buildResolvedSidebarTree(files, selectedViewProfileNameRef.current, selectedViewProfileRef.current, window.localStorage);
         const fallbackPath = findSidebarFallbackFilePath(sidebarTree, path);
@@ -1746,6 +1854,7 @@ export function App() {
       return null;
     }
     if (requestId !== openRequestRef.current) return null;
+    if(documentModel.collections.some(collection=>collection.rowCount>10000)){await new Promise<void>(resolve=>window.requestAnimationFrame(()=>resolve()));if(requestId!==openRequestRef.current)return null;}
     const nextCollection = resolveDocumentCollection(documentModel, targetCollection);
     const nextRows = getRows(documentModel, nextCollection) as DataRecord[];
     const nextStore = buildDocumentStoreTyped({ documentId: path, model: documentModel });
@@ -1874,38 +1983,54 @@ export function App() {
     finalizeDetailReorderAsyncSegment("maintenance");
   }
 
-  async function loadBacklinkGridData() {
+  function invalidateDependencyLoads(kind?: "relations" | "backlinks") {
+    if (!kind || kind === "relations") {
+      relationIndexRequestRef.current += 1;
+      cancelDeferredTask(relationWarmupHandleRef.current);
+      relationWarmupHandleRef.current = null;
+      relationReadAbortRef.current?.abort();
+    }
+    if (!kind || kind === "backlinks") {
+      backlinkRequestRef.current += 1;
+      cancelDeferredTask(backlinkWarmupHandleRef.current);
+      backlinkWarmupHandleRef.current = null;
+      backlinkReadAbortRef.current?.abort();
+    }
+  }
+
+  function isDependencyContextCurrent() {
+    return dependencyLoadContextRef.current === dependencyLoadContext
+      && activeProjectIdRef.current === activeProjectId
+      && selectedPathRef.current === selectedPath;
+  }
+
+  async function loadBacklinkGridData(scheduledRequest = backlinkRequestRef.current) {
+    // A delayed callback must not abort or publish over a newer task.
+    if (!isDependencyContextCurrent() || scheduledRequest !== backlinkRequestRef.current || !selectedPath || !model) return;
+    invalidateDependencyLoads("backlinks");
+    const requestId = backlinkRequestRef.current;
+    const controller = new AbortController();
+    backlinkReadAbortRef.current = controller;
+    const isCurrent = () => isDependencyContextCurrent() && requestId === backlinkRequestRef.current && !controller.signal.aborted;
     const perfState = detailReorderPerfRef.current;
-    if (perfState.active && perfState.awaitingBacklinks) {
-      markPerf("detail-reorder:before-backlinks");
+    const perfGeneration = perfState.generation;
+    if (perfState.active && perfState.awaitingBacklinks) markPerf("detail-reorder:before-backlinks");
+    try {
+      setDependencyLoadState(current => ({ ...current, backlinks: getBacklinkColumnsForView({ targetFile: selectedPath, targetCollection: collectionPath, viewConfig }).length ? "反向关联加载中…" : "" }));
+      const rows = getRows(model, collectionPath) as DataRecord[];
+      const { backlinkColumns, backlinkValuesByRowId, errors } = await buildBacklinkLookupState({
+        targetFile: selectedPath, targetCollection: collectionPath, rows, viewConfig, activeModel: model,
+        loadDocument: (path) => loadDocument(path, activeProjectId, { signal: controller.signal, priority: "background" }),
+      });
+      if (!isCurrent()) return;
+      setBacklinkColumns(backlinkColumns as BacklinkGridColumn[]);
+      setBacklinkValuesByRowIdState(backlinkValuesByRowId);
+      setDependencyLoadState(current => ({ ...current, backlinks: errors.length ? "反向关联部分加载失败：" + errors.map(item => item.message).join("；") : "" }));
+    } catch (error) {
+      if (isCurrent()) setDependencyLoadState(current => ({ ...current, backlinks: "反向关联加载失败：" + (error instanceof Error ? error.message : String(error)) }));
+    } finally {
+      if (isCurrent() && detailReorderPerfRef.current.generation === perfGeneration) finalizeDetailReorderAsyncSegment("backlinks");
     }
-    const requestId = backlinkRequestRef.current + 1;
-    backlinkRequestRef.current = requestId;
-    if (!selectedPath || !model) {
-      setBacklinkColumns([]);
-      setBacklinkValuesByRowIdState({});
-      finalizeDetailReorderAsyncSegment("backlinks");
-      return;
-    }
-    const rows = getRows(model, collectionPath) as DataRecord[];
-    const {
-      backlinkColumns,
-      backlinkValuesByRowId,
-    } = await buildBacklinkLookupState({
-      targetFile: selectedPath,
-      targetCollection: collectionPath,
-      rows,
-      viewConfig,
-      activeModel: model,
-      loadDocument: (path) => loadDocument(path, activeProjectId),
-    });
-    if (requestId !== backlinkRequestRef.current) {
-      finalizeDetailReorderAsyncSegment("backlinks");
-      return;
-    }
-    setBacklinkColumns(backlinkColumns as BacklinkGridColumn[]);
-    setBacklinkValuesByRowIdState(backlinkValuesByRowId);
-    finalizeDetailReorderAsyncSegment("backlinks");
   }
 
   async function handleOpenRelationTarget(config: RelationConfig, value: string | number) {
@@ -1933,20 +2058,29 @@ export function App() {
     await openDocumentAt(backlink.sourceFile, backlink.sourceCollection, backlink.rowIndex, true, activeProjectId, backlink.rowId ?? undefined);
   }
 
-  async function loadRelationIndexes(config: ViewConfig) {
-    const requestId = relationIndexRequestRef.current + 1;
-    relationIndexRequestRef.current = requestId;
-    const { relationIndexes: indexes, relationOptions: optionsByKey } = await buildRelationLookupState({
-      relations: config.relations,
-      activeFilePath: selectedPath,
-      activeModel: model,
-      sourceFilePath: selectedPath,
-      sourceCollectionPath: collectionPath,
-      loadDocument: (path: string) => loadDocument(path, activeProjectId),
-    });
-    if (requestId !== relationIndexRequestRef.current) return;
-    setRelationIndexes((current) => sameRelationIndexMap(current, indexes) ? current : indexes);
-    setRelationOptions((current) => sameRelationOptionMap(current, optionsByKey) ? current : optionsByKey);
+  async function loadRelationIndexes(config: ViewConfig, scheduledRequest = relationIndexRequestRef.current) {
+    if (!isDependencyContextCurrent() || scheduledRequest !== relationIndexRequestRef.current || !selectedPath || !model) return;
+    invalidateDependencyLoads("relations");
+    const requestId = relationIndexRequestRef.current;
+    const controller = new AbortController();
+    relationReadAbortRef.current = controller;
+    const isCurrent = () => isDependencyContextCurrent() && requestId === relationIndexRequestRef.current && !controller.signal.aborted;
+    try {
+      setDependencyLoadState(current => ({ ...current, relations: Object.keys(config.relations ?? {}).some(key => key.startsWith(`${selectedPath}:${collectionPath}:`)) ? "关联候选加载中…" : "" }));
+      const resultScope = relationLookupScope(activeProjectId, selectedPath, collectionPath, config.relations);
+      const { relationIndexes: indexes, relationOptions: optionsByKey, errors } = await buildRelationLookupState({
+        relations: config.relations, activeFilePath: selectedPath, activeModel: model,
+        sourceFilePath: selectedPath, sourceCollectionPath: collectionPath,
+        loadDocument: (path: string) => loadDocument(path, activeProjectId, { signal: controller.signal, priority: "background" }),
+      });
+      if (!isCurrent()) return;
+      setLoadedRelationScope(resultScope);
+      setRelationIndexes(current => reuseEquivalentRelationIndexes(current, indexes));
+      setRelationOptions(optionsByKey);
+      setDependencyLoadState(current => ({ ...current, relations: errors.length ? "关联候选部分加载失败：" + errors.map(item => item.message).join("；") : "" }));
+    } catch (error) {
+      if (isCurrent()) setDependencyLoadState(current => ({ ...current, relations: "关联候选加载失败：" + (error instanceof Error ? error.message : String(error)) }));
+    }
   }
 
   const rows = useMemo(() => {
@@ -1962,7 +2096,7 @@ export function App() {
     }
     return nextRows;
   }, [model, collectionPath, dataRevision]);
-  const inlineTemplates = useInlineTemplateDefinitions(activeProjectId, selectedPath, collectionPath);
+  const inlineTemplates = useInlineTemplateDefinitions(activeProjectId, selectedPath, collectionPath,inlineTemplateSource);
   const primaryKeyCandidateAnalyses = useMemo<Record<string, PrimaryKeyCandidateAnalysis>>(() => {
     if (!model || !selectedPath) return {};
     return Object.fromEntries(model.collections.map((collection) => {
@@ -2174,16 +2308,25 @@ export function App() {
       || draftSource.structureDrafts?.[activeCollectionKey]?.items?.length
     ),
   );
+  const pageScrollWriter = useMemo(() => createPageContextScrollWriter(window.localStorage), []);
+  useEffect(() => () => pageScrollWriter.flush(), [pageScrollWriter, activeProjectId, selectedPath, collectionPath, activeViewLayoutId]);
+  useEffect(() => {
+    const flush = () => pageScrollWriter.flush();
+    const hidden = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", hidden);
+    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", hidden); flush(); };
+  }, [pageScrollWriter]);
   const handleTableScrollPositionChange = useCallback((position: { scrollTop: number; scrollLeft: number }) => {
     if (!activeProjectId || !selectedPath || !activeViewLayoutId) return;
-    updatePageContextScroll(window.localStorage, activeProjectId, {
+    pageScrollWriter.queue(activeProjectId, {
       path: selectedPath,
       collectionPath,
       viewId: activeViewLayoutId,
       scrollTop: position.scrollTop,
       scrollLeft: position.scrollLeft,
     });
-  }, [activeProjectId, selectedPath, collectionPath, activeViewLayoutId]);
+  }, [pageScrollWriter, activeProjectId, selectedPath, collectionPath, activeViewLayoutId]);
   const documentStore = useMemo(() => {
     if (!model) {
       documentStoreRef.current = null;
@@ -2238,6 +2381,7 @@ export function App() {
     setScrollRestoreKey(nextScrollRestoreKey);
     setInitialScrollPosition(nextProjectPageContext.scrollByView[nextScrollRestoreKey] ?? null);
   }, [activeProjectId, selectedPath, collectionPath, model, activeViewLayoutId]);
+  const collectionFields = collectionStore?.fields;
   const fieldConfig = useMemo(
     () => {
       const perfState = detailReorderPerfRef.current;
@@ -2253,6 +2397,7 @@ export function App() {
         selectedViewProfileName ? "profile" : "local",
         selectedViewProfileName ? selectedViewProfile : null,
         backlinkColumns.map((column) => column.fieldName),
+        collectionFields,
       );
       if (perfState.active && perfState.awaitingFieldConfig) {
         markPerf("detail-reorder:after-build-field-config");
@@ -2261,7 +2406,7 @@ export function App() {
       }
       return nextFieldConfig;
     },
-    [selectedPath, collectionPath, activeViewLayoutId, model, viewConfig, selectedViewProfile, selectedViewProfileName, layoutRevision, backlinkColumns],
+    [selectedPath, collectionPath, activeViewLayoutId, model, viewConfig, selectedViewProfile, selectedViewProfileName, layoutRevision, backlinkColumns, collectionFields],
   );
   const stableTableFieldConfigRef = useRef<TableFieldConfig | null>(null);
   const tableFieldConfig = useMemo<TableFieldConfig>(() => {
@@ -2286,19 +2431,22 @@ export function App() {
     stableTableFieldConfigRef.current = nextConfig;
     return nextConfig;
   }, [fieldConfig.displayTypes, fieldConfig.hidden, fieldConfig.wrapped, fieldConfig.widths, fieldConfig.order]);
+  // Layout/profile replacements are not changes to validation rules or types.
+  const validationTypesKey = useMemo(() => JSON.stringify(tableFieldConfig.displayTypes), [tableFieldConfig.displayTypes]);
+  const validationRulesKey = useMemo(() => JSON.stringify([viewConfig.primaryKeys, viewConfig.relations]), [viewConfig.primaryKeys, viewConfig.relations]);
   const validationFieldConfig = useMemo(
     () => ({
       displayTypes: tableFieldConfig.displayTypes,
       isCompatible,
     }),
-    [tableFieldConfig.displayTypes],
+    [validationTypesKey],
   );
   const validationRuleConfig = useMemo(
     () => ({
       primaryKeys: viewConfig.primaryKeys,
       relations: viewConfig.relations,
     }),
-    [viewConfig.primaryKeys, viewConfig.relations],
+    [validationRulesKey],
   );
   const activeValidationPrimaryKeyField = useMemo(
     () => selectedPath ? (validationRuleConfig.primaryKeys[buildCollectionKey(selectedPath, collectionPath)] ?? null) : null,
@@ -2315,18 +2463,18 @@ export function App() {
   const generatedDisplayTypes = useMemo(() => Object.fromEntries((generatedFields?.fields ?? []).map((field) => [field.name, "Checkbox"])) as Record<string, FieldDisplayType>, [generatedFields]);
   const allFields = useMemo(
     () => model ? discoverProjectedFields(
-      getOrderedFields(model, collectionPath, tableFieldConfig.order, [...backlinkColumns.map((column) => column.fieldName), ...(generatedFields?.fields ?? []).map((field) => field.name)]),
+      getOrderedFields(model, collectionPath, tableFieldConfig.order, [...backlinkColumns.map((column) => column.fieldName), ...(generatedFields?.fields ?? []).map((field) => field.name)], collectionFields),
       projectionContext,
     ) : [],
-    [model, selectedPath, collectionPath, tableFieldConfig.order, backlinkColumns, projectionContext],
+    [model, selectedPath, collectionPath, tableFieldConfig.order, backlinkColumns, projectionContext, collectionFields],
   );
   const projectedRows = useMemo(
-    () => rows.map((row) => projectDerivedFields(row, projectionContext)),
+    () => generatedFields?.fields.length ? rows.map((row) => projectDerivedFields(row, projectionContext)) : rows,
     [rows, selectedPath, collectionPath, projectionContext],
   );
   const fieldViewConfigs = useMemo(
-    () => model ? buildFieldViewConfigs(selectedPath, collectionPath, model, viewConfig) : {},
-    [selectedPath, collectionPath, model, viewConfig],
+    () => model ? buildFieldViewConfigs(selectedPath, collectionPath, model, viewConfig, collectionFields) : {},
+    [selectedPath, collectionPath, model, viewConfig, collectionFields],
   );
   const viewFilterFieldTypes = useMemo(
     () => Object.fromEntries(allFields.map((field) => [
@@ -2378,7 +2526,7 @@ export function App() {
       markPerf("detail-reorder:before-view-rows");
     }
     const nextViewResult = runViewTyped({
-      rows: viewEngineRows.map(entry=>({...entry,row:projectTemplateSearchRow(entry.row,inlineTemplates)})),
+      rows: inlineTemplates.length ? viewEngineRows.map(entry=>({...entry,row:projectTemplateSearchRow(entry.row,inlineTemplates)})) : viewEngineRows,
       query: activeViewRenderState.query,
       candidateRowIds: null,
       filters: activeViewRenderState.filters,
@@ -2415,7 +2563,7 @@ export function App() {
     nextRowTarget: nextVisibleRowTarget,
   } = detailSelectionState;
   const projectedVisibleRowViews = useMemo(
-    () => visibleRowViews.map((view) => ({
+    () => !generatedFields?.fields.length ? visibleRowViews : visibleRowViews.map((view) => ({
       ...view,
       row: projectDerivedFields(view.row, projectionContext),
     })),
@@ -2520,8 +2668,8 @@ export function App() {
     [selectedPath, collectionPath, viewConfig.titleFields],
   );
   const titleField = useMemo(
-    () => model ? findTitleField(getMainColumns(model, collectionPath), rows, configuredTitleField) : null,
-    [model, collectionPath, rows, configuredTitleField],
+    () => model ? findTitleField(collectionFields?.main ?? getMainColumns(model, collectionPath), rows, configuredTitleField) : null,
+    [model, collectionPath, rows, configuredTitleField, collectionFields],
   );
   useEffect(() => {
     titleFieldRef.current = titleField;
@@ -2724,10 +2872,12 @@ export function App() {
     });
   }, [model, documentStore, selectedPath, collectionPath, activeValidationPrimaryKeyField]);
   const tableSnapshot = useMemo<TableSnapshot>(() => ({
+    baseFontSize: uiPreferences.baseFontSize,
     inlineTemplates,
     projectId: activeProjectId,
     documentEtag: model?.documentEtag,
     schemaModel: model!,
+    collectionFields,
     readonlyFields: generatedFields?.fields.map((field) => field.name) ?? [],
     sourcePath: selectedPath,
     collectionPath,
@@ -2752,7 +2902,7 @@ export function App() {
     canReorderRows,
     onEnableTextEditMode: enableTableTextEditMode,
     onRegisterActiveTextEditor: registerActiveTextEditor,
-  }), [projectionContext, generatedDisplayTypes, allFields,
+  }), [collectionFields, uiPreferences.baseFontSize, projectionContext, generatedDisplayTypes, allFields,
     model,
     selectedPath,
     collectionPath,
@@ -3129,7 +3279,7 @@ export function App() {
     mutator();
     dataDirtyRef.current = true;
     setDataDirty(true);
-    saveCoordinator.markDirty("document");
+    markAutosaveDirty("document");
     bumpDataRevision((value) => value + 1);
     bumpTableRevision((value) => value + 1);
   }
@@ -3145,7 +3295,7 @@ export function App() {
     });
     viewConfigDirtyRef.current = true;
     setViewConfigDirty(true);
-    saveCoordinator.markDirty("project-config");
+    markAutosaveDirty("project-config");
     bumpTableRevision((value) => value + 1);
   }
 
@@ -3166,7 +3316,7 @@ export function App() {
       mutateData();
       dataDirtyRef.current = true;
       setDataDirty(true);
-      saveCoordinator.markDirty("document");
+      markAutosaveDirty("document");
       bumpDataRevision((value) => value + 1);
       changed = true;
     }
@@ -3178,7 +3328,7 @@ export function App() {
       setViewConfig(nextViewConfig);
       viewConfigDirtyRef.current = true;
       setViewConfigDirty(true);
-      saveCoordinator.markDirty("project-config");
+      markAutosaveDirty("project-config");
       changed = true;
     }
     if (changed) bumpTableRevision((value) => value + 1);
@@ -3226,7 +3376,7 @@ export function App() {
     setSelectedViewProfile(next);
     profileDirtyRef.current = true;
     setProfileDirty(true);
-    saveCoordinator.markDirty("profile");
+    markAutosaveDirty("profile");
     return next;
   }
 
@@ -3312,7 +3462,10 @@ export function App() {
       structureDrafts: next.structureDrafts,
     };
     setViewDraftDirty(hasSharedDrafts(next));
-    void commitProfileSave(selectedViewProfileNameRef.current!, selectedViewProfileRef.current).catch(reportSharedDraftSaveFailure);
+    // Last-view changes share the ordinary debounced profile owner.
+    profileDirtyRef.current = true;
+    setProfileDirty(true);
+    markAutosaveDirty("profile");
   }
 
   function updateSharedViewDraftAndPersist(mutator: (draft: SharedViewDraftState) => SharedViewDraftState) {
@@ -3514,9 +3667,15 @@ export function App() {
     bumpUiRevision((value) => value + 1);
   }
 
-  async function commitProfileSave(name: string, profile: UserViewProfile) {
-    const projectId = activeProjectIdRef.current;
+  async function commitProfileSave(
+    name: string,
+    profile: UserViewProfile,
+    projectId = activeProjectIdRef.current,
+    revision = saveRevisionRef.current.profile,
+    epoch = saveScopeEpochRef.current,
+  ) {
     const snapshot = cloneDataRoot(normalizeUserViewProfile(profile));
+    const isOwner = () => projectId === activeProjectIdRef.current && name === selectedViewProfileNameRef.current && epoch === saveScopeEpochRef.current;
     const previousTask = profileSavePromiseRef.current?.catch(() => {}) ?? Promise.resolve();
     const task = previousTask.then(() => saveViewProfile(name, snapshot, projectId));
     const trackedTask = task.finally(() => {
@@ -3525,14 +3684,23 @@ export function App() {
     profileSavePromiseRef.current = trackedTask;
     try {
       await trackedTask;
+      if (isOwner() && revision === saveRevisionRef.current.profile) {
+        profileDirtyRef.current = false;
+        setProfileDirty(false);
+      }
     } catch (error) {
-      if (profileSavePromiseRef.current === trackedTask) profileSavePromiseRef.current = null;
+      if (isOwner()) {
+        profileDirtyRef.current = true;
+        setProfileDirty(true);
+        setAutosaveState("error");
+        setStatus("视图设置保存失败：" + (error instanceof Error ? error.message : String(error)));
+      }
       throw error;
     }
   }
 
   async function flushPendingProfileSave() {
-    if (profileSavePromiseRef.current) await profileSavePromiseRef.current;
+    while (profileSavePromiseRef.current) await profileSavePromiseRef.current;
   }
 
   function getRowIdAtSourceIndex(sourceIndex: number | null, store = collectionStore) {
@@ -3814,7 +3982,7 @@ export function App() {
       const response = await loadDocumentIndex(selectedPath, activeProjectId, { refresh: true });
       setDocumentIndex(response);
       if (currentDocumentId) {
-        const nextContent = await loadDocumentContent(selectedPath, currentDocumentId, activeProjectId, { refresh: true });
+        const nextContent = await loadDocumentContent(selectedPath, currentDocumentId, activeProjectId);
         setDocumentContent(nextContent);
         setDocumentContentError(null);
       }
@@ -4003,6 +4171,7 @@ export function App() {
 
   function handleReorderDetailFields(nextOrder: string[]) {
     if (!selectedPath) return;
+    detailReorderPerfRef.current.generation += 1;
     detailReorderPerfRef.current.active = true;
     detailReorderPerfRef.current.awaitingRows = false;
     detailReorderPerfRef.current.awaitingFieldConfig = true;
@@ -4152,9 +4321,11 @@ export function App() {
   }
 
   async function handleSelectViewProfile(name: string) {
-    flushActiveTextEditorDraft();
-    await saveCoordinator.flush("flush");
-    setSelectedViewProfileName(name === localProfileOptionValue ? null : name);
+    if (!(await flushBeforeDocumentTransition())) return;
+    saveScopeEpochRef.current += 1;
+    const nextName = name === localProfileOptionValue ? null : name;
+    selectedViewProfileNameRef.current = nextName;
+    setSelectedViewProfileName(nextName);
   }
 
   async function handleCreateViewProfile() {
@@ -4412,10 +4583,10 @@ export function App() {
           flushActiveTextEditorDraft();
           for (let refreshAttempt = 0; refreshAttempt < 3; refreshAttempt++) {
           const savedBaseline = savedDocumentRootRef.current;
-          const persisted = await loadDocument(selectedPath, activeProjectId);
-          const policyResponse = await fetch(`/api/field-write-policy?projectId=${encodeURIComponent(activeProjectId)}`);
-          if (!policyResponse.ok) throw new Error("无法同步生成字段保护；当前草稿已保留。");
-          const policies = await policyResponse.json();
+          const persisted = await loadDocument(selectedPath, activeProjectId, {fresh:true});
+          const policyResponse = await readJson(`/api/field-write-policy?projectId=${encodeURIComponent(activeProjectId)}`,{fresh:true});
+
+          const policies = policyResponse;
           if (activeProjectIdRef.current !== activeProjectId || selectedPathRef.current !== selectedPath || !modelRef.current) return;
           if (savedDocumentRootRef.current !== savedBaseline) continue;
           const applicablePolicies = policies.policies.filter((p: {file:string}) => p.file === selectedPath);
@@ -5087,7 +5258,7 @@ export function App() {
 
   function handleToggleFavoriteSharedViewIcon(icon: SharedViewIconId) {
     if (!selectedViewProfileName) return;
-    const nextProfile = mutateSelectedViewProfile((draft) => {
+    mutateSelectedViewProfile((draft) => {
       const current = new Set(draft.favoriteSharedViewIconIds ?? []);
       if (current.has(icon)) {
         current.delete(icon);
@@ -5096,9 +5267,6 @@ export function App() {
       }
       draft.favoriteSharedViewIconIds = [...current];
     });
-    if (nextProfile) {
-      void commitProfileSave(selectedViewProfileNameRef.current!, nextProfile);
-    }
   }
 
   async function handleDeleteSharedView(viewId: string) {
@@ -5532,7 +5700,7 @@ export function App() {
       savedRoot: savedDocumentRootRef.current,
       viewConfig: currentViewConfig,
       activeProjectId: activeProjectIdRef.current,
-      loadDocument: (path) => loadDocument(path, activeProjectIdRef.current),
+      loadDocument: (path) => loadDocument(path, activeProjectIdRef.current, {fresh:true}),
     });
     setRelationBacklinks(nextState.relationBacklinks);
     setPrimaryKeyImpacts(nextState.primaryKeyImpacts);
@@ -5551,6 +5719,9 @@ export function App() {
     const currentProfileDirty = profileDirtyRef.current;
     const currentProfileName = selectedViewProfileNameRef.current;
     const currentProjectId = activeProjectIdRef.current;
+    const currentProfile = selectedViewProfileRef.current;
+    const revisions = { ...saveRevisionRef.current };
+    const epoch = saveScopeEpochRef.current;
     let currentPrimaryKeySyncPlan = primaryKeySyncPlanRef.current;
     if (!dirtyDomains.length) return { outcome: "idle" } as const;
     if (commandSavingRef.current || closingRef.current || rebuildingRef.current || restartingRef.current) return { outcome: "deferred" } as const;
@@ -5588,29 +5759,41 @@ export function App() {
         message: "当前改动需要先确认主键同步影响。",
       } as const;
     }
+    let savingDomain: AutosaveDomain = "document";
     autosaveInFlightRef.current = true;
     setStatus("");
     try {
       if (dirtyDomains.includes("document") && currentDataDirty && currentModel && currentSelectedPath) {
-        const saveResult = await saveDocument(currentSelectedPath, currentModel.root, currentProjectId, currentModel.documentEtag);
+        savingDomain = "document";
+        const rootSnapshot = cloneDataRoot(currentModel.root);
+        const saveResult = await saveDocument(currentSelectedPath, rootSnapshot, currentProjectId, currentModel.documentEtag);
         if (saveResult.documentEtag) currentModel.documentEtag = saveResult.documentEtag;
-        savedDocumentRootRef.current = cloneDataRoot(currentModel.root);
-        dataDirtyRef.current = false;
-        setDataDirty(false);
+        if (currentProjectId === activeProjectIdRef.current && currentSelectedPath === selectedPathRef.current && currentModel === modelRef.current && epoch === saveScopeEpochRef.current) {
+          savedDocumentRootRef.current = rootSnapshot;
+          if (revisions.document === saveRevisionRef.current.document) {
+            dataDirtyRef.current = false;
+            setDataDirty(false);
+          }
+        }
       }
       if (dirtyDomains.includes("project-config") && currentViewConfigDirty) {
+        savingDomain = "project-config";
         await saveViewConfig(currentViewConfig, currentProjectId);
-        viewConfigDirtyRef.current = false;
-        setViewConfigDirty(false);
+        if (currentProjectId === activeProjectIdRef.current && epoch === saveScopeEpochRef.current && revisions["project-config"] === saveRevisionRef.current["project-config"]) {
+          viewConfigDirtyRef.current = false;
+          setViewConfigDirty(false);
+        }
       }
       if (dirtyDomains.includes("profile") && currentProfileDirty && currentProfileName) {
-        await commitProfileSave(currentProfileName, selectedViewProfileRef.current);
-        profileDirtyRef.current = false;
-        setProfileDirty(false);
+        savingDomain = "profile";
+        await commitProfileSave(currentProfileName, currentProfile, currentProjectId, revisions.profile, epoch);
       }
       return { outcome: "saved" } as const;
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
+      if (currentProjectId === activeProjectIdRef.current && epoch === saveScopeEpochRef.current) {
+        const label = savingDomain === "profile" ? "视图设置" : savingDomain === "project-config" ? "项目配置" : "数据内容";
+        setStatus(label + "保存失败：" + (error instanceof Error ? error.message : String(error)));
+      }
       throw error;
     } finally {
       autosaveInFlightRef.current = false;
@@ -5665,9 +5848,7 @@ export function App() {
       }
       if (viewConfigDirtyRef.current) await saveViewConfig(viewConfigRef.current, activeProjectId);
       if (profileDirtyRef.current && selectedViewProfileNameRef.current) {
-        await commitProfileSave(selectedViewProfileNameRef.current, selectedViewProfileRef.current);
-        profileDirtyRef.current = false;
-        setProfileDirty(false);
+        await commitProfileSave(selectedViewProfileNameRef.current, selectedViewProfileRef.current, activeProjectId);
       } else {
         await flushPendingProfileSave();
       }
@@ -6054,7 +6235,8 @@ export function App() {
                 </Profiler>
               ) : null}
               <Profiler id="data-table" onRender={handleDetailReorderProfilerRender}>
-                <DataTable
+            {Object.values(dependencyLoadState).some(Boolean) ? <div className="dependency-load-status" role="status">{Object.values(dependencyLoadState).filter(Boolean).join(' / ')} <button type="button" onClick={()=>{void loadRelationIndexes(viewConfig);void loadBacklinkGridData();}}>重试依赖加载</button></div> : null}
+            <DataTable
                   snapshot={tableSnapshot}
                   onScrollPositionChange={handleTableScrollPositionChange}
                   onSelectRow={selectRow}
@@ -6172,6 +6354,7 @@ export function App() {
                 onDismiss={dismissPrimaryKeyCandidates}
               />
             ) : null}
+            {Object.values(dependencyLoadState).some(Boolean) ? <div className="dependency-load-status" role="status">{Object.values(dependencyLoadState).filter(Boolean).join(' / ')} <button type="button" onClick={()=>{void loadRelationIndexes(viewConfig);void loadBacklinkGridData();}}>重试依赖加载</button></div> : null}
             <DataTable
               snapshot={tableSnapshot}
               onScrollPositionChange={handleTableScrollPositionChange}
@@ -6528,6 +6711,7 @@ function AutomationSettingsDialog(props: {
   const [bindings, setBindings] = useState<DeviceEntryActionBindings>(props.bindings);
   const [targetCatalog, setTargetCatalog] = useState<AutomationTargetCatalogItem[]>([]);
   const [targetCatalogLoading, setTargetCatalogLoading] = useState(false);
+  const [targetCatalogRetry,setTargetCatalogRetry]=useState(0);
   const [targetCatalogError, setTargetCatalogError] = useState<string | null>(null);
   const [skillCatalog, setSkillCatalog] = useState<AutomationSkillCatalog>({ provider: "codex", loadedAt: "", skills: [] });
   const [skillCatalogLoading, setSkillCatalogLoading] = useState(false);
@@ -6674,46 +6858,27 @@ function AutomationSettingsDialog(props: {
     void refreshSkillCatalog(props.project.id);
   }, [props.open, props.project?.id, refreshSkillCatalog]);
 
-  useEffect(() => {
-    if (!props.open || !props.project?.id) return;
-    let cancelled = false;
-    setTargetCatalogLoading(true);
-    setTargetCatalogError(null);
-    Promise.all(props.files.map(async (file) => {
-      try {
-        const model = await loadDocument(file.path, props.project!.id) as DocumentModel;
-        return {
-          file: file.path,
-          label: file.displayPath ?? file.path,
-          collections: model.collections.map((collection) => collection.path),
-          error: null,
-        };
-      } catch (catalogError) {
-        return {
-          file: file.path,
-          label: file.displayPath ?? file.path,
-          collections: [],
-          error: catalogError instanceof Error ? catalogError.message : String(catalogError),
-        };
+  useEffect(()=>{setTargetCatalog(props.files.map(file=>({file:file.path,label:file.displayPath??file.path,collections:[]})));},[props.project?.id,props.files]);
+  const targetFilesToLoadKey=JSON.stringify([...new Set((selectedRuleIndex==null?[]:rules[selectedRuleIndex]?.targets??[]).map(target=>target.file).filter(Boolean))]);
+  useEffect(()=>{
+    if(!props.open||!props.project?.id)return;
+    const projectId=props.project.id,controller=new AbortController();let cancelled=false;
+    const wanted=JSON.parse(targetFilesToLoadKey) as string[];
+    setTargetCatalogLoading(wanted.length>0);setTargetCatalogError(null);
+    void (async()=>{
+      for(const file of wanted){
+        if(cancelled)return;
+        try{
+          const metadata=await loadDocumentMetadata(file,projectId,{signal:controller.signal,priority:'background'});
+          if(cancelled)return;
+          const collections=metadata.collections.map(item=>item.path);
+          setTargetCatalog(current=>current.map(item=>item.file===file?{...item,collections}:item));
+          commitProfile(current=>({...current,rules:current.rules.map(rule=>({...rule,targets:rule.targets.map(target=>target.file===file&&!target.collection?{...target,collection:collections[0]??''}:target)}))}));
+        }catch(error){if(!cancelled)setTargetCatalogError('目标集合读取失败：'+String((error as Error).message));}
       }
-    }))
-      .then((items) => {
-        if (cancelled) return;
-        setTargetCatalog(items.map((item) => ({
-          file: item.file,
-          label: item.label,
-          collections: item.collections,
-        })));
-        const failedCount = items.filter((item) => item.error).length;
-        setTargetCatalogError(failedCount ? `有 ${failedCount} 个文件未能读取可选集合，仍可继续编辑已加载的目标。` : null);
-      })
-      .finally(() => {
-        if (!cancelled) setTargetCatalogLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [props.open, props.project?.id, props.files]);
+    })().finally(()=>{if(!cancelled)setTargetCatalogLoading(false);});
+    return ()=>{cancelled=true;controller.abort();};
+  },[props.open,props.project?.id,props.files,targetFilesToLoadKey,targetCatalogRetry,commitProfile]);
 
   const controlsDisabled = saving || loading || !props.project || loadedProjectId !== props.project.id || loadedProjectId === null;
   const skillCatalogMap = useMemo(
@@ -6855,7 +7020,7 @@ function AutomationSettingsDialog(props: {
 
   function addRuleTarget(index: number) {
     const file = targetCatalog[0]?.file ?? "";
-    const collection = resolveTargetCollectionOptions(targetCatalogByFile, file)[0] ?? "$";
+    const collection = targetCatalogByFile[file]?.collections[0] ?? "";
     updateRuleWith(index, (rule) => withProjectInputTargetFiles({ ...rule, targets: [...rule.targets, { file, collection }] }));
   }
 
@@ -6872,7 +7037,7 @@ function AutomationSettingsDialog(props: {
         return {
           ...target,
           file,
-          collection: collectionOptions[0] ?? target.collection,
+          collection: targetCatalogByFile[file]?.collections[0] ?? "",
         };
       }),
     }));
@@ -7677,7 +7842,7 @@ function AutomationSettingsDialog(props: {
                                 )}
                               </div>
                               {targetCatalogLoading ? <div className="automation-settings-loading">正在加载目标候选...</div> : null}
-                              {targetCatalogError ? <div className="dialog-help">{targetCatalogError}</div> : null}
+                              {targetCatalogError ? <div className="dialog-help">{targetCatalogError} <button type="button" onClick={()=>setTargetCatalogRetry(value=>value+1)}>重试目标集合</button></div> : null}
                               <div className="automation-target-list">
                                 {selectedRule.targets.map((target, targetIndex) => {
                                   const collectionOptions = resolveTargetCollectionOptions(targetCatalogByFile, target.file, target.collection);
@@ -7761,7 +7926,7 @@ function AutomationSettingsDialog(props: {
                                               aria-expanded={targetPickerOpenId === collectionPickerId}
                                               className="select-trigger automation-target-picker-trigger"
                                               aria-label={`目标集合 ${targetIndex + 1}`}
-                                              disabled={!target.file}
+                                              disabled={!targetCatalogByFile[target.file]?.collections.length}
                                             >
                                               <span className="automation-target-picker-trigger__value">
                                                 {describeCollectionPath(target.collection)}
@@ -8658,6 +8823,7 @@ function buildFieldConfig(
   mode: "local" | "profile",
   profile: UserViewProfile | null,
   extraFields: string[] = [],
+  classified?: {main: string[]; nested: string[]},
 ): FieldConfig {
   const displayTypes: Record<string, FieldDisplayType> = {};
   const activeState = path && viewId
@@ -8682,7 +8848,8 @@ function buildFieldConfig(
   const detailOrder = [...activeState.detailOrder];
   if (!path || !model) return { displayTypes, hidden, wrapped, widths, order, detailOrder };
   const rowsInCollection = getRows(model, collectionPath) as DataRecord[];
-  const fields = [...new Set([...getMainColumns(model, collectionPath), ...getNestedFields(model, collectionPath), ...extraFields])];
+  const classification = classified ?? getCollectionFields(model, collectionPath);
+  const fields = [...new Set([...classification.main, ...classification.nested, ...extraFields])];
   for (const field of fields) {
     const sample = rowsInCollection.find((row) => row[field] !== undefined && row[field] !== null)?.[field]
       ?? rowsInCollection.find((row) => row[field] !== undefined)?.[field];
@@ -8693,10 +8860,10 @@ function buildFieldConfig(
   return { displayTypes, hidden, wrapped, widths, order, detailOrder };
 }
 
-function getOrderedFields(model: DocumentModel, collectionPath: string, order: string[], extraFields: string[] = []) {
+function getOrderedFields(model: DocumentModel, collectionPath: string, order: string[], extraFields: string[] = [], classified = getCollectionFields(model, collectionPath)) {
   return orderColumns([
-    ...getMainColumns(model, collectionPath),
-    ...getNestedFields(model, collectionPath),
+    ...classified.main,
+    ...classified.nested,
     ...extraFields,
   ], order);
 }
@@ -9127,9 +9294,9 @@ function emptyProjectViewConfig(): ViewConfig {
     titleFields: {},
     documentFiles: {},
     documentFields: {},
-    primaryKeys: defaultPrimaryKeys(),
-    backlinks: defaultBacklinkConfigs() as Record<string, BacklinkConfig>,
-    relations: cloneRelationConfigs(defaultRelationConfigs() as Record<string, RelationConfig>),
+    primaryKeys: {},
+    backlinks: {},
+    relations: {},
     relationsVersion: currentRelationsVersion,
   };
 }
@@ -9407,9 +9574,9 @@ function fieldViewConfigKey(path: string | null, collectionPath: string, fieldNa
   return `${path}:${collectionPath}:${fieldName}`;
 }
 
-function buildFieldViewConfigs(path: string | null, collectionPath: string, model: DocumentModel, viewConfig: ViewConfig) {
+function buildFieldViewConfigs(path: string | null, collectionPath: string, model: DocumentModel, viewConfig: ViewConfig, classified = getCollectionFields(model, collectionPath)) {
   const result: Record<string, ViewConfig["fields"][string]> = {};
-  const fields = [...getMainColumns(model, collectionPath), ...getNestedFields(model, collectionPath)];
+  const fields = [...classified.main, ...classified.nested];
   for (const fieldName of fields) {
     const key = fieldViewConfigKey(path, collectionPath, fieldName);
     result[fieldName] = key ? (viewConfig.fields[key] ?? emptyFieldViewConfig()) : emptyFieldViewConfig();

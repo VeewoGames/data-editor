@@ -87,7 +87,7 @@ export function buildTableColumnModelsSignature({
       signatureCapabilities(capabilities),
       signatureBacklinkColumn(backlinkColumn),
       signatureRelationConfig(relationConfig),
-      signatureRelationOptions(relationOptionsByField[fieldName] ?? []),
+      Array.isArray(relationOptionsByField[fieldName]) ? signatureRelationOptions(relationOptionsByField[fieldName]) : 'relation-pending',
       signatureOptionConfig(fieldOptions[fieldName]),
       signatureOptionConfig(selectOptions[fieldName]),
       signatureDocumentLabels(documentLabelsByField[fieldName]),
@@ -133,7 +133,7 @@ function signatureRelationOptions(options) {
 
 function signatureOptionConfig(config) {
   if (!config) return "";
-  return config.options.map((option) => [option.value, option.label, option.color ?? ""].join("|")).join(",");
+  return config.options.map((option) => [option.value, option.label, option.color ?? "", JSON.stringify(option.dataValue), option.dataValueAmbiguous ? "ambiguous" : "", option.dataValueNeedsPersistence ? "unrecorded" : ""].join("|")).join(",");
 }
 
 function signatureCapabilities(capabilities) {

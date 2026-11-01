@@ -22,8 +22,7 @@ export async function readInlineTemplateDefinitions(context) {
     const identity=JSON.stringify([item.file,item.collection,item.field]);if(seen.has(identity))throw commandError('INLINE_TEMPLATE_CONFIG_INVALID');seen.add(identity);
     return {file:item.file,collection:item.collection,field:item.field,label:typeof presentation.label==='string'?presentation.label:item.field,
       languages:languages.map(({key,label})=>({key,label})),tableLanguage:presentation.tableLanguage??languages[0]?.key??null,
-      writePolicies:fieldPolicy.policies.filter(rule=>rule.file===item.file&&rule.collection===item.collection),
-      advancedFields:Array.isArray(presentation.advancedFields)?presentation.advancedFields.filter(x=>typeof x==='string'):[]};
+      writePolicies:fieldPolicy.policies.filter(rule=>rule.file===item.file&&rule.collection===item.collection)};
   });
   return {version:1,templates};
 }

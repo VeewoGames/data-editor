@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'vite';
 import {chromium} from '@playwright/test';
+import {fileURLToPath} from 'node:url';
 
 // In-memory browser fixture: no production data, service, temporary server or port.
 const fixture='virtual:inline-template-draft-fixture';
 const source='Deal <value ref="damage">30% Power</value> damage and <kw id="slow" mode="default">Slow</kw>.测试';
-const built=await build({configFile:false,logLevel:'silent',plugins:[{name:'inline-template-draft-fixture',resolveId(id){if(id===fixture)return '\0'+fixture;},load(id){if(id==='\0'+fixture)return `import React from 'react';import {createRoot} from 'react-dom/client';import {TemplateEditor} from ${JSON.stringify(new URL('../src/detail/InlineTemplateField.tsx',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1'))};
+const built=await build({configFile:false,logLevel:'silent',plugins:[{name:'inline-template-draft-fixture',resolveId(id){if(id===fixture)return '\0'+fixture;},load(id){if(id==='\0'+fixture)return `import React from 'react';import {createRoot} from 'react-dom/client';import {TemplateEditor} from ${JSON.stringify(fileURLToPath(new URL('../src/detail/InlineTemplateField.tsx',import.meta.url)).replaceAll('\\','/'))};
 const root=createRoot(document.getElementById('root'));let props={identity:'fixture:row:copy:en',source:${JSON.stringify(source)},values:{damage:{label:'30% Power'}},onChange:value=>window.changes.push(value)};window.changes=[];window.renderFixture=next=>{props={...props,...next};root.render(React.createElement(TemplateEditor,props));};window.renderFixture({});`;}}],build:{write:false,minify:false,rollupOptions:{input:fixture,output:{format:'iife'}}}});
 const script=built.output.find(item=>item.type==='chunk').code;
 

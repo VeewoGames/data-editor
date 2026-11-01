@@ -270,13 +270,7 @@ test("loadAutomationSkillCatalog reads the catalog endpoint with projectId", asy
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options) => {
     calls.push({ url, options });
-    return {
-      ok: true,
-      status: 200,
-      async json() {
-        return { provider: "codex", loadedAt: "2026-07-08T12:00:00.000Z", skills: [] };
-      },
-    };
+    return new Response(JSON.stringify({provider:"codex",loadedAt:"2026-07-08T12:00:00.000Z",skills:[]}),{status:200});
   };
 
   try {

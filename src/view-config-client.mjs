@@ -1,4 +1,5 @@
 import { normalizeCheckboxPresentation } from "./model/checkbox-presentation.mjs";
+import { normalizeOptionDataValue } from "./multiselect-config.mjs";
 
 export default function normalizeFetchedViewConfig(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return emptyViewConfig();
@@ -67,6 +68,7 @@ function normalizeOptionMap(value) {
   for (const [optionValue, optionConfig] of Object.entries(value)) {
     if (!optionConfig || typeof optionConfig !== "object" || Array.isArray(optionConfig)) continue;
     normalized[optionValue] = {
+      ...normalizeOptionDataValue(optionValue, optionConfig.dataValue),
       label: typeof optionConfig.label === "string" && optionConfig.label.trim() ? optionConfig.label : optionValue,
       color: typeof optionConfig.color === "string" && optionConfig.color.trim() ? optionConfig.color : null,
     };

@@ -20,11 +20,12 @@ export function runView({
   let projectedRows = derivedFieldProjection ? projectViewEngineRows(rows, derivedFieldProjection) : rows;
   if (derivedFieldProjection?.declarationPending) projectedRows = projectPendingGeneratedComparisons(projectedRows, filters);
   const searchResult = runSearch({ rows: projectedRows, query, candidateRowIds });
-  const filteredRows = materializeRows(
+  const rules = Array.isArray(filters?.topLevelRules) ? filters.topLevelRules : (Array.isArray(filters?.rules) ? filters.rules : []);
+  const filteredRows = !rules.length && !filters?.advancedRoot ? searchResult.searchRows : materializeRows(
     applyViewFilters(searchResult.searchRows.map(createRuntimeRow), "", filters, fieldTypes),
     searchResult.searchRows,
   );
-  const visibleRows = materializeRows(
+  const visibleRows = !Array.isArray(sorts) || !sorts.length ? filteredRows : materializeRows(
     applyViewSorts(filteredRows.map(createRuntimeRow), sorts, fieldTypes, optionOrdersByField),
     filteredRows,
   );

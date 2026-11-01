@@ -11,6 +11,7 @@ import { buildBacklinkGrid, getBacklinkColumnsForView } from "./backlink-grid.mj
  *   loadDocument: (path: string) => Promise<import("./documentModel").DocumentModel>;
  * }} input
  * @returns {Promise<{
+ *   errors: Array<{key:string;message:string}>;
  *   backlinkColumns: import("./backlinkGrid").BacklinkGridColumn[];
  *   backlinkValuesByRowId: Record<string, Record<string, import("./relationMaintenance").RelationBacklink[]>>;
  * }>}
@@ -23,6 +24,7 @@ export async function buildBacklinkLookupState({
   activeModel,
   loadDocument,
 }) {
+  const errors=[];
   const backlinkColumns = getBacklinkColumnsForView({
     targetFile,
     targetCollection,
@@ -30,19 +32,21 @@ export async function buildBacklinkLookupState({
   });
   if (!backlinkColumns.length) {
     return {
+      errors,
       backlinkColumns: [],
       backlinkValuesByRowId: {},
     };
   }
   const sourceFiles = [...new Set(backlinkColumns.map((column) => column.sourceRelation.split(":")[0]).filter(Boolean))];
   const documentsByPath = {};
-  await Promise.all(sourceFiles.map(async (path) => {
+  for (const path of sourceFiles) {
     try {
       documentsByPath[path] = path === targetFile ? activeModel : await loadDocument(path);
-    } catch {
-      // Leave missing source documents unresolved so backlink columns remain empty.
+    } catch (error) {
+      errors.push({key:path,message:error.message});
+      // Keep the declaration, with an explicit unavailable state at the caller.
     }
-  }));
+  }
   const grid = buildBacklinkGrid({
     targetFile,
     targetCollection,
@@ -55,6 +59,7 @@ export async function buildBacklinkLookupState({
     model: activeModel,
   }).collections.get(targetCollection) ?? null;
   return {
+    errors,
     backlinkColumns: grid.columns,
     backlinkValuesByRowId: remapBacklinkValuesByRowId(grid.valuesByRowIndex, collectionStore),
   };

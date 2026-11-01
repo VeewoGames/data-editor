@@ -1,3 +1,24 @@
+const bindingIndexes = new WeakMap();
+function indexedBindingRows(context, binding) {
+  let cached = bindingIndexes.get(context);
+  const generated = context.generated;
+  if (!cached || cached.generated !== generated || cached.generation !== generated.generation || cached.etag !== generated.documentEtag) {
+    cached = {generated, generation: generated.generation, etag: generated.documentEtag, bindings: new WeakMap()};
+    bindingIndexes.set(context, cached);
+  }
+  let entry = cached.bindings.get(binding);
+  if (!entry || entry.rows !== binding.rows || entry.digest !== binding.artifactDigest) {
+    const index = new Map();
+    for (const candidate of binding.rows) {
+      // Map uses SameValueZero; skip NaN to retain strict === find semantics.
+      if (typeof candidate.id === 'number' && Number.isNaN(candidate.id)) continue;
+      if (!index.has(candidate.id)) index.set(candidate.id, candidate);
+    }
+    entry = {rows: binding.rows, digest: binding.artifactDigest, index};
+    cached.bindings.set(binding, entry);
+  }
+  return entry.index;
+}
 const metadata = new WeakMap();
 export function generatedFieldState(row, fieldName) { return metadata.get(row)?.[fieldName] ?? null; }
 export function copyGeneratedMetadata(source, target) { const value = metadata.get(source); if (value) metadata.set(target, value); return target; }
@@ -14,7 +35,7 @@ export function projectDerivedFields(row, context = {}) {
   if (!row || !context.generated?.fields?.length) return row;
   const copy = { ...row }; const states = Object.create(null);
   for (const binding of context.generated.bindings ?? []) {
-    const result = binding.rows.find((candidate) => candidate.id === row[binding.identityField]);
+    const result = indexedBindingRows(context, binding).get(row[binding.identityField]);
     for (const field of binding.fields) {
       if (Object.hasOwn(row, field.name)) { states[field.name] = { ready: false, reason: "生成字段与源字段冲突" }; continue; }
       const ready = !context.dirty && binding.state === "ready" && result?.state === "ready" && typeof result.values?.[field.name] === "boolean";
@@ -24,7 +45,7 @@ export function projectDerivedFields(row, context = {}) {
   }
   metadata.set(copy, states); return copy;
 }
-export function projectViewEngineRows(rows, context = {}) { return rows.map((entry) => ({ ...entry, row: projectDerivedFields(entry.row, context) })); }
+export function projectViewEngineRows(rows, context = {}) { if (!context.generated?.fields?.length) return rows; return rows.map((entry) => ({ ...entry, row: projectDerivedFields(entry.row, context) })); }
 
 /** Before the first declaration response, only absent-field Boolean rules are
  * unresolved. Existing ordinary fields (including null values) keep their

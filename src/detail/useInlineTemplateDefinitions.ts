@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
-export type InlineTemplateDefinition={file:string;collection:string;field:string;label:string;languages:{key:string;label:string}[];tableLanguage:string|null;writePolicies?:{fields:string[];requiresFields:string[];rowSelector?:{primaryKeyField:string;values:Array<string|number>}}[];advancedFields:string[]};
-export function useInlineTemplateDefinitions(projectId:string|null,path:string|null,collection:string){
- const scope=JSON.stringify([projectId,path,collection]);
- const [state,setState]=useState<{scope:string;items:InlineTemplateDefinition[]}>();
- useEffect(()=>{let stale=false;if(!projectId||!path)return;fetch(`/api/inline-template-definitions?${new URLSearchParams({projectId})}`,{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('描述编辑配置不可用');return r.json();}).then(result=>{if(!stale)setState({scope,items:result.templates.filter((item:InlineTemplateDefinition)=>item.file===path&&item.collection===collection)});}).catch(()=>{if(!stale)setState({scope,items:[]});});return()=>{stale=true;};},[scope]);
- return state?.scope===scope?state.items:EMPTY;
+import {useMemo} from 'react';
+export type InlineTemplateDefinition={file:string;collection:string;field:string;label:string;languages:{key:string;label:string}[];tableLanguage:string|null;writePolicies?:{fields:string[];requiresFields:string[];rowSelector?:{primaryKeyField:string;values:Array<string|number>}}[]};
+// The document open owns this required configuration read. Project/collection
+// projection is pure and cannot silently become an unconfigured editor on error.
+export function useInlineTemplateDefinitions(projectId:string|null,path:string|null,collection:string,source:{projectId:string|null;templates:InlineTemplateDefinition[]}|null){
+ return useMemo(()=>source?.projectId===projectId ? source.templates.filter(item=>item.file===path&&item.collection===collection) : [],[projectId,path,collection,source]);
 }
-const EMPTY:InlineTemplateDefinition[]=[];

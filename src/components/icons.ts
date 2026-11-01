@@ -1,3 +1,4 @@
+import { readJson } from '../api/read-coordinator.mjs';
 import { createElement } from "react";
 import {
   IconAlertTriangleFilled,
@@ -263,16 +264,13 @@ async function loadSharedViewIconManifest(
 ) {
   const cached = sharedViewIconManifestCache.get(packId);
   if (cached) return cached;
-  const loader = fetch(`/api/shared-view-icon-pack-manifest?packId=${encodeURIComponent(packId)}`)
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to load shared view icon manifest: ${packId}`);
-      }
-      const payload = await response.json() as SharedViewGeneratedManifestEntry[];
-      sharedViewIconIdsByPackId[packId].splice(0, sharedViewIconIdsByPackId[packId].length, ...payload.map((entry) => entry.id));
-      for (const entry of payload) sharedViewGeneratedIconSearchText[entry.id] = entry.searchText;
+  // This module instance belongs to one loaded application build.
+  const loader = readJson(`/api/shared-view-icon-pack-manifest?packId=${encodeURIComponent(packId)}`)
+    .then((payload: SharedViewGeneratedManifestEntry[]) => {
+      sharedViewIconIdsByPackId[packId].splice(0, sharedViewIconIdsByPackId[packId].length, ...payload.map(entry=>entry.id));
+      for(const entry of payload)sharedViewGeneratedIconSearchText[entry.id]=entry.searchText;
       return payload;
-    });
+    }).catch((error:unknown)=>{if(sharedViewIconManifestCache.get(packId)===loader)sharedViewIconManifestCache.delete(packId);throw error;});
   sharedViewIconManifestCache.set(packId, loader);
   return loader;
 }
@@ -351,13 +349,8 @@ async function registerSvgPackEntries(
 function loadSharedViewIconPackSvgTextMap(packId: Exclude<SharedViewIconPackId, "base" | "legacy">) {
   const cached = sharedViewIconPackSvgTextCache.get(packId);
   if (cached) return cached;
-  const loader = fetch(`/api/shared-view-icon-pack?packId=${encodeURIComponent(packId)}`)
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to load shared view icon pack: ${packId}`);
-      }
-      return response.json() as Promise<Record<string, string>>;
-    });
+  const loader: Promise<Record<string,string>> = readJson(`/api/shared-view-icon-pack?packId=${encodeURIComponent(packId)}`,{priority:'background',timeoutMs:30000})
+    .catch((error:unknown)=>{if(sharedViewIconPackSvgTextCache.get(packId)===loader)sharedViewIconPackSvgTextCache.delete(packId);throw error;});
   sharedViewIconPackSvgTextCache.set(packId, loader);
   return loader;
 }

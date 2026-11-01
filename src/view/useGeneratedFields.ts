@@ -1,9 +1,11 @@
+import { readJson } from '../api/read-coordinator.mjs';
 import { createGeneratedFieldResolver, invalidateGeneratedFieldResult } from "./generated-field-resolver.mjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GeneratedFieldsResponse } from "./generated-fields-types";
 
 /** One resolver for load, save/version changes, focus and visible polling. */
 export function useGeneratedFields(projectId: string | null, sourcePath: string | null, collectionPath: string, documentEtag: string | undefined, dirty: boolean) {
+  const readAbort=useRef<AbortController|null>(null);
   const [loaded, setLoaded] = useState<{ key: string; value: GeneratedFieldsResponse } | null>(null);
   const key = JSON.stringify([projectId, sourcePath, collectionPath, documentEtag]);
   const latest = useRef({ key, projectId, sourcePath, collectionPath, documentEtag, dirty });
@@ -12,9 +14,8 @@ export function useGeneratedFields(projectId: string | null, sourcePath: string 
     getCurrent: () => latest.current,
     read: async (request) => {
       const query = new URLSearchParams({ projectId: request.projectId!, path: request.sourcePath!, collection: request.collectionPath });
-      const response = await fetch(`/api/generated-fields?${query}`, { cache: "no-store" });
-      if (!response.ok) throw new Error("生成字段读取失败");
-      return await response.json() as GeneratedFieldsResponse;
+      readAbort.current?.abort();const controller=new AbortController();readAbort.current=controller;
+      return await readJson(`/api/generated-fields?${query}`, {signal:controller.signal}) as GeneratedFieldsResponse;
     },
     onResult: (request, value) => {
       if (value.projectId !== request.projectId || value.sourcePath !== request.sourcePath || value.collectionPath !== request.collectionPath || !Array.isArray(value.fields) || !Array.isArray(value.bindings)) throw new Error("生成字段作用域失配");
@@ -34,7 +35,7 @@ export function useGeneratedFields(projectId: string | null, sourcePath: string 
     const refresh = () => { if (document.visibilityState === "visible") refreshRef.current(); };
     window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh);
     const timer = window.setInterval(refresh, 15000);
-    return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.clearInterval(timer); resolver.dispose(); };
+    return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.clearInterval(timer); readAbort.current?.abort();resolver.dispose(); };
   }, [resolver]);
   return useMemo(() => {
     const value = loaded?.value;

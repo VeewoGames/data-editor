@@ -7,6 +7,7 @@ import type { RelationOption } from "../model/relations";
 import { buildRelationKey } from "../model/relationPath";
 import type { MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import { parseNumberDraft, sanitizeNumberDraft } from "../editing/number-draft";
+import { buildSchemaOptionViews } from "../multiselect-config.mjs";
 import { AutoSizeTextarea } from "./AutoSizeTextarea";
 import { MultiSelectCellEditor } from "../table/MultiSelectCellEditor";
 import { forwardOptionFieldSurfaceClick } from "../table/OptionFieldEditor";
@@ -502,7 +503,7 @@ function buildNodeSections(
 }
 
 function normalizeNodeOptions(options: NodeFieldSchema["options"]): MultiSelectOptionView[] {
-  return (options ?? []).map((option) => ({ value: String(option.value), label: option.label, color: null }));
+  return buildSchemaOptionViews(options);
 }
 
 function getRelationConfig(

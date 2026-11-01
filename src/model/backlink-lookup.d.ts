@@ -11,6 +11,7 @@ export declare function buildBacklinkLookupState(input: {
   activeModel: DocumentModel;
   loadDocument: (path: string) => Promise<DocumentModel>;
 }): Promise<{
+  errors: Array<{key:string;message:string}>;
   backlinkColumns: BacklinkGridColumn[];
   backlinkValuesByRowId: Record<string, Record<string, RelationBacklink[]>>;
 }>;

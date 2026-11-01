@@ -10,6 +10,9 @@ export declare function buildRelationLookupState(input: {
   sourceCollectionPath?: string | null | undefined;
   loadDocument: (path: string) => Promise<DocumentModel>;
 }): Promise<{
+  errors: Array<{key:string;message:string}>;
   relationIndexes: Record<string, Set<string> | null>;
   relationOptions: Record<string, RelationOption[]>;
 }>;
+export function relationLookupScope(projectId: string | null, file: string | null, collection: string, relations: unknown): string;
+export function relationLookupForScope<I,O>(scope: string, state: {scope: string | null; indexes: I; options: O}): {indexes: I; options: O};

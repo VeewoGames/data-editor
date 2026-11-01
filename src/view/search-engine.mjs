@@ -6,7 +6,7 @@ const emptyFilters = { op: "and", rules: [] };
 export function runSearch({ rows = [], query = "", candidateRowIds = null }) {
   const sourceRows = orderRowsBySourceOrder(rows);
   const candidateRows = resolveCandidateRows(sourceRows, candidateRowIds);
-  const searchRows = materializeRows(
+  const searchRows = !String(query ?? "").trim() ? candidateRows : materializeRows(
     applyViewFilters(candidateRows.map(createRuntimeRow), query, emptyFilters),
     candidateRows,
   );

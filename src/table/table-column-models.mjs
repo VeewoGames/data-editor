@@ -119,6 +119,7 @@ export function buildTableColumnModels({
       documentConfigured,
       relationConfig,
       relationOptions,
+      relationReady: !relationConfigured || Array.isArray(relationOptionsByField[fieldName]),
       wrapped: wrappedFields.has(fieldName),
       width: getColumnWidth(fieldName),
       isNested,
@@ -162,6 +163,7 @@ function sameColumnModel(previous, next) {
     sameCapabilities(previous.capabilities, next.capabilities) &&
     previous.allowTypeChange === next.allowTypeChange &&
     previous.relationConfigured === next.relationConfigured &&
+    previous.relationReady === next.relationReady &&
     previous.documentConfigured === next.documentConfigured &&
     previous.relationConfig === next.relationConfig &&
     previous.relationOptions === next.relationOptions &&

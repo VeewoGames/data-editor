@@ -1,3 +1,4 @@
+import { getCollectionFields } from '../document-model.mjs';
 import { attachRowId, readRowId } from "./row-id.mjs";
 import { readPersistentEntryId } from "./persistent-entry-id.mjs";
 
@@ -103,6 +104,7 @@ function buildCollectionStore(
     handleById,
     sourceIndexByRowId,
     rowViews,
+    fields: getCollectionFields(model, collectionPath),
   };
 }
 

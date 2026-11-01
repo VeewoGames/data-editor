@@ -68,13 +68,13 @@ export async function buildMaintenanceLookupState({
   }
   const sourceFiles = [...new Set(activeRelationKeys.map((key) => parseRelationKey(key)?.sourceFile).filter(Boolean))];
   const documentsByPath = {};
-  await Promise.all(sourceFiles.map(async (path) => {
+  for (const path of sourceFiles) {
     try {
       documentsByPath[path] = path === selectedPath && model ? model : await loadDocument(path);
     } catch {
       // Missing source files are surfaced by buildPrimaryKeySyncPlan blocking issues.
     }
-  }));
+  }
   const relationBacklinks = collectRelationBacklinks({
     targetFile: selectedPath,
     targetCollection: collectionPath,

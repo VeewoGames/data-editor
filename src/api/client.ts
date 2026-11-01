@@ -1,3 +1,4 @@
+import { readJson, isReadInterruption } from './read-coordinator.mjs';
 import { saveDocumentsWith } from "./save-documents.mjs";
 import { createSaveIdempotencyKey } from "./save-idempotency-key.mjs";
 import type { DocumentModel } from "../model/documentModel";
@@ -244,10 +245,12 @@ export type ViewConfig = {
       };
     };
     selectOptions: Record<string, {
+      dataValue?: string | number;
       label: string;
       color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "rose" | "amber" | "purple" | "pink" | "red" | "mid_gray" | "mid_brown" | "mid_orange" | "mid_yellow" | "mid_green" | "mid_blue" | "mid_teal" | "mid_cyan" | "mid_lime" | "mid_indigo" | "mid_purple" | "mid_pink" | "mid_red" | "mid_rose" | "mid_amber" | "dark_gray" | "dark_brown" | "dark_orange" | "dark_yellow" | "dark_green" | "dark_blue" | "dark_teal" | "dark_cyan" | "dark_lime" | "dark_indigo" | "dark_purple" | "dark_pink" | "dark_red" | "dark_rose" | "dark_amber" | null;
     }>;
     multiSelectOptions: Record<string, {
+      dataValue?: string | number;
       label: string;
       color: "default" | "gray" | "brown" | "orange" | "yellow" | "green" | "blue" | "teal" | "cyan" | "lime" | "indigo" | "rose" | "amber" | "purple" | "pink" | "red" | "mid_gray" | "mid_brown" | "mid_orange" | "mid_yellow" | "mid_green" | "mid_blue" | "mid_teal" | "mid_cyan" | "mid_lime" | "mid_indigo" | "mid_purple" | "mid_pink" | "mid_red" | "mid_rose" | "mid_amber" | "dark_gray" | "dark_brown" | "dark_orange" | "dark_yellow" | "dark_green" | "dark_blue" | "dark_teal" | "dark_cyan" | "dark_lime" | "dark_indigo" | "dark_purple" | "dark_pink" | "dark_red" | "dark_rose" | "dark_amber" | null;
     }>;
@@ -594,10 +597,14 @@ export async function listFiles(projectId?: string | null): Promise<DataFile[]> 
   return fetchJson(withProjectId("/api/files", projectId));
 }
 
-export async function loadDocument(path: string, projectId?: string | null): Promise<DocumentModel> {
-  return fetchJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId));
+export type ReadRequestOptions = { signal?: AbortSignal; priority?: "foreground" | "background"; fresh?: boolean; scope?: string; timeoutMs?: number };
+export async function loadDocument(path: string, projectId?: string | null, readOptions: ReadRequestOptions = {}): Promise<DocumentModel> {
+  return readJson(withProjectId(`/api/document?path=${encodeURIComponent(path)}`, projectId),readOptions) as Promise<DocumentModel>;
 }
 
+export async function loadDocumentMetadata(path: string, projectId: string, options: ReadRequestOptions = {}): Promise<{collections:Array<{path:string}>}> {
+ return readJson(withProjectId(`/api/document-metadata?path=${encodeURIComponent(path)}`,projectId),options) as Promise<{collections:Array<{path:string}>}>;
+}
 export async function loadProjectCapabilities(projectId?: string | null): Promise<ProjectCapabilities> {
   return fetchJson(withProjectId("/api/project-capabilities", projectId));
 }
@@ -685,11 +692,11 @@ export async function loadDocumentContent(path: string, id: string, projectId?: 
   return fetchJson(withProjectId(buildDocumentRequestPath("/api/document-content", path, options, id), projectId));
 }
 
-export async function saveViewConfig(config: ViewConfig, projectId?: string | null) {
+export async function saveViewConfig(config: ViewConfig, projectId?: string | null, expected?: ViewConfig) {
   return fetchJson("/api/view-config", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, config }),
+    body: JSON.stringify({ projectId, config, ...(expected===undefined?{}:{expected}) }),
   });
 }
 
@@ -697,8 +704,8 @@ export async function loadSharedViews(projectId?: string | null): Promise<Shared
   return fetchJson(withProjectId("/api/shared-views", projectId));
 }
 
-export async function saveSharedViews(config: SharedViewsConfig, projectId?: string | null) {
-  const { body, keepalive } = createKeepaliveJsonRequest({ projectId, config });
+export async function saveSharedViews(config: SharedViewsConfig, projectId?: string | null, expected?: SharedViewsConfig) {
+  const { body, keepalive } = createKeepaliveJsonRequest({ projectId, config, ...(expected===undefined?{}:{expected}) });
   return fetchJson("/api/shared-views", {
     method: "POST",
     keepalive,
@@ -715,11 +722,11 @@ export async function loadViewProfile(name: string, projectId?: string | null): 
   return fetchJson(withProjectId(`/api/view-profile?name=${encodeURIComponent(name)}`, projectId));
 }
 
-export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null) {
+export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null, expected?: UserViewProfile | null) {
   return fetchJson("/api/view-profile", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, name, profile }),
+    body: JSON.stringify({ projectId, name, profile, ...(expected===undefined?{}:{expected}) }),
   });
 }
 
@@ -1077,6 +1084,16 @@ async function fetchJson(url: string, options?: RequestInit, fetchOptions: Fetch
   const { reportRecoverableRequest = true } = fetchOptions;
   const autosaveDebugRequest = isAutosaveDebugRequest(url, options);
   const requestMethod = (options?.method ?? "GET").toUpperCase();
+  if(requestMethod === 'GET') {
+    try {
+      const result = await readJson(url,{init:options,signal:options?.signal,timeoutMs:url.endsWith('/health')?3000:10000});
+      if(reportRecoverableRequest && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(recoverableRequestEventName,{detail:{url,status:'success'}}));
+      return result;
+    } catch(error) {
+      if(reportRecoverableRequest && typeof window !== 'undefined' && !isReadInterruption(error) && error instanceof TypeError && !(error as any).status) window.dispatchEvent(new CustomEvent(recoverableRequestEventName,{detail:{url,status:'failure',message:error.message}}));
+      throw error;
+    }
+  }
   let res: Response;
   try {
     res = await fetch(url, options);

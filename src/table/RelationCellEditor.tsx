@@ -15,6 +15,7 @@ type RelationCellEditorProps = {
   value: string | number | null | Array<string | number>;
   options: RelationOption[];
   configured: boolean;
+  ready?: boolean;
   mode?: RelationMode;
   surface?: "table" | "detail";
   wrapped?: boolean;
@@ -25,7 +26,7 @@ type RelationCellEditorProps = {
 let stickyOpenCellId: string | null = null;
 const stickyValuesByCellId = new Map<string, Array<string | number>>();
 
-export function RelationCellEditor({ cellId, value, options, configured, mode, surface = "table", wrapped = false, onEdit, onOpenTarget }: RelationCellEditorProps) {
+export function RelationCellEditor({ cellId, value, options, configured, ready=true, mode, surface = "table", wrapped = false, onEdit, onOpenTarget }: RelationCellEditorProps) {
   const multiple = mode ? mode === "multi" : Array.isArray(value);
   const normalizedValue = useMemo(() => normalizeValue(value), [value]);
   const [open, setOpen] = useState(() => stickyOpenCellId === cellId);
@@ -77,6 +78,7 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
   }, [open]);
 
   function commit(nextValues: Array<string | number>) {
+    if(!ready)return;
     stickyOpenCellId = cellId;
     stickyValuesByCellId.set(cellId, nextValues);
     setSelectedValues(nextValues);
@@ -119,8 +121,9 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
 
   return (
     <Popover.Root
-      open={open}
+      open={open && ready}
       onOpenChange={(nextOpen) => {
+        if(!ready)return;
         stickyOpenCellId = nextOpen ? cellId : null;
         setOpen(nextOpen);
       }}
@@ -132,6 +135,8 @@ export function RelationCellEditor({ cellId, value, options, configured, mode, s
           data-wrap-mode={wrapped && surface === "table" ? "wrap" : "truncate"}
           onClick={(event) => event.stopPropagation()}
           type="button"
+          disabled={!ready}
+          title={!ready ? "关联候选尚未就绪，请稍后或重试加载。" : undefined}
         >
           <div className="chips-cell relation-chips-cell">
             {selectedValues.length === 0 ? <span className="relation-placeholder">{triggerLabel}</span> : null}

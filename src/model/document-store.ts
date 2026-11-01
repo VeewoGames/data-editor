@@ -18,6 +18,7 @@ export type TableRowView = {
 };
 
 export type CollectionStore = {
+  fields: {main: string[]; nested: string[]};
   collectionPath: string;
   rowIds: RowId[];
   rowById: Map<RowId, DataRecord>;

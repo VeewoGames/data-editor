@@ -119,3 +119,23 @@ test("normalizeFetchedViewConfig preserves legacy non-text title and primary key
   });
   assert.equal(normalized.primaryKeys["data/e2e_primary_key_candidates.json:alpha"], "code");
 });
+
+
+test("empty and old client payloads stay neutral while explicit generic relations survive", () => {
+  for (const payload of [null, {}, { relationsVersion: 0 }, { relationsVersion: 2 }]) {
+    const normalized = normalizeFetchedViewConfig(payload);
+    assert.deepEqual(normalized.primaryKeys, {});
+    assert.deepEqual(normalized.relations, {});
+    assert.deepEqual(normalized.backlinks, {});
+  }
+  const relation = {
+    targetFile: "data/customers.json", targetCollection: "$", targetKey: "code",
+    mode: "multi", titleFields: ["label"], allowMissing: true,
+  };
+  const normalized = normalizeFetchedViewConfig({
+    primaryKeys: { "data/customers.json:$": "code" },
+    relations: { "data/orders.json:$:reviewers": relation },
+  });
+  assert.deepEqual(normalized.primaryKeys, { "data/customers.json:$": "code" });
+  assert.deepEqual(normalized.relations, { "data/orders.json:$:reviewers": relation });
+});

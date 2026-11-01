@@ -1,3 +1,4 @@
+import { readJson } from '../api/read-coordinator.mjs';
 import type { InlineTemplateDefinition } from './useInlineTemplateDefinitions';
 import { InlineTemplateField } from "./InlineTemplateField";
 import { canEditNestedField, fieldWritePolicyMatchesRow } from "../field-write-policy-match.mjs";
@@ -21,7 +22,7 @@ import { chipStyleForValue } from "../table/chipColors";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import { checkboxCheckedStyle } from "../model/checkbox-presentation.mjs";
 import type { PrimaryKeyImpact, PrimaryKeySyncPlan, RelationBacklink } from "../model/relationMaintenance";
-import { buildMultiSelectFieldConfigFromRows } from "../multiselect-config.mjs";
+import { buildMultiSelectFieldConfigFromRows, buildSingleSelectFieldConfigFromRows } from "../multiselect-config.mjs";
 import { FieldTypeIcon } from "../components/FieldTypeIcon";
 import { resolveValidationIssue } from "../validation/issue-lookup.mjs";
 import type { ValidationSnapshot } from "../validation/issue-map";
@@ -199,9 +200,10 @@ export function DetailPanel({
   const writePolicies = policyState && policyState.projectId === projectId ? policyState.policies : null;
   useEffect(() => {
     let active = true;
+    const controller=new AbortController();
     setPolicyState(null);
-    fetch(`/api/field-write-policy${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`).then(r => { if (!r.ok) throw new Error("Field policy unavailable"); return r.json(); }).then(d => {if (active && Array.isArray(d?.policies)) setPolicyState({projectId,policies:d.policies});}).catch(() => {if (active) setPolicyState(null);});
-    return () => {active = false;};
+    readJson(`/api/field-write-policy${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,{signal:controller.signal}).then(d => {if (active && Array.isArray(d?.policies)) setPolicyState({projectId,policies:d.policies});}).catch(() => {if (active) setPolicyState(null);});
+    return () => {active = false;controller.abort();};
   }, [projectId]);
   const protectedFields = new Set((writePolicies ?? []).filter(p => p.file === sourcePath && p.collection === collectionPath && fieldWritePolicyMatchesRow(p, row)).flatMap(p => p.fields));
   const nestedPermissionRef = useRef({ row, ready: writePolicies !== null, protectedFields });
@@ -373,18 +375,7 @@ export function DetailPanel({
     for (const key of naturalFieldOrder) {
       const displayType = displayTypes[key] ?? defaultTypeFor(row[key]);
       if (displayType !== "Select") continue;
-      const options = new Map<string, MultiSelectOptionView>();
-      for (const [value, option] of Object.entries(fieldViewConfigs[key]?.selectOptions ?? {})) {
-        options.set(value, { value, label: option.label, color: option.color ?? null });
-      }
-      for (const sourceRow of allRows) {
-        const value = sourceRow?.[key];
-        if (value == null) continue;
-        const normalized = String(value).trim();
-        if (!normalized || options.has(normalized)) continue;
-        options.set(normalized, { value: normalized, label: normalized, color: null });
-      }
-      result[key] = [...options.values()];
+      result[key] = buildSingleSelectFieldConfigFromRows(allRows, key, fieldViewConfigs[key]).options;
     }
     return result;
   }, [allRows, displayTypes, fieldViewConfigs, naturalFieldOrder, row]);
@@ -1239,6 +1230,7 @@ function renderValueEditor(props: {
       <RelationCellEditor
         cellId={props.cellId}
         configured={relation.configured}
+        ready={relation.ready}
         mode={relation.mode}
         options={relation.options}
         surface="detail"
@@ -1460,6 +1452,7 @@ function getRelationConfig(
         config,
         mode: config.mode,
         options: relationOptions[relationKey] ?? [],
+        ready: Array.isArray(relationOptions[relationKey]),
       };
     }
   }
@@ -1487,9 +1480,6 @@ function summarizeObjectValue(value: Record<string, unknown>) {
 function getNestedItemSummary(item: unknown, index: number) {
   if (item && typeof item === "object" && !Array.isArray(item)) {
     const record = item as Record<string, unknown>;
-    const preferred = ["name", "category", "effect_type", "id", "keyword_id"];
-    const first = preferred.map((key) => record[key]).find((value) => value != null && value !== "");
-    if (first != null) return String(first);
     return String(getRecordTitle(record, Object.keys(record), index));
   }
   return item == null || item === "" ? `Item ${index + 1}` : String(item);
@@ -1498,13 +1488,7 @@ function getNestedItemSummary(item: unknown, index: number) {
 function getNestedItemMeta(item: unknown) {
   if (item && typeof item === "object" && !Array.isArray(item)) {
     const record = item as Record<string, unknown>;
-    const metaKeys = ["category", "effect_type", "timing", "name_en"];
-    const meta = metaKeys
-      .map((key) => record[key])
-      .filter((value) => value != null && value !== "")
-      .slice(0, 3)
-      .map(String);
-    return meta.join(" / ") || Object.keys(record).slice(0, 3).join(" / ");
+    return Object.keys(record).slice(0, 3).join(" / ");
   }
   return "";
 }

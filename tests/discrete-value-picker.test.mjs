@@ -1,4 +1,9 @@
 import test from "node:test";
+
+test("confirming an already selected numeric option does not duplicate or stringify it", () => {
+  assert.deepEqual(confirmNextSelectedValues({ mode: "multi", selectedValues: [0, 90], value: 0 }), [0, 90]);
+  assert.deepEqual(confirmNextSelectedValues({ mode: "multi", selectedValues: [0], value: -2.5 }), [0, -2.5]);
+});
 import assert from "node:assert/strict";
 import {
   resolveDefaultCandidate,

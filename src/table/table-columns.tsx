@@ -288,6 +288,7 @@ function TableColumnCellView(
             : null)
           : null}
         relationOptions={columnModel.relationOptions}
+        relationReady={columnModel.relationReady}
         relationConfigured={columnModel.relationConfigured}
         relationMode={columnModel.relationConfig?.mode}
         onOpenRelationTarget={columnModel.relationConfig ? (nextValue) => runtime.onOpenRelationTarget(columnModel.relationConfig as RelationConfig, nextValue) : undefined}

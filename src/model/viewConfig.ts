@@ -48,6 +48,10 @@ export type MultiSelectOptionColor =
 
 export type MultiSelectOptionView = {
   value: string;
+  /** Original JSON value; value remains the UI/configuration key. */
+  dataValue?: string | number;
+  dataValueNeedsPersistence?: boolean;
+  dataValueAmbiguous?: boolean;
   label: string;
   color: MultiSelectOptionColor | null;
 };
@@ -75,8 +79,8 @@ export type FieldPresentation = {
 
 export type FieldViewConfig = {
   type?: RealFieldType;
-  selectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null }>;
-  multiSelectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null }>;
+  selectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null; dataValue?: string | number }>;
+  multiSelectOptions: Record<string, { label: string; color: MultiSelectOptionColor | null; dataValue?: string | number }>;
   presentation?: FieldPresentation;
 };
 

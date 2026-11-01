@@ -19,6 +19,7 @@ export type TableColumnModel = {
   capabilities: FieldMenuCapabilities;
   allowTypeChange: boolean;
   relationConfigured: boolean;
+  relationReady?: boolean;
   documentConfigured: boolean;
   relationConfig: RelationConfig | null;
   relationOptions: RelationOption[];

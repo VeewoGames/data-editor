@@ -19,6 +19,7 @@ export {
   deleteField,
   deleteRow,
   duplicateRow,
+  getCollectionFields,
   getMainColumns,
   getNestedFields,
   getRows,

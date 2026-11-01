@@ -288,3 +288,39 @@ export function updatePageContextViewGrouping(
   };
   writePageContextState(localStorage, state);
 }
+
+/** Keeps only dirty positions; every flush merges into the latest storage value. */
+export function createPageContextScrollWriter(localStorage: Storage, clock: {
+  setTimeout: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
+  clearTimeout: (timer: ReturnType<typeof setTimeout>) => void;
+} = { setTimeout: (callback, delay) => setTimeout(callback, delay), clearTimeout: timer => clearTimeout(timer) }) {
+  const pending = new Map<string, {projectId: string; key: string; position: PageScrollPosition}>();
+  let trailing: ReturnType<typeof setTimeout> | null = null;
+  let deadline: ReturnType<typeof setTimeout> | null = null;
+  function flush() {
+    if (trailing != null) clock.clearTimeout(trailing);
+    if (deadline != null) clock.clearTimeout(deadline);
+    trailing = deadline = null;
+    if (!pending.size) return;
+    const state = readPageContextState(localStorage);
+    for (const {projectId, key, position} of pending.values()) {
+      const current = state.projects[projectId] ?? emptyProjectPageContext();
+      current.scrollByView[key] = position;
+      state.projects[projectId] = current;
+    }
+    writePageContextState(localStorage, state);
+    pending.clear();
+  }
+  return {
+    queue(projectId: string | null, input: PageContextScrollUpdate) {
+      const id = normalizeProjectId(projectId), key = buildViewContextKey(input.path, input.collectionPath, input.viewId);
+      const position = normalizeScrollEntry(input);
+      if (!id || !key || !position) return;
+      pending.set(JSON.stringify([id, key]), {projectId: id, key, position});
+      if (trailing != null) clock.clearTimeout(trailing);
+      trailing = clock.setTimeout(flush, 100);
+      if (deadline == null) deadline = clock.setTimeout(flush, 500);
+    },
+    flush,
+  };
+}

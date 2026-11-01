@@ -19,6 +19,6 @@ export function resetSearchStateAfterCommit() {
 export function confirmNextSelectedValues({ mode, selectedValues, value }) {
   const normalized = selectedValues.map((item) => String(item));
   if (mode === "single") return [value];
-  if (normalized.includes(value)) return [...selectedValues];
+  if (normalized.includes(String(value))) return [...selectedValues];
   return [...selectedValues, value];
 }

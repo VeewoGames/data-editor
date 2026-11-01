@@ -28,9 +28,8 @@ import type { BacklinkGridColumn } from "../model/backlinkGrid";
 import type { RelationBacklink } from "../model/relationMaintenance";
 import type { FieldViewConfig, MultiSelectOptionView, RelationConfig } from "../model/viewConfig";
 import type { ValidationSnapshot } from "../validation/issue-map";
-import { mergeMeasuredRowHeights, resolveRowHeight as resolveMeasuredRowHeight } from "./row-height-index.mjs";
 import { buildTableRuntimeDeps } from "./table-runtime-deps.mjs";
-import { buildVariableRowWindow } from "./variable-row-window.mjs";
+import { buildVariableRowWindow, createRowHeightIndex, captureRowAnchor, restoreRowAnchor } from "./variable-row-window.mjs";
 import {
   hasExceededRowDragThreshold,
   isPreciseRowDragPointer,
@@ -112,10 +111,12 @@ function sameTableCellCoord(left: TableCellCoord | null, right: TableCellCoord |
 }
 
 export type TableSnapshot = {
+  baseFontSize?: number;
   projectId?: string | null;
   documentEtag?: string;
   inlineTemplates?: InlineTemplateDefinition[];
   schemaModel: DocumentModel;
+  collectionFields?: {main: string[]; nested: string[]};
   readonlyFields?: string[];
   sourcePath: string | null;
   collectionPath: string;
@@ -178,7 +179,6 @@ type DataTableProps = {
 
 function DataTableComponent(props: DataTableProps) {
   const { snapshot } = props;
-  const [showAdvanced,setShowAdvanced]=useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(720);
   const [pressedField, setPressedField] = useState<string | null>(null);
@@ -249,17 +249,21 @@ function DataTableComponent(props: DataTableProps) {
     onReorderRows: props.onReorderRows,
   });
   const restoredScrollContextKeyRef = useRef<string | null>(null);
-  const [measuredRowHeights, setMeasuredRowHeights] = useState<Record<string, number>>({});
+  const [heightRevision, setHeightRevision] = useState(0);
+  const [fontRevision, setFontRevision] = useState(0);
+  const committedHeightIndexRef = useRef<{index: ReturnType<typeof createRowHeightIndex>; scope: string} | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+  const measuredHeaderHeightRef = useRef<number | null>(null);
+  const pendingHeightAnchorRef = useRef<{index: ReturnType<typeof createRowHeightIndex>; top: number} | null>(null);
   const rowViews = snapshot.rowViews;
   const rowIds = useMemo(() => rowViews.map((view) => view.rowId), [rowViews]);
   const rows = useMemo(() => rowViews.map((view) => view.row), [rowViews]);
   const optionRows = snapshot.allRows ?? rows;
   const textTemplateFields=useMemo(()=>(snapshot.inlineTemplates??[]).map(item=>item.field),[snapshot.inlineTemplates]);
-  const advancedFields=useMemo(()=>new Set((snapshot.inlineTemplates??[]).flatMap(item=>item.advancedFields)),[snapshot.inlineTemplates]);
   const schemaModel = snapshot.schemaModel;
   const nestedFieldSet = useMemo<Set<string>>(
-    () => new Set<string>(getNestedFields(schemaModel, snapshot.collectionPath)),
-    [schemaModel, snapshot.collectionPath],
+    () => new Set<string>(snapshot.collectionFields?.nested ?? getNestedFields(schemaModel, snapshot.collectionPath)),
+    [schemaModel, snapshot.collectionPath, snapshot.collectionFields],
   );
 
   useEffect(() => {
@@ -346,14 +350,14 @@ function DataTableComponent(props: DataTableProps) {
   }, [columnDragSession]);
   useEffect(() => () => stopColumnAutoScroll(), []);
   const allColumns = useMemo(() => orderColumns([
-    ...getMainColumns(schemaModel, snapshot.collectionPath),
+    ...(snapshot.collectionFields?.main ?? getMainColumns(schemaModel, snapshot.collectionPath)),
     ...nestedFieldSet,
     ...(snapshot.readonlyFields ?? []),
     ...snapshot.backlinkColumns.map((column) => column.fieldName),
-  ], snapshot.fieldConfig.order), [schemaModel, snapshot.collectionPath, snapshot.fieldConfig.order, nestedFieldSet, snapshot.backlinkColumns, snapshot.readonlyFields]);
+  ], snapshot.fieldConfig.order), [schemaModel, snapshot.collectionPath, snapshot.collectionFields, snapshot.fieldConfig.order, nestedFieldSet, snapshot.backlinkColumns, snapshot.readonlyFields]);
 
   const detectedTitleField = snapshot.titleField ?? findTitleField(allColumns, rows);
-  const visibleBaseFields = useMemo(() => allColumns.filter((field) => !snapshot.fieldConfig.hidden.has(field) && (showAdvanced || !advancedFields.has(field))), [allColumns, snapshot.fieldConfig.hidden,showAdvanced,advancedFields]);
+  const visibleBaseFields = useMemo(() => allColumns.filter((field) => !snapshot.fieldConfig.hidden.has(field)), [allColumns, snapshot.fieldConfig.hidden]);
   const unprioritizedVisibleFields = useMemo(
     () => snapshot.fieldConfig.order.length ? visibleBaseFields : moveTitleFirst(visibleBaseFields, detectedTitleField),
     [visibleBaseFields, detectedTitleField, snapshot.fieldConfig.order.length],
@@ -361,15 +365,10 @@ function DataTableComponent(props: DataTableProps) {
   const baseVisibleFields = useMemo(()=>{const primary=unprioritizedVisibleFields.filter(field=>textTemplateFields.includes(field));const other=unprioritizedVisibleFields.filter(field=>!textTemplateFields.includes(field));const at=other.includes(detectedTitleField??'')?other.indexOf(detectedTitleField!)+1:0;return [...other.slice(0,at),...primary,...other.slice(at)];},[unprioritizedVisibleFields,textTemplateFields,detectedTitleField]);
   const visibleFields = baseVisibleFields;
   const hasWrappedField = useMemo(() => visibleFields.some((field) => snapshot.fieldConfig.wrapped.has(field)), [visibleFields, snapshot.fieldConfig.wrapped]);
+  const heightIndex = useMemo(() => createRowHeightIndex(rowIds, () => estimatedWrappedRowHeight), [rowIds, snapshot.sourcePath, snapshot.collectionPath, snapshot.fieldConfig.wrapped, snapshot.fieldConfig.widths, visibleFields, schemaModel, snapshot.revision, snapshot.baseFontSize, fontRevision]);
   const variableRowWindow = useMemo(() => hasWrappedField
-    ? buildVariableRowWindow({
-      rowIds,
-      viewportHeight,
-      scrollTop,
-      overscan: rowOverscan,
-      getRowHeight: (rowId) => resolveMeasuredRowHeight(rowId, measuredRowHeights, estimatedWrappedRowHeight),
-    })
-    : null, [hasWrappedField, rowIds, viewportHeight, scrollTop, measuredRowHeights]);
+    ? buildVariableRowWindow({ index: heightIndex, viewportHeight, scrollTop, overscan: rowOverscan })
+    : null, [hasWrappedField, heightIndex, viewportHeight, scrollTop, heightRevision]);
   const {
     fieldOptions,
     selectOptions,
@@ -1042,27 +1041,77 @@ function DataTableComponent(props: DataTableProps) {
   }, []);
 
   useEffect(() => {
-    setMeasuredRowHeights({});
-    rowElementRefs.current = {};
-  }, [
-    snapshot.sourcePath,
-    snapshot.collectionPath,
-    snapshot.fieldConfig.wrapped,
-    snapshot.fieldConfig.widths,
-    visibleFields,
-    hasWrappedField,
-  ]);
+    const invalidate = () => setFontRevision(value => value + 1);
+    document.fonts?.addEventListener("loadingdone", invalidate);
+    window.addEventListener("resize", invalidate);
+    return () => { document.fonts?.removeEventListener("loadingdone", invalidate); window.removeEventListener("resize", invalidate); };
+  }, []);
+
+  useLayoutEffect(() => {
+    const scope = snapshot.sourcePath + ":" + snapshot.collectionPath;
+    const previous = committedHeightIndexRef.current;
+    const container = scrollContainerRef.current;
+    if (previous?.scope !== scope) measuredHeaderHeightRef.current = null;
+    if (hasWrappedField && container && previous && previous.index !== heightIndex && previous.scope === scope) {
+      const anchor = captureRowAnchor(previous.index, container.scrollTop);
+      const top = restoreRowAnchor(previous.index, heightIndex, anchor);
+      container.scrollTop = top;
+      scrollMetricsRef.current.scrollTop = container.scrollTop;
+      setScrollTop(container.scrollTop);
+    }
+    committedHeightIndexRef.current = {index: heightIndex, scope};
+  }, [heightIndex, hasWrappedField, snapshot.sourcePath, snapshot.collectionPath]);
+
+  useLayoutEffect(() => {
+    const pending = pendingHeightAnchorRef.current;
+    pendingHeightAnchorRef.current = null;
+    if (!pending || pending.index !== heightIndex || !scrollContainerRef.current) return;
+    // Spacer sizes have committed; setting this before commit can clamp against the old DOM.
+    const container = scrollContainerRef.current;
+    container.scrollTop = pending.top;
+    scrollMetricsRef.current.scrollTop = container.scrollTop;
+    setScrollTop(container.scrollTop);
+  }, [heightIndex, heightRevision]);
 
   useLayoutEffect(() => {
     if (!hasWrappedField) return;
-    const nextMeasurements: Record<string, number> = {};
-    for (const rowView of data) {
-      const element = rowElementRefs.current[rowView.rowId];
-      if (!element) continue;
-      nextMeasurements[rowView.rowId] = element.getBoundingClientRect().height;
-    }
-    setMeasuredRowHeights((current) => mergeMeasuredRowHeights(current, nextMeasurements));
-  }, [hasWrappedField, data, visibleFields, snapshot.fieldConfig.widths]);
+    let active = true, frame: number | null = null;
+    const measure = () => {
+      frame = null;
+      if (!active || committedHeightIndexRef.current?.index !== heightIndex) return;
+      const container = scrollContainerRef.current;
+      const top = container?.scrollTop ?? scrollTop;
+      const anchor = captureRowAnchor(heightIndex, top);
+      const headerHeight = container?.querySelector("thead")?.getBoundingClientRect().height ?? 0;
+      const headerDelta = measuredHeaderHeightRef.current == null ? 0 : headerHeight - measuredHeaderHeightRef.current;
+      measuredHeaderHeightRef.current = headerHeight;
+      // Read the mounted rows as one batch before changing layout.
+      const measurements = data.flatMap(view => {
+        const element = rowElementRefs.current[view.rowId];
+        return element?.isConnected ? [[view.rowId, element.getBoundingClientRect().height] as const] : [];
+      });
+      let changed = false;
+      for (const [rowId, height] of measurements) changed = heightIndex.update(rowId, height) || changed;
+      if (!changed && Math.abs(headerDelta) < 0.01) return;
+      if (container) {
+        const desiredTop = restoreRowAnchor(heightIndex, heightIndex, anchor) + headerDelta;
+        pendingHeightAnchorRef.current = {index: heightIndex, top: desiredTop};
+        setScrollTop(desiredTop);
+      }
+      setHeightRevision(value => value + 1);
+    };
+    measure();
+    const observer = new ResizeObserver(() => { if (frame == null) frame = window.requestAnimationFrame(measure); });
+    const header = scrollContainerRef.current?.querySelector("thead");
+    if (header) observer.observe(header);
+    for (const view of data) { const element = rowElementRefs.current[view.rowId]; if (element) observer.observe(element); }
+    return () => { active = false; observer.disconnect(); if (frame != null) window.cancelAnimationFrame(frame); };
+  }, [hasWrappedField, data, heightIndex]);
+
+  useEffect(() => () => {
+    if (scrollFrameRef.current != null) window.cancelAnimationFrame(scrollFrameRef.current);
+    scrollFrameRef.current = null;
+  }, [heightIndex, snapshot.sourcePath, snapshot.collectionPath, snapshot.scrollRestoreKey]);
 
   function updateColumnDragPreview(fieldName: string, clientX: number) {
     const current = columnDragSessionRef.current;
@@ -1301,8 +1350,7 @@ function DataTableComponent(props: DataTableProps) {
   }
 
   return (
-    <section className="table-shell" style={advancedFields.size?{gridTemplateRows:"auto minmax(0,1fr)"}:undefined} data-row-dragging={rowDragVisual ? "true" : undefined}>
-      {advancedFields.size?<div style={{display:"flex",justifyContent:"flex-end",padding:"4px 12px"}}><button type="button" onClick={()=>setShowAdvanced(value=>!value)} aria-pressed={showAdvanced} style={{fontSize:12,border:"none",background:"#f3f3f1",padding:"4px 10px",borderRadius:4}}>{showAdvanced?"隐藏高级字段":"显示高级字段"}</button></div>:null}
+    <section className="table-shell" data-row-dragging={rowDragVisual ? "true" : undefined}>
       <TableColumnsRuntimeProvider value={tableColumnsRuntime} headerState={tableColumnsHeaderState}>
         <div
           className="table-scroll"
@@ -1322,8 +1370,19 @@ function DataTableComponent(props: DataTableProps) {
             const current = scrollMetricsRef.current;
             if (current.scrollTop === nextScrollTop && current.scrollLeft === nextScrollLeft && current.viewportHeight === nextViewportHeight) return;
             scrollMetricsRef.current = { scrollTop: nextScrollTop, scrollLeft: nextScrollLeft, viewportHeight: nextViewportHeight };
-            if (current.scrollTop !== nextScrollTop) setScrollTop(nextScrollTop);
-            if (current.viewportHeight !== nextViewportHeight) setViewportHeight(nextViewportHeight);
+            if (scrollFrameRef.current == null) scrollFrameRef.current = window.requestAnimationFrame(() => {
+              scrollFrameRef.current = null;
+              const metrics = scrollMetricsRef.current;
+              setViewportHeight(metrics.viewportHeight);
+              setScrollTop(previous => {
+                if (hasWrappedField) {
+                  const before = buildVariableRowWindow({index: heightIndex, viewportHeight: metrics.viewportHeight, scrollTop: previous, overscan: rowOverscan});
+                  const after = buildVariableRowWindow({index: heightIndex, viewportHeight: metrics.viewportHeight, scrollTop: metrics.scrollTop, overscan: rowOverscan});
+                  if (before.windowStart === after.windowStart && before.windowEnd === after.windowEnd) return previous;
+                } else if (Math.floor(previous / compactRowHeight) === Math.floor(metrics.scrollTop / compactRowHeight)) return previous;
+                return metrics.scrollTop;
+              });
+            });
             if (snapshot.scrollRestoreKey) {
               props.onScrollPositionChange({ scrollTop: nextScrollTop, scrollLeft: nextScrollLeft });
             }
@@ -1542,8 +1601,9 @@ export const DataTable = memo(DataTableComponent, (previous, next) => {
 });
 
 function sameTableSnapshot(previous: TableSnapshot, next: TableSnapshot) {
-  return previous.inlineTemplates === next.inlineTemplates && previous.projectId===next.projectId && previous.documentEtag===next.documentEtag && previous.schemaModel === next.schemaModel &&
+  return previous.inlineTemplates === next.inlineTemplates && previous.projectId===next.projectId && previous.documentEtag===next.documentEtag && previous.schemaModel === next.schemaModel && previous.collectionFields === next.collectionFields &&
     previous.revision === next.revision &&
+    previous.baseFontSize === next.baseFontSize &&
     previous.sourcePath === next.sourcePath &&
     previous.collectionPath === next.collectionPath &&
     previous.titleField === next.titleField &&
