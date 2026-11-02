@@ -1,3 +1,4 @@
+import {createConfigurationSaveService} from "./src/configuration-save-service.mjs";
 import { serviceProcessIsAlive } from './src/service-process-identity.mjs';
 import {createDeploymentRuntime} from './src/deployment-runtime.mjs';
 import { findFencingLeaseByRunId, readCurrentFencingAdmission } from './src/fencing-lock.mjs';
@@ -62,6 +63,7 @@ import {
   verifyDocumentContractPostReplace,
 } from "./src/document-contract-compiler.mjs";
 import { createConnectionShutdown } from "./src/server-shutdown.mjs";
+import {createCurrentConfigurationStore} from './src/current-configuration-store.mjs';
 import { createJobSupervisor } from "./src/job-supervisor.mjs";
 import { createDocumentCommitCoordinator } from "./src/document-commit-coordinator.mjs";
 import { createEntryActionRunRoute } from "./src/entry-action-route.mjs";
@@ -97,6 +99,8 @@ const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileUR
 const deploymentRuntime=isMainModule?await createDeploymentRuntime('main',scriptRoot):{maintenance:false,refresh:async()=>false};
 const execFileAsync = promisify(execFile);
 let shuttingDown = false;
+const currentConfigurationStore=isMainModule?createCurrentConfigurationStore({registryOptions,contextForProject,getRuntimeState:()=>({maintenance:deploymentRuntime.maintenance,readySelections:deploymentRuntime.readySelections,shuttingDown})}):null;
+const configurationSaves=createConfigurationSaveService({currentConfigurationStore,contextForId:projectContextForId,registryOptions,isWritable:()=>!deploymentRuntime.maintenance&&!shuttingDown,validateViewConfig:assertValidFieldPresentations});
 let initialProjectPromise = null;
 const recoverySignatures = new Map();
 const observedProjects=new Map();
@@ -185,10 +189,11 @@ async function handleHttp(req, res) {
   res.requestStartedAt=performance.now();
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    if(deploymentRuntime.maintenance&&await deploymentRuntime.refresh())startNormalPreparation();
+    const profileConfigurationRoute=url.pathname.startsWith('/api/configuration-')||url.pathname.startsWith('/api/view-profile');
+    if(!profileConfigurationRoute&&deploymentRuntime.maintenance&&await deploymentRuntime.refresh())startNormalPreparation();
     if(url.pathname==='/api/deployment-attestation'&&req.method==='GET')return sendJson(res,deploymentRuntime.attest(url.searchParams.get('challenge')));
     if(deploymentRuntime.maintenance){
-      const pureReads=new Set(['/api/health','/api/projects','/api/files','/api/document','/api/document-metadata','/api/document-index','/api/document-content','/api/document-contracts','/api/field-write-policy','/api/inline-template-definitions','/api/project-capabilities','/api/nested-schema-capabilities','/api/generated-fields','/api/view-config','/api/shared-views','/api/view-profiles','/api/view-profile']);
+      const pureReads=new Set(['/api/health','/api/configuration-snapshot','/api/projects','/api/files','/api/document','/api/document-metadata','/api/document-index','/api/document-content','/api/document-contracts','/api/field-write-policy','/api/inline-template-definitions','/api/project-capabilities','/api/nested-schema-capabilities','/api/generated-fields','/api/view-config','/api/shared-views','/api/view-profiles','/api/view-profile']);
       if(!(req.method==='GET'&&(!url.pathname.startsWith('/api/')||pureReads.has(url.pathname)))&&!(req.method==='POST'&&url.pathname==='/api/shutdown'))return sendJson(res,{code:'HISTORY_DEPLOYMENT_MAINTENANCE',error:'升级正在进行只读验收。'},503);
     }
     if (url.pathname === '/api/publication-window' && req.method === 'GET') return sendJson(res, await inspectPublicationWindow(contextForProject(await projectForId(url.searchParams.get('projectId')))));
@@ -239,6 +244,12 @@ async function handleHttp(req, res) {
     if (url.pathname === "/api/document-content") return await handleDocumentContent(url, res);
     if (url.pathname === "/api/document-contracts" && req.method === "GET") return await handleDocumentContracts(url, res);
     if (url.pathname === "/api/save" && req.method === "POST") return await handleSave(req, res);
+    if (url.pathname === '/api/configuration-snapshot' && req.method === 'GET') return sendJson(res,await configurationSaves.snapshot({kind:url.searchParams.get('kind'),projectId:url.searchParams.get('projectId'),name:url.searchParams.get('name')}),200,{'cache-control':'no-store'});
+    if (url.pathname === '/api/configuration-preview' && req.method === 'POST') return sendJson(res,await configurationSaves.preview(await readJsonBody(req)));
+    if (url.pathname === '/api/configuration-begin' && req.method === 'POST') return sendJson(res,await configurationSaves.begin(await readJsonBody(req),{isCurrent:()=>!res.destroyed}));
+    if (url.pathname === '/api/configuration-save' && req.method === 'POST') return sendJson(res,await configurationSaves.save(await readJsonBody(req)));
+    if (url.pathname === '/api/configuration-reconcile' && req.method === 'POST') return sendJson(res,await configurationSaves.reconcile(await readJsonBody(req)));
+    if (url.pathname === '/api/configuration-finish' && req.method === 'POST') return sendJson(res,await configurationSaves.finish(await readJsonBody(req)));
     if (url.pathname === "/api/view-config" && req.method === "GET") return sendJson(res, await loadViewConfig(await projectContextForUrl(url)));
     if (url.pathname === "/api/view-config" && req.method === "POST") return await handleSaveViewConfig(req, res);
     if (url.pathname === "/api/shared-views" && req.method === "GET") return sendJson(res, await loadSharedViews(await projectContextForUrl(url)));
@@ -657,20 +668,13 @@ async function handleDocumentContent(url, res) {
 }
 
 async function handleSaveViewConfig(req, res) {
-  const body = await readJsonBody(req);
-  const projectContext = await projectContextForId(body.projectId);
-  const config = body && typeof body === "object" && "config" in body ? body.config : body;
-  assertValidFieldPresentations(config);
-  const result = await saveViewConfig(projectContext, config, Object.hasOwn(body,'expected')?{expected:body.expected}:{});
-  sendJson(res, { ok: true, ...result });
+  const body=await readJsonBody(req);
+  sendJson(res,await configurationSaves.save({...body,descriptor:{kind:'view-config',projectId:body.projectId,},value:body.config}));
 }
 
 async function handleSaveSharedViews(req, res) {
-  const body = await readJsonBody(req);
-  const projectContext = await projectContextForId(body.projectId);
-  const config = body && typeof body === "object" && "config" in body ? body.config : body;
-  const result = await saveSharedViews(projectContext, config, Object.hasOwn(body,'expected')?{expected:body.expected}:{});
-  sendJson(res, { ok: true, ...result });
+  const body=await readJsonBody(req);
+  sendJson(res,await configurationSaves.save({...body,descriptor:{kind:'shared-views',projectId:body.projectId,},value:body.config}));
 }
 
 async function handleLoadViewProfile(url, res) {
@@ -680,12 +684,8 @@ async function handleLoadViewProfile(url, res) {
 }
 
 async function handleSaveViewProfile(req, res) {
-  const body = await readJsonBody(req);
-  if (!body.name) throw new Error("Missing view profile name");
-  const projectContext = await projectContextForId(body.projectId);
-  const result = await saveViewProfile(projectContext, body.name, body.profile, Object.hasOwn(body,'expected')?{expected:body.expected}:{});
-  await registerUserProfileName(body.name, registryOptions);
-  sendJson(res, { ok: true, ...result });
+  const body=await readJsonBody(req);
+  sendJson(res,await configurationSaves.save({...body,descriptor:{kind:'view-profile',projectId:body.projectId,name:body.name},value:body.profile}));
 }
 
 async function handleLoadAutomationProfile(url, res) {
@@ -1280,6 +1280,7 @@ async function shutdownServer(exitCode) {
   await recoveryDiscovery;
   await projectReadiness.settled();
   process.exitCode = exitCode;
+  await configurationSaves.close().catch(()=>{});
   await jobSupervisor.shutdown().catch((error) => console.error(error));
   await Promise.allSettled([...activeEntryActionCompletions.values()]);
   await clearServiceStateIfOwned(runtimeTargetFromArgs(), process.pid).catch(() => {});

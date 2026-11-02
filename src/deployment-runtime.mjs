@@ -7,7 +7,7 @@ import {inspectProjectProcess,processCommandArgs} from './project-process-instan
 import {readServiceProcessIdentity} from './service-process-identity.mjs';
 import {currentDeliveryForTool,readDeliveryState,assertDeliveryOpen,assertStaticRelease} from './deployment-delivery.mjs';
 import {loadCatalog} from './deployment-authority-io.mjs';
-import {normalize,digest,canonical,authorityError as bad} from './deployment-authority-schema.mjs';
+import {normalize,digest,canonical,encode,authorityError as bad} from './deployment-authority-schema.mjs';
 
 export const deploymentRuntimeProtocol=1;
 const exec=promisify(execFile);
@@ -73,18 +73,19 @@ export async function verifyRuntimeDelivery(spec,expected){
 
 // Normal requests use memory. Only a pending verification instance observes
 // completion in the fixed store; ordinary GETs never walk authority proofs.
+const readyProfileSelections=snapshot=>new Map(snapshot.catalog.entries.filter(entry=>entry.intent.minReaderProtocol===3).map(entry=>[entry.intent.root,digest(encode(entry.intent))]));
 export async function createDeploymentRuntime(role,toolRoot){
- const snapshot=await loadCatalog(true);if(snapshot.bytes===null)return {maintenance:false,refresh:async()=>false,attest:()=>bad('HISTORY_UPGRADE_RUNTIME_NOT_PENDING')};
+ const snapshot=await loadCatalog(true);if(snapshot.bytes===null)return {maintenance:false,readySelections:new Map(),refresh:async()=>false,attest:()=>bad('HISTORY_UPGRADE_RUNTIME_NOT_PENDING')};
  const delivery=await currentDeliveryForTool(toolRoot);
- if(!delivery){await assertDeliveryOpen(snapshot);return {maintenance:false,refresh:async()=>false,attest:()=>bad('HISTORY_UPGRADE_RUNTIME_NOT_PENDING')};}
+ if(!delivery){await assertDeliveryOpen(snapshot);return {maintenance:false,readySelections:readyProfileSelections(snapshot),refresh:async()=>false,attest:()=>bad('HISTORY_UPGRADE_RUNTIME_NOT_PENDING')};}
  const identity=await readServiceProcessIdentity();if(!identity)bad('HISTORY_UPGRADE_RUNTIME_IDENTITY_UNVERIFIABLE');
  const own=await inspectProjectProcess(process.pid);if(!matchesIdentity(own,delivery.spec,role))bad('HISTORY_UPGRADE_RUNTIME_IDENTITY_MISMATCH');
  const frozen=Object.freeze({role,toolRoot:normalize(toolRoot),pid:process.pid,creationTime:identity.creationTime,deliveryId:delivery.record.deliveryId,targetCatalogDigest:delivery.record.targetCatalogDigest,instanceId:randomUUID(),startupDigest:await startupDigest(delivery.spec)});
- const runtime={maintenance:true,async refresh(){
+ const runtime={maintenance:true,readySelections:new Map(),async refresh(){
   if(!runtime.maintenance)return false;
   const current=await loadCatalog();if(current.stamp!==delivery.catalogDigest)bad('HISTORY_DEPLOYMENT_MAINTENANCE');
   const state=await readDeliveryState(current.directory,delivery.record.deliveryId);
-  if(state.completed){await assertDeliveryOpen(current);runtime.maintenance=false;return true;}return false;
+  if(state.completed){await assertDeliveryOpen(current);runtime.readySelections=readyProfileSelections(current);runtime.maintenance=false;return true;}return false;
  },attest(challenge){if(typeof challenge!=='string'||!/^[a-zA-Z0-9-]{20,128}$/.test(challenge))bad('HISTORY_UPGRADE_RUNTIME_CHALLENGE_INVALID');return {...frozen,challenge};}};
  return runtime;
 }

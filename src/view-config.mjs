@@ -1,3 +1,4 @@
+import {readConfigurationSnapshot,verifyConfigurationWrite} from './configuration-version.mjs';
 import {withHistoricalConfigurationSave} from './historical-disposition.mjs';
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -17,24 +18,24 @@ import { normalizeOptionDataValue } from "./multiselect-config.mjs";
 
 export { defaultRelationConfigs };
 
-export async function loadViewConfig(projectContextOrRoot) {
+export async function loadViewConfigSnapshot(projectContextOrRoot) {
   const context = createProjectContext(projectContextOrRoot);
   const target = resolveInsideRoot(context.projectRoot, context.sharedViewConfigPath);
-  try {
-    const parsed = JSON.parse(await readFile(target, "utf8"));
-    return normalizeViewConfig(parsed);
-  } catch (error) {
-    if (error?.code === "ENOENT") return emptyViewConfig();
-    throw error;
-  }
+  return readConfigurationSnapshot(target, normalizeViewConfig, emptyViewConfig);
+}
+
+export async function loadViewConfig(projectContextOrRoot) {
+  return (await loadViewConfigSnapshot(projectContextOrRoot)).value;
 }
 
 export async function saveViewConfig(projectContextOrRoot, config, options={}) {
  const context=createProjectContext(projectContextOrRoot);
  return withHistoricalConfigurationSave(context,{kind:'view-config'},target=>withConfigWrite(target,options,()=>loadViewConfig(context),async()=>{
   await mkdir(path.dirname(target),{recursive:true});
-  await atomicWrite(target,JSON.stringify(normalizeViewConfig(config),null,2)+'\n');
-  return { path: displayProjectPath(context,target) };
+  const text=JSON.stringify(normalizeViewConfig(config),null,2)+'\n';
+  await atomicWrite(target,text);
+  const configuration=await verifyConfigurationWrite(target,text,normalizeViewConfig,emptyViewConfig);
+  return { path: displayProjectPath(context,target), configuration };
  }));
 }
 

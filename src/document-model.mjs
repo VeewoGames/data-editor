@@ -34,9 +34,9 @@ export function getRows(model, collectionPath) {
   return Array.isArray(rows) ? rows : [];
 }
 
-export function getCollectionFields(model, collectionPath) {
+export function getCollectionFields(model, collectionPath, rows = getRows(model, collectionPath)) {
   const recordMap = isRecordMapModel(model) && collectionPath === objectMapCollectionPath;
-  const fields = classifyFields(getRows(model, collectionPath), recordMap ? model.rootKeyField : null);
+  const fields = classifyFields(rows, recordMap ? model.rootKeyField : null);
   return {main: recordMap ? [model.rootKeyField, ...buildVisibleFieldList(fields.main)] : buildVisibleFieldList(fields.main), nested: buildVisibleFieldList(fields.nested)};
 }
 export function getMainColumns(model, collectionPath) { return getCollectionFields(model, collectionPath).main; }
@@ -307,11 +307,216 @@ function applyDuplicatePrimaryKey(duplicate, rows, primaryKeyField, ignoredField
 }
 
 function renameRecordMapKey(root, currentKey, nextKeyValue) {
-  const nextKey = String(nextKeyValue ?? "").trim();
-  if (!nextKey) throw new Error("Record key cannot be empty");
+  const nextKey = validateRecordMapKeyRename(root, currentKey, nextKeyValue);
   if (nextKey === currentKey) return;
-  if (Object.hasOwn(root, nextKey)) throw new Error(`Record key already exists: ${nextKey}`);
   const entries = Object.entries(root).map(([key, value]) => key === currentKey ? [nextKey, value] : [key, value]);
   for (const key of Object.keys(root)) delete root[key];
   for (const [key, value] of entries) root[key] = value;
+}
+
+function validateRecordMapKeyRename(root, currentKey, nextKeyValue) {
+  const nextKey = String(nextKeyValue ?? "").trim();
+  if (!nextKey) throw new Error("Record key cannot be empty");
+  if (nextKey === currentKey) return nextKey;
+  if (Object.hasOwn(root, nextKey)) throw new Error(`Record key already exists: ${nextKey}`);
+  return nextKey;
+}
+
+function sameWriteDescriptor(a, b) {
+  if (a === undefined || b === undefined) return a === b;
+  if (a.enumerable !== b.enumerable || a.configurable !== b.configurable || ("value" in a) !== ("value" in b)) return false;
+  return "value" in a ? Object.is(a.value, b.value) && a.writable === b.writable : a.get === b.get && a.set === b.set;
+}
+
+function writableDataDescriptor(target, key) {
+  const prototype = Object.getPrototypeOf(target);
+  if (prototype !== Object.prototype && prototype !== null) throw new Error("Selected row is not a JSON record");
+  const before = Object.getOwnPropertyDescriptor(target, key);
+  if (before ? !("value" in before) || !before.writable : !Object.isExtensible(target)) {
+    throw new Error(`Field is not writable: ${key}`);
+  }
+  return before;
+}
+
+function cellWriteValueStamp(value) {
+  return value !== null && typeof value === "object" ? JSON.stringify(value) : value;
+}
+
+/** Prepared synchronous writes for serialized JSON/CSV data. No root deep copy. */
+export function prepareCellWrites(model, collectionPath, writes) {
+  if (!Array.isArray(writes)) throw new Error("Invalid cell write list");
+  const root = model.root, recordMap = isRecordMapModel(model) && collectionPath === objectMapCollectionPath;
+  const rows = recordMap ? null : getRows(model, collectionPath);
+  const fields = [], keys = [], targets = new Map();
+  let rootBefore = null, rootAfter = null, nextKeyByOriginal = new Map(), rootProtected = null;
+  if (recordMap && writes.some(write => write.fieldName === model.rootKeyField)) {
+    rootProtected = Reflect.ownKeys(root).filter(key => typeof key === "symbol" || !Object.getOwnPropertyDescriptor(root, key).enumerable).map(key => [key, Object.getOwnPropertyDescriptor(root, key)]);
+    rootBefore = Object.keys(root).map(key => {
+      const descriptor = Object.getOwnPropertyDescriptor(root, key);
+      if (!descriptor || !("value" in descriptor) || !descriptor.configurable) throw new Error("Record keys are not writable");
+      return [key, descriptor];
+    });
+  }
+  for (const write of writes) {
+    if (!Number.isSafeInteger(write.rowIndex) || write.rowIndex < 0 || typeof write.fieldName !== "string" || (recordMap && typeof write.sourceKey !== "string")) throw new Error("Invalid cell write target");
+    const key = recordMap ? write.sourceKey : null;
+    const row = recordMap ? Object.getOwnPropertyDescriptor(root, key)?.value : rows[write.rowIndex];
+    if (!isPlainObject(row) || row !== write.sourceValue) throw new Error("Selected row no longer matches the document");
+    const seen = targets.get(row) ?? new Set();
+    if (seen.has(write.fieldName)) throw new Error("Duplicate planned cell write");
+    seen.add(write.fieldName); targets.set(row, seen);
+    if (recordMap && write.fieldName === model.rootKeyField) {
+      if (rootBefore[write.rowIndex]?.[0] !== key) throw new Error("Selected row no longer matches the document");
+      const nextKey = write.witnessOnly ? key : String(write.value ?? "").trim();
+      if (!nextKey) throw new Error("Record key cannot be empty");
+      if (nextKey !== key) keys.push({key, nextKey});
+      continue;
+    }
+    const before = writableDataDescriptor(row, write.fieldName);
+    fields.push({row, key: write.fieldName, changed: !write.witnessOnly && !(before && Object.is(before.value, write.value)), before, beforeStamp: cellWriteValueStamp(before?.value), afterStamp: cellWriteValueStamp(write.witnessOnly ? before?.value : write.value), after: write.witnessOnly ? before : before ? {...before, value: write.value} : {value: write.value, writable: true, enumerable: true, configurable: true}, rowIndex: write.rowIndex, sourceKey: key});
+  }
+  if (keys.length) {
+    if (!Object.isExtensible(root)) throw new Error("Record keys are not writable");
+    const finalKeys = new Map(keys.map(item => [item.key, item.nextKey]));
+    nextKeyByOriginal = finalKeys;
+    const unique = new Set();
+    for (const [key] of rootBefore) {
+      const next = finalKeys.get(key) ?? key;
+      if (unique.has(next)) throw new Error(`Record key already exists: ${next}`);
+      unique.add(next);
+    }
+    // Respect the existing per-key collision rule; dependencies may move first.
+    const virtual = Object.create(null), waiting = new Map(keys.map(item => [item.key, item])), dependents = new Map(), ready = [];
+    for (const key of Reflect.ownKeys(root)) Object.defineProperty(virtual, key, {value: true, writable: true, enumerable: true, configurable: true});
+    for (const item of keys) {
+      if (!Object.hasOwn(virtual, item.nextKey)) ready.push(item.key);
+      else if (waiting.has(item.nextKey)) dependents.set(item.nextKey, item.key);
+      else throw new Error(`Record key already exists: ${item.nextKey}`);
+    }
+    for (let i = 0; i < ready.length; i++) {
+      const item = waiting.get(ready[i]);
+      const next = validateRecordMapKeyRename(virtual, item.key, item.nextKey), value = virtual[item.key];
+      delete virtual[item.key]; Object.defineProperty(virtual, next, {value, writable: true, enumerable: true, configurable: true});
+      waiting.delete(item.key);
+      if (dependents.has(item.key)) ready.push(dependents.get(item.key));
+    }
+    if (waiting.size) throw new Error("Record key rename cycle conflicts with existing keys");
+    rootAfter = rootBefore.map(([key, descriptor]) => [finalKeys.get(key) ?? key, descriptor]);
+    // JavaScript's numeric-key ordering also applies to the real root.
+    const ordered = Object.create(null);for (const [key, descriptor] of rootAfter) Object.defineProperty(ordered, key, descriptor);
+    rootAfter = Object.keys(ordered).map(key => [key, Object.getOwnPropertyDescriptor(ordered, key)]);
+  }
+  let state = "prepared", rootProgress = null;
+  const attempted = new Set();
+  function matchesRoot(entries) {
+    const actual = Object.keys(root);
+    return actual.length === entries.length && actual.every((key, index) => key === entries[index][0] && sameWriteDescriptor(Object.getOwnPropertyDescriptor(root, key), entries[index][1]));
+  }
+  function assertProtectedRoot() {
+    if (!rootProtected) return;
+    const actual = Reflect.ownKeys(root).filter(key => typeof key === "symbol" || !Object.getOwnPropertyDescriptor(root, key).enumerable);
+    if (actual.length !== rootProtected.length || actual.some((key, i) => key !== rootProtected[i][0] || !sameWriteDescriptor(Object.getOwnPropertyDescriptor(root, key), rootProtected[i][1]))) throw new Error("Record metadata write conflict");
+  }
+  function assertRoot(entries) {
+    if (model.root !== root || (!recordMap && getRows(model, collectionPath) !== rows)) throw new Error("Document write plan is stale");
+    if (rootAfter && !Object.isExtensible(root)) throw new Error("Record keys are not writable");
+    assertProtectedRoot();
+    if (entries) {
+      if (!matchesRoot(entries)) throw new Error("Record key write plan is stale");
+    }
+  }
+  function fieldMatches(write, descriptor, stamp) {
+    return sameWriteDescriptor(Object.getOwnPropertyDescriptor(write.row, write.key), descriptor) && cellWriteValueStamp(descriptor?.value) === stamp;
+  }
+  function assertFieldOwner(write, afterKeys = false) {
+    if (model.root !== root || (!recordMap && getRows(model, collectionPath) !== rows)) throw new Error("Document write owner changed");
+    const key = afterKeys ? nextKeyByOriginal.get(write.sourceKey) ?? write.sourceKey : write.sourceKey;
+    const row = recordMap ? Object.getOwnPropertyDescriptor(root, key)?.value : rows[write.rowIndex];
+    if (row !== write.row) throw new Error("Document write row changed");
+  }
+  function replaceRoot(entries) {
+    for (const key of Object.keys(root)) {
+      if (!sameWriteDescriptor(Object.getOwnPropertyDescriptor(root, key), rootProgress.map.get(key))) throw new Error("Record key write conflict");
+      rootProgress.pending = {key, descriptor: undefined};
+      delete root[key];rootProgress.map.delete(key);rootProgress.pending = null;
+    }
+    for (const [key, descriptor] of entries) {
+      if (!sameWriteDescriptor(Object.getOwnPropertyDescriptor(root, key), rootProgress.map.get(key))) throw new Error("Record key write conflict");
+      rootProgress.pending = {key, descriptor};
+      Object.defineProperty(root, key, descriptor);rootProgress.map.set(key, descriptor);rootProgress.pending = null;
+    }
+  }
+  function assertRollbackPrefix() {
+    if (model.root !== root || (!recordMap && getRows(model, collectionPath) !== rows)) throw new Error("Document rollback owner changed");
+    assertProtectedRoot();
+    if (rootProgress) {
+      if (!Object.isExtensible(root)) throw new Error("Record keys are not writable");
+      const before = [...rootProgress.map], candidate = new Map(before), pending = rootProgress.pending;
+      if (pending) {if (pending.descriptor) candidate.set(pending.key, pending.descriptor);else candidate.delete(pending.key);}
+      if (!matchesRoot(before) && (!pending || !matchesRoot([...candidate]))) throw new Error("Record key rollback conflict");
+      rootProgress = {map: new Map(Object.keys(root).map(key => [key, Object.getOwnPropertyDescriptor(root, key)])), pending: null};
+    } else assertRoot(rootBefore);
+    for (const write of fields) {
+      if (!rootProgress) {
+        const row = recordMap ? Object.getOwnPropertyDescriptor(root, write.sourceKey)?.value : rows[write.rowIndex];
+        if (row !== write.row) throw new Error("Document rollback row changed");
+      }
+      if (!fieldMatches(write, write.before, write.beforeStamp) && (!attempted.has(write) || !fieldMatches(write, write.after, write.afterStamp))) throw new Error("Cell rollback conflict");
+    }
+  }
+  function restore() {
+    assertRollbackPrefix();
+    if (rootProgress) replaceRoot(rootBefore);
+    for (let i = fields.length - 1; i >= 0; i--) {
+      const write = fields[i];
+      assertFieldOwner(write);
+      if (!attempted.has(write) || fieldMatches(write, write.before, write.beforeStamp)) continue;
+      if (!fieldMatches(write, write.after, write.afterStamp)) throw new Error("Cell rollback conflict");
+      if (write.before) Object.defineProperty(write.row, write.key, write.before);else delete write.row[write.key];
+    }
+    assertRoot(rootBefore);
+    for (const write of fields) {assertFieldOwner(write);if (!fieldMatches(write, write.before, write.beforeStamp)) throw new Error("Cell rollback conflict");}
+  }
+  function assertApplied() {
+    if (state !== "applied") throw new Error("Document write plan is not applied");
+    assertRoot(rootAfter ?? rootBefore);
+    for (const write of fields) {assertFieldOwner(write,true);if (!fieldMatches(write,write.after,write.afterStamp)) throw new Error("Applied write was changed; refusing rollback");}
+  }
+  function assertPrepared() {
+    if (state !== "prepared") throw new Error("Document write plan has already been used");
+    assertRoot(rootBefore);
+    for (const write of fields) {
+      assertFieldOwner(write);
+      if (!fieldMatches(write,write.before,write.beforeStamp) || cellWriteValueStamp(write.after?.value) !== write.afterStamp) throw new Error("Cell write plan is stale");
+      writableDataDescriptor(write.row,write.key);
+    }
+  }
+  return {
+    get state() { return state; },
+    get changed() { return fields.some(write => write.changed) || rootAfter !== null; },
+    assertApplied,
+    assertPrepared,
+    apply() {
+      assertPrepared();
+      state = "applying";
+      try {
+        for (const write of fields) {
+          const row = recordMap ? Object.getOwnPropertyDescriptor(root, write.sourceKey)?.value : rows[write.rowIndex];
+          if (model.root !== root || (!recordMap && getRows(model, collectionPath) !== rows) || row !== write.row || !fieldMatches(write, write.before, write.beforeStamp)) throw new Error("Cell changed during document write");
+          if (write.changed) {attempted.add(write);Object.defineProperty(write.row, write.key, write.after);}
+        }
+        if (rootAfter) {rootProgress = {map: new Map(rootBefore), pending: null};replaceRoot(rootAfter);}
+        assertRoot(rootAfter ?? rootBefore);
+        for (const write of fields) {assertFieldOwner(write,true);if (!fieldMatches(write, write.after, write.afterStamp)) throw new Error("Cell changed during document write");}
+        state = "applied";
+      } catch (cause) {
+        try { restore(); state = "rolled-back"; } catch (rollbackError) { state = "partial";throw Object.assign(new Error("Document write rollback failed", {cause}), {code: "DOCUMENT_WRITE_ROLLBACK_FAILED", rollbackError}); }
+        throw cause;
+      }
+    },
+    rollback() {
+      assertApplied();
+      try { restore(); state = "rolled-back"; } catch (cause) { state = "partial";throw Object.assign(new Error("Document write rollback failed", {cause}), {code: "DOCUMENT_WRITE_ROLLBACK_FAILED"}); }
+    },
+  };
 }

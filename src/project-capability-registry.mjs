@@ -177,10 +177,10 @@ function allBindings(bindings) {
 }
 
 async function validateDeclaredResources(projectRoot, bindings) {
-  const resources = [
+  const resources = new Set([
     ...bindings.nestedSchemas.map((binding) => binding.manifest),
     ...bindings.documentContracts.flatMap((binding) => [binding.contract, binding.contractSchema]),
-  ];
+  ]);
   for (const relativePath of resources) {
     const target = path.resolve(projectRoot, relativePath);
     try {

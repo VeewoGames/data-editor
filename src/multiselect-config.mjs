@@ -1,3 +1,93 @@
+import {prepareCellWritesByRowId,captureCellWriteTarget,validateCellWriteTarget} from './model/writeback-adapter.mjs';
+import {getRows} from './document-model.mjs';
+
+function optionReadSignature(value, mode) {
+  if(mode==='multi')return Array.isArray(value)?JSON.stringify(value.map(item=>[typeof item,String(item)])):'skip';
+  return value==null||Array.isArray(value)||typeof value==='object'?'skip':JSON.stringify([typeof value,String(value)]);
+}
+
+function captureOptionColumn({model,store,collectionPath,fieldName,mode}) {
+  const root=model.root,map=collectionPath==='$'&&model.rootCollectionKind==='record-map',container=map?root:getRows(model,collectionPath),collection=store.collections.get(collectionPath);
+  const readEntries=()=>map?Object.keys(root).map(key=>({key,source:Object.getOwnPropertyDescriptor(root,key)?.value})):container.map((source,key)=>({key,source}));
+  const readValue=entry=>{
+    if(map&&fieldName===model.rootKeyField)return entry.key;
+    if(entry.source===null||typeof entry.source!=='object'||Array.isArray(entry.source))return undefined;
+    const descriptor=Object.getOwnPropertyDescriptor(entry.source,fieldName);
+    if(descriptor&&!('value' in descriptor))throw new Error('Option column contains a non-data property');
+    return descriptor?.value;
+  };
+  const before=readEntries().map(entry=>({...entry,signature:optionReadSignature(readValue(entry),mode)}));
+  if(before.length!==collection.rowViews.length||before.some((entry,index)=>{const handle=collection.handleById.get(collection.rowViews[index]?.rowId);return !handle||!Object.is(entry.source,handle.sourceValue)||(map?handle.sourceKey!==entry.key:handle.sourceIndex!==entry.key)}))throw new Error('Option collection no longer matches the store');
+  let after=before;
+  const assert=expected=>{
+    if(model.root!==root||(!map&&getRows(model,collectionPath)!==container))throw new Error('Option collection changed');
+    const actual=readEntries();
+    if(actual.length!==expected.length||actual.some((entry,i)=>entry.key!==expected[i].key||!Object.is(entry.source,expected[i].source)||optionReadSignature(readValue(entry),mode)!==expected[i].signature))throw new Error('Option collection changed');
+  };
+  return {
+    before(){assert(before)},after(){assert(after)},
+    expect(writes){
+      const nextBySource=new Map(writes.filter(write=>!write.witnessOnly).map(write=>[write.target.expectedSource,write.value]));
+      after=before.map(entry=>{
+        if(!nextBySource.has(entry.source))return entry;
+        const next=nextBySource.get(entry.source),key=map&&fieldName===model.rootKeyField?String(next??'').trim():entry.key;
+        return {key,source:entry.source,signature:optionReadSignature(map&&fieldName===model.rootKeyField?key:next,mode)};
+      });
+      if(map&&fieldName===model.rootKeyField){const ordered=Object.fromEntries(after.map(entry=>[entry.key,entry]));after=Object.keys(ordered).map(key=>ordered[key]);}
+    },
+  };
+}
+
+function guardOptionColumn(plan,column) {
+  let partial=false;
+  return {
+    get changed(){return plan.changed},get state(){return partial?'partial':plan.state},
+    assertApplied(){plan.assertApplied();column.after()},
+    assertPrepared(){column.before();plan.assertPrepared()},
+    apply(){
+      column.before();plan.apply();
+      try{column.after()}catch(cause){
+        try{plan.rollback()}catch(rollbackError){partial=true;throw Object.assign(new Error('Option write rollback failed',{cause}),{code:'DOCUMENT_WRITE_ROLLBACK_FAILED',rollbackError})}
+        throw Object.assign(new Error('Option collection changed during commit',{cause}),{code:'OPTION_FIELD_CONCURRENT_CHANGE',rollbackSucceeded:true});
+      }
+    },
+    rollback(){plan.rollback()},
+  };
+}
+
+export function prepareOptionFieldWrites({model,store,collectionPath,target:captured,mode,patch}) {
+  const primitive = value => typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value));
+  if (!['single','multi'].includes(mode) || !patch || typeof patch.valueChanged!=='boolean' || !Array.isArray(patch.nextSelectedValues) || patch.nextSelectedValues.some(value => !primitive(value)) || (mode === 'single' && patch.nextSelectedValues.length > 1) || !Array.isArray(patch.renamedOptions) || !Array.isArray(patch.deletedOptionValues) || patch.deletedOptionValues.some(value => !primitive(value)) || patch.renamedOptions.some(rename => !rename || !primitive(rename.previousValue) || !primitive(rename.nextValue))) throw new Error('Invalid option field patch');
+  validateCellWriteTarget({model,store,collectionPath,target:captured});
+  const {rowId,fieldName}=captured,collection=store.collections.get(collectionPath),target=collection.handleById.get(rowId);
+  const currentValue=collectionPath==='$'&&model.rootCollectionKind==='record-map'&&fieldName===model.rootKeyField?target.sourceKey:target.sourceValue[fieldName];
+  if(mode==='multi'?!Array.isArray(currentValue)||currentValue.some(value=>!primitive(value)):currentValue!=null&&!primitive(currentValue))throw new Error('Current value is not compatible with the option field');
+  const selected=mode==='multi'?currentValue:currentValue==null||currentValue===''?[]:[currentValue];
+  if(!patch.valueChanged&&JSON.stringify(selected.map(value=>JSON.stringify(value)).sort())!==JSON.stringify(patch.nextSelectedValues.map(value=>JSON.stringify(value)).sort()))throw new Error('Option selection change flag does not match the captured value');
+  const finalValue=mode==='single'?(patch.nextSelectedValues[0]??null):patch.nextSelectedValues;
+  const bulk=patch.renamedOptions.length>0||patch.deletedOptionValues.length>0;
+  const writes=[];
+  const sameValue=(a,b)=>Object.is(a,b)||(Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((value,index)=>Object.is(value,b[index])));
+  const compatible=value=>mode==='multi'?Array.isArray(value)&&value.every(primitive):value==null||primitive(value);
+  let column=null;
+  if (bulk) {
+    column=captureOptionColumn({model,store,collectionPath,fieldName,mode});
+    const handles=[...collection.handleById.values()].filter(handle=>handle.sourceValue!==null&&typeof handle.sourceValue==='object'&&!Array.isArray(handle.sourceValue));
+    const original=handles.map(handle=>collectionPath==='$'&&model.rootCollectionKind==='record-map'&&fieldName===model.rootKeyField?handle.sourceKey:handle.sourceValue[fieldName]);
+    const shadow=original.map(value=>({[fieldName]:value}));
+    for (const rename of patch.renamedOptions) (mode==='single'?renameSingleSelectOptionInRows:renameMultiSelectOptionInRows)(shadow,fieldName,rename.previousValue,rename.nextValue);
+    for (const value of patch.deletedOptionValues) (mode==='single'?removeSingleSelectOptionFromRows:removeMultiSelectOptionFromRows)(shadow,fieldName,value);
+    for (let i=0;i<handles.length;i++) {
+      const next=handles[i].rowId===rowId&&patch.valueChanged?finalValue:shadow[i][fieldName],unchanged=sameValue(next,original[i]);
+      if(!unchanged&&!compatible(original[i]))throw new Error('Affected value is not compatible with the option field');
+      if(!unchanged||handles[i].rowId===rowId)writes.push({target:handles[i].rowId===rowId?captured:captureCellWriteTarget({model,store,collectionPath,rowId:handles[i].rowId,fieldName}),value:next,witnessOnly:unchanged});
+    }
+    column.before();column.expect(writes);
+  } else writes.push({target:captured,value:patch.valueChanged?finalValue:currentValue,witnessOnly:!patch.valueChanged});
+  const plan=prepareCellWritesByRowId({model,store,collectionPath,writes});
+  return column?guardOptionColumn(plan,column):plan;
+}
+
 export function renameMultiSelectOptionInRows(rows, fieldName, previousValue, nextValue) {
   const from = String(previousValue);
   const to = String(nextValue);

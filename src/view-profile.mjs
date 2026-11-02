@@ -1,3 +1,4 @@
+import {readConfigurationSnapshot,verifyConfigurationWrite} from './configuration-version.mjs';
 import {normalizeProfileName} from './project-context.mjs';
 export {normalizeProfileName} from './project-context.mjs';
 import {withHistoricalConfigurationSave} from './historical-disposition.mjs';
@@ -20,25 +21,25 @@ export async function listViewProfiles(projectContextOrRoot) {
   return [...names].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
 }
 
-export async function loadViewProfile(projectContextOrRoot, name) {
+export async function loadViewProfileSnapshot(projectContextOrRoot, name) {
   const context = createProjectContext(projectContextOrRoot);
   const profileName = normalizeProfileName(name);
   const target = path.join(profileDir(context), `${profileName}.json`);
-  try {
-    const parsed = JSON.parse(await readFile(target, "utf8"));
-    return normalizeViewProfile(parsed);
-  } catch (error) {
-    if (error?.code === "ENOENT") return emptyViewProfile();
-    throw error;
-  }
+  return readConfigurationSnapshot(target, normalizeViewProfile, emptyViewProfile);
+}
+
+export async function loadViewProfile(projectContextOrRoot, name) {
+  return (await loadViewProfileSnapshot(projectContextOrRoot, name)).value;
 }
 
 export async function saveViewProfile(projectContextOrRoot, name, profile, options={}) {
  const context=createProjectContext(projectContextOrRoot);
  return withHistoricalConfigurationSave(context,{kind:'view-profile',name},target=>withConfigWrite(target,options,()=>loadViewProfile(context,name),async()=>{
   await mkdir(path.dirname(target),{recursive:true});
-  await atomicWrite(target,JSON.stringify(serializeViewProfile(profile),null,2)+'\n');
-  return { path: displayProjectPath(context,target), name: normalizeProfileName(name) };
+  const text=JSON.stringify(serializeViewProfile(profile),null,2)+'\n';
+  await atomicWrite(target,text);
+  const configuration=await verifyConfigurationWrite(target,text,normalizeViewProfile,emptyViewProfile);
+  return { path: displayProjectPath(context,target), name: normalizeProfileName(name), configuration };
  }));
 }
 
@@ -246,7 +247,7 @@ async function listProfileNamesInDir(targetDir) {
   }
 }
 
-function serializeViewProfile(profile) {
+export function serializeViewProfile(profile) {
   const normalized = normalizeViewProfile(profile);
   return {
     sidebarWidth: normalized.sidebarWidth,

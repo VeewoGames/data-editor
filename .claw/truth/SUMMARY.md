@@ -3,6 +3,8 @@
 <!-- state: current -->
 ## Current behavior
 
+- [布局按确认事件驱动保存时机（配置阶段已正式激活，业务与启动阶段未完成）](./adr/layout-confirmation-driven-save-timing.md)
+
 - [单选与多选的 JSON 原始类型往返：字符串索引、实际写入值、歧义屏障与验证边界](./option-json-scalar-type-roundtrip.md)
 - [表格列显隐统一使用隐藏字段设置：移除独立高级字段入口，保留详情 schema 与写保护合同](./adr/table-column-visibility-single-hidden-setting.md)
 - [大文件性能与配置自动保存：当前 M1 验证边界、generation 5 历史样本与增量行高合同](./large-file-performance-and-configuration-autosave.md)

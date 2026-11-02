@@ -5,8 +5,12 @@ import {
   reorderRows,
   setCellValue,
   setNestedValue,
+  getRows,
+  prepareCellWrites,
 } from "../document-model.mjs";
 import { buildDocumentStore, getCollectionStore, getSourceLocatorByRowId } from "./document-store.mjs";
+
+const capturedWriteTargets = new WeakMap();
 
 export function createWritebackAdapter({ documentId = "document", model }) {
   let currentDocumentId = documentId;
@@ -131,8 +135,71 @@ export function resolveRowLocatorById({ store, collectionPath, rowId }) {
   return getSourceLocatorByRowId(store, collectionPath, rowId);
 }
 
+function readCellWriteTarget({model, store, collectionPath, rowId, fieldName}) {
+  if (store.model !== model || typeof rowId !== "string" || !rowId || typeof fieldName !== "string") throw new Error("Selected document no longer matches the store");
+  const handle = getCollectionStore(store, collectionPath).handleById.get(rowId);
+  if (!handle) throw new Error("Selected row no longer matches the document");
+  const recordMap = collectionPath === "$" && model.rootCollectionKind === "record-map";
+  const row = recordMap ? Object.getOwnPropertyDescriptor(model.root, handle.sourceKey)?.value : getRows(model, collectionPath)[handle.sourceIndex];
+  if (row !== handle.sourceValue || !row || typeof row !== "object" || Array.isArray(row)) throw new Error("Selected row no longer matches the document");
+  const syntheticKey = recordMap && fieldName === model.rootKeyField;
+  const descriptor = syntheticKey ? {value: handle.sourceKey} : Object.getOwnPropertyDescriptor(row, fieldName);
+  if (descriptor && !("value" in descriptor)) throw new Error("Cell is not a JSON data field");
+  const value = descriptor?.value;
+  const valueStamp = !descriptor ? "missing" : value === undefined ? "undefined" : JSON.stringify(value);
+  return {rowId, fieldName, expectedSource: row, expectedValueStamp: valueStamp};
+}
+
+export function captureCellWriteTarget(input) {
+  const target = Object.freeze(readCellWriteTarget(input));
+  capturedWriteTargets.set(target, {model: input.model, documentId: input.store.documentId, collectionPath: input.collectionPath});
+  return target;
+}
+
+export function validateCellWriteTarget({model,store,collectionPath,target}) {
+  const context = target && capturedWriteTargets.get(target);
+  if (!context || context.model !== model || context.documentId !== store.documentId || context.collectionPath !== collectionPath) throw new Error("A captured cell target for the same document and collection is required");
+  const current = readCellWriteTarget({model,store,collectionPath,rowId:target.rowId,fieldName:target.fieldName});
+  if (current.expectedSource !== target.expectedSource) throw new Error("Selected row no longer matches the document");
+  if (current.expectedValueStamp !== target.expectedValueStamp) throw new Error("Selected cell changed since capture");
+  return target;
+}
+
+export function prepareCellWritesByRowId({model, store, collectionPath, writes}) {
+  if (store.model !== model || !Array.isArray(writes)) throw new Error("Selected document no longer matches the store");
+  const collection = getCollectionStore(store, collectionPath);
+  const recordMap = collectionPath === "$" && model.rootCollectionKind === "record-map";
+  const rows = recordMap ? null : getRows(model, collectionPath);
+  const rootKeys = recordMap && writes.some(write => write.target?.fieldName === model.rootKeyField) ? Object.keys(model.root) : null;
+  const resolved = writes.map(write => {
+    const target = validateCellWriteTarget({model,store,collectionPath,target:write.target});
+    const handle = collection.handleById.get(target.rowId);
+    const actual = recordMap ? Object.getOwnPropertyDescriptor(model.root, handle.sourceKey)?.value : rows[handle.sourceIndex];
+    if (actual !== handle.sourceValue || (rootKeys && rootKeys[handle.sourceIndex] !== handle.sourceKey)) throw new Error("Selected row no longer matches the document");
+    return {value:write.value,witnessOnly:write.witnessOnly,fieldName:target.fieldName,rowIndex:handle.sourceIndex,sourceKey:handle.sourceKey,sourceValue:handle.sourceValue};
+  });
+  return prepareCellWrites(model, collectionPath, resolved);
+}
+
 export function setCellValueByRowId({ model, store, collectionPath, rowId, fieldName, value }) {
   const locator = resolveRowLocatorById({ store, collectionPath, rowId });
+  if (collectionPath === "$" && model.rootCollectionKind === "record-map") {
+    const handle = getCollectionStore(store, collectionPath).handleById.get(rowId);
+    const root = model.root;
+    if (store.model !== model || !root || typeof root !== "object" || Array.isArray(root) ||
+        locator.sourceKey == null || !Object.hasOwn(root, locator.sourceKey) ||
+        root[locator.sourceKey] !== handle?.sourceValue || !root[locator.sourceKey] ||
+        typeof root[locator.sourceKey] !== "object" || Array.isArray(root[locator.sourceKey])) {
+      throw new Error("Selected row no longer matches the document");
+    }
+    if (fieldName === model.rootKeyField) {
+      if (Object.keys(root)[locator.sourceIndex] !== locator.sourceKey) throw new Error("Selected row no longer matches the document");
+      setCellValue(model, collectionPath, locator.sourceIndex, fieldName, value);
+    } else {
+      root[locator.sourceKey][fieldName] = value;
+    }
+    return;
+  }
   setCellValue(model, collectionPath, locator.sourceIndex, fieldName, value);
 }
 

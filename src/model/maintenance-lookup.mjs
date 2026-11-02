@@ -23,7 +23,10 @@ import { analyzePrimaryKeyChange, buildPrimaryKeySyncPlan, collectRelationBackli
  *   primaryKeySyncPlan: import("./relationMaintenance").PrimaryKeySyncPlan | null;
  * }>}
  */
-export async function buildMaintenanceLookupState({
+export function buildMaintenanceLookupState(input){return buildMaintenanceLookupStateImpl(input,null);}
+export function buildMaintenanceWithConfirmedRow(input,resolveSavedRow){return buildMaintenanceLookupStateImpl(input,resolveSavedRow);}
+export function buildMaintenanceForConfirmedSave(input,resolveSavedRow){return buildMaintenanceLookupStateImpl(input,resolveSavedRow,true);}
+async function buildMaintenanceLookupStateImpl({
   selectedPath,
   collectionPath,
   selectedRow,
@@ -34,7 +37,7 @@ export async function buildMaintenanceLookupState({
   savedRoot,
   viewConfig,
   loadDocument,
-}) {
+},resolveSavedRow,saveOnly=false) {
   if (!selectedPath || !selectedRow) {
     return emptyMaintenanceState();
   }
@@ -42,11 +45,16 @@ export async function buildMaintenanceLookupState({
   if (!primaryKeyField) {
     return emptyMaintenanceState();
   }
-  const savedDocumentModel = savedRoot != null && model ? buildDocumentModel(savedRoot, model.format, selectedPath) : null;
+  // Unknown pairing blocks only operations which actually depend on an old key.
+  if(resolveSavedRow&&(selectedRow[primaryKeyField]==null||String(selectedRow[primaryKeyField]).trim()===''))return emptyMaintenanceState();
+  if(resolveSavedRow&&!Object.values(viewConfig.relations).some(relation=>relation.targetFile===selectedPath&&relation.targetCollection===collectionPath&&relation.targetKey===primaryKeyField)&&!listDocumentFieldsForCollection(viewConfig,selectedPath,collectionPath).some(({fieldPath})=>fieldPath.length===1&&fieldPath[0]!==primaryKeyField))return emptyMaintenanceState();
+  const savedDocumentModel = !resolveSavedRow&&savedRoot != null && model ? buildDocumentModel(savedRoot, model.format, selectedPath) : null;
   const savedRows = savedDocumentModel ? getRows(savedDocumentModel, collectionPath) : [];
-  const savedRow = selectedSourceRowIndex == null ? null : savedRows[selectedSourceRowIndex] ?? null;
+  const savedRow = resolveSavedRow?resolveSavedRow(primaryKeyField):(selectedSourceRowIndex == null ? null : savedRows[selectedSourceRowIndex] ?? null);
   const previousPrimaryKeyValue = savedRow?.[primaryKeyField];
   const currentPrimaryKeyValue = selectedRow[primaryKeyField];
+  const primitive=value=>value===null||typeof value==='string'||typeof value==='boolean'||typeof value==='number'&&Number.isFinite(value);
+  if(saveOnly&&resolveSavedRow&&(savedRow===null||primitive(previousPrimaryKeyValue)&&primitive(currentPrimaryKeyValue)&&Object.is(previousPrimaryKeyValue,currentPrimaryKeyValue)))return emptyMaintenanceState();
   const normalizedPreviousPrimaryKeyValue = previousPrimaryKeyValue == null ? "" : String(previousPrimaryKeyValue).trim();
   const normalizedCurrentPrimaryKeyValue = currentPrimaryKeyValue == null ? "" : String(currentPrimaryKeyValue).trim();
   if (

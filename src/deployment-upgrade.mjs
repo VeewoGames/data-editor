@@ -15,7 +15,7 @@ async function archiveSnapshot(snapshot,collector){
  }
 }
 export async function prepareAuthorityUpgrade({installedTool,candidateTool,releaseManifest}){
- const snapshot=await readAuthoritySnapshot();
+ const snapshot=await readAuthoritySnapshot({qualification:'upgrade-prior'});
  await assertDeliveryOpen(snapshot);
  if(!snapshot.entries.length)bad('HISTORY_UPGRADE_NO_PROTECTED_PROJECTS');
  for(const entry of snapshot.entries){
@@ -69,7 +69,7 @@ export async function validateUpgradeBundle(bundle){
  for(const item of bundle.objects)if(!exact(item,'digest,base64')||typeof item.base64!=='string')bad('HISTORY_UPGRADE_BUNDLE_INVALID');
  const collector=objectCollector(bundle.objects),spec=decode(await collector.read(bundle.deliverySpecRef));validateDeliverySpec(spec);
  if(spec.contract!=='history-deployment-delivery-v1'||spec.priorCatalogDigest!==bundle.expectedCatalogDigest)bad('HISTORY_UPGRADE_BUNDLE_INVALID');
- const priorReader=createAuthorityReader(collector.read),targetReader=createAuthorityReader(collector.read),before=[],after=[];
+ const priorReader=createAuthorityReader(collector.read,{qualification:'upgrade-prior'}),targetReader=createAuthorityReader(collector.read),before=[],after=[];
  for(const entry of bundle.priorCatalog.entries)before.push(await priorReader.select(entry));
  for(const entry of bundle.catalog.entries)after.push(await targetReader.select(entry));
  if(before.length!==after.length)bad('HISTORY_AUTHORITY_PROTECTION_REMOVAL');

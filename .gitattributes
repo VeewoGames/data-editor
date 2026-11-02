@@ -30,3 +30,35 @@ config/historical-deployment-upgrades/*.json -text
 # Preserve audit JSON bytes and their SHA-256 evidence across checkouts.
 docs/records/2026-10-25-G4夜曲知识配置迁回核实/*.json -text
 docs/records/2026-10-25-G5旧样例与遗留绑定核实/*.json -text
+
+# Preserve generation 8 runtime bytes, including the mixed-EOL frozen contract.
+server.mjs -text
+src/atomic-file-core.mjs -text
+src/atomic-file.mjs -text
+src/config-write-precondition.mjs -text
+src/configuration-admission.mjs -text
+src/configuration-permit-owner.mjs -text
+src/configuration-save-service.mjs -text
+src/configuration-version.mjs -text
+src/current-configuration-admission.mjs -text
+src/current-configuration-policy.mjs -text
+src/current-configuration-store.mjs -text
+src/current-configuration-target.mjs -text
+src/deployment-authority-proof.mjs -text
+src/deployment-authority-store.mjs -text
+src/deployment-runtime.mjs -text
+src/deployment-upgrade.mjs -text
+src/document-model.mjs -text
+src/historical-required-files.mjs -text
+src/model/backlink-lookup.mjs -text
+src/model/document-store.mjs -text
+src/model/maintenance-lookup.mjs -text
+src/model/relation-lookup.mjs -text
+src/model/writeback-adapter.mjs -text
+src/multiselect-config.mjs -text
+src/project-capability-registry.mjs -text
+src/shared-views.mjs -text
+src/table/table-column-signatures.mjs -text
+src/user-profile-registry.mjs -text
+src/view-config.mjs -text
+src/view-profile.mjs -text

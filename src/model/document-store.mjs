@@ -104,7 +104,7 @@ function buildCollectionStore(
     handleById,
     sourceIndexByRowId,
     rowViews,
-    fields: getCollectionFields(model, collectionPath),
+    fields: getCollectionFields(model, collectionPath, rowViews.map(view => view.row)),
   };
 }
 
@@ -252,11 +252,10 @@ function getSourceCollection(model, collectionPath) {
 }
 
 function createRowView(model, sourceKey, sourceRow) {
-  const row = isPlainObject(sourceRow) ? { ...sourceRow } : {};
   if (isRootRecordMap(model, "$") && sourceKey != null) {
-    return { [model.rootKeyField]: sourceKey, ...row };
+    return { [model.rootKeyField]: sourceKey, ...(isPlainObject(sourceRow) ? sourceRow : {}) };
   }
-  return row;
+  return isPlainObject(sourceRow) ? { ...sourceRow } : {};
 }
 
 function isRootRecordMap(model, collectionPath) {

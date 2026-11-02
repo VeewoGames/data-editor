@@ -14,8 +14,8 @@ import {assertDeliveryOpen} from './deployment-delivery.mjs';
 export {authorityPhysical};
 const toolRoot=path.resolve(import.meta.dirname,'..');
 const selection=(entry,read)=>createAuthorityReader(read).select(entry);
-export async function readAuthoritySnapshot(){
- const snapshot=await loadCatalog(false),reader=createAuthorityReader(ref=>object(snapshot.directory,ref)),entries=[];for(const entry of snapshot.catalog.entries)entries.push(await reader.select(entry));return {...snapshot,entries,verificationStats:reader.stats()};
+export async function readAuthoritySnapshot({qualification='current'}={}){
+ const snapshot=await loadCatalog(false),reader=createAuthorityReader(ref=>object(snapshot.directory,ref),{qualification}),entries=[];for(const entry of snapshot.catalog.entries)entries.push(await reader.select(entry));return {...snapshot,entries,verificationStats:reader.stats()};
 }
 export async function assertAuthorityStamp(expected){const actual=await loadCatalog(false);if(actual.stamp!==expected)bad('HISTORY_AUTHORITY_GENERATION_STALE');await assertDeliveryOpen(actual);return actual;}
 export const withAuthorityDeliveryLock=operation=>withStoreDeliveryLock(async()=>{const snapshot=await loadCatalog(true);if(snapshot.bytes)await assertDeliveryOpen(snapshot);return operation();});

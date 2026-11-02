@@ -3,11 +3,12 @@ import {readFile,realpath} from 'node:fs/promises';
 import {assertPolicy,assertCatalog,assertManifest,assertIntent,assertEnvelope,assertRef,decode,encode,digest,normalize,hash,exact,canonical,authorityError as bad} from './deployment-authority-schema.mjs';
 import {validateSuccessorLedger} from './historical-deployment-successor.mjs';
 import {verifyDeploymentPolicy,validateReceiptEvidence,historySnapshot,businessSnapshot} from './historical-proof.mjs';
-import {legacyHistoryRequiredDeploymentFiles,requiredFilesForProtocol} from './historical-required-files.mjs';
+import {legacyHistoryRequiredDeploymentFiles,requiredFilesForProtocol,priorProtocol3Qualification} from './historical-required-files.mjs';
 const stable=v=>JSON.stringify(v);
 
 // This cache belongs to one fresh snapshot only. It is never an effect permit.
-export function createAuthorityReader(readObject){
+export function createAuthorityReader(readObject,{qualification='current'}={}){
+ if(!['current','upgrade-prior'].includes(qualification))bad('HISTORY_AUTHORITY_QUALIFICATION_INVALID');
  const objects=new Map(),nodes=new Map(),visiting=new Set();let bytesRead=0;
  async function object(ref){
   assertRef(ref);if(objects.has(ref.digest))return objects.get(ref.digest);
@@ -17,9 +18,9 @@ export function createAuthorityReader(readObject){
   if(digest(bytes)!==ref.digest)bad('HISTORY_AUTHORITY_DIGEST_MISMATCH');
   objects.set(ref.digest,bytes);return bytes;
  }
- async function select(entry,depth=0){
+ async function select(entry,depth=0,role=qualification){
   assertIntent(entry.intent);if(depth>256)bad('HISTORY_AUTHORITY_BUDGET_EXCEEDED');
-  const key=digest(encode(entry));if(visiting.has(key))bad('HISTORY_AUTHORITY_CHAIN_INVALID');if(nodes.has(key))return nodes.get(key);
+  const key=digest(encode(entry))+':'+role;if(visiting.has(key))bad('HISTORY_AUTHORITY_CHAIN_INVALID');if(nodes.has(key))return nodes.get(key);
   visiting.add(key);
   try{
    const intent=entry.intent,envelope=decode(await object(entry.envelopeRef));assertEnvelope(envelope,intent);
@@ -29,7 +30,16 @@ export function createAuthorityReader(readObject){
    const index=new Map(manifest.files.map(file=>[file.path,file])),closure=new Set([entry.envelopeRef.digest,intent.packageRef.digest]);
    const read=async ref=>{assertRef(ref);const pin=index.get(ref.path);if(!pin||pin.digest!==ref.digest)bad('HISTORY_AUTHORITY_PACKAGE_INVALID');const bytes=await object(ref);if(bytes.length!==pin.size)bad('HISTORY_AUTHORITY_PACKAGE_INVALID');closure.add(ref.digest);return bytes;};
    const policy=decode(await read(intent.policyRef));assertPolicy(policy);
-   const requiredFiles=requiredFilesForProtocol(intent.minReaderProtocol);
+   let requiredFiles=requiredFilesForProtocol(intent.minReaderProtocol);
+   if(intent.minReaderProtocol===3&&role!=='current'){
+    const modulePin=policy.deploymentFiles.find(pin=>pin.path==='src/historical-required-files.mjs');
+    if(modulePin?.digest===priorProtocol3Qualification.moduleDigest){
+     // Authenticate the archived definition through this package's index,
+     // digest and size checks. Never execute an installed older module.
+     await read({path:`objects/${modulePin.digest}.blob`,digest:modulePin.digest});
+     requiredFiles=priorProtocol3Qualification.requiredFiles;
+    }else if(requiredFiles.some(file=>!policy.deploymentFiles.some(pin=>pin.path===file)))bad('HISTORY_AUTHORITY_RELEASE_UNSUPPORTED');
+   }
    if(requiredFiles.some(file=>!policy.deploymentFiles.some(pin=>pin.path===file)))bad('HISTORY_DEPLOYMENT_INCOMPLETE');
    let proof;
    if(!upgrade){
@@ -41,7 +51,7 @@ export function createAuthorityReader(readObject){
     if(priorCatalog.generation+1!==intent.generation)bad('HISTORY_AUTHORITY_CHAIN_INVALID');
     const priorEntry=priorCatalog.entries.find(item=>item.intent.root===intent.root);
     if(!priorEntry||digest(encode(priorEntry))!==manifest.priorEntryDigest||priorEntry.intent.generation>=intent.generation)bad('HISTORY_AUTHORITY_CHAIN_INVALID');
-    const prior=await select(priorEntry,depth+1);
+    const prior=await select(priorEntry,depth+1,'historical');
     for(const id of prior.authority.closure)await read({path:`objects/${id}.blob`,digest:id});
     if(prior.runtime!==intent.runtime||prior.anchorId!==intent.anchorId||canonical(prior.managedNonReplay.businessFiles)!==canonical(policy.businessFiles)||!Buffer.from(await read(manifest.ledgerRef)).equals(prior.authority.proof.ledgerBytes))bad('HISTORY_AUTHORITY_PROTECTION_REMOVAL');
     if(manifest.priorPolicyObjects.length!==prior.managedNonReplay.deploymentFiles.length)bad('HISTORY_AUTHORITY_CHAIN_INVALID');
@@ -59,7 +69,7 @@ export function createAuthorityReader(readObject){
    nodes.set(key,result);return result;
   }finally{visiting.delete(key);}
  }
- return {select,objects,stats:()=>({objects:objects.size,bytesRead,nodes:nodes.size})};
+ return {select:entry=>select(entry,0,qualification),objects,stats:()=>({objects:objects.size,bytesRead,nodes:nodes.size})};
 }
 export function validateSourceConfiguration(source){
  if(!exact(source,'version,entries')||source.version!==1||!Array.isArray(source.entries))bad('HISTORY_SOURCE_PROOF_INVALID');

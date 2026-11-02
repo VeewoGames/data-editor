@@ -58,4 +58,6 @@ function filterRelationsForSource(relations, sourceFilePath, sourceCollectionPat
   );
 }
 export const relationLookupScope=(projectId,file,collection,relations)=>JSON.stringify([projectId,file,collection,relations]);
-export const relationLookupForScope=(scope,state)=>state.scope===scope?{indexes:state.indexes,options:state.options}:{indexes:{},options:{}};
+const emptyRelationOptions=Object.freeze({});
+const stableEmptyOptions=value=>value&&Object.getPrototypeOf(value)===Object.prototype&&Reflect.ownKeys(value).length===0?emptyRelationOptions:value;
+export const relationLookupForScope=(scope,state)=>state.scope===scope?{indexes:state.indexes,options:stableEmptyOptions(state.options)}:{indexes:{},options:emptyRelationOptions};
