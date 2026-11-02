@@ -1,4 +1,4 @@
-# 共享视图 Tabler 图标接入：tagged snapshot、generated registry 与受保护 pack 合同
+﻿# 共享视图 Tabler 图标接入：tagged snapshot、generated registry 与受保护 pack 合同
 
 status: accepted
 

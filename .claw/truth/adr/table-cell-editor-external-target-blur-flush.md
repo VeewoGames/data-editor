@@ -1,4 +1,4 @@
-# 表格文本编辑器：外部目标切换前主动 blur 并在卸载时兜底 flush
+﻿# 表格文本编辑器：外部目标切换前主动 blur 并在卸载时兜底 flush
 
 status: accepted
 

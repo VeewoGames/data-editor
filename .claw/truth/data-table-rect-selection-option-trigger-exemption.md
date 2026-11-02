@@ -1,4 +1,4 @@
-# DataTable 矩形选区对离散选项触发区的豁免边界
+﻿# DataTable 矩形选区对离散选项触发区的豁免边界
 
 status: accepted
 

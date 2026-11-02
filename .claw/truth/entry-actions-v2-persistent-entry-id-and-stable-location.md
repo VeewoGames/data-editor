@@ -1,4 +1,4 @@
-# 持久内部条目 ID 与 entry-action 稳定定位已落地
+﻿# 持久内部条目 ID 与 entry-action 稳定定位已落地
 
 <!-- state: current -->
 ## 当前行为

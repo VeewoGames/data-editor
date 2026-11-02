@@ -1,4 +1,4 @@
-# entryActions 第二版本机 Codex 执行链已接通：stdin prompt、技能解析与回写核对边界
+﻿# entryActions 第二版本机 Codex 执行链已接通：stdin prompt、技能解析与回写核对边界
 
 <!-- document-state: historical -->
 <!-- state: history -->

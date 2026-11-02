@@ -1,4 +1,4 @@
-# 共享视图图标 Playwright e2e：隔离静态 webServer 链路
+﻿# 共享视图图标 Playwright e2e：隔离静态 webServer 链路
 
 status: accepted
 

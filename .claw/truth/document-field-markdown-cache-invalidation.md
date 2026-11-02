@@ -1,4 +1,4 @@
-# Document 字段 Markdown 不可见问题：docRoot 缓存失效边界与刷新收口
+﻿# Document 字段 Markdown 不可见问题：docRoot 缓存失效边界与刷新收口
 
 status: accepted
 

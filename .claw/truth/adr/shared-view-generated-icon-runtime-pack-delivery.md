@@ -1,4 +1,4 @@
-# 共享视图 generated 图标供应链：运行时按包拉取 raw SVG
+﻿# 共享视图 generated 图标供应链：运行时按包拉取 raw SVG
 
 status: accepted
 

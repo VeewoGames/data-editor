@@ -1,4 +1,4 @@
-# Automation Settings 图标选择器滚轮事件边界
+﻿# Automation Settings 图标选择器滚轮事件边界
 
 status: accepted
 

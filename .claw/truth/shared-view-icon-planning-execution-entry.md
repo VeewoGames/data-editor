@@ -1,4 +1,4 @@
-# 共享视图图标收口轮 planning 执行入口：优先级、边界与 Legacy 收口规则
+﻿# 共享视图图标收口轮 planning 执行入口：优先级、边界与 Legacy 收口规则
 
 status: accepted
 

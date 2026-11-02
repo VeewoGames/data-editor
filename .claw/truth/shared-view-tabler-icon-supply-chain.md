@@ -1,4 +1,4 @@
-# 共享视图 Tabler 图标接入：tagged snapshot、生成器防碰撞与 pack 管理边界
+﻿# 共享视图 Tabler 图标接入：tagged snapshot、生成器防碰撞与 pack 管理边界
 
 status: accepted
 

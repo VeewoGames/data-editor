@@ -1,4 +1,4 @@
-# shared view 个人模式 / 团队模式切换：现状、保存链路与复核结论
+﻿# shared view 个人模式 / 团队模式切换：现状、保存链路与复核结论
 
 status: accepted
 

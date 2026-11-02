@@ -1,4 +1,4 @@
-# Automation Settings Skill 真值链与最小保存边界
+﻿# Automation Settings Skill 真值链与最小保存边界
 
 status: accepted
 

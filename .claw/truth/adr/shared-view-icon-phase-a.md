@@ -1,4 +1,4 @@
-# 共享视图图标 Phase A：收藏归属、分层 registry 与 pack 加载边界
+﻿# 共享视图图标 Phase A：收藏归属、分层 registry 与 pack 加载边界
 
 status: accepted
 

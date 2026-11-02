@@ -1,4 +1,4 @@
-# entryActions 真实执行面固定为本机 codex exec
+﻿# entryActions 真实执行面固定为本机 codex exec
 
 <!-- document-state: superseded -->
 

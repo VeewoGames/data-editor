@@ -1,4 +1,4 @@
-# entryActions 第二版：绑定看起来已就绪但实际不执行的根因
+﻿# entryActions 第二版：绑定看起来已就绪但实际不执行的根因
 
 <!-- document-state: historical -->
 

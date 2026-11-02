@@ -1,4 +1,4 @@
-# entry-action proposal-only 安全执行、组合提交与恢复边界
+﻿# entry-action proposal-only 安全执行、组合提交与恢复边界
 
 <!-- state: current -->
 ## 当前行为

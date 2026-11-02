@@ -1,4 +1,4 @@
-# 共享视图图标收口轮：pack 诊断状态与 Legacy inventory 分层
+﻿# 共享视图图标收口轮：pack 诊断状态与 Legacy inventory 分层
 
 status: accepted
 

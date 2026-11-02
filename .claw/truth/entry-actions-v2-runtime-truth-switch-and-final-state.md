@@ -1,4 +1,4 @@
-# entryActions 第二版运行时真值切换完成：详情按钮与服务端执行都已转向个人自动化
+﻿# entryActions 第二版运行时真值切换完成：详情按钮与服务端执行都已转向个人自动化
 
 <!-- document-state: historical -->
 

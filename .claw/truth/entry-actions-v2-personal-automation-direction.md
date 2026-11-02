@@ -1,4 +1,4 @@
-# entryActions 第二版方向收敛：放弃项目共享，转为双层个人化配置
+﻿# entryActions 第二版方向收敛：放弃项目共享，转为双层个人化配置
 
 <!-- state: current -->
 

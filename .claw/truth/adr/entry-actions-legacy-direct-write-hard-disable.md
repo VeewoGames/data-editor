@@ -1,4 +1,4 @@
-# entry-action legacy direct-write 永久禁用与 proposal-only 启用边界
+﻿# entry-action legacy direct-write 永久禁用与 proposal-only 启用边界
 
 <!-- document-state: accepted -->
 

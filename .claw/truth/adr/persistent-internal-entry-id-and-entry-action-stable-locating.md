@@ -1,4 +1,4 @@
-# 持久内部条目 ID 与 entry-action 稳定定位
+﻿# 持久内部条目 ID 与 entry-action 稳定定位
 
 <!-- document-state: accepted -->
 
