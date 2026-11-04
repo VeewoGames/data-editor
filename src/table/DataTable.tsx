@@ -1048,6 +1048,21 @@ function DataTableComponent(props: DataTableProps) {
   }, []);
 
   useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const measureViewport = () => {
+      const height = container.clientHeight;
+      if (height === scrollMetricsRef.current.viewportHeight) return;
+      scrollMetricsRef.current.viewportHeight = height;
+      setViewportHeight(height);
+    };
+    measureViewport();
+    const observer = new ResizeObserver(measureViewport);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
     const scope = snapshot.sourcePath + ":" + snapshot.collectionPath;
     const previous = committedHeightIndexRef.current;
     const container = scrollContainerRef.current;
