@@ -4,7 +4,7 @@
 <!-- state: current -->
 ## 当前状态
 
-读取全链路优化、依赖加载竞态修复及已激活 v2 authority 的通用前向升级入口已正式交付。最新完成部署为 2026-11-01 的 M1 静态先行：catalog generation 7、无 active delivery，沿用原 v2/schema 2、minReaderProtocol 3 与历史保护合同。generation 5 的配置及性能样本由[大文件性能 Truth](./large-file-performance-and-configuration-autosave.md)维护，不代表当前 M1 的新测量。未 commit 或 push。
+读取全链路优化、依赖加载竞态修复及已激活 v2 authority 的通用前向升级入口已正式交付。最近已完成部署为配置客户端协议修复：catalog generation 9，deliveryId `81673b40122a214cf8de2f7a109bb211e39108bed2b1b7400e38d148ddfbc77c`，升级器返回 completed。沿用既有 v2 前向升级与历史保护合同。generation 5 的配置及性能样本由[大文件性能 Truth](./large-file-performance-and-configuration-autosave.md)维护，不代表当前 M1 的新测量。
 
 正式 `scripts/deployment-authority.mjs` 的 prepare/apply 属于来源导入；已激活 v2 的代码交付使用独立 upgrade-prepare/upgrade-verify/upgrade-apply/upgrade-complete。首次导入、init-empty、改旧摘要或直接覆盖受保护源码均不能替代前向交付。既有生效与项目归属由[通用化 Truth](./project-generality-audit-boundary.md)维护。
 
@@ -19,13 +19,25 @@
 
 升级合同见[前向交付 ADR](./adr/active-v2-forward-upgrade-and-read-effect-separation.md)。正式实现入口包括 `server.mjs`、`src/project-readiness.mjs` 及 deployment-upgrade/deployment-delivery 模块；产品保持通用，不引入具体项目业务分支。
 
-## M1 静态先行交付与维护限制
+## 当前源码构建与交付边界
+
+generation 9 修复前先把 HEAD 源码构建到独立输出目录，证明其入口与当时正式 dist 一致，再构建冻结候选并经原 upgrade 流程交付；因此旧 M1 阶段“源码未同步，重建必回退”的判断不再作为当前事实。正式 `dist/index.html` 现引用 `/assets/index-DPDCTlfb.js`。受保护 dist 仍不能直接用构建覆盖；应独立输出、核对当前前像与候选闭包，通过既有 prepare/verify/apply/complete 发布，不绕过 package/lock pin、catalog 或原静默门。
+
+本次 4 项变化静态资源的实际 HTTP 摘要与冻结产物一致，代表性业务文档 ETag 由 complete 核对；这是受控交付验收，不等于正式业务编辑、全量业务字节审计、性能目标或人类 UI 验收。配置客户端行为与 44 项定向回归边界由[保存 Truth](./large-file-performance-and-configuration-autosave.md)维护。核对锚点为 `dist/index.html`、`src/deployment-upgrade.mjs::completeAuthorityUpgrade` 与 `src/deployment-runtime.mjs::verifyRuntimeDelivery`。
+
+发布前 3 条 dead-owner 未启动登记经身份及无 handoff/started/result、无阻塞义务核验后，通过既有 publication close/reconcile/ABORT 结清，未改配置原文。执行收尾已有 service:finalize exit 0、两端 health HTTP 200；本任务隔离 fixture 和基线构建已按逐文件/空目录规则清理，候选、包和必要证据保留。未操作用户 Browser。本次知识维护未启动服务或重跑测试。
+
+<!-- state: history -->
+## 验证快照与限制
+
+<!-- dated: 2026-11-01 -->
+### M1 静态先行交付与当时维护限制
 
 用户明确接受静态先行及四文件维护恢复后，原升级器已完成 13 项前向交付：9 项静态增替删，以及 `src/multiselect-config.mjs`、`src/table/table-column-signatures.mjs`、`src/table/table-runtime-deps.mjs`、`src/view-config.mjs` 的当前版本重新纳管。四项最终内容与维护前一致；其余 M1 源码、`package.json`、`package-lock.json` 和正式依赖没有同步。数字选项语义继续由[类型往返 Truth](./option-json-scalar-type-roundtrip.md)维护。
 
-版本为 `M1-frontend-2026-11-01-static`；deliveryId `a1f5ea3018fc51437590ad684816b51ec15d2790728a1753c5a185ec13d9bc32`，bundle SHA256 `ae1c61a01ed4c88a71e72de16899d5cadddcb994b66b4de96f372c4d9cf05270`，catalog SHA256 `5f49b89cef58d78285f860377db005714af14650aab67b6e475d7cb1bb6eeb87`。`dist/index.html` 当前引用 `/assets/index-BGcFoDsg.js`。结论与完整执行记录见[正式激活记录](../../docs/records/2026-11-01-M1静态先行正式激活记录.md)。
+版本为 `M1-frontend-2026-11-01-static`；deliveryId `a1f5ea3018fc51437590ad684816b51ec15d2790728a1753c5a185ec13d9bc32`，bundle SHA256 `ae1c61a01ed4c88a71e72de16899d5cadddcb994b66b4de96f372c4d9cf05270`，catalog SHA256 `5f49b89cef58d78285f860377db005714af14650aab67b6e475d7cb1bb6eeb87`。当时 `dist/index.html` 引用 `/assets/index-BGcFoDsg.js`。结论与完整执行记录见[正式激活记录](../../docs/records/2026-11-01-M1静态先行正式激活记录.md)。
 
-**不能直接在正式目录运行 `npm run build` 覆盖当前 dist**：正式源码与依赖尚未同步为 M1，重新构建会生成旧前端。完整源码/依赖部署须单独完善交付能力；原完整源码包、精确静态包、bootstrap 与受信/当前源备份保留用于后续交付及恢复。此限制不是新的依赖部署合同：`src/deployment-upgrade.mjs::verifyBefore` 仍核验 package/lock 的 bootstrap pin 并拒绝 `HISTORY_UPGRADE_DEPENDENCIES_CHANGED`，不能绕过保护或手改 catalog。
+当时不能在正式目录运行 `npm run build` 覆盖 dist：彼时源码与依赖尚未同步为 M1，重建会生成旧前端；本段仅保留阶段恢复背景，当前构建判断见上文。完整源码/依赖部署须单独完善交付能力；原完整源码包、精确静态包、bootstrap 与受信/当前源备份保留用于后续交付及恢复。此限制不是新的依赖部署合同：`src/deployment-upgrade.mjs::verifyBefore` 仍核验 package/lock 的 bootstrap pin 并拒绝 `HISTORY_UPGRADE_DEPENDENCIES_CHANGED`，不能绕过保护或手改 catalog。
 
 本次维护先保全当前与受信版本，原 stop 及 `src/deployment-runtime.mjs::assertServicesStopped` 证明写者退出后才临时恢复四项受信前像。首次 prepare 被已死服务的四条未启动 continuation 阻断；核验真实身份和无 handoff/started/result 后，通过既有 publication `close → reconcile → ABORT` 入口结清，再执行原 upgrade-prepare/verify/apply。publication generation 与 catalog generation 是独立计数。selector 切换后仅按同冻结包前向完成，没有回滚 catalog、改写历史结果或重放业务。
 
@@ -33,8 +45,6 @@
 
 执行收尾已有 `service:finalize` 通过，`8787/api/health` 与 `8791/health` 均 HTTP 200，Browser 位于 `http://127.0.0.1:8787/`；本轮临时服务为 0，空暂存目录已删除，其余恢复证据保留。本次知识维护未启动服务、操作 Browser 或重跑测试。
 
-<!-- state: history -->
-## 验证快照与限制
 
 <!-- dated: 2026-10-26 -->
 ### generation 4：依赖加载修复与纯前端发布

@@ -128,15 +128,12 @@ test("unprotected document saves carry the empty server-matched contract set", a
 test("saveViewProfile does not use keepalive for profile autosave requests", async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
+  const configuration = { value: {}, version: { exists: false, digest: null }, resourceKey: 'profile-target', serverInstance: 'boot', descriptor: { kind: 'view-profile', projectId: 'p', name: 'Lans' } };
   globalThis.fetch = async (url, options) => {
     calls.push({ url, options });
-    return {
-      ok: true,
-      status: 200,
-      async json() {
-        return { ok: true };
-      },
-    };
+    const result = String(url).startsWith('/api/configuration-snapshot?') ? configuration
+      : url === '/api/configuration-begin' ? { permit: 'grant' } : { ok: true, configuration };
+    return new Response(JSON.stringify(result), { status: 200 });
   };
 
   try {
@@ -157,9 +154,11 @@ test("saveViewProfile does not use keepalive for profile autosave requests", asy
     globalThis.fetch = originalFetch;
   }
 
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, "/api/view-profile");
-  assert.equal("keepalive" in calls[0].options, false);
+  assert.equal(calls.length, 3);
+  assert.equal(calls[1].url, "/api/configuration-begin");
+  assert.equal(calls[2].url, "/api/configuration-save");
+  assert.equal(JSON.parse(calls[2].options.body).permit, 'grant');
+  assert.equal("keepalive" in calls[2].options, false);
 });
 
 test("saveAutomationProfile posts the profile payload without keepalive", async () => {

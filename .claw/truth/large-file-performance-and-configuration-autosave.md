@@ -5,9 +5,10 @@
 
 ## 当前行为
 
-通用配置保存、滚动计算和打开链优化曾随 generation 5 正式交付；2026-11-01 已在保留当前后端与既有功能的前提下，正式激活 M1 预编译前端。当前交付身份、源码与产物分离及维护限制由[前向升级 Truth](./data-loading-candidate-and-v2-forward-upgrade-boundary.md)统一维护。配置写入仍由原 writer、配置锁和历史效果门负责，不扩大业务数据 authority，也不创建自动化 run。已采用的长期合同见[配置与性能 ADR](./adr/precise-configuration-save-and-incremental-table-performance.md)。
+通用配置保存、滚动计算和打开链优化曾随 generation 5 正式交付；2026-11-01 已在保留当前后端与既有功能的前提下，正式激活 M1 预编译前端。当前交付身份、源码与产物分离及维护限制由[前向升级 Truth](./data-loading-candidate-and-v2-forward-upgrade-boundary.md)统一维护。三类普通配置写入由现有 configuration service 的目标归属、版本、许可及原 writer/配置锁负责，不扩大业务数据 authority，也不创建自动化 run。已采用的长期合同见[配置与性能 ADR](./adr/precise-configuration-save-and-incremental-table-performance.md)。
 
-- `src/view-config.mjs`、`src/view-profile.mjs`、`src/shared-views.mjs` 使用 `withHistoricalConfigurationSave`，只授权解析后的具体类别目标；合法外置 profile 也逐次核验。路径别名、其他项目、业务/runtime/ledger/authority 写入、过期 scope 及任何已有历史 scope 下的嵌套准入均拒绝。准入历史锁释放后才取配置锁，真实效果前再锁内核验。
+- `src/api/client.ts` 的个人 profile、字段配置、共享视图 load/save 均接入 `src/api/configuration-saves.mjs::createConfigurationSaves`。加载以 `/api/configuration-snapshot` 建立 descriptor/resourceKey/version/serverInstance 基线；保存按 projectId/kind/name 串行，先复制草稿，再 begin 取得 permit 后 save。已有目标未加载拒绝覆盖；不存在目标可用缺失版本基线创建。后端 owner 仍为 `server.mjs` 的 configuration 路由及 `src/configuration-save-service.mjs`，不放宽目标/版本/许可校验。
+- 保存不自动读取最新版本覆盖既有草稿。丢 ACK、HTTP 失败或服务换代先 reconcile 原尝试，须取得 `current-admission-quiescent` 终止证明；已满足不重复写，profile 已写但登记未完成只 `register-only` 补名称登记。冲突终结旧尝试但保留旧编辑基线，自动重试继续拒绝覆盖，显式加载才建立新基线；未确认尝试保留至后续核对。
 - `src/App.tsx` 保存队列捕获项目、profile、scope epoch、revision 和独立快照；旧响应不能清除较新版本 dirty。失败保留待保存状态，切换等待直接 profile promise 及协调器确认；blocked、deferred、error 不进入新 owner。数据、项目配置和视图设置分别报告保存失败。
 - `src/table/variable-row-window.mjs` 按当前 rowId 顺序建立增量行高索引；初始化/行序改变允许 O(N)，点更新和 offset 定位 O(log N)，窗口输出随可见窗口增长。`DataTable.tsx` 批量测量、按布局版本失效、每帧合并更新并恢复 rowId 锚点。布局状态不写入业务文档。
 - `src/page-context-storage.ts` 只暂存 dirty scroll entries，flush 时读最新状态合并；切换及正常退出事件提交旧 scope。仍沿用 localStorage 最后写入覆盖语义，不保证跨 tab 读改写原子性；浏览器崩溃或强退也不保证未确认网络保存完成。
@@ -15,13 +16,21 @@
 
 M1 的隔离整合及有限编辑验收见[中间版交付记录](../../docs/records/2026-11-01-M1表格编辑中间版隔离交付.md)。旧 generation 5 的性能样本仅描述当时冻结构建，不能作为当前 M1 的新性能对照。完整大表滚动和保存目标、正常后端无历史迁移及真实 Windows 输入法验收仍未完成；正式只读页面可用不等于这些目标已达成。
 
-## 配置修复正式激活状态（2026-11-02）
+## 配置协议修复与验收范围（2026-11-06）
+
+客户端曾仍调用旧配置 POST，与现有 snapshot/begin/save/reconcile 合同断层；本次已统一接入并完成 generation 9 正式交付。现有证据为 44 项定向测试、typecheck、构建通过，真实 service+writer 的任务隔离 fixture 覆盖三类配置保存/重载及旧版本拒绝；独立审查发现并修复冲突后无法显式重载的问题。协议回归入口为 `tests/configuration-saves-client.test.mjs` 与 `tests/api-client.test.mjs`。没有编辑正式业务数据、操作用户 Browser 或完成人类 UI 验收，不推断全量测试、全部交互或原性能目标通过。交付身份见[前向升级 Truth](./data-loading-candidate-and-v2-forward-upgrade-boundary.md)。
+
+<!-- state: history -->
+## 配置阶段历史
+
+<!-- dated: 2026-11-02 -->
+### generation 8 配置激活
 
 本次配置阶段已按用户授权通过受控升级正式激活到 generation 8：覆盖 S0a 声明资源每次调用内去重、L1 已确认布局立即排队、L2 名称登记去无效写，以及三类配置当前准入、raw CAS 和 unknown 核对。旧版 protocol3 的完整 159 文件契约仅用于已认证的升级前代；新版当前目标仍严格要求 164 文件。真实跨版本完整升级、13 项保护负例及三类配置保存通过，232 个业务文件未变。详见[正式激活记录](../../docs/records/2026-11-02-配置保存修复与跨版本校验正式激活记录.md)。
 
-业务保存、Job 握手及启动改造仍未完成且搁置，不能将配置阶段激活描述为原完整性能目标完成。正式前端使用已验收的预编译产物，根目录开发端 TS 源码及构建依赖未同步；以下诊断和“未实施”表述保留为当时阶段记录，应以本节和激活记录判断当前运行版本。
+业务保存、Job 握手及启动改造仍未完成且搁置，不能将配置阶段激活描述为原完整性能目标完成。当时正式前端使用已验收预编译产物、开发源码未同步；该限制已由后续 generation 9 的源码基线重建核验更新。以下诊断与“未实施”仅是阶段历史，当前配置协议以本文当前行为为准。
 
-## 保存等待诊断与当时未实施边界
+#### 保存等待诊断与当时未实施边界
 
 2026-11-01 的 S0 仅在隔离副本复现，前端为当前 M1 `index-BGcFoDsg.js`（SHA256 `a10d1ae7449e587d44c078cf823bd6585b22797dfcdd55cbdf600ebfc1f94749`），后端为正式磁盘源码副本。小表为当前 3 行、1796 bytes 的 `equipment_bases.json`，大表为当前 187 行、425794 bytes 的 `skills.json`；没有把旧 1870 行扩增样本当成当前大表。两轮完整测试各 20 个操作案例、16 次成功 POST；没有实施或部署修复。
 
@@ -33,7 +42,7 @@ M1 的隔离整合及有限编辑验收见[中间版交付记录](../../docs/rec
 
 证据支持的最小后续候选是仅在 `validateDeclaredResources` 每次调用内部，按原声明字符串保序去重，保留首现路径、首错顺序和所有原检查点；不规范化路径，不跨项目、调用或请求缓存。该候选尚未获实施授权，不是当前行为。后续须验证重复只读一次、缺失/坏 JSON/异常 IO 与首错不变、阶段间或请求间变化重新读取、跨项目隔离，以及同一小表/大表的完整数据、引用、ETag 和 ACK 时序。状态显示修正及整体无历史迁移仍是独立范围，不能代替实际热点验证或据此扩大 authority。
 
-### 布局等待的独立候选切片（未实施）
+#### 布局等待的独立候选切片（当时未实施）
 
 布局单独保存与数据/profile 交叠等待需分别验收。现 `src/save-coordinator.ts::schedule/runFlush` 的默认窗口仍为 800ms，成功后若仍 dirty 会重新 `schedule('retry')`。2026-11-01 用户已同意修订设计：L1 改为离散布局真实确认后立即串行排队、连续拖动按原结束确认入口提交；短合并只兜底缺可靠结束事件且已经确认的来源，不能定时发送活跃预览。前序成功后重新核对 owner、ready 与必要依赖，立即消费最新已确认布局，不再增加首次或续轮固定 800ms。旧“保留首次 800ms”候选约束已被替换，历史 S0 测量仍有效；这仍是未实施的设计，不是当前调度行为。
 

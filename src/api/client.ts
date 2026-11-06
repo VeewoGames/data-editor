@@ -1,4 +1,5 @@
 import { readJson, isReadInterruption } from './read-coordinator.mjs';
+import { createConfigurationSaves } from './configuration-saves.mjs';
 import { saveDocumentsWith } from "./save-documents.mjs";
 import { createSaveIdempotencyKey } from "./save-idempotency-key.mjs";
 import type { DocumentModel } from "../model/documentModel";
@@ -541,14 +542,6 @@ export type SharedViewsConfig = {
   collections: Record<string, { items: SharedViewItem[]; defaultViewId: string | null }>;
 };
 
-function createKeepaliveJsonRequest(payload: unknown) {
-  const body = JSON.stringify(payload);
-  const keepalive = typeof TextEncoder !== "undefined"
-    ? new TextEncoder().encode(body).byteLength <= 60_000
-    : body.length <= 60_000;
-  return { body, keepalive };
-}
-
 export async function listProjects(): Promise<ProjectRegistry> {
   return fetchJson("/api/projects");
 }
@@ -681,7 +674,7 @@ function saveDocumentsError(result: SaveDocumentsResult) {
 }
 
 export async function loadViewConfig(projectId?: string | null): Promise<ViewConfig> {
-  return normalizeFetchedViewConfig(await fetchJson(withProjectId("/api/view-config", projectId))) as ViewConfig;
+  return normalizeFetchedViewConfig(await configurationSaves.load({ kind: 'view-config', projectId })) as ViewConfig;
 }
 
 export async function loadDocumentIndex(path: string, projectId?: string | null, options?: DocumentRequestOptions): Promise<DocumentIndexResponse> {
@@ -693,25 +686,15 @@ export async function loadDocumentContent(path: string, id: string, projectId?: 
 }
 
 export async function saveViewConfig(config: ViewConfig, projectId?: string | null, expected?: ViewConfig) {
-  return fetchJson("/api/view-config", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, config, ...(expected===undefined?{}:{expected}) }),
-  });
+  return configurationSaves.save({ kind: 'view-config', projectId }, config, expected);
 }
 
 export async function loadSharedViews(projectId?: string | null): Promise<SharedViewsConfig> {
-  return fetchJson(withProjectId("/api/shared-views", projectId));
+  return await configurationSaves.load({ kind: 'shared-views', projectId }) as SharedViewsConfig;
 }
 
 export async function saveSharedViews(config: SharedViewsConfig, projectId?: string | null, expected?: SharedViewsConfig) {
-  const { body, keepalive } = createKeepaliveJsonRequest({ projectId, config, ...(expected===undefined?{}:{expected}) });
-  return fetchJson("/api/shared-views", {
-    method: "POST",
-    keepalive,
-    headers: { "content-type": "application/json" },
-    body,
-  });
+  return configurationSaves.save({ kind: 'shared-views', projectId }, config, expected);
 }
 
 export async function listViewProfiles(projectId?: string | null): Promise<string[]> {
@@ -719,16 +702,14 @@ export async function listViewProfiles(projectId?: string | null): Promise<strin
 }
 
 export async function loadViewProfile(name: string, projectId?: string | null): Promise<UserViewProfile> {
-  return fetchJson(withProjectId(`/api/view-profile?name=${encodeURIComponent(name)}`, projectId));
+  return await configurationSaves.load({ kind: 'view-profile', projectId, name }) as UserViewProfile;
 }
 
 export async function saveViewProfile(name: string, profile: UserViewProfile, projectId?: string | null, expected?: UserViewProfile | null) {
-  return fetchJson("/api/view-profile", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId, name, profile, ...(expected===undefined?{}:{expected}) }),
-  });
+  return configurationSaves.save({ kind: 'view-profile', projectId, name }, profile, expected);
 }
+
+const configurationSaves = createConfigurationSaves(fetchJson);
 
 function buildDocumentRequestPath(basePath: string, path: string, options?: DocumentRequestOptions, id?: string) {
   const searchParams = new URLSearchParams({ path });
@@ -896,6 +877,7 @@ function isAutosaveDebugRequest(url: string, options?: RequestInit) {
   return url === "/api/save"
     || url === "/api/view-config"
     || url === "/api/view-profile"
+    || url === "/api/configuration-save"
     || url === "/api/automation-profile"
     || url === "/api/automation-bindings";
 }
